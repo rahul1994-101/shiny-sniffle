@@ -1,0 +1,22 @@
+name: CI - Database
+
+on:
+  push:
+    branches: [main, dev, development]
+    paths: [src/Database/**]
+  pull_request:
+    branches: [main, dev, development]
+    paths: [src/Database/**]
+
+jobs:
+  build:
+    runs-on: windows-latest  # Required for sqlproj builds
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Build SQL Project
+        run: msbuild src/Database/Database.sqlproj /p:Configuration=Release

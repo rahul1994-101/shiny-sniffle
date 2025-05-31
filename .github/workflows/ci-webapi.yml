@@ -1,0 +1,27 @@
+name: CI - WebApi
+
+on:
+  push:
+    branches: [main, dev, development]
+    paths: [src/WebApi/**, src/SharedKernel/**]
+  pull_request:
+    branches: [main, dev, development]
+    paths: [src/WebApi/**, src/SharedKernel/**]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.x'
+
+      - name: Restore dependencies
+        run: dotnet restore ShinySniffle.sln
+
+      - name: Build WebApi
+        run: dotnet build src/WebApi/WebApi.csproj --configuration Release --no-restore

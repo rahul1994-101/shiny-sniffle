@@ -1,0 +1,27 @@
+name: CI - WebApp
+
+on:
+  push:
+    branches: [main, dev, development]
+    paths: [src/WebApp/**, src/SharedKernel/**]
+  pull_request:
+    branches: [main, dev, development]
+    paths: [src/WebApp/**, src/SharedKernel/**]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.x'
+
+      - name: Restore dependencies
+        run: dotnet restore ShinySniffle.sln
+
+      - name: Build WebApp
+        run: dotnet build src/WebApp/WebApp.csproj --configuration Release --no-restore
