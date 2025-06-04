@@ -1,0 +1,29 @@
+name: CD – WebApi (Dev)
+
+on:
+  push:
+    branches: [dev, development]
+    paths: [src/WebApi/**, src/SharedKernel/**]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: dev
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.x'
+
+      - name: Publish WebApi
+        run: dotnet publish src/WebApi/WebApi.csproj --configuration Release --output ./publish
+
+      - name: Deploy to Azure WebApp
+        uses: azure/webapps-deploy@v2
+        with:
+          app-name: sniffle-webapi-dev
+          publish-profile: ${{ secrets.WEBAPI_DEV_PUBLISH_PROFILE }}
+          package: ./publish
