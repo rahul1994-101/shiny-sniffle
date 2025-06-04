@@ -1,5 +1,5 @@
 ﻿CREATE TABLE [dbo].[tblCDTest]
 (
 	[Id] INT NOT NULL PRIMARY KEY, 
-    [Name] NVARCHAR(50) NULL
+    [Namee] NVARCHAR(50) NULL
 )
