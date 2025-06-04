@@ -1,9 +1,6 @@
 name: CI - Database
 
 on:
-  push:
-    branches: [main, dev, development]
-    paths: [src/Database/**]
   pull_request:
     branches: [main, dev, development]
     paths: [src/Database/**]
