@@ -17,11 +17,11 @@ jobs:
         with:
           # name: WebApi-${{ github.sha }}
           name: WebApi-latest
-          path: ./artifact
+          path: ./artifact/WebApi
 
       - name: Validate artifact content
         run: |
-          if [ ! -d "./artifact" ] || [ -z "$(ls -A ./artifact)" ]; then
+          if [ ! -d "./artifact/WebApi" ] || [ -z "$(ls -A ./artifact/WebApi)" ]; then
             echo "❌ Artifact not found or is empty."
             exit 1
           fi
@@ -31,4 +31,4 @@ jobs:
         with:
           app-name: sniffle-webapi-dev
           publish-profile: ${{ secrets.WEBAPI_DEV_PUBLISH_PROFILE }}
-          package: ./artifact
+          package: ./artifact/WebApi
