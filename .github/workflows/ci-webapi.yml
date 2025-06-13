@@ -29,8 +29,8 @@ jobs:
       - name: Restore dependencies
         run: dotnet restore ShinySniffle.sln
 
-      - name: Clean solution
-        run: dotnet clean ShinySniffle.sln
+      # - name: Clean solution
+      #   run: dotnet clean ShinySniffle.sln
 
       - name: Build WebApi
         run: dotnet build src/WebApi/WebApi.csproj --configuration Release --no-restore
