@@ -1,4 +1,4 @@
-name: CD � WebApp (Dev)
+﻿name: CD – WebApp (Dev)
 
 on:
   push:
@@ -7,23 +7,28 @@ on:
 
 jobs:
   deploy:
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     environment: dev
 
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+      - name: Download artifact from CI
+        uses: actions/download-artifact@v4
         with:
-          dotnet-version: '8.x'
+          # name: WebApp-${{ github.sha }}
+          name: WebApp-latest
+          path: ./artifact
 
-      - name: Publish WebApp
-        run: dotnet publish src/WebApp/WebApp.csproj --configuration Release --output ./publish
+      - name: Validate artifact content
+        run: |
+          if [ ! -d "./artifact" ] || [ -z "$(ls -A ./artifact)" ]; then
+            echo "❌ Artifact not found or is empty."
+            exit 1
+          fi
 
       - name: Deploy to Azure WebApp
         uses: azure/webapps-deploy@v2
         with:
           app-name: sniffle-webapp-dev
           publish-profile: ${{ secrets.WEBAPP_DEV_PUBLISH_PROFILE }}
-          package: ./publish
+          package: ./artifact

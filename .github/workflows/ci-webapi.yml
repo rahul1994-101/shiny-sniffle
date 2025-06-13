@@ -10,15 +10,37 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout source code
+        uses: actions/checkout@v4
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.x'
 
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', '**/Directory.Build.*', '**/global.json') }}
+          restore-keys: |
+            nuget-${{ runner.os }}-
+
       - name: Restore dependencies
         run: dotnet restore ShinySniffle.sln
 
+      - name: Clean solution
+        run: dotnet clean ShinySniffle.sln
+
       - name: Build WebApi
         run: dotnet build src/WebApi/WebApi.csproj --configuration Release --no-restore
+
+      - name: Publish WebApi
+        run: dotnet publish src/WebApi/WebApi.csproj --configuration Release --output ./artifacts/WebApi
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          # name: WebApi-${{ github.sha }}
+          name: WebApi-latest
+          path: ./artifacts/WebApi
