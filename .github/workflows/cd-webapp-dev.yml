@@ -17,11 +17,11 @@ jobs:
         with:
           # name: WebApp-${{ github.sha }}
           name: WebApp-latest
-          path: ./artifact
+          path: ./artifact/WebApp
 
       - name: Validate artifact content
         run: |
-          if [ ! -d "./artifact" ] || [ -z "$(ls -A ./artifact)" ]; then
+          if [ ! -d "./artifact/WebApp" ] || [ -z "$(ls -A ./artifact/WebApp)" ]; then
             echo "❌ Artifact not found or is empty."
             exit 1
           fi
@@ -31,4 +31,4 @@ jobs:
         with:
           app-name: sniffle-webapp-dev
           publish-profile: ${{ secrets.WEBAPP_DEV_PUBLISH_PROFILE }}
-          package: ./artifact
+          package: ./artifact/WebApp
