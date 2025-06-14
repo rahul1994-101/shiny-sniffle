@@ -41,6 +41,6 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          # name: WebApp-${{ github.sha }}
+          # name: WebApp-${{ github.run_id }}
           name: WebApp-latest
           path: ./artifacts/WebApp

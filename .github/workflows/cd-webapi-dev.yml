@@ -1,27 +1,39 @@
-﻿name: CD – WebApi (Dev)
+﻿name: CD - WebApi (Dev)
 
 on:
   push:
     branches: [dev, development]
     paths: [src/WebApi/**, src/SharedKernel/**]
 
+  # workflow_run:
+  #   workflows: ["CI - WebApi"]
+  #   types:
+  #     - completed
+
 jobs:
   deploy:
     if: github.event_name == 'push'
+    # if: >
+    #   github.event.workflow_run.conclusion == 'success' &&
+    #   contains(fromJson('["dev", "development"]'), github.event.workflow_run.head_branch)
     runs-on: ubuntu-latest
     environment: dev
+
+    env:
+      # ARTIFACT_NAME: WebApi-${{ github.run_id }}
+      ARTIFACT_NAME: WebApi-latest
+      ARTIFACT_PATH: ./artifacts/WebApi
 
     steps:
       - name: Download artifact from CI
         uses: actions/download-artifact@v4
         with:
-          # name: WebApi-${{ github.sha }}
-          name: WebApi-latest
-          path: ./artifact/WebApi
+          name: ${{ env.ARTIFACT_NAME }}
+          path: ${{ env.ARTIFACT_PATH }}
 
       - name: Validate artifact content
         run: |
-          if [ ! -d "./artifact/WebApi" ] || [ -z "$(ls -A ./artifact/WebApi)" ]; then
+          if [ ! -d "${{ env.ARTIFACT_PATH }}" ] || [ -z "$(ls -A ${{ env.ARTIFACT_PATH }})" ]; then
             echo "❌ Artifact not found or is empty."
             exit 1
           fi
@@ -31,4 +43,4 @@ jobs:
         with:
           app-name: sniffle-webapi-dev
           publish-profile: ${{ secrets.WEBAPI_DEV_PUBLISH_PROFILE }}
-          package: ./artifact/WebApi
+          package: ${{ env.ARTIFACT_PATH }}
