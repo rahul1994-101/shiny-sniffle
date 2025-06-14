@@ -8,5 +8,6 @@ namespace SharedKernal
 {
     internal class TempClass
     {
+        public int MyProperty { get; set; }
     }
 }
