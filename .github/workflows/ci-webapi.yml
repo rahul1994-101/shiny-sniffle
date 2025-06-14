@@ -1,6 +1,9 @@
 name: CI - WebApi
 
 on:
+  push:
+    branches: [main, dev, development]
+    paths: [src/WebApi/**, src/SharedKernel/**]
   pull_request:
     branches: [main, dev, development]
     paths: [src/WebApi/**, src/SharedKernel/**]

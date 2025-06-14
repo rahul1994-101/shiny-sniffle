@@ -4,8 +4,11 @@
 
 <h1>Hello, world</h1>
 
-Welcome to shiny-sniffle @currentYear
+Welcome to shiny-sniffle
+
+<br />
+<h5>@BranchName</h5>
 
 @code {
-    public int currentYear { get; set; } = DateTime.Now.Year;
+    public string BranchName { get; set; } = "CI_CD_03";
 }
