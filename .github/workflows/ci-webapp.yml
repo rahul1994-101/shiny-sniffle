@@ -1,6 +1,9 @@
 name: CI - WebApp
 
 on:
+  push:
+    branches: [main, dev, development]
+    paths: [src/WebApp/**, src/SharedKernel/**]
   pull_request:
     branches: [main, dev, development]
     paths: [src/WebApp/**, src/SharedKernel/**]
