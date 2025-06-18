@@ -1,9 +1,6 @@
 name: CI - WebApp
 
 on:
-  push:
-    branches: [main, dev, development]
-    paths: [src/WebApp/**, src/SharedKernel/**]
   pull_request:
     branches: [main, dev, development]
     paths: [src/WebApp/**, src/SharedKernel/**]
@@ -32,18 +29,5 @@ jobs:
       - name: Restore dependencies
         run: dotnet restore ShinySniffle.sln
 
-      # - name: Clean solution
-      #   run: dotnet clean ShinySniffle.sln
-
       - name: Build WebApp
         run: dotnet build src/WebApp/WebApp.csproj --configuration Release --no-restore
-
-      - name: Publish WebApp
-        run: dotnet publish src/WebApp/WebApp.csproj --configuration Release --output ./artifacts/WebApp
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          # name: WebApp-${{ github.run_id }}
-          name: WebApp-latest
-          path: ./artifacts/WebApp
