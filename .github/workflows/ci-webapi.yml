@@ -1,9 +1,6 @@
 name: CI - WebApi
 
 on:
-  push:
-    branches: [main, dev, development]
-    paths: [src/WebApi/**, src/SharedKernel/**]
   pull_request:
     branches: [main, dev, development]
     paths: [src/WebApi/**, src/SharedKernel/**]
@@ -32,18 +29,5 @@ jobs:
       - name: Restore dependencies
         run: dotnet restore ShinySniffle.sln
 
-      # - name: Clean solution
-      #   run: dotnet clean ShinySniffle.sln
-
       - name: Build WebApi
         run: dotnet build src/WebApi/WebApi.csproj --configuration Release --no-restore
-
-      - name: Publish WebApi
-        run: dotnet publish src/WebApi/WebApi.csproj --configuration Release --output ./artifacts/WebApi
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          # name: WebApi-${{ github.run_id }}
-          name: WebApi-latest
-          path: ./artifacts/WebApi

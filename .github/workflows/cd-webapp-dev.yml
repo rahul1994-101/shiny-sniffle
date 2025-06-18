@@ -1,26 +1,57 @@
 ﻿name: CD - WebApp (Dev)
 
 on:
-  workflow_run:
-    workflows: ["CI - WebApp"]
-    types:
-      - completed
+  push:
+    branches: [dev, development]
+    paths: [src/WebApp/**, src/SharedKernel/**]
 
 jobs:
-  deploy:
-    if: >
-      github.event.workflow_run.conclusion == 'success' &&
-      contains(fromJson('["dev", "development"]'), github.event.workflow_run.head_branch)
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.x'
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', '**/Directory.Build.*', '**/global.json') }}
+          restore-keys: |
+            nuget-${{ runner.os }}-
+
+      - name: Restore dependencies
+        run: dotnet restore ShinySniffle.sln
+
+      - name: Build WebApp
+        run: dotnet build src/WebApp/WebApp.csproj --configuration Release --no-restore
+
+      - name: Publish WebApp
+        run: dotnet publish src/WebApp/WebApp.csproj --configuration Release --output ./artifacts/WebApp
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: WebApp-latest
+          path: ./artifacts/WebApp
+
+  deploy-dev:
+    needs: build
     runs-on: ubuntu-latest
     environment: dev
 
     env:
-      # ARTIFACT_NAME: WebApp-${{ github.run_id }}
       ARTIFACT_NAME: WebApp-latest
       ARTIFACT_PATH: ./artifacts/WebApp
 
     steps:
-      - name: Download artifact from CI
+      - name: Download artifact
         uses: actions/download-artifact@v4
         with:
           name: ${{ env.ARTIFACT_NAME }}
