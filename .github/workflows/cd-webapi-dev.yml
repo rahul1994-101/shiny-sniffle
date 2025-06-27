@@ -41,12 +41,18 @@ jobs:
       - name: Publish WebApi
         run: dotnet publish src/WebApi/WebApi.csproj --configuration Release --output ./artifacts/WebApi
 
+      # Zip published project
+      - name: Zip published project
+        run: zip -r WebApi.zip ./*
+        working-directory: ./artifacts/WebApi
+
       # Upload artifact
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: WebApi-latest
-          path: ./artifacts/WebApi
+          # path: ./artifacts/WebApi
+          path: ./artifacts/WebApi/WebApi.zip  # If you are zipping the output
           compression-level: 6  #  0 (no compression) to 9 (max)
           if-no-files-found: error
 
@@ -58,24 +64,34 @@ jobs:
     env:
       ARTIFACT_NAME: WebApi-latest
       ARTIFACT_PATH: ./artifacts/WebApi
+      ARTIFACT_ZIP: ./artifacts/WebApi/WebApi.zip  # If you are zipping the output
 
     steps:
+      # Download artifact
       - name: Download artifact
         uses: actions/download-artifact@v4
         with:
           name: ${{ env.ARTIFACT_NAME }}
           path: ${{ env.ARTIFACT_PATH }}
 
+      # Validate artifact content
       - name: Validate artifact content
+        # run: |
+        #   if [ ! -d "${{ env.ARTIFACT_PATH }}" ] || [ -z "$(ls -A ${{ env.ARTIFACT_PATH }})" ]; then
+        #     echo "❌ Artifact not found or is empty."
+        #     exit 1
+        #   fi
         run: |
-          if [ ! -d "${{ env.ARTIFACT_PATH }}" ] || [ -z "$(ls -A ${{ env.ARTIFACT_PATH }})" ]; then
-            echo "❌ Artifact not found or is empty."
+          if [ ! -f "${{ env.ARTIFACT_ZIP }}" ]; then
+            echo "❌ WebApi.zip not found!"
             exit 1
           fi
 
+      # Deploy to Azure WebApp
       - name: Deploy to Azure WebApp
         uses: azure/webapps-deploy@v2
         with:
           app-name: sniffle-webapi-dev
           publish-profile: ${{ secrets.WEBAPI_DEV_PUBLISH_PROFILE }}
-          package: ${{ env.ARTIFACT_PATH }}
+          # package: ${{ env.ARTIFACT_PATH }}
+          package: ${{ env.ARTIFACT_ZIP }}  # If you are zipping the output
