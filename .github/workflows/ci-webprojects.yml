@@ -10,14 +10,17 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # Checkout source code
       - name: Checkout source code
         uses: actions/checkout@v4
 
+      # Setup .NET
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.x'
 
+      # Cache NuGet packages
       - name: Cache NuGet packages
         uses: actions/cache@v4
         with:
@@ -26,6 +29,7 @@ jobs:
           restore-keys: |
             nuget-${{ runner.os }}-
 
+      # Restore dependencies
       - name: Restore dependencies
         run: dotnet restore ShinySniffle.sln
 
