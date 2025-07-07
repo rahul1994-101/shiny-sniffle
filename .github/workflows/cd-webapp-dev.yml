@@ -95,3 +95,43 @@ jobs:
           publish-profile: ${{ secrets.WEBAPP_DEV_PUBLISH_PROFILE }}
           # package: ${{ env.ARTIFACT_PATH }}
           package: ${{ env.ARTIFACT_ZIP }}  # If you are zipping the output
+
+  deploy-stg:
+    needs: deploy-dev
+    runs-on: ubuntu-latest
+    environment: stg
+
+    env:
+      ARTIFACT_NAME: WebApp-latest
+      ARTIFACT_PATH: ./artifacts/WebApp
+      ARTIFACT_ZIP: ./artifacts/WebApp/WebApp.zip  # If you are zipping the output
+
+    steps:
+      # Download artifact
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.ARTIFACT_NAME }}
+          path: ${{ env.ARTIFACT_PATH }}
+
+      # Validate artifact content
+      - name: Validate artifact content
+        # run: |
+        #   if [ ! -d "${{ env.ARTIFACT_PATH }}" ] || [ -z "$(ls -A ${{ env.ARTIFACT_PATH }})" ]; then
+        #     echo "❌ Artifact not found or is empty."
+        #     exit 1
+        #   fi
+        run: |
+          if [ ! -f "${{ env.ARTIFACT_ZIP }}" ]; then
+            echo "❌ WebApp.zip not found!"
+            exit 1
+          fi
+
+      # Deploy to Azure WebApp
+      - name: Deploy to Azure WebApp
+        uses: azure/webapps-deploy@v2
+        with:
+          app-name: sniffle-webapp-stg
+          publish-profile: ${{ secrets.WEBAPP_STG_PUBLISH_PROFILE }}
+          # package: ${{ env.ARTIFACT_PATH }}
+          package: ${{ env.ARTIFACT_ZIP }}  # If you are zipping the output
