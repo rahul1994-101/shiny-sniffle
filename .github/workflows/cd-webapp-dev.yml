@@ -89,7 +89,8 @@ jobs:
 
       # Deploy to Azure WebApp
       - name: Deploy to Azure WebApp
-        uses: azure/webapps-deploy@v2
+        # uses: azure/webapps-deploy@v2
+        uses: ./.github/actions/webapps-deploy/3.0.6
         with:
           app-name: sniffle-webapp-dev
           publish-profile: ${{ secrets.WEBAPP_DEV_PUBLISH_PROFILE }}
@@ -129,7 +130,8 @@ jobs:
 
       # Deploy to Azure WebApp
       - name: Deploy to Azure WebApp
-        uses: azure/webapps-deploy@v2
+        # uses: azure/webapps-deploy@v2
+        uses: ./.github/actions/webapps-deploy/3.0.6
         with:
           app-name: sniffle-webapp-stg
           publish-profile: ${{ secrets.WEBAPP_STG_PUBLISH_PROFILE }}
