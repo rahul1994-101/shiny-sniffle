@@ -15,7 +15,7 @@ app.UseHttpsRedirection();
 
 var summaries = new[]
 {
-    "Freezing!", "Bracing!", "Chilly!", "Cool!", "Mild!", "Warm!", "Balmy!", "CI_CD_11"
+    "Freezing!", "Bracing!", "Chilly!", "Cool!", "Mild!", "Warm!", "Balmy!", "workflow_dispatch"
 };
 
 app.MapGet("/weatherforecast", () =>
