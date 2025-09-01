@@ -9,7 +9,7 @@ on:
 
 jobs:
   deploy-dev:
-    if: ${{((github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') ||  github.event_name == 'workflow_dispatch') && github.event.workflow_run.head_branch == 'Development'}}
+    if: ${{((github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') ||  github.event_name == 'workflow_dispatch') && github.event.workflow_run.head_branch == 'development'}}
     runs-on: ubuntu-latest
     environment: dev
 
@@ -58,7 +58,7 @@ jobs:
           package: ${{ env.ARTIFACT_ZIP }}  # If you are zipping the output
 
   deploy-stg:
-    if: ${{((github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') ||  github.event_name == 'workflow_dispatch') && github.event.workflow_run.head_branch == 'Development'}}
+    if: ${{((github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') ||  github.event_name == 'workflow_dispatch') && github.event.workflow_run.head_branch == 'development'}}
     runs-on: ubuntu-latest
     environment: stg
     needs: deploy-dev
