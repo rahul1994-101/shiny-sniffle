@@ -1,7 +1,7 @@
 name: CI - WebApp
 
 on:
-  pull_request:
+  push:
     branches: [main, dev, development]
     paths: [src/WebApp/**, src/SharedKernel/**]
   workflow_dispatch:
