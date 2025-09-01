@@ -8,6 +8,12 @@ on:
       - completed
 
 jobs:
+  print-event:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Print event context
+        run: echo "Hi.."
+
   deploy-dev:
     if: ${{((github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') ||  github.event_name == 'workflow_dispatch') && github.event.workflow_run.head_branch == 'development'}}
     runs-on: ubuntu-latest
