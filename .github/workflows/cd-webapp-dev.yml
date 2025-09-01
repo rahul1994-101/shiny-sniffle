@@ -67,6 +67,10 @@ jobs:
       ARTIFACT_ZIP: ./artifacts/WebApp/WebApp.zip  # If you are zipping the output
 
     steps:
+      # Checkout source code (For Vendoring)
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
       # Download artifact
       - name: Download artifact
         uses: actions/download-artifact@v4
@@ -108,6 +112,10 @@ jobs:
       ARTIFACT_ZIP: ./artifacts/WebApp/WebApp.zip  # If you are zipping the output
 
     steps:
+      # Checkout source code (For Vendoring)
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
       # Download artifact
       - name: Download artifact
         uses: actions/download-artifact@v4
