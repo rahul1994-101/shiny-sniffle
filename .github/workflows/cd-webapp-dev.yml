@@ -4,6 +4,7 @@ on:
   push:
     branches: [main, development]
     paths: [src/WebApp/**, src/SharedKernel/**]
+  workflow_dispatch:
 
 jobs:
   build:
@@ -67,9 +68,15 @@ jobs:
       ARTIFACT_ZIP: ./artifacts/WebApp/WebApp.zip  # If you are zipping the output
 
     steps:
-      # Checkout source code (For Vendoring)
-      - name: Checkout source code
+      # Checkout actions (For Vendoring)
+      - name: Checkout actions (For Vendoring)
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          submodules: false
+          lfs: false
+          sparse-checkout: .github/actions
+          sparse-checkout-cone-mode: true
 
       # Download artifact
       - name: Download artifact
