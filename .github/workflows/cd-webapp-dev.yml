@@ -15,7 +15,12 @@ jobs:
         run: echo "Hi.."
 
   deploy-dev:
-    if: ${{((github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') ||  github.event_name == 'workflow_dispatch') && github.event.workflow_run.head_branch == 'development'}}
+    if: |
+      (github.event_name == 'workflow_dispatch') ||
+      (github.event_name == 'workflow_run' &&
+       github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.head_branch == 'development')
+    # if: ${{((github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') ||  github.event_name == 'workflow_dispatch') && github.event.workflow_run.head_branch == 'development'}}
     # if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'development') }}
     runs-on: ubuntu-latest
     environment: dev
