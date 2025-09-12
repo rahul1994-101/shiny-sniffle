@@ -54,7 +54,8 @@ jobs:
         with:
           name: WebApp-latest
           # path: ./artifacts/WebApp
-          path: ./artifacts/WebApp/WebApp.zip  # If you are zipping the output
+          # path: ./artifacts/WebApp/WebApp.zip  # If you are zipping the output
+          path: ${{github.workspace}}/WebApp
           compression-level: 6  #  0 (no compression) to 9 (max)
           if-no-files-found: error
 
