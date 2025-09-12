@@ -2,8 +2,8 @@ name: ci-webapp
 
 on:
   push:
-    branches: [main, dev, development]
-    paths: [src/WebApp/**, src/SharedKernel/**]
+    branches: [main, dev, development, workflow]
+    # paths: [src/WebApp/**, src/SharedKernel/**]
   workflow_dispatch:
 
 jobs:
