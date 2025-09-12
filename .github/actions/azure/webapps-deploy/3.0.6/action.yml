@@ -1,4 +1,3 @@
-# web app action
 name: 'Azure Web Apps Deploy (vendored)'
 description: 'Deploy Web Apps/Containerized Web Apps to Azure. github.com/Azure/Actions'
 inputs: 
