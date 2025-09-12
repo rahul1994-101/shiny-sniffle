@@ -5,7 +5,7 @@ on:
   workflow_run:
     workflows: ["ci-webapp"]
     types: [completed]
-    branches: [main, dev, development]
+    # branches: [main, dev, development]
 
 jobs:
   print-event:
