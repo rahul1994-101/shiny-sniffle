@@ -1,0 +1,58 @@
+﻿@inherits LayoutComponentBase
+@inject MockSessionPersistence SessionPersistence
+@inject Repository Repo
+
+<div id="app-shell" class="page app-chat-layout">
+    <Sidebar />
+
+    <button type="button"
+            id="sidebar-backdrop"
+            class="sidebar-backdrop"
+            data-shell-close
+            hidden
+            aria-hidden="true"
+            tabindex="-1"
+            aria-label="Close menu"></button>
+
+    <div class="main-stack">
+        <Navbar />
+        <main class="main-area">
+            <article class="content">
+                <CascadingValue Value="_sessionStorageReady" Name="SessionStorageReady">
+                    @if (!_sessionStorageReady)
+                    {
+                        <p class="app-session-loading">Restoring session…</p>
+                    }
+                    else
+                    {
+                        @Body
+                    }
+                </CascadingValue>
+            </article>
+        </main>
+    </div>
+</div>
+
+<div id="blazor-error-ui" data-nosnippet>
+    An unhandled error has occurred.
+    <a href="." class="reload">Reload</a>
+    <span class="dismiss">🗙</span>
+</div>
+
+@code {
+    private bool _sessionStorageReady;
+    private bool _restoreAttempted;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || _restoreAttempted)
+        {
+            return;
+        }
+
+        _restoreAttempted = true;
+        await SessionPersistence.TryRestoreAsync();
+        _sessionStorageReady = true;
+        StateHasChanged();
+    }
+}

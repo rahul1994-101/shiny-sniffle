@@ -1,0 +1,221 @@
+﻿@page "/settings"
+@inject Service Svc
+@inject Repository Repo
+@inject AgenticApiClient Agentic
+@inject IConfiguration Configuration
+@inject NavigationManager Nav
+
+<PageTitle>Settings</PageTitle>
+
+@if (!SessionStorageReady)
+{
+    <p class="settings-redirect">Restoring session…</p>
+}
+else if (!Repo.HasMockSession)
+{
+    <p class="settings-redirect">Redirecting to sign in…</p>
+}
+else
+{
+<div class="settings-shell">
+    <nav class="settings-back-nav" aria-label="Back">
+        <NavLink class="settings-back" href="">
+            <svg class="settings-back-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            Back to chat
+        </NavLink>
+    </nav>
+
+    <header class="settings-header">
+        <h1 class="settings-title">Settings</h1>
+        <p class="settings-subtitle">Session options and connection to the Python agent API.</p>
+    </header>
+
+    <section class="settings-card" aria-labelledby="agentic-heading">
+        <h2 id="agentic-heading" class="settings-section-title">Python agent API</h2>
+        <label class="form-label" for="agentic-base">Base URL override</label>
+        <input id="agentic-base"
+               type="url"
+               class="form-control settings-input"
+               @bind="Repo.AgenticApiBaseUrlOverride"
+               placeholder="@_defaultBasePlaceholder"
+               autocomplete="off" />
+        <p class="settings-hint">
+            Leave empty to use <code>AgenticApi:BaseUrl</code> from appsettings
+            (<strong>@Repo.EffectiveAgenticBaseUrl</strong> effective).
+            Chat calls <code>POST /mail_agent_chat</code> when this URL is set.
+        </p>
+    </section>
+
+    <section class="settings-card" aria-labelledby="gmail-heading">
+        <h2 id="gmail-heading" class="settings-section-title">Gmail tokens (Python file)</h2>
+        <p class="settings-copy">
+            Tokens are saved for your signed-in email (<strong>@Repo.GmailUserEmail</strong>).
+            Change account with <strong>Sign out</strong> in the header, then sign in again.
+        </p>
+        <p class="settings-copy">
+            Paste access/refresh tokens from the OAuth Playground (or similar). They are stored in
+            <code>data/gmail_tokens.json</code> on the Python host.
+        </p>
+
+        <label class="form-label" for="gmail-access">Access token (optional if refresh is set)</label>
+        <textarea id="gmail-access"
+                  class="form-control settings-input settings-textarea"
+                  rows="2"
+                  @bind="_pasteAccessToken"
+                  placeholder="ya29…"
+                  spellcheck="false"
+                  autocomplete="off"></textarea>
+
+        <label class="form-label" for="gmail-refresh">Refresh token (recommended)</label>
+        <textarea id="gmail-refresh"
+                  class="form-control settings-input settings-textarea"
+                  rows="2"
+                  @bind="_pasteRefreshToken"
+                  placeholder="1//…"
+                  spellcheck="false"
+                  autocomplete="off"></textarea>
+
+        <label class="form-label" for="gmail-exp">Access token lifetime (seconds)</label>
+        <input id="gmail-exp"
+               type="number"
+               class="form-control settings-input"
+               min="60"
+               max="86400"
+               @bind="_expiresInSeconds" />
+
+        <div class="settings-actions">
+            <button type="button"
+                    class="btn btn-primary"
+                    @onclick="SaveTokensToPythonAsync"
+                    disabled="@_savingTokens">
+                Save tokens to Python
+            </button>
+        </div>
+
+        @if (!string.IsNullOrEmpty(_gmailTokenMessage))
+        {
+            <p class="settings-sync-msg" role="status">@_gmailTokenMessage</p>
+        }
+    </section>
+
+    <section class="settings-card" aria-labelledby="model-heading">
+        <h2 id="model-heading" class="settings-section-title">Model</h2>
+        <label class="form-label" for="model-id">Label</label>
+        <input id="model-id"
+               type="text"
+               class="form-control settings-input"
+               @bind="_vm.ModelName"
+               placeholder="e.g. gpt-4.1"
+               autocomplete="off" />
+        <p class="settings-hint">Display label only; the deployed model is chosen in Azure AI Foundry.</p>
+    </section>
+
+    <section class="settings-card" aria-labelledby="appearance-heading">
+        <h2 id="appearance-heading" class="settings-section-title">Appearance</h2>
+        <label class="form-label" for="theme">Theme</label>
+        <select id="theme" class="form-select settings-input" @bind="_vm.Theme">
+            <option value="dark">Dark (default)</option>
+            <option value="light">Light</option>
+            <option value="system">System</option>
+        </select>
+        <p class="settings-hint">UI theme switching can be hooked up later.</p>
+    </section>
+
+    <section class="settings-card" aria-labelledby="data-heading">
+        <h2 id="data-heading" class="settings-section-title">Current chat</h2>
+        <p class="settings-copy">Clears only the chat selected in the sidebar. Other threads stay as they are.</p>
+        <button type="button" class="btn settings-btn-danger" @onclick="ClearChat">
+            Clear messages
+        </button>
+    </section>
+</div>
+}
+
+@code {
+    [CascadingParameter(Name = "SessionStorageReady")]
+    public bool SessionStorageReady { get; set; }
+
+    private readonly SettingsVM _vm = new();
+    private string _defaultBasePlaceholder = "";
+    private string _pasteAccessToken = "";
+    private string _pasteRefreshToken = "";
+    private int _expiresInSeconds = 3600;
+    private string _gmailTokenMessage = "";
+    private bool _savingTokens;
+    private bool _authRedirectSent;
+
+    protected override void OnInitialized()
+    {
+        _defaultBasePlaceholder = Configuration["AgenticApi:BaseUrl"] ?? "http://localhost:8000";
+    }
+
+    protected override Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!SessionStorageReady || Repo.HasMockSession || _authRedirectSent)
+        {
+            return Task.CompletedTask;
+        }
+
+        _authRedirectSent = true;
+        Nav.NavigateTo("/login", replace: true);
+        return Task.CompletedTask;
+    }
+
+    private async Task SaveTokensToPythonAsync()
+    {
+        _gmailTokenMessage = "";
+        var email = Repo.GmailUserEmail.Trim();
+        if (string.IsNullOrEmpty(email) || email.IndexOf('@') < 0)
+        {
+            _gmailTokenMessage = "Session email is missing. Sign out and sign in again.";
+            return;
+        }
+
+        var access = _pasteAccessToken.Trim();
+        var refresh = _pasteRefreshToken.Trim();
+        if (string.IsNullOrEmpty(access) && string.IsNullOrEmpty(refresh))
+        {
+            _gmailTokenMessage = "Paste at least an access token or a refresh token.";
+            return;
+        }
+
+        var baseUrl = Repo.EffectiveAgenticBaseUrl;
+        if (string.IsNullOrWhiteSpace(baseUrl))
+        {
+            _gmailTokenMessage = "Set the Python API base URL first.";
+            return;
+        }
+
+        _savingTokens = true;
+        try
+        {
+            int? exp = string.IsNullOrEmpty(access) ? null : Math.Clamp(_expiresInSeconds, 60, 86400);
+            (bool ok, string? err, string? path) = await Agentic.StoreGmailTokensAsync(
+                baseUrl,
+                email,
+                string.IsNullOrEmpty(refresh) ? null : refresh,
+                string.IsNullOrEmpty(access) ? null : access,
+                exp,
+                CancellationToken.None
+            );
+
+            if (!ok)
+            {
+                _gmailTokenMessage = $"Save failed: {err}";
+                return;
+            }
+
+            _gmailTokenMessage = string.IsNullOrEmpty(path)
+                ? $"Saved for {email}. Chat will send this address as user_email."
+                : $"Saved for {email}. JSON file: {path}";
+            _pasteAccessToken = "";
+            _pasteRefreshToken = "";
+        }
+        finally
+        {
+            _savingTokens = false;
+        }
+    }
+
+    private void ClearChat() => Svc.ClearActiveConversation();
+}

@@ -1,0 +1,255 @@
+@implements IDisposable
+@inject Service Svc
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+
+<aside id="app-sidebar" class="sidebar">
+    <div class="sidebar-chrome">
+        <div class="sidebar-header">
+            <a class="sidebar-brand" href="" title="Assistant">Assistant</a>
+            <button type="button"
+                    class="sidebar-header-btn sidebar-header-close"
+                    data-shell-close
+                    aria-label="Close menu"
+                    title="Close">
+                <svg class="sidebar-header-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <path d="M18 6L6 18M6 6l12 12" />
+                </svg>
+            </button>
+            <button type="button"
+                    class="sidebar-header-btn sidebar-header-collapse"
+                    data-shell-toggle
+                    aria-expanded="true"
+                    aria-controls="app-sidebar"
+                    title="Hide sidebar">
+                <svg class="sidebar-header-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <rect x="3" y="4" width="18" height="16" rx="2" />
+                    <path d="M9 4v16" />
+                </svg>
+            </button>
+        </div>
+        <div class="sidebar-body">
+            <div class="nav-root">
+                <div class="nav-scrollable">
+                    <div class="nav-actions">
+                        <button type="button" class="btn-new-chat" @onclick="StartNewChat">
+                            <svg class="nav-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+                            New chat
+                        </button>
+                    </div>
+
+                    <div class="thread-list-label">Recent</div>
+                    <ul class="thread-list">
+                        @foreach (var t in Svc.ThreadsOrdered)
+                        {
+                            var active = t.Id == Svc.ActiveThreadId;
+                            <li @key="t.Id" class="thread-item @(active ? "thread-item-active" : null)">
+                                @if (_editingId == t.Id)
+                                {
+                                    <div class="thread-edit" @onclick:stopPropagation="true">
+                                        <input type="text"
+                                               class="thread-rename-input"
+                                               @ref="_renameInput"
+                                               @bind="_editTitle"
+                                               @bind:event="oninput"
+                                               @onkeydown="RenameKeyDown"
+                                               @onblur="OnRenameBlur"
+                                               maxlength="80"
+                                               aria-label="Chat name" />
+                                    </div>
+                                }
+                                else
+                                {
+                                    <button type="button" class="thread-select" @onclick="() => SelectThread(t.Id)" title="@t.Title">
+                                        <svg class="thread-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
+                                        <span class="thread-title">@t.Title</span>
+                                    </button>
+                                    <button type="button" class="thread-rename" @onclick="() => BeginRename(t)" @onclick:stopPropagation="true" aria-label="Rename chat" title="Rename">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
+                                    </button>
+                                }
+                                @if (_editingId != t.Id)
+                                {
+                                    <button type="button" class="thread-delete" @onclick="() => DeleteThread(t.Id)" @onclick:stopPropagation="true" aria-label="Remove chat" title="Remove">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12" /></svg>
+                                    </button>
+                                }
+                            </li>
+                        }
+                    </ul>
+                </div>
+            </div>
+
+            <footer class="sidebar-footer">
+                <nav class="sidebar-footer-nav" aria-label="Workspace">
+                    <NavLink class="sidebar-footer-link" href="settings" ActiveClass="sidebar-footer-link-active" @onclick="FooterNavAsync">
+                        <svg class="sidebar-footer-link-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <circle cx="12" cy="12" r="3" />
+                            <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
+                        </svg>
+                        <span>Settings</span>
+                    </NavLink>
+                    <div class="sidebar-footer-extras"></div>
+                </nav>
+            </footer>
+        </div>
+    </div>
+</aside>
+
+@code {
+    #region # Lifecycle
+
+    protected override void OnInitialized()
+    {
+        Svc.Changed += OnSessionChanged;
+    }
+
+    private void OnSessionChanged() => InvokeAsync(StateHasChanged);
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_focusRenameInput)
+        {
+            _focusRenameInput = false;
+            try
+            {
+                await _renameInput.FocusAsync();
+            }
+            catch
+            {
+            }
+        }
+    }
+
+    public void Dispose()
+    {
+        Svc.Changed -= OnSessionChanged;
+    }
+
+    #endregion
+
+    #region # Mobile shell
+
+    private async Task CollapseMobileDrawerAsync()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("webAppShell.collapseSidebarIfMobile", "app-shell");
+        }
+        catch (JSException)
+        {
+        }
+        catch (InvalidOperationException)
+        {
+        }
+    }
+
+    private Task FooterNavAsync() => CollapseMobileDrawerAsync();
+
+    #endregion
+
+    #region # Navigation
+
+    private async Task GoChatHomeIfNeededAsync()
+    {
+        if (IsChatHome(Nav))
+        {
+            return;
+        }
+
+        Nav.NavigateTo("/", replace: true);
+        await Task.Yield();
+    }
+
+    private static bool IsChatHome(NavigationManager nav)
+    {
+        var rel = nav.ToBaseRelativePath(nav.Uri);
+        var q = rel.IndexOf('?', StringComparison.Ordinal);
+        if (q >= 0)
+        {
+            rel = rel[..q];
+        }
+
+        rel = rel.TrimEnd('/');
+        return rel.Length == 0;
+    }
+
+    #endregion
+
+    #region # Chat threads
+
+    private async Task StartNewChat()
+    {
+        Svc.CreateNewThread();
+        await GoChatHomeIfNeededAsync();
+        await CollapseMobileDrawerAsync();
+    }
+
+    private async Task SelectThread(Guid id)
+    {
+        Svc.SelectThread(id);
+        await GoChatHomeIfNeededAsync();
+        await CollapseMobileDrawerAsync();
+    }
+
+    private async Task DeleteThread(Guid id)
+    {
+        Svc.DeleteThread(id);
+        await GoChatHomeIfNeededAsync();
+        await CollapseMobileDrawerAsync();
+    }
+
+    #endregion
+
+    #region # Thread rename
+
+    private Guid? _editingId;
+    private string _editTitle = string.Empty;
+    private ElementReference _renameInput;
+    private bool _focusRenameInput;
+
+    private void BeginRename(ChatThread t)
+    {
+        _editingId = t.Id;
+        _editTitle = t.Title;
+        _focusRenameInput = true;
+    }
+
+    private void RenameKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            CommitRename();
+        }
+        else if (e.Key == "Escape")
+        {
+            CancelRename();
+        }
+    }
+
+    private void OnRenameBlur()
+    {
+        if (_editingId is not null)
+        {
+            CommitRename();
+        }
+    }
+
+    private void CommitRename()
+    {
+        if (_editingId is null)
+        {
+            return;
+        }
+
+        Svc.RenameThread(_editingId.Value, _editTitle);
+        _editingId = null;
+    }
+
+    private void CancelRename()
+    {
+        _editingId = null;
+    }
+
+    #endregion
+}

@@ -1,0 +1,176 @@
+@page "/"
+@implements IAsyncDisposable
+@inject Service Svc
+@inject Repository Repo
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+@using Microsoft.JSInterop
+@using WebApp.Formatting
+
+<PageTitle>Chat</PageTitle>
+
+<div class="chat-shell">
+    <div class="chat-messages" @ref="_messagesRegion">
+        @if (Svc.Messages.Count == 0)
+        {
+            <div class="chat-empty">
+                <div class="chat-empty-mark" aria-hidden="true"></div>
+                <h2 class="chat-empty-title">How can I help you today?</h2>
+                <p class="chat-empty-hint">Choose a chat in the sidebar or start below. Each thread is separate until you refresh.</p>
+            </div>
+        }
+        else
+        {
+            @foreach (var msg in Svc.Messages)
+            {
+                if (IsUser(msg.Role))
+                {
+                    <div class="msg-row msg-row-user">
+                        <div class="msg-chunk msg-chunk-user">
+                            <div class="msg-bubble msg-bubble-user">
+                                <span class="visually-hidden">You</span>
+                                <div class="msg-text">@msg.Content</div>
+                            </div>
+                            <div class="msg-avatar msg-avatar-user" aria-hidden="true">You</div>
+                        </div>
+                    </div>
+                }
+                else if (msg.Role == "system")
+                {
+                    <div class="msg-row msg-row-system">
+                        <div class="msg-system-banner">
+                            <span class="msg-system-label">System</span>
+                            <div class="msg-text msg-text-system msg-markdown">@ChatMarkdown.ToSanitizedHtml(msg.Content)</div>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <div class="msg-row msg-row-assistant">
+                        <div class="msg-chunk msg-chunk-assistant">
+                            <div class="msg-avatar msg-avatar-assistant" aria-hidden="true">AI</div>
+                            <div class="msg-bubble msg-bubble-assistant">
+                                <span class="visually-hidden">Assistant</span>
+                                <div class="msg-text msg-markdown">@ChatMarkdown.ToSanitizedHtml(msg.Content)</div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            }
+        }
+    </div>
+
+    <div class="chat-composer-wrap">
+        <div class="chat-composer">
+            <textarea @ref="_input"
+                      @bind="_draft"
+                      @bind:event="oninput"
+                      class="chat-input"
+                      rows="1"
+                      placeholder="Message…"
+                      aria-label="Message"></textarea>
+            <button type="button"
+                    class="chat-send"
+                    @onclick="SendAsync"
+                    disabled="@string.IsNullOrWhiteSpace(_draft)"
+                    title="Send (Enter)">
+                <svg class="chat-send-svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+            </button>
+        </div>
+        <p class="chat-disclaimer">
+            Enter to send · Shift+Enter for a new line
+            @if (Repo.HasMockSession)
+            {
+                <span class="chat-session-hint"> · @Repo.GmailUserEmail</span>
+            }
+        </p>
+    </div>
+</div>
+
+@code {
+    [CascadingParameter(Name = "SessionStorageReady")]
+    public bool SessionStorageReady { get; set; }
+
+    private ElementReference _messagesRegion;
+    private ElementReference _input;
+    private string _draft = string.Empty;
+    private DotNetObjectReference<Chat>? _dotNetRef;
+    private bool _didAuthRedirect;
+    private bool _enterWired;
+
+    protected override void OnInitialized()
+    {
+        Svc.Changed += OnChatChanged;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!SessionStorageReady)
+        {
+            return;
+        }
+
+        if (!Repo.HasMockSession)
+        {
+            if (!_didAuthRedirect)
+            {
+                _didAuthRedirect = true;
+                Nav.NavigateTo("/login", replace: true);
+            }
+
+            return;
+        }
+
+        if (!_enterWired)
+        {
+            _enterWired = true;
+            _dotNetRef = DotNetObjectReference.Create(this);
+            try
+            {
+                await JS.InvokeVoidAsync("webAppChat.wireEnter", _input, _dotNetRef);
+            }
+            catch (JSException)
+            {
+            }
+        }
+    }
+
+    private void OnChatChanged() => InvokeAsync(StateHasChanged);
+
+    [JSInvokable]
+    public Task SendFromJsAsync() => SendAsync();
+
+    private async Task SendAsync()
+    {
+        var text = _draft.Trim();
+        if (string.IsNullOrEmpty(text))
+        {
+            return;
+        }
+
+        _draft = string.Empty;
+        await Svc.ProcessUserMessageAsync(text);
+        await ScrollToEndAsync();
+    }
+
+    private async Task ScrollToEndAsync()
+    {
+        await Task.Yield();
+        try
+        {
+            await JS.InvokeVoidAsync("webAppScroll.scrollElementToEnd", _messagesRegion);
+        }
+        catch
+        {
+        }
+    }
+
+    private static bool IsUser(string role) => role == "user";
+
+    public async ValueTask DisposeAsync()
+    {
+        Svc.Changed -= OnChatChanged;
+        _dotNetRef?.Dispose();
+        await ValueTask.CompletedTask;
+    }
+}
