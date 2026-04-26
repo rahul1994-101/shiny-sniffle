@@ -4,7 +4,7 @@ using WebApp.Utilities.Helpers;
 
 namespace WebApp.Data;
 
-public sealed class Persistence(TenantDbContext _tenantDbContext)
+public sealed class Persistence(AppDbContext _tenantDbContext)
 {
     public async Task<IEnumerable<User>> GetUsers()
     {
@@ -18,7 +18,6 @@ public sealed class Persistence(TenantDbContext _tenantDbContext)
                 LastName = x.LastName,
                 Email = x.Email,
                 Mobile = x.Mobile,
-                Role = x.Role,
                 IsActive = x.IsActive
             })
             .ToListAsync()

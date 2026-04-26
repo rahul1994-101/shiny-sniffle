@@ -1,0 +1,16 @@
+﻿@page "/Test"
+
+@inject Features Features
+
+<h3>Test</h3>
+
+@code {
+
+    protected override async Task OnInitializedAsync()
+    {
+        var aa = await Features.GetUsers();
+
+        var xx = "";
+    }
+
+}

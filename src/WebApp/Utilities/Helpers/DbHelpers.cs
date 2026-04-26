@@ -6,19 +6,19 @@ using WebApp.Models;
 
 namespace WebApp.Utilities.Helpers;
 
-public class TenantDbContext : DbContext
+public class AppDbContext : DbContext
 {
     #region # Init
 
     private readonly IConfiguration _configuration;
 
-    public TenantDbContext(DbContextOptions<TenantDbContext> options, IConfiguration configuration)
+    public AppDbContext(DbContextOptions<AppDbContext> options, IConfiguration configuration)
         : base(options)
     {
         _configuration = configuration;
         try
         {
-            var conn = _configuration.GetConnectionString("TenantDB");
+            var conn = _configuration.GetConnectionString("DefaultConnection");
             Connection = new SqlConnection(conn);
             //Connection.Open();
         }
@@ -36,7 +36,7 @@ public class TenantDbContext : DbContext
 
             if (!optionsBuilder.IsConfigured)
             {
-                var conn = _configuration.GetConnectionString("TenantDB");
+                var conn = _configuration.GetConnectionString("DefaultConnection");
                 optionsBuilder.UseSqlServer(conn);
             }
 

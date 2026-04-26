@@ -1,11 +1,13 @@
-﻿using Microsoft.AspNetCore.Localization;
-using MudBlazor.Services;
+﻿using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
+using Microsoft.AspNetCore.Localization;
 using System.Globalization;
-using WebUI.Components;
-using WebUI.Data;
-using WebUI.Utilities.Helpers;
+using WebApp;
+using WebApp.Components;
+using WebApp.Data;
+using WebApp.Models;
+using WebApp.Utilities.Helpers;
 
-namespace WebUI;
+namespace WebApp;
 
 public static class DependencyInject
 {
@@ -15,12 +17,21 @@ public static class DependencyInject
 
         builder.Services.InjectRazorComponents();
 
-        builder.Services.InjectMudServices();
-
-        builder.Services.AddDbContext<TenantDbContext>();
+        builder.Services.AddDbContext<AppDbContext>();
 
         builder.Services.AddScoped<Features>();
         builder.Services.AddScoped<Persistence>();
+
+        // To be Migrated..
+        builder.Services.Configure<AgenticApiOptions>(
+            builder.Configuration.GetSection(AgenticApiOptions.SectionName)
+        );
+        builder.Services.AddHttpClient();
+        builder.Services.AddScoped<AgenticApiClient>();
+        builder.Services.AddScoped<Repository>();
+        builder.Services.AddScoped<Service>();
+        builder.Services.AddScoped<ProtectedLocalStorage>();
+        builder.Services.AddScoped<MockSessionPersistence>();
     }
 
     public static void UseServices(this WebApplication app)
@@ -36,12 +47,12 @@ public static class DependencyInject
         app.UseRequestLocalization();
 
         app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
-
         app.UseHttpsRedirection();
 
         app.UseAntiforgery();
 
         app.MapStaticAssets();
+        app.MapLangChainApi(); // To be Migrated
         app
             .MapRazorComponents<App>()
             .AddInteractiveServerRenderMode();
@@ -55,10 +66,6 @@ public static class DependencyInject
             .AddInteractiveServerComponents();
     }
 
-    public static void InjectMudServices(this IServiceCollection services)
-    {
-        services.AddMudServices();
-    }
 
     public static void UseRequestLocalization(this WebApplication app)
     {
