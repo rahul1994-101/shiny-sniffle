@@ -23,3 +23,16 @@ public static class ChatMocks
         return $"Thanks — I received: “{preview}”. (Mock reply — edit ChatMocks.AssistantReply in Models/Entities.cs.)";
     }
 }
+
+
+public class User
+{
+    public bool IsDeleted { get; set; }
+    public string Id { get; internal set; }
+    public string FirstName { get; set; }
+    public string LastName { get; set; }
+    public string Email { get; set; }
+    public string Mobile { get; set; }
+    public string Role { get; set; }
+    public bool IsActive { get; set; }
+}

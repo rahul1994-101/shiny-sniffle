@@ -59,11 +59,23 @@
     <Folder Include="dbo" />
     <Folder Include="dbo\Functions" />
     <Folder Include="dbo\Tables" />
-    <Folder Include="dbo\Stored Procedures" />
+    <Folder Include="Seed" />
+    <Folder Include="dbo\Procedures" />
+    <Folder Include="dbo\Views" />
+    <Folder Include="dbo\Triggers" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="dbo\Functions\.gitkeep" />
-    <None Include="dbo\Stored Procedures\.gitkeep" />
-    <None Include="dbo\Tables\.gitkeep" />
+    <Build Include="dbo\Tables\User.sql" />
+    <Build Include="Seed\MasterData.sql" />
+    <Build Include="dbo\Functions\InlineTableValuedFunctionTemplate.sql" />
+    <Build Include="dbo\Functions\MultiStatementTableValuedFunctionTemplate.sql" />
+    <Build Include="dbo\Functions\ScalarFunctionTemplate.sql" />
+    <Build Include="dbo\Procedures\DeleteTestEntity.sql" />
+    <Build Include="dbo\Procedures\GetTestEntities.sql" />
+    <Build Include="dbo\Procedures\GetTestEntityById.sql" />
+    <Build Include="dbo\Procedures\UpsertTestEntity.sql" />
+    <Build Include="dbo\Tables\TestEntity.sql" />
+    <Build Include="dbo\Views\TestEntityView.sql" />
+    <Build Include="dbo\Triggers\TestEntityInsertTrigger.sql" />
   </ItemGroup>
 </Project>
