@@ -20,9 +20,9 @@ public abstract class BaseAuditableEntity : BaseEntity
 {
     // Audit fields for tracking changes
     public Guid CreatedBy { get; set; }
-    public DateTime CreatedOn { get; set; } = DateTime.UtcNow;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public Guid UpdatedBy { get; set; }
-    public DateTime UpdatedOn { get; set; } = DateTime.UtcNow;
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 }
 
 #endregion
