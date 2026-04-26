@@ -2,7 +2,7 @@ using Ganss.Xss;
 using Markdig;
 using Microsoft.AspNetCore.Components;
 
-namespace WebApp.Formatting;
+namespace WebApp.Utilities.Helpers;
 
 /// <summary>
 /// Renders assistant/system chat text as Markdown, then sanitizes HTML for safe <see cref="MarkupString"/> use.
