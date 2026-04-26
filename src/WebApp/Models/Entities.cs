@@ -1,41 +1,61 @@
+using System.ComponentModel.DataAnnotations;
+using System.Data;
+using WebApp.Utilities.Extensions;
+
 namespace WebApp.Models;
 
-public sealed class ChatThread
-{
-    public Guid Id { get; init; } = Guid.NewGuid();
-    public string Title { get; set; } = "New chat";
-    public List<ChatMessage> Messages { get; } = [];
-    public DateTimeOffset UpdatedUtc { get; set; } = DateTimeOffset.UtcNow;
-}
+#region # Base Entities
 
-public sealed class ChatMessage
+public abstract class BaseEntity
 {
-    public Guid Id { get; init; } = Guid.NewGuid();
-    public required string Role { get; init; }
-    public required string Content { get; init; }
-}
-
-public static class ChatMocks
-{
-    public static string AssistantReply(string userMessage)
-    {
-        var preview = userMessage.Length > 90 ? userMessage[..90].Trim() + "…" : userMessage.Trim();
-        return $"Thanks — I received: “{preview}”. (Mock reply — edit ChatMocks.AssistantReply in Models/Entities.cs.)";
-    }
-}
-
-
-public class User
-{
+    // Primary key with auto-generated sequential UUID
     public Guid Id { get; set; }
 
+    // Status and lifecycle management
+    public bool IsActive { get; set; } = true;
+    public bool IsDeleted { get; set; }
+}
+
+public abstract class BaseAuditableEntity : BaseEntity
+{
+    // Audit fields for tracking changes
+    public Guid CreatedBy { get; set; }
+    public DateTime CreatedOn { get; set; } = DateTime.UtcNow;
+    public Guid UpdatedBy { get; set; }
+    public DateTime UpdatedOn { get; set; } = DateTime.UtcNow;
+}
+
+#endregion
+
+#region # User
+
+public class User : BaseAuditableEntity
+{
+    //private string _password;
+
+    [Required(ErrorMessage = "First name is required.")]
+    [StringLength(50, MinimumLength = 2, ErrorMessage = "First name must be between 2 and 50 characters.")]
     public string FirstName { get; set; } = string.Empty;
+
+    [Required(ErrorMessage = "Last name is required.")]
+    [StringLength(50, MinimumLength = 2, ErrorMessage = "Last name must be between 2 and 50 characters.")]
     public string LastName { get; set; } = string.Empty;
 
+    [Required(ErrorMessage = "Email is required.")]
+    [StringLength(255, MinimumLength = 5, ErrorMessage = "Email must be between 5 and 255 characters.")]
     public string Email { get; set; } = string.Empty;
-    public string Mobile { get; set; } = string.Empty;
-    public string Password { get; set; } = string.Empty;
 
-    public bool IsActive { get; set; } = true;
-    public bool IsDeleted { get; set; } = false;
+    [StringLength(20, MinimumLength = 0, ErrorMessage = "Mobile must be between 0 and 20 characters.")]
+    public string? Mobile { get; set; } = string.Empty;
+
+    [Required(ErrorMessage = "Password is required.")]
+    [StringLength(255, MinimumLength = 6, ErrorMessage = "Password must be between 6 and 255 characters.")]
+    public string Password { get; set; } = string.Empty;
+    //public string Password
+    //{
+    //    get => _password.Decrypt();
+    //    set => _password = value.Encrypt();
+    //}
 }
+
+#endregion

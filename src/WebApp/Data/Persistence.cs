@@ -10,16 +10,6 @@ public sealed class Persistence(AppDbContext _tenantDbContext)
     {
         return await _tenantDbContext
             .Users
-            .Where(x => !x.IsDeleted)
-            .Select(x => new User 
-            { 
-                Id = x.Id,
-                FirstName = x.FirstName, 
-                LastName = x.LastName,
-                Email = x.Email,
-                Mobile = x.Mobile,
-                IsActive = x.IsActive
-            })
             .ToListAsync()
             .ConfigureAwait(false);
     }
