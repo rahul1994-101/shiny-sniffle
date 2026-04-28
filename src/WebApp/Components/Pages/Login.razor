@@ -2,9 +2,15 @@
 
 @layout LoginLayout
 
-@inject Repository Repo
+@using Microsoft.AspNetCore.Authorization
+
+@attribute [AllowAnonymous]
+
+@inject Features Features
+@inject CookieAuthenticationService CookieAuth
+@inject IHttpContextAccessor HttpContextAccessor
 @inject NavigationManager Nav
-@inject MockSessionPersistence SessionPersistence
+@inject AuthenticationStateProvider AuthStateProvider
 
 <PageTitle>Sign in</PageTitle>
 
@@ -12,7 +18,7 @@
 {
     <p class="login-loading">Loading…</p>
 }
-else if (Repo.HasMockSession)
+else if (_alreadySignedIn)
 {
     <p class="login-loading">Opening chat…</p>
 }
@@ -20,7 +26,7 @@ else
 {
     <div class="login-card">
         <h1 class="login-title">Sign in</h1>
-        <p class="login-lead">Use your mailbox email. Password is not checked (demo only).</p>
+        <p class="login-lead">Sign in with the email and password stored for your account.</p>
 
         <div class="login-field">
             <label class="form-label" for="login-email">Email</label>
@@ -38,7 +44,7 @@ else
                    class="form-control login-input"
                    @bind="_password"
                    autocomplete="current-password"
-                   placeholder="Anything" />
+                   placeholder="Password" />
         </div>
 
         @if (!string.IsNullOrEmpty(_error))
@@ -47,7 +53,7 @@ else
         }
 
         <button type="button" class="btn btn-primary login-submit" @onclick="ContinueAsync">
-            Continue to chat
+            Sign in
         </button>
     </div>
 }
@@ -57,6 +63,7 @@ else
     private string _password = "";
     private string _error = "";
     private bool _browserReady;
+    private bool _alreadySignedIn;
     private bool _hydrateAttempted;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -67,10 +74,12 @@ else
         }
 
         _hydrateAttempted = true;
-        await SessionPersistence.TryRestoreAsync();
-        if (Repo.HasMockSession)
+        var state = await AuthStateProvider.GetAuthenticationStateAsync();
+        if (state.User.Identity?.IsAuthenticated == true)
         {
-            Nav.NavigateTo("/", replace: true);
+            _alreadySignedIn = true;
+            StateHasChanged();
+            Nav.NavigateTo("/", forceLoad: true);
             return;
         }
 
@@ -81,29 +90,42 @@ else
     private async Task ContinueAsync()
     {
         _error = "";
-        var email = _email.Trim();
-        if (string.IsNullOrEmpty(email) || email.IndexOf('@') < 0)
+        var http = HttpContextAccessor.HttpContext;
+        if (http is null)
         {
-            _error = "Enter a valid email address.";
+            _error = "Sign-in is not available (missing HTTP context). Try a full page refresh.";
+            return;
+        }
+
+        var request = new SignInRequest
+        {
+            EmailId = _email.Trim(),
+            Password = _password,
+        };
+
+        var result = await Features.SignInAsync(request);
+        if (result.HasError)
+        {
+            _error = result.Errors.FirstOrDefault()?.Message ?? "Sign-in failed.";
+            return;
+        }
+
+        if (result.Payload is null)
+        {
+            _error = "Invalid credentials.";
             return;
         }
 
         try
         {
-            Repo.StartMockSession(email, _password);
-            await SessionPersistence.SaveEmailAsync(email);
+            await CookieAuth.SignInAsync(http, result.Payload);
         }
-        catch (ArgumentException ex)
+        catch (Exception ex)
         {
             _error = ex.Message;
             return;
         }
-        catch (InvalidOperationException)
-        {
-            _error = "Could not save session in the browser (try a normal page load, not prerender).";
-            return;
-        }
 
-        Nav.NavigateTo("/", replace: true);
+        Nav.NavigateTo("/", forceLoad: true);
     }
 }

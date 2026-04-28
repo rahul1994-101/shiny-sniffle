@@ -1,6 +1,4 @@
 ﻿@inherits LayoutComponentBase
-@inject MockSessionPersistence SessionPersistence
-@inject Repository Repo
 
 <div id="app-shell" class="page app-chat-layout">
     <Sidebar />
@@ -21,7 +19,7 @@
                 <CascadingValue Value="_sessionStorageReady" Name="SessionStorageReady">
                     @if (!_sessionStorageReady)
                     {
-                        <p class="app-session-loading">Restoring session…</p>
+                        <p class="app-session-loading">Loading…</p>
                     }
                     else
                     {
@@ -41,17 +39,16 @@
 
 @code {
     private bool _sessionStorageReady;
-    private bool _restoreAttempted;
+    private bool _readyAttempted;
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    protected override void OnAfterRender(bool firstRender)
     {
-        if (!firstRender || _restoreAttempted)
+        if (!firstRender || _readyAttempted)
         {
             return;
         }
 
-        _restoreAttempted = true;
-        await SessionPersistence.TryRestoreAsync();
+        _readyAttempted = true;
         _sessionStorageReady = true;
         StateHasChanged();
     }

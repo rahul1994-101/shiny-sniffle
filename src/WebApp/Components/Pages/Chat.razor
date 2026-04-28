@@ -1,10 +1,11 @@
 @page "/"
 
+@attribute [Authorize]
+
 @implements IAsyncDisposable
 
 @inject Service Svc
-@inject Repository Repo
-@inject NavigationManager Nav
+@inject ICurrentUser CurrentUser
 @inject IJSRuntime JS
 
 @using Microsoft.JSInterop
@@ -82,9 +83,9 @@
         </div>
         <p class="chat-disclaimer">
             Enter to send · Shift+Enter for a new line
-            @if (Repo.HasMockSession)
+            @if (CurrentUser.IsAuthenticated && !string.IsNullOrWhiteSpace(CurrentUser.Email))
             {
-                <span class="chat-session-hint"> · @Repo.GmailUserEmail</span>
+                <span class="chat-session-hint"> · @CurrentUser.Email</span>
             }
         </p>
     </div>
@@ -98,7 +99,6 @@
     private ElementReference _input;
     private string _draft = string.Empty;
     private DotNetObjectReference<Chat>? _dotNetRef;
-    private bool _didAuthRedirect;
     private bool _enterWired;
 
     protected override void OnInitialized()
@@ -110,17 +110,6 @@
     {
         if (!SessionStorageReady)
         {
-            return;
-        }
-
-        if (!Repo.HasMockSession)
-        {
-            if (!_didAuthRedirect)
-            {
-                _didAuthRedirect = true;
-                Nav.NavigateTo("/login", replace: true);
-            }
-
             return;
         }
 

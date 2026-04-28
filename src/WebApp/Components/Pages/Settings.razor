@@ -1,19 +1,18 @@
 ﻿@page "/settings"
+
+@attribute [Authorize]
+
 @inject Service Svc
 @inject Repository Repo
+@inject ICurrentUser CurrentUser
 @inject AgenticApiClient Agentic
 @inject IConfiguration Configuration
-@inject NavigationManager Nav
 
 <PageTitle>Settings</PageTitle>
 
 @if (!SessionStorageReady)
 {
-    <p class="settings-redirect">Restoring session…</p>
-}
-else if (!Repo.HasMockSession)
-{
-    <p class="settings-redirect">Redirecting to sign in…</p>
+    <p class="settings-redirect">Loading…</p>
 }
 else
 {
@@ -49,7 +48,7 @@ else
     <section class="settings-card" aria-labelledby="gmail-heading">
         <h2 id="gmail-heading" class="settings-section-title">Gmail tokens (Python file)</h2>
         <p class="settings-copy">
-            Tokens are saved for your signed-in email (<strong>@Repo.GmailUserEmail</strong>).
+            Tokens are saved for your signed-in email (<strong>@CurrentUser.Email</strong>).
             Change account with <strong>Sign out</strong> in the header, then sign in again.
         </p>
         <p class="settings-copy">
@@ -142,29 +141,16 @@ else
     private int _expiresInSeconds = 3600;
     private string _gmailTokenMessage = "";
     private bool _savingTokens;
-    private bool _authRedirectSent;
 
     protected override void OnInitialized()
     {
         _defaultBasePlaceholder = Configuration["AgenticApi:BaseUrl"] ?? "http://localhost:8000";
     }
 
-    protected override Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (!SessionStorageReady || Repo.HasMockSession || _authRedirectSent)
-        {
-            return Task.CompletedTask;
-        }
-
-        _authRedirectSent = true;
-        Nav.NavigateTo("/login", replace: true);
-        return Task.CompletedTask;
-    }
-
     private async Task SaveTokensToPythonAsync()
     {
         _gmailTokenMessage = "";
-        var email = Repo.GmailUserEmail.Trim();
+        var email = (CurrentUser.Email ?? "").Trim();
         if (string.IsNullOrEmpty(email) || email.IndexOf('@') < 0)
         {
             _gmailTokenMessage = "Session email is missing. Sign out and sign in again.";

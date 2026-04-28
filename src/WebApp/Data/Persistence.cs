@@ -1,7 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 
 using WebApp.Models;
-using WebApp.Utilities.Extensions;
 using WebApp.Utilities.Helpers;
 
 namespace WebApp.Data;
@@ -24,6 +23,7 @@ public sealed class Persistence(AppDbContext _ctx)
             .Select(x => new SignInResponse
             {
                 Id = x.Id,
+                Email = x.Email,
                 FullName = x.FirstName + " " + x.LastName
             })
             .FirstOrDefaultAsync();

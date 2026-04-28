@@ -1,7 +1,8 @@
-﻿using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
+﻿using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Localization;
 using System.Globalization;
 using WebApp;
+using WebApp.Auth;
 using WebApp.Components;
 using WebApp.Data;
 using WebApp.Models;
@@ -19,6 +20,22 @@ public static class DependencyInject
 
         builder.Services.AddDbContext<AppDbContext>();
 
+        builder.Services.AddHttpContextAccessor();
+        builder.Services.AddScoped<ICurrentUser, HttpContextCurrentUser>();
+        builder.Services.AddSingleton<CookieAuthenticationService>();
+
+        builder.Services.AddCascadingAuthenticationState();
+        builder.Services
+            .AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+            .AddCookie(o =>
+            {
+                o.LoginPath = "/login";
+                o.Cookie.Name = "WebApp.Auth";
+                o.ExpireTimeSpan = TimeSpan.FromDays(14);
+                o.SlidingExpiration = true;
+            });
+        builder.Services.AddAuthorization();
+
         builder.Services.AddScoped<Features>();
         builder.Services.AddScoped<Persistence>();
 
@@ -30,8 +47,6 @@ public static class DependencyInject
         builder.Services.AddScoped<AgenticApiClient>();
         builder.Services.AddScoped<Repository>();
         builder.Services.AddScoped<Service>();
-        builder.Services.AddScoped<ProtectedLocalStorage>();
-        builder.Services.AddScoped<MockSessionPersistence>();
     }
 
     public static void UseServices(this WebApplication app)
@@ -48,6 +63,9 @@ public static class DependencyInject
 
         app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
         app.UseHttpsRedirection();
+
+        app.UseAuthentication();
+        app.UseAuthorization();
 
         app.UseAntiforgery();
 

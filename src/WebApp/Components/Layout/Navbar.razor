@@ -1,6 +1,8 @@
-@inject Repository Repo
+@using System.Security.Claims
+
 @inject NavigationManager Nav
-@inject MockSessionPersistence SessionPersistence
+@inject CookieAuthenticationService CookieAuth
+@inject IHttpContextAccessor HttpContextAccessor
 
 <header class="layout-navbar">
     <div class="layout-navbar-start">
@@ -24,16 +26,17 @@
         </a>
     </div>
     <div class="layout-navbar-end">
-        @if (Repo.HasMockSession)
-        {
-            <span class="layout-navbar-session" title="Mock session email">@Repo.GmailUserEmail</span>
-            <button type="button"
-                    class="layout-navbar-signout"
-                    @onclick="SignOutAsync"
-                    title="Sign out">
-                Sign out
-            </button>
-        }
+        <AuthorizeView>
+            <Authorized>
+                <span class="layout-navbar-session" title="Signed-in email">@context.User.FindFirstValue(ClaimTypes.Email)</span>
+                <button type="button"
+                        class="layout-navbar-signout"
+                        @onclick="SignOutAsync"
+                        title="Sign out">
+                    Sign out
+                </button>
+            </Authorized>
+        </AuthorizeView>
         <NavLink class="layout-navbar-settings" href="settings" ActiveClass="layout-navbar-settings-active" title="Settings" aria-label="Settings">
             <svg class="layout-navbar-settings-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                 <circle cx="12" cy="12" r="3" />
@@ -46,8 +49,12 @@
 @code {
     private async Task SignOutAsync()
     {
-        await SessionPersistence.ClearAsync();
-        Repo.ClearMockSession();
-        Nav.NavigateTo("/login", replace: true);
+        var http = HttpContextAccessor.HttpContext;
+        if (http is not null)
+        {
+            await CookieAuth.SignOutAsync(http);
+        }
+
+        Nav.NavigateTo("/login", forceLoad: true);
     }
 }

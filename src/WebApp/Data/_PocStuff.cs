@@ -1,6 +1,6 @@
-﻿using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
-using Microsoft.Extensions.Options;
+﻿using Microsoft.Extensions.Options;
 using System.Text.Json;
+using WebApp.Auth;
 using WebApp.Models;
 
 namespace WebApp.Data;
@@ -11,12 +11,14 @@ public sealed class Service
     #region # Construction
 
     private readonly AgenticApiClient _agenticApi;
+    private readonly ICurrentUser _currentUser;
     private readonly Repository _repo;
 
-    public Service(Repository repo, AgenticApiClient agenticApi)
+    public Service(Repository repo, AgenticApiClient agenticApi, ICurrentUser currentUser)
     {
         _repo = repo;
         _agenticApi = agenticApi;
+        _currentUser = currentUser;
     }
 
     #endregion
@@ -59,7 +61,7 @@ public sealed class Service
         var baseUrl = _repo.EffectiveAgenticBaseUrl;
         if (!string.IsNullOrWhiteSpace(baseUrl))
         {
-            var who = string.IsNullOrWhiteSpace(_repo.GmailUserEmail) ? null : _repo.GmailUserEmail.Trim();
+            var who = string.IsNullOrWhiteSpace(_currentUser.Email) ? null : _currentUser.Email.Trim();
             var (ok, reply, err) = await _agenticApi.MailAgentChatAsync(
                 baseUrl,
                 trimmed,
@@ -123,16 +125,10 @@ public sealed class Repository
 
     #endregion
 
-    #region # Agentic API / Gmail (session)
+    #region # Agentic API
 
     /// <summary>Optional override; when empty, <see cref="AgenticApiOptions.BaseUrl"/> is used.</summary>
     public string AgenticApiBaseUrlOverride { get; set; } = "";
-
-    /// <summary>Mailbox address from mock sign-in; sent to Python as user_email for Gmail token lookup.</summary>
-    public string GmailUserEmail { get; private set; } = "";
-
-    /// <summary>True after the user completes the mock login (email + any password).</summary>
-    public bool HasMockSession { get; private set; }
 
     public string EffectiveAgenticBaseUrl
     {
@@ -146,33 +142,6 @@ public sealed class Repository
 
             return (_agenticOptions.Value.BaseUrl ?? "").Trim().TrimEnd('/');
         }
-    }
-
-    /// <summary>
-    /// Mock sign-in: stores email for the server session (Blazor scoped circuit). Password is ignored.
-    /// </summary>
-    public void StartMockSession(string email, string? passwordIgnored = null)
-    {
-        _ = passwordIgnored;
-        var e = (email ?? "").Trim();
-        if (string.IsNullOrEmpty(e) || e.IndexOf('@', StringComparison.Ordinal) < 0)
-        {
-            throw new ArgumentException("A valid email address is required.", nameof(email));
-        }
-
-        GmailUserEmail = e;
-        HasMockSession = true;
-        Changed?.Invoke();
-    }
-
-    public void ClearMockSession()
-    {
-        GmailUserEmail = "";
-        HasMockSession = false;
-        _threads.Clear();
-        var t = CreateThreadInternal();
-        _activeThreadId = t.Id;
-        Changed?.Invoke();
     }
 
     #endregion
@@ -313,61 +282,6 @@ public sealed class Repository
     }
 
     #endregion
-}
-
-
-public sealed class MockSessionPersistence
-{
-    private readonly ProtectedLocalStorage _storage;
-    private readonly Repository _repo;
-
-    public MockSessionPersistence(ProtectedLocalStorage storage, Repository repo)
-    {
-        _storage = storage;
-        _repo = repo;
-    }
-
-    public async Task TryRestoreAsync()
-    {
-        if (_repo.HasMockSession)
-        {
-            return;
-        }
-
-        try
-        {
-            var result = await _storage.GetAsync<string>(MockSessionStorageKeys.UserEmail);
-            if (result.Success && !string.IsNullOrWhiteSpace(result.Value))
-            {
-                _repo.StartMockSession(result.Value.Trim(), null);
-            }
-        }
-        catch (InvalidOperationException)
-        {
-            // No JS context (prerender).
-        }
-    }
-
-    public async Task SaveEmailAsync(string email)
-    {
-        await _storage.SetAsync(MockSessionStorageKeys.UserEmail, email.Trim());
-    }
-
-    public async Task ClearAsync()
-    {
-        try
-        {
-            await _storage.DeleteAsync(MockSessionStorageKeys.UserEmail);
-        }
-        catch (InvalidOperationException)
-        {
-        }
-    }
-}
-
-public static class MockSessionStorageKeys
-{
-    public const string UserEmail = "webapp-mock-user-email";
 }
 
 
