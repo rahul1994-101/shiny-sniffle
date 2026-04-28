@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Localization;
+
 using System.Globalization;
+
 using WebApp;
 using WebApp.Auth;
 using WebApp.Components;
@@ -18,23 +20,15 @@ public static class DependencyInject
 
         builder.Services.InjectRazorComponents();
 
-        builder.Services.AddDbContext<AppDbContext>();
-
+        // To be Migrated..
         builder.Services.AddHttpContextAccessor();
         builder.Services.AddScoped<ICurrentUser, HttpContextCurrentUser>();
         builder.Services.AddSingleton<CookieAuthenticationService>();
 
-        builder.Services.AddCascadingAuthenticationState();
-        builder.Services
-            .AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-            .AddCookie(o =>
-            {
-                o.LoginPath = "/login";
-                o.Cookie.Name = "WebApp.Auth";
-                o.ExpireTimeSpan = TimeSpan.FromDays(14);
-                o.SlidingExpiration = true;
-            });
-        builder.Services.AddAuthorization();
+        builder.Services.InjectAuthentication();
+        builder.Services.InjectAuthorization();
+
+        builder.Services.AddDbContext<AppDbContext>();
 
         builder.Services.AddScoped<Features>();
         builder.Services.AddScoped<Persistence>();
@@ -59,14 +53,13 @@ public static class DependencyInject
             app.UseHsts();
         }
 
+        app.UseHttpsRedirection();
         app.UseRequestLocalization();
 
-        app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
-        app.UseHttpsRedirection();
+        app.UseStatusCodePagesWithReExecute("/page-not-found", createScopeForStatusCodePages: true);
 
         app.UseAuthentication();
         app.UseAuthorization();
-
         app.UseAntiforgery();
 
         app.MapStaticAssets();
@@ -84,6 +77,37 @@ public static class DependencyInject
             .AddInteractiveServerComponents();
     }
 
+    public static void InjectAuthentication(this IServiceCollection services)
+    {
+        services
+            .AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+            .AddCookie(x =>
+            {
+                x.Cookie.Name = "auth_cookie";
+                x.Cookie.MaxAge = TimeSpan.FromHours(12);
+                x.SlidingExpiration = true;
+
+                x.LoginPath = "/login";
+                x.LogoutPath = "/logout";
+                x.AccessDeniedPath = "/access-denied";
+            });
+    }
+
+    public static void InjectAuthorization(this IServiceCollection services)
+    {
+        services
+            .AddAuthorization(x =>
+            {
+                x.AddPolicy("OnlyForAliens", x => x.RequireClaim("IsAlien", "true"));
+                //x.AddPolicy("IsAdmin", policy => policy.RequireClaim("userType", "1"));
+                //x.AddPolicy("IsCustomer", policy => policy.RequireClaim("userType", "2"));
+
+                //x.AddPolicy("MustHaveIdClaim", policy => policy.RequireClaim("uid"));
+                //x.AddPolicy("IdShouldBe3", policy => policy.RequireClaim("uid", "3"));
+                //x.AddPolicy("Over18Only", policy => policy.Requirements.Add(new MinimumAgeRequirement(18)));
+            })
+            .AddCascadingAuthenticationState();
+    }
 
     public static void UseRequestLocalization(this WebApplication app)
     {
