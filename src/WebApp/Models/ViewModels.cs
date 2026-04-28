@@ -1,2 +1,0 @@
-namespace WebApp.Models;
-

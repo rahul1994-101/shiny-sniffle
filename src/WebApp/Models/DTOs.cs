@@ -111,3 +111,9 @@ public class SignInRequest
     //[NoSpaces]
     public string Password { get; set; } = string.Empty;
 }
+
+public class SignInResponse
+{
+    public Guid Id { get; set; }
+    public string FullName { get; set; } = string.Empty;
+}

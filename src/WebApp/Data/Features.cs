@@ -4,9 +4,9 @@ namespace WebApp.Data;
 
 public class Features(Persistence _repo)
 {
-    public async Task<AppResult<User?>> SignInAsync(SignInRequest signInRequest)
+    public async Task<AppResult<SignInResponse?>> SignInAsync(SignInRequest signInRequest)
     {
-        var result = new AppResult<User?>();
+        var result = new AppResult<SignInResponse?>();
         try
         {
             #region # Validate
