@@ -8,7 +8,11 @@
 
     protected override async Task OnInitializedAsync()
     {
-        var aa = await Features.GetUsers();
+        var aa = await Features.SignInAsync(new SignInRequest
+        {
+            EmailId = "a@gmail.com",
+            Password = "aa"
+        });
 
         var xx = "";
     }
