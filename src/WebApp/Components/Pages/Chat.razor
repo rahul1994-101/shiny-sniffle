@@ -85,8 +85,8 @@
 </div>
 
 @code {
-    [CascadingParameter(Name = "SessionStorageReady")]
-    public bool SessionStorageReady { get; set; }
+    [CascadingParameter(Name = "NotifyLayoutRefresh")]
+    public EventCallback NotifyLayoutRefresh { get; set; }
 
     private ElementReference _messagesRegion;
     private ElementReference _input;
@@ -94,33 +94,23 @@
     private DotNetObjectReference<Chat>? _dotNetRef;
     private bool _enterWired;
 
-    protected override void OnInitialized()
-    {
-        Svc.Changed += OnChatChanged;
-    }
-
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (!SessionStorageReady)
+        if (!firstRender || _enterWired)
         {
             return;
         }
 
-        if (!_enterWired)
+        _enterWired = true;
+        _dotNetRef = DotNetObjectReference.Create(this);
+        try
         {
-            _enterWired = true;
-            _dotNetRef = DotNetObjectReference.Create(this);
-            try
-            {
-                await JS.InvokeVoidAsync("webAppChat.wireEnter", _input, _dotNetRef);
-            }
-            catch (JSException)
-            {
-            }
+            await JS.InvokeVoidAsync("webAppChat.wireEnter", _input, _dotNetRef);
+        }
+        catch (JSException)
+        {
         }
     }
-
-    private void OnChatChanged() => InvokeAsync(StateHasChanged);
 
     [JSInvokable]
     public Task SendFromJsAsync() => SendAsync();
@@ -135,6 +125,11 @@
 
         _draft = string.Empty;
         await Svc.ProcessUserMessageAsync(text);
+        if (NotifyLayoutRefresh.HasDelegate)
+        {
+            await NotifyLayoutRefresh.InvokeAsync();
+        }
+
         await ScrollToEndAsync();
     }
 
@@ -154,7 +149,6 @@
 
     public async ValueTask DisposeAsync()
     {
-        Svc.Changed -= OnChatChanged;
         _dotNetRef?.Dispose();
         await ValueTask.CompletedTask;
     }

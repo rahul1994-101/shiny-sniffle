@@ -2,12 +2,6 @@
 
 <PageTitle>Settings</PageTitle>
 
-@if (!SessionStorageReady)
-{
-    <p class="settings-redirect">Loading…</p>
-}
-else
-{
 <div class="settings-shell">
     <nav class="settings-back-nav" aria-label="Back">
         <NavLink class="settings-back" href="">
@@ -44,11 +38,7 @@ else
         <p class="settings-hint">UI theme switching can be hooked up later.</p>
     </section>
 </div>
-}
 
 @code {
-    [CascadingParameter(Name = "SessionStorageReady")]
-    public bool SessionStorageReady { get; set; }
-
     private readonly SettingsVM _vm = new();
 }

@@ -1,4 +1,3 @@
-@implements IDisposable
 @inject Service Svc
 @inject NavigationManager Nav
 @inject IJSRuntime JS
@@ -52,8 +51,8 @@
                                                @ref="_renameInput"
                                                @bind="_editTitle"
                                                @bind:event="oninput"
-                                               @onkeydown="RenameKeyDown"
-                                               @onblur="OnRenameBlur"
+                                               @onkeydown="RenameKeyDownAsync"
+                                               @onblur="OnRenameBlurAsync"
                                                maxlength="80"
                                                aria-label="Chat name" />
                                     </div>
@@ -97,14 +96,8 @@
 </aside>
 
 @code {
-    #region # Lifecycle
-
-    protected override void OnInitialized()
-    {
-        Svc.Changed += OnSessionChanged;
-    }
-
-    private void OnSessionChanged() => InvokeAsync(StateHasChanged);
+    [CascadingParameter(Name = "NotifyLayoutRefresh")]
+    public EventCallback NotifyLayoutRefresh { get; set; }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -121,12 +114,13 @@
         }
     }
 
-    public void Dispose()
+    private async Task RefreshLayoutAsync()
     {
-        Svc.Changed -= OnSessionChanged;
+        if (NotifyLayoutRefresh.HasDelegate)
+        {
+            await NotifyLayoutRefresh.InvokeAsync();
+        }
     }
-
-    #endregion
 
     #region # Mobile shell
 
@@ -183,6 +177,7 @@
         Svc.CreateNewThread();
         await GoChatHomeIfNeededAsync();
         await CollapseMobileDrawerAsync();
+        await RefreshLayoutAsync();
     }
 
     private async Task SelectThread(Guid id)
@@ -190,6 +185,7 @@
         Svc.SelectThread(id);
         await GoChatHomeIfNeededAsync();
         await CollapseMobileDrawerAsync();
+        await RefreshLayoutAsync();
     }
 
     private async Task DeleteThread(Guid id)
@@ -197,6 +193,7 @@
         Svc.DeleteThread(id);
         await GoChatHomeIfNeededAsync();
         await CollapseMobileDrawerAsync();
+        await RefreshLayoutAsync();
     }
 
     #endregion
@@ -215,11 +212,11 @@
         _focusRenameInput = true;
     }
 
-    private void RenameKeyDown(KeyboardEventArgs e)
+    private async Task RenameKeyDownAsync(KeyboardEventArgs e)
     {
         if (e.Key == "Enter")
         {
-            CommitRename();
+            await CommitRenameAsync();
         }
         else if (e.Key == "Escape")
         {
@@ -227,15 +224,15 @@
         }
     }
 
-    private void OnRenameBlur()
+    private async Task OnRenameBlurAsync()
     {
         if (_editingId is not null)
         {
-            CommitRename();
+            await CommitRenameAsync();
         }
     }
 
-    private void CommitRename()
+    private async Task CommitRenameAsync()
     {
         if (_editingId is null)
         {
@@ -244,6 +241,7 @@
 
         Svc.RenameThread(_editingId.Value, _editTitle);
         _editingId = null;
+        await RefreshLayoutAsync();
     }
 
     private void CancelRename()

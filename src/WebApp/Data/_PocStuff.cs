@@ -1,6 +1,4 @@
-﻿using Microsoft.Extensions.Options;
-using System.Text.Json;
-using WebApp.Models;
+﻿using WebApp.Models;
 
 namespace WebApp.Data;
 
@@ -9,15 +7,11 @@ public sealed class Service
 {
     #region # Construction
 
-    private readonly AgenticApiClient _agenticApi;
-    private readonly IOptions<AgenticApiOptions> _agenticOptions;
     private readonly Repository _repo;
 
-    public Service(Repository repo, AgenticApiClient agenticApi, IOptions<AgenticApiOptions> agenticOptions)
+    public Service(Repository repo)
     {
         _repo = repo;
-        _agenticApi = agenticApi;
-        _agenticOptions = agenticOptions;
     }
 
     #endregion
@@ -34,55 +28,22 @@ public sealed class Service
 
     #endregion
 
-    #region # Events
-
-    public event Action? Changed
-    {
-        add => _repo.Changed += value;
-        remove => _repo.Changed -= value;
-    }
-
-    #endregion
-
     #region # Messages
 
-    public async Task ProcessUserMessageAsync(string text, CancellationToken cancellationToken = default)
+    public Task ProcessUserMessageAsync(string text, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
         var trimmed = text.Trim();
         if (string.IsNullOrEmpty(trimmed))
         {
-            return;
+            return Task.CompletedTask;
         }
 
         _repo.AddMessage(new ChatMessage { Role = "user", Content = trimmed });
-
-        var baseUrl = (_agenticOptions.Value.BaseUrl ?? "").Trim().TrimEnd('/');
-        if (!string.IsNullOrWhiteSpace(baseUrl))
-        {
-            var (ok, reply, err) = await _agenticApi.MailAgentChatAsync(
-                baseUrl,
-                trimmed,
-                userEmail: null,
-                cancellationToken
-            );
-
-            if (ok && !string.IsNullOrWhiteSpace(reply))
-            {
-                _repo.AddMessage(new ChatMessage { Role = "assistant", Content = reply });
-                return;
-            }
-
-            var fallback = string.IsNullOrWhiteSpace(err)
-                ? "Agent API returned an empty reply."
-                : err;
-            _repo.AddMessage(new ChatMessage { Role = "assistant", Content = fallback });
-            return;
-        }
-
         _repo.AddMessage(
             new ChatMessage { Role = "assistant", Content = ChatMocks.AssistantReply(trimmed) }
         );
+        return Task.CompletedTask;
     }
 
     #endregion
@@ -137,12 +98,6 @@ public sealed class Repository
 
     #endregion
 
-    #region # Events
-
-    public event Action? Changed;
-
-    #endregion
-
     #region # Messages
 
     public void AddMessage(ChatMessage message)
@@ -155,8 +110,6 @@ public sealed class Repository
         {
             thread.Title = TrimTitle(message.Content);
         }
-
-        Changed?.Invoke();
     }
 
     #endregion
@@ -167,7 +120,6 @@ public sealed class Repository
     {
         var t = CreateThreadInternal();
         _activeThreadId = t.Id;
-        Changed?.Invoke();
     }
 
     private ChatThread CreateThreadInternal()
@@ -182,7 +134,6 @@ public sealed class Repository
         if (_threads.Any(t => t.Id == id))
         {
             _activeThreadId = id;
-            Changed?.Invoke();
         }
     }
 
@@ -205,8 +156,6 @@ public sealed class Repository
         {
             _activeThreadId = _threads[Math.Min(idx, _threads.Count - 1)].Id;
         }
-
-        Changed?.Invoke();
     }
 
     public void RenameThread(Guid id, string title)
@@ -220,7 +169,6 @@ public sealed class Repository
         var trimmed = title.Trim();
         thread.Title = string.IsNullOrEmpty(trimmed) ? "New chat" : trimmed[..Math.Min(trimmed.Length, 80)];
         thread.UpdatedUtc = DateTimeOffset.UtcNow;
-        Changed?.Invoke();
     }
 
     #endregion
@@ -238,7 +186,6 @@ public sealed class Repository
         thread.Messages.Clear();
         thread.Title = "New chat";
         thread.UpdatedUtc = DateTimeOffset.UtcNow;
-        Changed?.Invoke();
     }
 
     #endregion
@@ -257,100 +204,4 @@ public sealed class Repository
     }
 
     #endregion
-}
-
-
-public sealed class AgenticApiClient
-{
-    private static string FormatHttpError(System.Net.HttpStatusCode status, string raw)
-    {
-        var snippet = raw.Length <= 1200 ? raw : raw[..1200] + "...";
-        return $"HTTP {(int)status}: {snippet}";
-    }
-
-    private static readonly JsonSerializerOptions JsonRead = new()
-    {
-        PropertyNameCaseInsensitive = true,
-    };
-
-    private static readonly JsonSerializerOptions JsonWrite = new()
-    {
-        // FastAPI / Pydantic expect snake_case JSON keys (message, user_email, …).
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull,
-        // Avoid culture-dependent number formatting if we add decimals later.
-        NumberHandling = System.Text.Json.Serialization.JsonNumberHandling.Strict,
-    };
-
-    private readonly IHttpClientFactory _httpClientFactory;
-
-    public AgenticApiClient(IHttpClientFactory httpClientFactory)
-    {
-        _httpClientFactory = httpClientFactory;
-    }
-
-    public async Task<(bool Ok, string Reply, string? Error)> MailAgentChatAsync(
-        string baseUrl,
-        string message,
-        string? userEmail,
-        CancellationToken cancellationToken = default
-    )
-    {
-        var url = $"{baseUrl.TrimEnd('/')}/mail_agent_chat";
-        var body = new MailAgentChatApiRequest { Message = message, UserEmail = userEmail };
-
-        try
-        {
-            var client = _httpClientFactory.CreateClient();
-            client.Timeout = TimeSpan.FromMinutes(5);
-            using var response = await client.PostAsJsonAsync(url, body, JsonWrite, cancellationToken);
-            var raw = await response.Content.ReadAsStringAsync(cancellationToken);
-            if (!response.IsSuccessStatusCode)
-            {
-                return (false, "", FormatHttpError(response.StatusCode, raw));
-            }
-
-            var env = JsonSerializer.Deserialize<ServiceEnvelopeDto>(raw, JsonRead);
-            if (env is null)
-            {
-                return (false, "", "Invalid JSON from agent API.");
-            }
-
-            if (env.HasError)
-            {
-                return (false, "", ServiceEnvelopeDto.FormatErrors(env.Errors));
-            }
-
-            return (true, ServiceEnvelopeDto.FormatPayload(env.Payload), null);
-        }
-        catch (Exception ex)
-        {
-            return (false, "", ex.Message);
-        }
-    }
-}
-
-public static class Api
-{
-    public static WebApplication MapLangChainApi(this WebApplication app)
-    {
-        var g = app.MapGroup("/api/langchain").WithTags("LangChain");
-
-        g.MapGet("/health", () => Results.Ok(new { status = "ok", at = DateTimeOffset.UtcNow }))
-            .WithName("LangChainGatewayHealth");
-
-        g.MapPost("/invoke", (SendChatRequestDTO body) =>
-        {
-            if (string.IsNullOrWhiteSpace(body.Message))
-            {
-                return Results.BadRequest(new { error = "message is required" });
-            }
-
-            var reply = ChatMocks.AssistantReply(body.Message);
-            return Results.Ok(new SendChatResponseDTO { Reply = reply });
-        })
-            .WithName("LangChainInvoke");
-
-        return app;
-    }
 }

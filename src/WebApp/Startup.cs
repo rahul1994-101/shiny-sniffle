@@ -5,7 +5,6 @@ using System.Globalization;
 using WebApp;
 using WebApp.Components;
 using WebApp.Data;
-using WebApp.Models;
 using WebApp.Utilities.Helpers;
 
 namespace WebApp;
@@ -23,12 +22,6 @@ public static class DependencyInject
         builder.Services.AddScoped<Features>();
         builder.Services.AddScoped<Persistence>();
 
-        // To be Migrated..
-        builder.Services.Configure<AgenticApiOptions>(
-            builder.Configuration.GetSection(AgenticApiOptions.SectionName)
-        );
-        builder.Services.AddHttpClient();
-        builder.Services.AddScoped<AgenticApiClient>();
         builder.Services.AddScoped<Repository>();
         builder.Services.AddScoped<Service>();
     }
@@ -51,7 +44,6 @@ public static class DependencyInject
         app.UseAntiforgery();
 
         app.MapStaticAssets();
-        app.MapLangChainApi(); // To be Migrated
         app
             .MapRazorComponents<App>()
             .AddInteractiveServerRenderMode();
