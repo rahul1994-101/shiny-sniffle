@@ -1,7 +1,7 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace WebApp.Models;
+namespace WebApp._PocStuff;
 
 
 public sealed class ChatThread

@@ -1,9 +1,7 @@
 ﻿using Microsoft.Extensions.Options;
 using System.Text.Json;
-using WebApp.Auth;
-using WebApp.Models;
 
-namespace WebApp.Data;
+namespace WebApp._PocStuff;
 
 
 public sealed class Service

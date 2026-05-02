@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using WebApp.Models;
 
-namespace WebApp.Auth;
+namespace WebApp._PocStuff;
 
 public sealed class CookieAuthenticationService
 {
