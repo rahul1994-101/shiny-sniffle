@@ -2,7 +2,6 @@ import asyncio
 
 from mail_graph.runner import run_mail_agent_sync
 from utils.behaviour_pipelines import service_behavior
-from utils.gmail_token_store import save_user_tokens
 from utils.streaming_helpers import ProgressFn
 
 
@@ -43,22 +42,6 @@ def get_normal_endpoint(name: str):
 def get_mail_agent_chat(message: str, user_email: str | None = None):
 
     return run_mail_agent_sync(message, user_email)
-
-
-@service_behavior
-def store_gmail_tokens(
-    email: str,
-    refresh_token: str | None = None,
-    access_token: str | None = None,
-    expires_in_seconds: int | None = None,
-):
-
-    return save_user_tokens(
-        email,
-        refresh_token=refresh_token,
-        access_token=access_token,
-        expires_in_seconds=expires_in_seconds,
-    )
 
 
 # -------------------------------

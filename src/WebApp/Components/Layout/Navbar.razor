@@ -1,9 +1,3 @@
-@using System.Security.Claims
-
-@inject NavigationManager Nav
-@inject CookieAuthenticationService CookieAuth
-@inject IHttpContextAccessor HttpContextAccessor
-
 <header class="layout-navbar">
     <div class="layout-navbar-start">
         <button type="button"
@@ -26,17 +20,6 @@
         </a>
     </div>
     <div class="layout-navbar-end">
-        <AuthorizeView>
-            <Authorized>
-                <span class="layout-navbar-session" title="Signed-in email">@context.User.FindFirstValue(ClaimTypes.Email)</span>
-                <button type="button"
-                        class="layout-navbar-signout"
-                        @onclick="SignOutAsync"
-                        title="Sign out">
-                    Sign out
-                </button>
-            </Authorized>
-        </AuthorizeView>
         <NavLink class="layout-navbar-settings" href="settings" ActiveClass="layout-navbar-settings-active" title="Settings" aria-label="Settings">
             <svg class="layout-navbar-settings-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                 <circle cx="12" cy="12" r="3" />
@@ -45,16 +28,3 @@
         </NavLink>
     </div>
 </header>
-
-@code {
-    private async Task SignOutAsync()
-    {
-        var http = HttpContextAccessor.HttpContext;
-        if (http is not null)
-        {
-            await CookieAuth.SignOutAsync(http);
-        }
-
-        Nav.NavigateTo("/login", forceLoad: true);
-    }
-}

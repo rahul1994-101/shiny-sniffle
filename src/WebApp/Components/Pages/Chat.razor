@@ -1,11 +1,8 @@
 @page "/"
 
-@attribute [Authorize]
-
 @implements IAsyncDisposable
 
 @inject Service Svc
-@inject ICurrentUser CurrentUser
 @inject IJSRuntime JS
 
 @using Microsoft.JSInterop
@@ -83,10 +80,6 @@
         </div>
         <p class="chat-disclaimer">
             Enter to send · Shift+Enter for a new line
-            @if (CurrentUser.IsAuthenticated && !string.IsNullOrWhiteSpace(CurrentUser.Email))
-            {
-                <span class="chat-session-hint"> · @CurrentUser.Email</span>
-            }
         </p>
     </div>
 </div>

@@ -1,6 +1,5 @@
 ﻿using Microsoft.Extensions.Options;
 using System.Text.Json;
-using WebApp.Auth;
 using WebApp.Models;
 
 namespace WebApp.Data;
@@ -11,14 +10,14 @@ public sealed class Service
     #region # Construction
 
     private readonly AgenticApiClient _agenticApi;
-    private readonly ICurrentUser _currentUser;
+    private readonly IOptions<AgenticApiOptions> _agenticOptions;
     private readonly Repository _repo;
 
-    public Service(Repository repo, AgenticApiClient agenticApi, ICurrentUser currentUser)
+    public Service(Repository repo, AgenticApiClient agenticApi, IOptions<AgenticApiOptions> agenticOptions)
     {
         _repo = repo;
         _agenticApi = agenticApi;
-        _currentUser = currentUser;
+        _agenticOptions = agenticOptions;
     }
 
     #endregion
@@ -58,14 +57,13 @@ public sealed class Service
 
         _repo.AddMessage(new ChatMessage { Role = "user", Content = trimmed });
 
-        var baseUrl = _repo.EffectiveAgenticBaseUrl;
+        var baseUrl = (_agenticOptions.Value.BaseUrl ?? "").Trim().TrimEnd('/');
         if (!string.IsNullOrWhiteSpace(baseUrl))
         {
-            var who = string.IsNullOrWhiteSpace(_currentUser.Email) ? null : _currentUser.Email.Trim();
             var (ok, reply, err) = await _agenticApi.MailAgentChatAsync(
                 baseUrl,
                 trimmed,
-                who,
+                userEmail: null,
                 cancellationToken
             );
 
@@ -112,36 +110,13 @@ public sealed class Repository
 {
     #region # Fields & construction
 
-    private readonly IOptions<AgenticApiOptions> _agenticOptions;
     private readonly List<ChatThread> _threads = [];
     private Guid _activeThreadId;
 
-    public Repository(IOptions<AgenticApiOptions> agenticOptions)
+    public Repository()
     {
-        _agenticOptions = agenticOptions;
         var first = CreateThreadInternal();
         _activeThreadId = first.Id;
-    }
-
-    #endregion
-
-    #region # Agentic API
-
-    /// <summary>Optional override; when empty, <see cref="AgenticApiOptions.BaseUrl"/> is used.</summary>
-    public string AgenticApiBaseUrlOverride { get; set; } = "";
-
-    public string EffectiveAgenticBaseUrl
-    {
-        get
-        {
-            var o = AgenticApiBaseUrlOverride.Trim();
-            if (!string.IsNullOrEmpty(o))
-            {
-                return o.TrimEnd('/');
-            }
-
-            return (_agenticOptions.Value.BaseUrl ?? "").Trim().TrimEnd('/');
-        }
     }
 
     #endregion
@@ -352,67 +327,6 @@ public sealed class AgenticApiClient
         {
             return (false, "", ex.Message);
         }
-    }
-
-    public async Task<(bool Ok, string? Error, string? StoragePath)> StoreGmailTokensAsync(
-        string baseUrl,
-        string email,
-        string? refreshToken,
-        string? accessToken,
-        int? expiresInSeconds,
-        CancellationToken cancellationToken = default
-    )
-    {
-        var url = $"{baseUrl.TrimEnd('/')}/gmail/store_tokens";
-        var body = new GmailStoreTokensApiRequest
-        {
-            Email = email,
-            RefreshToken = refreshToken,
-            AccessToken = accessToken,
-            ExpiresInSeconds = expiresInSeconds,
-        };
-
-        try
-        {
-            var client = _httpClientFactory.CreateClient();
-            client.Timeout = TimeSpan.FromMinutes(1);
-            using var response = await client.PostAsJsonAsync(url, body, JsonWrite, cancellationToken);
-            var raw = await response.Content.ReadAsStringAsync(cancellationToken);
-            if (!response.IsSuccessStatusCode)
-            {
-                return (false, FormatHttpError(response.StatusCode, raw), null);
-            }
-
-            var env = JsonSerializer.Deserialize<ServiceEnvelopeDto>(raw, JsonRead);
-            if (env is null)
-            {
-                return (false, "Invalid JSON from agent API.", null);
-            }
-
-            if (env.HasError)
-            {
-                return (false, ServiceEnvelopeDto.FormatErrors(env.Errors), null);
-            }
-
-            var path = TryGetPayloadString(env.Payload, "storage_path");
-            return (true, null, path);
-        }
-        catch (Exception ex)
-        {
-            return (false, ex.Message, null);
-        }
-    }
-
-    private static string? TryGetPayloadString(JsonElement payload, string property)
-    {
-        if (payload.ValueKind != JsonValueKind.Object)
-        {
-            return null;
-        }
-
-        return payload.TryGetProperty(property, out var el)
-            ? el.ValueKind == JsonValueKind.String ? el.GetString() : el.ToString()
-            : null;
     }
 }
 

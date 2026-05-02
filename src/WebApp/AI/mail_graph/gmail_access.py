@@ -42,7 +42,7 @@ def _stub_mail_for_day(d: date) -> list[dict[str, Any]]:
             "threadId": "stub-thread-2",
             "subject": "(Stub) Shipping notice",
             "from": "orders@example.com",
-            "snippet": "Set tokens via POST /gmail/store_tokens (user_email on chat) or GMAIL_ACCESS_TOKEN.",
+            "snippet": "Set tokens in gmail_tokens.json for user_email (chat) or set GMAIL_ACCESS_TOKEN.",
             "internalDate": str(int(datetime.now(timezone.utc).timestamp() * 1000)),
         },
     ]
@@ -71,7 +71,7 @@ def _resolve_access_token(user_email: str | None) -> str:
 def fetch_mail_for_day(target_iso: str, user_email: str | None = None) -> list[dict[str, Any]]:
     """
     List Gmail messages for the given calendar day (UTC window).
-    Token order: file entry for user_email (see /gmail/store_tokens), else
+    Token order: file entry for user_email in gmail_tokens.json, else
     GMAIL_ACCESS_TOKEN env. When missing, returns stub items.
     """
 

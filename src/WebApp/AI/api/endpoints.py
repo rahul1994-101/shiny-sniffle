@@ -2,11 +2,10 @@ import logging
 
 from fastapi import APIRouter, Body, Request
 
-from api.schema import GmailStoreTokensRequest, MailChatRequest
+from api.schema import MailChatRequest
 from api.service import (
     get_mail_agent_chat,
     get_normal_endpoint,
-    store_gmail_tokens,
     stream_mail_agent_chat,
     stream_normal_endpoint,
 )
@@ -30,17 +29,6 @@ async def normal_endpoint(name: str):
 async def mail_agent_chat(body: MailChatRequest):
 
     return get_mail_agent_chat(body.message, body.user_email)
-
-
-@router.post("/gmail/store_tokens")
-async def gmail_store_tokens(body: GmailStoreTokensRequest):
-
-    return store_gmail_tokens(
-        body.email,
-        refresh_token=body.refresh_token,
-        access_token=body.access_token,
-        expires_in_seconds=body.expires_in_seconds,
-    )
 
 
 # --------------------------------

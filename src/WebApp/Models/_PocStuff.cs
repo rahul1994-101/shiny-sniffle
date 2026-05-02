@@ -64,21 +64,6 @@ public sealed class MailAgentChatApiRequest
     public string? UserEmail { get; set; }
 }
 
-public sealed class GmailStoreTokensApiRequest
-{
-    /// <summary>Serialized as "email".</summary>
-    public string Email { get; set; } = "";
-
-    [JsonPropertyName("refresh_token")]
-    public string? RefreshToken { get; set; }
-
-    [JsonPropertyName("access_token")]
-    public string? AccessToken { get; set; }
-
-    [JsonPropertyName("expires_in_seconds")]
-    public int? ExpiresInSeconds { get; set; }
-}
-
 public sealed class ServiceEnvelopeDto
 {
     public bool HasError { get; set; }

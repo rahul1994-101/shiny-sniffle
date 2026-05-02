@@ -87,56 +87,6 @@ def read_all_tokens() -> dict[str, Any]:
         return dict(_read_all_unlocked())
 
 
-def save_user_tokens(
-    email: str,
-    refresh_token: str | None = None,
-    access_token: str | None = None,
-    expires_in_seconds: int | None = None,
-) -> dict[str, Any]:
-    """
-    Merge token fields for one user and persist to the JSON file.
-    """
-
-    key = _normalize_email(email)
-    if not key or "@" not in key:
-        raise ValueError("Invalid email")
-
-    now = time.time()
-    expires_at: float | None = None
-    if access_token and expires_in_seconds is not None and expires_in_seconds > 0:
-        expires_at = now + float(expires_in_seconds)
-
-    with _lock:
-        all_data = _read_all_unlocked()
-        prev = dict(all_data.get(key) or {})
-        if prev.get("email") is None:
-            prev["email"] = email.strip()
-
-        if refresh_token is not None:
-            rt = refresh_token.strip()
-            prev["refresh_token"] = rt if rt else None
-        if access_token is not None:
-            at = access_token.strip()
-            prev["access_token"] = at if at else None
-        if expires_at is not None:
-            prev["expires_at"] = expires_at
-        elif access_token is not None and expires_in_seconds is None:
-            prev["expires_at"] = now + 3600.0
-
-        prev["updated_at"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
-        all_data[key] = prev
-        _write_all_unlocked(all_data)
-
-    out_path = resolved_tokens_file_path()
-    logger.info("Saved Gmail token entry for %s -> %s", key, out_path)
-    return {
-        "email": key,
-        "stored": True,
-        "storage_path": out_path,
-        "updated_at": prev.get("updated_at"),
-    }
-
-
 def _credentials_from_record(
     rec: dict[str, Any],
 ) -> Credentials | None:
