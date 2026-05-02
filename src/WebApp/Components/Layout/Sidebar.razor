@@ -5,7 +5,7 @@
 <aside id="app-sidebar" class="sidebar">
     <div class="sidebar-chrome">
         <div class="sidebar-header">
-            <a class="sidebar-brand" href="" title="Assistant">Assistant</a>
+            <a class="sidebar-brand" href="/" title="Assistant">Assistant</a>
             <button type="button"
                     class="sidebar-header-btn sidebar-header-close"
                     data-shell-close
@@ -31,7 +31,7 @@
             <div class="nav-root">
                 <div class="nav-scrollable">
                     <div class="nav-actions">
-                        <button type="button" class="btn-new-chat" @onclick="StartNewChat">
+                        <button type="button" class="btn-new-chat" @onclick="StartNewChatAsync">
                             <svg class="nav-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
                             New chat
                         </button>
@@ -39,9 +39,9 @@
 
                     <div class="thread-list-label">Recent</div>
                     <ul class="thread-list">
-                        @foreach (var t in Svc.ThreadsOrdered)
+                        @foreach (var t in Svc.GetThreadsOrdered())
                         {
-                            var active = t.Id == Svc.ActiveThreadId;
+                            var active = IsThreadActive(t.Id);
                             <li @key="t.Id" class="thread-item @(active ? "thread-item-active" : null)">
                                 @if (_editingId == t.Id)
                                 {
@@ -59,7 +59,7 @@
                                 }
                                 else
                                 {
-                                    <button type="button" class="thread-select" @onclick="() => SelectThread(t.Id)" title="@t.Title">
+                                    <button type="button" class="thread-select" @onclick="() => SelectThreadAsync(t.Id)" title="@t.Title">
                                         <svg class="thread-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
                                         <span class="thread-title">@t.Title</span>
                                     </button>
@@ -69,7 +69,7 @@
                                 }
                                 @if (_editingId != t.Id)
                                 {
-                                    <button type="button" class="thread-delete" @onclick="() => DeleteThread(t.Id)" @onclick:stopPropagation="true" aria-label="Remove chat" title="Remove">
+                                    <button type="button" class="thread-delete" @onclick="() => DeleteThreadAsync(t.Id)" @onclick:stopPropagation="true" aria-label="Remove chat" title="Remove">
                                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12" /></svg>
                                     </button>
                                 }
@@ -114,12 +114,29 @@
         }
     }
 
+    private bool IsThreadActive(Guid id)
+    {
+        if (!QueryHelpers.ParseQuery(new Uri(Nav.Uri).Query).TryGetValue("thread", out var values))
+        {
+            return false;
+        }
+
+        return Guid.TryParse(values.FirstOrDefault(), out var cur) && cur == id;
+    }
+
     private async Task RefreshLayoutAsync()
     {
         if (NotifyLayoutRefresh.HasDelegate)
         {
             await NotifyLayoutRefresh.InvokeAsync();
         }
+    }
+
+    private async Task NavigateToChatThreadAsync(Guid threadId)
+    {
+        Nav.NavigateTo($"/?thread={threadId}", replace: true);
+        await CollapseMobileDrawerAsync();
+        await RefreshLayoutAsync();
     }
 
     #region # Mobile shell
@@ -142,58 +159,20 @@
 
     #endregion
 
-    #region # Navigation
-
-    private async Task GoChatHomeIfNeededAsync()
-    {
-        if (IsChatHome(Nav))
-        {
-            return;
-        }
-
-        Nav.NavigateTo("/", replace: true);
-        await Task.Yield();
-    }
-
-    private static bool IsChatHome(NavigationManager nav)
-    {
-        var rel = nav.ToBaseRelativePath(nav.Uri);
-        var q = rel.IndexOf('?', StringComparison.Ordinal);
-        if (q >= 0)
-        {
-            rel = rel[..q];
-        }
-
-        rel = rel.TrimEnd('/');
-        return rel.Length == 0;
-    }
-
-    #endregion
-
     #region # Chat threads
 
-    private async Task StartNewChat()
+    private async Task StartNewChatAsync()
     {
-        Svc.CreateNewThread();
-        await GoChatHomeIfNeededAsync();
-        await CollapseMobileDrawerAsync();
-        await RefreshLayoutAsync();
+        var id = Svc.CreateThread();
+        await NavigateToChatThreadAsync(id);
     }
 
-    private async Task SelectThread(Guid id)
-    {
-        Svc.SelectThread(id);
-        await GoChatHomeIfNeededAsync();
-        await CollapseMobileDrawerAsync();
-        await RefreshLayoutAsync();
-    }
+    private Task SelectThreadAsync(Guid id) => NavigateToChatThreadAsync(id);
 
-    private async Task DeleteThread(Guid id)
+    private async Task DeleteThreadAsync(Guid id)
     {
         Svc.DeleteThread(id);
-        await GoChatHomeIfNeededAsync();
-        await CollapseMobileDrawerAsync();
-        await RefreshLayoutAsync();
+        await NavigateToChatThreadAsync(Svc.GetDefaultThreadId());
     }
 
     #endregion

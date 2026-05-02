@@ -3,8 +3,10 @@
 @implements IAsyncDisposable
 
 @inject Service Svc
+@inject NavigationManager Nav
 @inject IJSRuntime JS
 
+@using Microsoft.AspNetCore.WebUtilities
 @using Microsoft.JSInterop
 @using WebApp.Utilities.Helpers
 
@@ -12,7 +14,7 @@
 
 <div class="chat-shell">
     <div class="chat-messages" @ref="_messagesRegion">
-        @if (Svc.Messages.Count == 0)
+        @if (Messages.Count == 0)
         {
             <div class="chat-empty">
                 <div class="chat-empty-mark" aria-hidden="true"></div>
@@ -22,7 +24,7 @@
         }
         else
         {
-            @foreach (var msg in Svc.Messages)
+            @foreach (var msg in Messages)
             {
                 if (IsUser(msg.Role))
                 {
@@ -88,27 +90,90 @@
     [CascadingParameter(Name = "NotifyLayoutRefresh")]
     public EventCallback NotifyLayoutRefresh { get; set; }
 
+    private Guid _activeThreadId;
+    private IReadOnlyList<ChatMessage> Messages => Svc.GetMessages(_activeThreadId);
+
     private ElementReference _messagesRegion;
     private ElementReference _input;
     private string _draft = string.Empty;
     private DotNetObjectReference<Chat>? _dotNetRef;
     private bool _enterWired;
+    private bool _didNormalizeThreadQuery;
+
+    protected override void OnInitialized()
+    {
+        Nav.LocationChanged += OnLocationChanged;
+    }
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        ApplyThreadFromUri();
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    protected override void OnParametersSet()
+    {
+        ApplyThreadFromUri();
+    }
+
+    private void ApplyThreadFromUri()
+    {
+        if (TryParseThreadFromUri(Nav.Uri, out var qid) && Svc.TryGetThread(qid) is not null)
+        {
+            _activeThreadId = qid;
+        }
+        else
+        {
+            _activeThreadId = Svc.GetDefaultThreadId();
+        }
+    }
+
+    private static bool TryParseThreadFromUri(string uriString, out Guid threadId)
+    {
+        threadId = default;
+        try
+        {
+            var query = new Uri(uriString, UriKind.Absolute).Query;
+            if (!QueryHelpers.ParseQuery(query).TryGetValue("thread", out var values))
+            {
+                return false;
+            }
+
+            return Guid.TryParse(values.FirstOrDefault(), out threadId);
+        }
+        catch (UriFormatException)
+        {
+            return false;
+        }
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (!firstRender || _enterWired)
+        if (!_didNormalizeThreadQuery)
         {
-            return;
+            var hasValidThread = TryParseThreadFromUri(Nav.Uri, out var qid) && Svc.TryGetThread(qid) is not null;
+            if (!hasValidThread)
+            {
+                _didNormalizeThreadQuery = true;
+                var fb = Svc.GetDefaultThreadId();
+                Nav.NavigateTo($"/?thread={fb}", replace: true);
+                return;
+            }
+
+            _didNormalizeThreadQuery = true;
         }
 
-        _enterWired = true;
-        _dotNetRef = DotNetObjectReference.Create(this);
-        try
+        if (!_enterWired)
         {
-            await JS.InvokeVoidAsync("webAppChat.wireEnter", _input, _dotNetRef);
-        }
-        catch (JSException)
-        {
+            _enterWired = true;
+            _dotNetRef = DotNetObjectReference.Create(this);
+            try
+            {
+                await JS.InvokeVoidAsync("webAppChat.wireEnter", _input, _dotNetRef);
+            }
+            catch (JSException)
+            {
+            }
         }
     }
 
@@ -124,7 +189,7 @@
         }
 
         _draft = string.Empty;
-        await Svc.ProcessUserMessageAsync(text);
+        await Svc.ProcessUserMessageAsync(_activeThreadId, text);
         if (NotifyLayoutRefresh.HasDelegate)
         {
             await NotifyLayoutRefresh.InvokeAsync();
@@ -149,6 +214,7 @@
 
     public async ValueTask DisposeAsync()
     {
+        Nav.LocationChanged -= OnLocationChanged;
         _dotNetRef?.Dispose();
         await ValueTask.CompletedTask;
     }

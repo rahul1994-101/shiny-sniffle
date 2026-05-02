@@ -2,11 +2,8 @@
 
 namespace WebApp.Data;
 
-
 public sealed class Service
 {
-    #region # Construction
-
     private readonly Repository _repo;
 
     public Service(Repository repo)
@@ -14,23 +11,24 @@ public sealed class Service
         _repo = repo;
     }
 
-    #endregion
+    public IReadOnlyList<ChatThread> GetThreadsOrdered() => _repo.GetThreadsOrdered();
 
-    #region # Queries
+    public ChatThread? TryGetThread(Guid threadId) => _repo.TryGetThread(threadId);
 
-    public Guid ActiveThreadId => _repo.ActiveThreadId;
+    public IReadOnlyList<ChatMessage> GetMessages(Guid threadId) => _repo.GetMessages(threadId);
 
-    public string ActiveThreadTitle => _repo.ActiveThreadTitle;
+    /// <summary>Oldest thread in the workspace; used when the URL has no or invalid <c>thread</c> query.</summary>
+    public Guid GetDefaultThreadId() => _repo.GetDefaultThreadId();
 
-    public IReadOnlyList<ChatMessage> Messages => _repo.Messages;
+    public Guid CreateThread() => _repo.CreateThread();
 
-    public IReadOnlyList<ChatThread> ThreadsOrdered => _repo.ThreadsOrdered;
+    public void DeleteThread(Guid threadId) => _repo.DeleteThread(threadId);
 
-    #endregion
+    public void RenameThread(Guid threadId, string title) => _repo.RenameThread(threadId, title);
 
-    #region # Messages
+    public void ClearThread(Guid threadId) => _repo.ClearThread(threadId);
 
-    public Task ProcessUserMessageAsync(string text, CancellationToken cancellationToken = default)
+    public Task ProcessUserMessageAsync(Guid threadId, string text, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
         var trimmed = text.Trim();
@@ -39,107 +37,46 @@ public sealed class Service
             return Task.CompletedTask;
         }
 
-        _repo.AddMessage(new ChatMessage { Role = "user", Content = trimmed });
+        _repo.AddMessage(threadId, new ChatMessage { Role = "user", Content = trimmed });
         _repo.AddMessage(
+            threadId,
             new ChatMessage { Role = "assistant", Content = ChatMocks.AssistantReply(trimmed) }
         );
         return Task.CompletedTask;
     }
-
-    #endregion
-
-    #region # Threads
-
-    public void CreateNewThread() => _repo.CreateNewThread();
-
-    public void SelectThread(Guid id) => _repo.SelectThread(id);
-
-    public void DeleteThread(Guid id) => _repo.DeleteThread(id);
-
-    public void RenameThread(Guid id, string title) => _repo.RenameThread(id, title);
-
-    #endregion
-
-    #region # Active conversation
-
-    public void ClearActiveConversation() => _repo.ClearActiveConversation();
-
-    #endregion
 }
 
 public sealed class Repository
 {
-    #region # Fields & construction
-
     private readonly List<ChatThread> _threads = [];
-    private Guid _activeThreadId;
 
     public Repository()
     {
-        var first = CreateThreadInternal();
-        _activeThreadId = first.Id;
+        CreateThreadInternal();
     }
 
-    #endregion
-
-    #region # Queries & active thread
-
-    public Guid ActiveThreadId => _activeThreadId;
-
-    public string ActiveThreadTitle => ActiveThread?.Title ?? "Chat";
-
-    public IReadOnlyList<ChatMessage> Messages =>
-        ActiveThread is null ? Array.Empty<ChatMessage>() : ActiveThread.Messages;
-
-    public IReadOnlyList<ChatThread> ThreadsOrdered =>
+    public IReadOnlyList<ChatThread> GetThreadsOrdered() =>
         _threads.OrderByDescending(t => t.UpdatedUtc).ToList();
 
-    private ChatThread? ActiveThread => _threads.FirstOrDefault(t => t.Id == _activeThreadId);
+    public ChatThread? TryGetThread(Guid threadId) => _threads.FirstOrDefault(t => t.Id == threadId);
 
-    #endregion
-
-    #region # Messages
-
-    public void AddMessage(ChatMessage message)
+    public IReadOnlyList<ChatMessage> GetMessages(Guid threadId)
     {
-        var thread = ActiveThread ?? throw new InvalidOperationException("No active thread.");
-        thread.Messages.Add(message);
-        thread.UpdatedUtc = DateTimeOffset.UtcNow;
-
-        if (thread.Title == "New chat" && message.Role == "user")
-        {
-            thread.Title = TrimTitle(message.Content);
-        }
+        var thread = TryGetThread(threadId);
+        return thread is null ? Array.Empty<ChatMessage>() : thread.Messages;
     }
 
-    #endregion
+    public Guid GetDefaultThreadId() => _threads[0].Id;
 
-    #region # Threads
-
-    public void CreateNewThread()
+    public Guid CreateThread()
     {
         var t = CreateThreadInternal();
-        _activeThreadId = t.Id;
+        return t.Id;
     }
 
-    private ChatThread CreateThreadInternal()
+    public void DeleteThread(Guid threadId)
     {
-        var t = new ChatThread();
-        _threads.Add(t);
-        return t;
-    }
-
-    public void SelectThread(Guid id)
-    {
-        if (_threads.Any(t => t.Id == id))
-        {
-            _activeThreadId = id;
-        }
-    }
-
-    public void DeleteThread(Guid id)
-    {
-        var idx = _threads.FindIndex(t => t.Id == id);
+        var idx = _threads.FindIndex(t => t.Id == threadId);
         if (idx < 0)
         {
             return;
@@ -149,18 +86,13 @@ public sealed class Repository
 
         if (_threads.Count == 0)
         {
-            var t = CreateThreadInternal();
-            _activeThreadId = t.Id;
-        }
-        else if (_activeThreadId == id)
-        {
-            _activeThreadId = _threads[Math.Min(idx, _threads.Count - 1)].Id;
+            CreateThreadInternal();
         }
     }
 
-    public void RenameThread(Guid id, string title)
+    public void RenameThread(Guid threadId, string title)
     {
-        var thread = _threads.FirstOrDefault(t => t.Id == id);
+        var thread = TryGetThread(threadId);
         if (thread is null)
         {
             return;
@@ -171,13 +103,9 @@ public sealed class Repository
         thread.UpdatedUtc = DateTimeOffset.UtcNow;
     }
 
-    #endregion
-
-    #region # Active conversation
-
-    public void ClearActiveConversation()
+    public void ClearThread(Guid threadId)
     {
-        var thread = ActiveThread;
+        var thread = TryGetThread(threadId);
         if (thread is null)
         {
             return;
@@ -188,9 +116,24 @@ public sealed class Repository
         thread.UpdatedUtc = DateTimeOffset.UtcNow;
     }
 
-    #endregion
+    public void AddMessage(Guid threadId, ChatMessage message)
+    {
+        var thread = TryGetThread(threadId) ?? throw new InvalidOperationException("Unknown thread.");
+        thread.Messages.Add(message);
+        thread.UpdatedUtc = DateTimeOffset.UtcNow;
 
-    #region # Helpers
+        if (thread.Title == "New chat" && message.Role == "user")
+        {
+            thread.Title = TrimTitle(message.Content);
+        }
+    }
+
+    private ChatThread CreateThreadInternal()
+    {
+        var t = new ChatThread();
+        _threads.Add(t);
+        return t;
+    }
 
     private static string TrimTitle(string content)
     {
@@ -202,6 +145,4 @@ public sealed class Repository
 
         return oneLine[..40].TrimEnd() + "…";
     }
-
-    #endregion
 }
