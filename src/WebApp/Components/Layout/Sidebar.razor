@@ -114,14 +114,28 @@
         }
     }
 
-    private bool IsThreadActive(Guid id)
+    private bool IsThreadActive(Guid id) =>
+        TryParseChatRouteThreadId(Nav, out var cur) && cur == id;
+
+    private static bool TryParseChatRouteThreadId(NavigationManager nav, out Guid threadId)
     {
-        if (!QueryHelpers.ParseQuery(new Uri(Nav.Uri).Query).TryGetValue("thread", out var values))
+        threadId = default;
+        var rel = nav.ToBaseRelativePath(nav.Uri);
+        var q = rel.IndexOf('?', StringComparison.Ordinal);
+        if (q >= 0)
+        {
+            rel = rel[..q];
+        }
+
+        rel = rel.Trim('/').ToLowerInvariant();
+        const string prefix = "chat/";
+        if (!rel.StartsWith(prefix, StringComparison.Ordinal))
         {
             return false;
         }
 
-        return Guid.TryParse(values.FirstOrDefault(), out var cur) && cur == id;
+        var seg = rel[prefix.Length..].Trim('/');
+        return !string.IsNullOrEmpty(seg) && Guid.TryParse(seg, out threadId);
     }
 
     private async Task RefreshLayoutAsync()
@@ -134,7 +148,7 @@
 
     private async Task NavigateToChatThreadAsync(Guid threadId)
     {
-        Nav.NavigateTo($"/?thread={threadId}", replace: true);
+        Nav.NavigateTo($"/chat/{threadId}", replace: true);
         await CollapseMobileDrawerAsync();
         await RefreshLayoutAsync();
     }

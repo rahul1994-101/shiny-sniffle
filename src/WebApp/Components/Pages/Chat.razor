@@ -1,4 +1,4 @@
-@page "/"
+@page "/chat/{ThreadId:guid?}"
 
 @implements IAsyncDisposable
 
@@ -6,7 +6,6 @@
 @inject NavigationManager Nav
 @inject IJSRuntime JS
 
-@using Microsoft.AspNetCore.WebUtilities
 @using Microsoft.JSInterop
 @using WebApp.Utilities.Helpers
 
@@ -90,6 +89,9 @@
     [CascadingParameter(Name = "NotifyLayoutRefresh")]
     public EventCallback NotifyLayoutRefresh { get; set; }
 
+    [Parameter]
+    public Guid? ThreadId { get; set; }
+
     private Guid _activeThreadId;
     private IReadOnlyList<ChatMessage> Messages => Svc.GetMessages(_activeThreadId);
 
@@ -98,29 +100,21 @@
     private string _draft = string.Empty;
     private DotNetObjectReference<Chat>? _dotNetRef;
     private bool _enterWired;
-    private bool _didNormalizeThreadQuery;
-
-    protected override void OnInitialized()
-    {
-        Nav.LocationChanged += OnLocationChanged;
-    }
-
-    private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
-    {
-        ApplyThreadFromUri();
-        _ = InvokeAsync(StateHasChanged);
-    }
+    private bool _didNormalizeRoute;
+    private string? _routeKey;
 
     protected override void OnParametersSet()
     {
-        ApplyThreadFromUri();
-    }
-
-    private void ApplyThreadFromUri()
-    {
-        if (TryParseThreadFromUri(Nav.Uri, out var qid) && Svc.TryGetThread(qid) is not null)
+        var key = ThreadId?.ToString("D") ?? "";
+        if (_routeKey != key)
         {
-            _activeThreadId = qid;
+            _routeKey = key;
+            _didNormalizeRoute = false;
+        }
+
+        if (ThreadId is { } tid && Svc.TryGetThread(tid) is not null)
+        {
+            _activeThreadId = tid;
         }
         else
         {
@@ -128,39 +122,20 @@
         }
     }
 
-    private static bool TryParseThreadFromUri(string uriString, out Guid threadId)
-    {
-        threadId = default;
-        try
-        {
-            var query = new Uri(uriString, UriKind.Absolute).Query;
-            if (!QueryHelpers.ParseQuery(query).TryGetValue("thread", out var values))
-            {
-                return false;
-            }
-
-            return Guid.TryParse(values.FirstOrDefault(), out threadId);
-        }
-        catch (UriFormatException)
-        {
-            return false;
-        }
-    }
-
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (!_didNormalizeThreadQuery)
+        if (!_didNormalizeRoute)
         {
-            var hasValidThread = TryParseThreadFromUri(Nav.Uri, out var qid) && Svc.TryGetThread(qid) is not null;
+            var hasValidThread = ThreadId is { } g && Svc.TryGetThread(g) is not null;
             if (!hasValidThread)
             {
-                _didNormalizeThreadQuery = true;
+                _didNormalizeRoute = true;
                 var fb = Svc.GetDefaultThreadId();
-                Nav.NavigateTo($"/?thread={fb}", replace: true);
+                Nav.NavigateTo($"/chat/{fb}", replace: true);
                 return;
             }
 
-            _didNormalizeThreadQuery = true;
+            _didNormalizeRoute = true;
         }
 
         if (!_enterWired)
@@ -214,7 +189,6 @@
 
     public async ValueTask DisposeAsync()
     {
-        Nav.LocationChanged -= OnLocationChanged;
         _dotNetRef?.Dispose();
         await ValueTask.CompletedTask;
     }
