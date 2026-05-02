@@ -1,7 +1,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
 
-namespace WebApp._PocStuff;
+namespace WebApp.Auth;
 
 public interface ICurrentUser
 {
