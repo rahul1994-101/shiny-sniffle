@@ -1,6 +1,8 @@
-@inject Service Svc
+@inject Features F
 @inject NavigationManager Nav
 @inject IJSRuntime JS
+
+@using WebApp.Utilities.Helpers
 
 <aside id="app-sidebar" class="sidebar">
     <div class="sidebar-chrome">
@@ -39,7 +41,7 @@
 
                     <div class="thread-list-label">Recent</div>
                     <ul class="thread-list">
-                        @foreach (var t in Svc.GetThreadsOrdered())
+                        @foreach (var t in _threads)
                         {
                             var active = IsThreadActive(t.Id);
                             <li @key="t.Id" class="thread-item @(active ? "thread-item-active" : null)">
@@ -99,6 +101,13 @@
     [CascadingParameter(Name = "NotifyLayoutRefresh")]
     public EventCallback NotifyLayoutRefresh { get; set; }
 
+    private List<GetChatThreadResponse> _threads = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadThreadsAsync();
+    }
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (_focusRenameInput)
@@ -112,6 +121,12 @@
             {
             }
         }
+    }
+
+    private async Task LoadThreadsAsync()
+    {
+        var result = await F.GetChatThreadsByUserIdAsync(new GetChatThreadsByUserIdRequest { UserId = CurrentUser.Id });
+        _threads = result.Payload ?? [];
     }
 
     private bool IsThreadActive(Guid id) =>
@@ -177,16 +192,56 @@
 
     private async Task StartNewChatAsync()
     {
-        var id = Svc.CreateThread();
-        await NavigateToChatThreadAsync(id);
+        var result = await F.AddChatThreadAsync(new AddChatThreadRequest { Title = "New chat", UserId = CurrentUser.Id });
+        if (result.HasError || result.Payload is null)
+        {
+            return;
+        }
+
+        _threads.Insert(0, new GetChatThreadResponse
+        {
+            Id = result.Payload.Id,
+            Title = result.Payload.Title,
+            UserId = result.Payload.UserId,
+            CreatedAt = result.Payload.CreatedAt,
+            UpdatedAt = result.Payload.CreatedAt
+        });
+
+        await NavigateToChatThreadAsync(result.Payload.Id);
     }
 
     private Task SelectThreadAsync(Guid id) => NavigateToChatThreadAsync(id);
 
     private async Task DeleteThreadAsync(Guid id)
     {
-        Svc.DeleteThread(id);
-        await NavigateToChatThreadAsync(Svc.GetDefaultThreadId());
+        var result = await F.DeleteChatThreadAsync(new DeleteChatThreadRequest { Id = id, UserId = CurrentUser.Id });
+        if (result.HasError)
+        {
+            return;
+        }
+
+        _threads.RemoveAll(t => t.Id == id);
+
+        if (_threads.Count == 0)
+        {
+            var created = await F.AddChatThreadAsync(new AddChatThreadRequest { Title = "New chat", UserId = CurrentUser.Id });
+            if (created.Payload is not null)
+            {
+                _threads.Insert(0, new GetChatThreadResponse
+                {
+                    Id = created.Payload.Id,
+                    Title = created.Payload.Title,
+                    UserId = created.Payload.UserId,
+                    CreatedAt = created.Payload.CreatedAt,
+                    UpdatedAt = created.Payload.CreatedAt
+                });
+            }
+        }
+
+        if (_threads.Count > 0)
+        {
+            await NavigateToChatThreadAsync(_threads[0].Id);
+        }
     }
 
     #endregion
@@ -198,7 +253,7 @@
     private ElementReference _renameInput;
     private bool _focusRenameInput;
 
-    private void BeginRename(ChatThread t)
+    private void BeginRename(GetChatThreadResponse t)
     {
         _editingId = t.Id;
         _editTitle = t.Title;
@@ -232,8 +287,26 @@
             return;
         }
 
-        Svc.RenameThread(_editingId.Value, _editTitle);
+        var threadId = _editingId.Value;
+        var result = await F.UpdateChatThreadTitleAsync(new UpdateChatThreadTitleRequest
+        {
+            Id = threadId,
+            Title = _editTitle,
+            UserId = CurrentUser.Id
+        });
+
         _editingId = null;
+
+        if (!result.HasError && result.Payload is not null)
+        {
+            var idx = _threads.FindIndex(t => t.Id == threadId);
+            if (idx >= 0)
+            {
+                _threads[idx].Title = result.Payload.Title;
+                _threads[idx].UpdatedAt = result.Payload.UpdatedAt;
+            }
+        }
+
         await RefreshLayoutAsync();
     }
 

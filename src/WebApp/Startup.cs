@@ -21,9 +21,6 @@ public static class DependencyInject
 
         builder.Services.AddScoped<Features>();
         builder.Services.AddScoped<Persistence>();
-
-        builder.Services.AddScoped<Repository>();
-        builder.Services.AddScoped<Service>();
     }
 
     public static void UseServices(this WebApplication app)

@@ -1,6 +1,4 @@
 using System.ComponentModel.DataAnnotations;
-using System.Data;
-using WebApp.Utilities.Extensions;
 
 namespace WebApp.Models;
 
@@ -56,6 +54,37 @@ public class User : BaseAuditableEntity
     //    get => _password.Decrypt();
     //    set => _password = value.Encrypt();
     //}
+}
+
+#endregion
+
+#region # ChatThread
+
+public class ChatThread : BaseAuditableEntity
+{
+    [Required(ErrorMessage = "UserId is required.")]
+    public Guid UserId { get; set; }
+
+    [Required(ErrorMessage = "Title is required.")]
+    [StringLength(200, MinimumLength = 1, ErrorMessage = "Title must be between 1 and 200 characters.")]
+    public string Title { get; set; } = string.Empty;
+}
+
+#endregion
+
+#region # ChatMessage
+
+public class ChatMessage : BaseAuditableEntity
+{
+    [Required(ErrorMessage = "Thread Id is required.")]
+    public Guid ThreadId { get; set; }
+
+    [Required(ErrorMessage = "Role is required.")]
+    [StringLength(20, MinimumLength = 1, ErrorMessage = "Role must be between 1 and 20 characters.")]
+    public string Role { get; set; } = string.Empty;
+
+    [Required(ErrorMessage = "Content is required.")]
+    public string Content { get; set; } = string.Empty;
 }
 
 #endregion

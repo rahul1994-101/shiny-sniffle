@@ -56,7 +56,6 @@ public class AppDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
 
-        // Configure User entity table and column mappings
         modelBuilder.Entity<User>(entity =>
         {
             entity.ToTable("User", "dbo");
@@ -76,11 +75,37 @@ public class AppDbContext : DbContext
             //entity.Property(e => e.UpdatedBy).HasColumnName("updatedBy");
             //entity.Property(e => e.UpdatedOn).HasColumnName("updatedAt");
         });
+        modelBuilder.Entity<ChatThread>(entity =>
+        {
+            entity.ToTable("ChatThread", "dbo");
 
-        //modelBuilder.Entity<Family>()
-        //    .HasMany(f => f.FamilyMembers)
-        //    .WithOne(m => m.Family)
-        //    .HasForeignKey(m => m.FamilyId);
+            // Map properties to database columns (camelCase in DB, PascalCase in C#)
+            //entity.Property(e => e.Id).HasColumnName("id");
+            //entity.Property(e => e.Title).HasColumnName("title");
+            //entity.Property(e => e.UserId).HasColumnName("userId");
+            //entity.Property(e => e.IsActive).HasColumnName("isActive");
+            //entity.Property(e => e.IsDeleted).HasColumnName("isDeleted");
+            //entity.Property(e => e.CreatedBy).HasColumnName("createdBy");
+            //entity.Property(e => e.CreatedAt).HasColumnName("createdAt");
+            //entity.Property(e => e.UpdatedBy).HasColumnName("updatedBy");
+            //entity.Property(e => e.UpdatedAt).HasColumnName("updatedAt");
+        });
+        modelBuilder.Entity<ChatMessage>(entity =>
+        {
+            entity.ToTable("ChatMessage", "dbo");
+
+            // Map properties to database columns (camelCase in DB, PascalCase in C#)
+            //entity.Property(e => e.Id).HasColumnName("id");
+            //entity.Property(e => e.ThreadId).HasColumnName("threadId");
+            //entity.Property(e => e.Role).HasColumnName("role");
+            //entity.Property(e => e.Content).HasColumnName("content");
+            //entity.Property(e => e.IsActive).HasColumnName("isActive");
+            //entity.Property(e => e.IsDeleted).HasColumnName("isDeleted");
+            //entity.Property(e => e.CreatedBy).HasColumnName("createdBy");
+            //entity.Property(e => e.CreatedAt).HasColumnName("createdAt");
+            //entity.Property(e => e.UpdatedBy).HasColumnName("updatedBy");
+            //entity.Property(e => e.UpdatedAt).HasColumnName("updatedAt");
+        });
     }
 
     #endregion
@@ -92,4 +117,6 @@ public class AppDbContext : DbContext
     #endregion
 
     public DbSet<User> Users { get; set; }
+    public DbSet<ChatThread> ChatThreads { get; set; }
+    public DbSet<ChatMessage> ChatMessages { get; set; }
 }

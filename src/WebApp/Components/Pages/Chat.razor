@@ -2,7 +2,7 @@
 
 @implements IAsyncDisposable
 
-@inject Service Svc
+@inject Features F
 @inject NavigationManager Nav
 @inject IJSRuntime JS
 
@@ -13,7 +13,7 @@
 
 <div class="chat-shell">
     <div class="chat-messages" @ref="_messagesRegion">
-        @if (Messages.Count == 0)
+        @if (_messages.Count == 0)
         {
             <div class="chat-empty">
                 <div class="chat-empty-mark" aria-hidden="true"></div>
@@ -23,7 +23,7 @@
         }
         else
         {
-            @foreach (var msg in Messages)
+            @foreach (var msg in _messages)
             {
                 if (IsUser(msg.Role))
                 {
@@ -76,7 +76,7 @@
                     @onclick="SendAsync"
                     disabled="@string.IsNullOrWhiteSpace(_draft)"
                     title="Send (Enter)">
-                <svg class="chat-send-svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+                <svg class="chat-send-svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" /></svg>
             </button>
         </div>
         <p class="chat-disclaimer">
@@ -93,7 +93,7 @@
     public Guid? ThreadId { get; set; }
 
     private Guid _activeThreadId;
-    private IReadOnlyList<ChatMessage> Messages => Svc.GetMessages(_activeThreadId);
+    private List<GetChatMessageResponse> _messages = [];
 
     private ElementReference _messagesRegion;
     private ElementReference _input;
@@ -103,7 +103,7 @@
     private bool _didNormalizeRoute;
     private string? _routeKey;
 
-    protected override void OnParametersSet()
+    protected override async Task OnParametersSetAsync()
     {
         var key = ThreadId?.ToString("D") ?? "";
         if (_routeKey != key)
@@ -112,30 +112,52 @@
             _didNormalizeRoute = false;
         }
 
-        if (ThreadId is { } tid && Svc.TryGetThread(tid) is not null)
+        var previousThreadId = _activeThreadId;
+        _activeThreadId = await ResolveActiveThreadIdAsync();
+
+        if (previousThreadId != _activeThreadId)
         {
-            _activeThreadId = tid;
+            await LoadMessagesAsync();
         }
-        else
+    }
+
+    private async Task LoadMessagesAsync()
+    {
+        var result = await F.GetChatMessagesByThreadIdAsync(new GetChatMessagesByThreadIdRequest { ThreadId = _activeThreadId });
+        _messages = result.Payload ?? [];
+    }
+
+    private async Task<Guid> ResolveActiveThreadIdAsync()
+    {
+        if (ThreadId is { } tid)
         {
-            _activeThreadId = Svc.GetDefaultThreadId();
+            var byId = await F.GetChatThreadByIdAsync(new GetChatThreadByIdRequest { Id = tid });
+            if (!byId.HasError && byId.Payload is not null)
+            {
+                return byId.Payload.Id;
+            }
         }
+
+        var threads = await F.GetChatThreadsByUserIdAsync(new GetChatThreadsByUserIdRequest { UserId = CurrentUser.Id });
+        if (threads.Payload is { Count: > 0 } existing)
+        {
+            return existing[0].Id;
+        }
+
+        var created = await F.AddChatThreadAsync(new AddChatThreadRequest { Title = "New chat", UserId = CurrentUser.Id });
+        return created.Payload?.Id ?? Guid.Empty;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!_didNormalizeRoute)
         {
-            var hasValidThread = ThreadId is { } g && Svc.TryGetThread(g) is not null;
-            if (!hasValidThread)
+            _didNormalizeRoute = true;
+            if (ThreadId != _activeThreadId)
             {
-                _didNormalizeRoute = true;
-                var fb = Svc.GetDefaultThreadId();
-                Nav.NavigateTo($"/chat/{fb}", replace: true);
+                Nav.NavigateTo($"/chat/{_activeThreadId}", replace: true);
                 return;
             }
-
-            _didNormalizeRoute = true;
         }
 
         if (!_enterWired)
@@ -164,7 +186,46 @@
         }
 
         _draft = string.Empty;
-        await Svc.ProcessUserMessageAsync(_activeThreadId, text);
+
+        var userResult = await F.AddChatMessageAsync(new AddChatMessageRequest
+        {
+            ThreadId = _activeThreadId,
+            Role = "user",
+            Content = text,
+            UserId = CurrentUser.Id
+        });
+        if (!userResult.HasError && userResult.Payload is not null)
+        {
+            _messages.Add(new GetChatMessageResponse
+            {
+                Id = userResult.Payload.Id,
+                ThreadId = userResult.Payload.ThreadId,
+                Role = userResult.Payload.Role,
+                Content = userResult.Payload.Content,
+                CreatedAt = userResult.Payload.CreatedAt
+            });
+        }
+
+        var assistantText = AssistantReply(text);
+        var assistantResult = await F.AddChatMessageAsync(new AddChatMessageRequest
+        {
+            ThreadId = _activeThreadId,
+            Role = "assistant",
+            Content = assistantText,
+            UserId = CurrentUser.Id
+        });
+        if (!assistantResult.HasError && assistantResult.Payload is not null)
+        {
+            _messages.Add(new GetChatMessageResponse
+            {
+                Id = assistantResult.Payload.Id,
+                ThreadId = assistantResult.Payload.ThreadId,
+                Role = assistantResult.Payload.Role,
+                Content = assistantResult.Payload.Content,
+                CreatedAt = assistantResult.Payload.CreatedAt
+            });
+        }
+
         if (NotifyLayoutRefresh.HasDelegate)
         {
             await NotifyLayoutRefresh.InvokeAsync();
@@ -186,6 +247,12 @@
     }
 
     private static bool IsUser(string role) => role == "user";
+
+    private string AssistantReply(string userMessage)
+    {
+        var preview = userMessage.Length > 90 ? userMessage[..90].Trim() + "…" : userMessage.Trim();
+        return $"Thanks — I received: \"{preview}\". (Local mock reply — replace when the agent API is wired back in.)";
+    }
 
     public async ValueTask DisposeAsync()
     {

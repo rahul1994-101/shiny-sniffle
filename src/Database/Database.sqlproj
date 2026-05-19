@@ -77,5 +77,7 @@
     <Build Include="dbo\Tables\TestEntity.sql" />
     <Build Include="dbo\Views\TestEntityView.sql" />
     <Build Include="dbo\Triggers\TestEntityInsertTrigger.sql" />
+    <Build Include="dbo\Tables\ChatThread.sql" />
+    <Build Include="dbo\Tables\ChatMessage.sql" />
   </ItemGroup>
 </Project>
