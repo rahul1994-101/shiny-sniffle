@@ -76,8 +76,8 @@ public class ChatThread : BaseAuditableEntity
 
 public class ChatMessage : BaseAuditableEntity
 {
-    [Required(ErrorMessage = "Thread Id is required.")]
-    public Guid ThreadId { get; set; }
+    [Required(ErrorMessage = "Chat Thread Id is required.")]
+    public Guid ChatThreadId { get; set; }
 
     [Required(ErrorMessage = "Role is required.")]
     [StringLength(20, MinimumLength = 1, ErrorMessage = "Role must be between 1 and 20 characters.")]

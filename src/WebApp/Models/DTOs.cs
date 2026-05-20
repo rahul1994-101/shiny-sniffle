@@ -217,8 +217,8 @@ public class DeleteChatThreadResponse
 
 public class AddChatMessageRequest
 {
-    [Required(ErrorMessage = "Thread Id is required.")]
-    public Guid ThreadId { get; set; }
+    [Required(ErrorMessage = "Chat Thread Id is required.")]
+    public Guid ChatThreadId { get; set; }
 
     [Required(ErrorMessage = "Role is required.")]
     [StringLength(20, MinimumLength = 1, ErrorMessage = "Role must be between 1 and 20 characters.")]
@@ -235,7 +235,7 @@ public class AddChatMessageResponse
 {
     public Guid Id { get; set; }
 
-    public Guid ThreadId { get; set; }
+    public Guid ChatThreadId { get; set; }
 
     public string Role { get; set; } = string.Empty;
 
@@ -244,17 +244,17 @@ public class AddChatMessageResponse
     public DateTime CreatedAt { get; set; }
 }
 
-public class GetChatMessagesByThreadIdRequest
+public class GetChatMessagesByChatThreadIdRequest
 {
-    [Required(ErrorMessage = "Thread Id is required.")]
-    public Guid ThreadId { get; set; }
+    [Required(ErrorMessage = "Chat Thread Id is required.")]
+    public Guid ChatThreadId { get; set; }
 }
 
 public class GetChatMessageResponse
 {
     public Guid Id { get; set; }
 
-    public Guid ThreadId { get; set; }
+    public Guid ChatThreadId { get; set; }
 
     public string Role { get; set; } = string.Empty;
 

@@ -123,7 +123,7 @@
 
     private async Task LoadMessagesAsync()
     {
-        var result = await F.GetChatMessagesByThreadIdAsync(new GetChatMessagesByThreadIdRequest { ThreadId = _activeThreadId });
+        var result = await F.GetChatMessagesByChatThreadIdAsync(new GetChatMessagesByChatThreadIdRequest { ChatThreadId = _activeThreadId });
         _messages = result.Payload ?? [];
     }
 
@@ -189,7 +189,7 @@
 
         var userResult = await F.AddChatMessageAsync(new AddChatMessageRequest
         {
-            ThreadId = _activeThreadId,
+            ChatThreadId = _activeThreadId,
             Role = "user",
             Content = text,
             UserId = CurrentUser.Id
@@ -199,7 +199,7 @@
             _messages.Add(new GetChatMessageResponse
             {
                 Id = userResult.Payload.Id,
-                ThreadId = userResult.Payload.ThreadId,
+                ChatThreadId = userResult.Payload.ChatThreadId,
                 Role = userResult.Payload.Role,
                 Content = userResult.Payload.Content,
                 CreatedAt = userResult.Payload.CreatedAt
@@ -209,7 +209,7 @@
         var assistantText = AssistantReply(text);
         var assistantResult = await F.AddChatMessageAsync(new AddChatMessageRequest
         {
-            ThreadId = _activeThreadId,
+            ChatThreadId = _activeThreadId,
             Role = "assistant",
             Content = assistantText,
             UserId = CurrentUser.Id
@@ -219,7 +219,7 @@
             _messages.Add(new GetChatMessageResponse
             {
                 Id = assistantResult.Payload.Id,
-                ThreadId = assistantResult.Payload.ThreadId,
+                ChatThreadId = assistantResult.Payload.ChatThreadId,
                 Role = assistantResult.Payload.Role,
                 Content = assistantResult.Payload.Content,
                 CreatedAt = assistantResult.Payload.CreatedAt

@@ -51,47 +51,6 @@ public class Features(Persistence _repo)
 
     #region # ChatThread
 
-    public async Task<AppResult<AddChatThreadResponse?>> AddChatThreadAsync(AddChatThreadRequest addChatThreadRequest)
-    {
-        var result = new AppResult<AddChatThreadResponse?>();
-        try
-        {
-            #region # Validate
-
-            var hasError = result.Validate(addChatThreadRequest);
-            if (hasError)
-            {
-                return result;
-            }
-
-            #endregion
-
-            #region # Execute
-
-            var chatThread = await _repo.AddChatThreadAsync(addChatThreadRequest);
-
-            #endregion
-
-            #region # Handle Result
-
-            if (chatThread is null)
-            {
-                result.Failure(ErrorCode.InternalServerError, "Failed to create chat thread.");
-            }
-            else
-            {
-                result.Success(chatThread);
-            }
-
-            #endregion
-        }
-        catch (Exception ex)
-        {
-            result.Failure(ErrorCode.InternalServerError, ex.Message);
-        }
-        return result;
-    }
-
     public async Task<AppResult<List<GetChatThreadResponse>?>> GetChatThreadsByUserIdAsync(GetChatThreadsByUserIdRequest getChatThreadsByUserIdRequest)
     {
         var result = new AppResult<List<GetChatThreadResponse>?>();
@@ -159,6 +118,47 @@ public class Features(Persistence _repo)
             if (chatThread is null)
             {
                 result.Failure(ErrorCode.NotFound, "Chat thread not found.");
+            }
+            else
+            {
+                result.Success(chatThread);
+            }
+
+            #endregion
+        }
+        catch (Exception ex)
+        {
+            result.Failure(ErrorCode.InternalServerError, ex.Message);
+        }
+        return result;
+    }
+
+    public async Task<AppResult<AddChatThreadResponse?>> AddChatThreadAsync(AddChatThreadRequest addChatThreadRequest)
+    {
+        var result = new AppResult<AddChatThreadResponse?>();
+        try
+        {
+            #region # Validate
+
+            var hasError = result.Validate(addChatThreadRequest);
+            if (hasError)
+            {
+                return result;
+            }
+
+            #endregion
+
+            #region # Execute
+
+            var chatThread = await _repo.AddChatThreadAsync(addChatThreadRequest);
+
+            #endregion
+
+            #region # Handle Result
+
+            if (chatThread is null)
+            {
+                result.Failure(ErrorCode.InternalServerError, "Failed to create chat thread.");
             }
             else
             {
@@ -260,6 +260,47 @@ public class Features(Persistence _repo)
 
     #region # ChatMessage
 
+    public async Task<AppResult<List<GetChatMessageResponse>?>> GetChatMessagesByChatThreadIdAsync(GetChatMessagesByChatThreadIdRequest getChatMessagesByChatThreadIdRequest)
+    {
+        var result = new AppResult<List<GetChatMessageResponse>?>();
+        try
+        {
+            #region # Validate
+
+            var hasError = result.Validate(getChatMessagesByChatThreadIdRequest);
+            if (hasError)
+            {
+                return result;
+            }
+
+            #endregion
+
+            #region # Execute
+
+            var chatMessages = await _repo.GetChatMessagesByChatThreadIdAsync(getChatMessagesByChatThreadIdRequest);
+
+            #endregion
+
+            #region # Handle Result
+
+            if (chatMessages is null)
+            {
+                result.Failure(ErrorCode.InternalServerError, "Failed to fetch chat messages.");
+            }
+            else
+            {
+                result.Success(chatMessages);
+            }
+
+            #endregion
+        }
+        catch (Exception ex)
+        {
+            result.Failure(ErrorCode.InternalServerError, ex.Message);
+        }
+        return result;
+    }
+
     public async Task<AppResult<AddChatMessageResponse?>> AddChatMessageAsync(AddChatMessageRequest addChatMessageRequest)
     {
         var result = new AppResult<AddChatMessageResponse?>();
@@ -290,47 +331,6 @@ public class Features(Persistence _repo)
             else
             {
                 result.Success(chatMessage);
-            }
-
-            #endregion
-        }
-        catch (Exception ex)
-        {
-            result.Failure(ErrorCode.InternalServerError, ex.Message);
-        }
-        return result;
-    }
-
-    public async Task<AppResult<List<GetChatMessageResponse>?>> GetChatMessagesByThreadIdAsync(GetChatMessagesByThreadIdRequest getChatMessagesByThreadIdRequest)
-    {
-        var result = new AppResult<List<GetChatMessageResponse>?>();
-        try
-        {
-            #region # Validate
-
-            var hasError = result.Validate(getChatMessagesByThreadIdRequest);
-            if (hasError)
-            {
-                return result;
-            }
-
-            #endregion
-
-            #region # Execute
-
-            var chatMessages = await _repo.GetChatMessagesByThreadIdAsync(getChatMessagesByThreadIdRequest);
-
-            #endregion
-
-            #region # Handle Result
-
-            if (chatMessages is null)
-            {
-                result.Failure(ErrorCode.InternalServerError, "Failed to fetch chat messages.");
-            }
-            else
-            {
-                result.Success(chatMessages);
             }
 
             #endregion

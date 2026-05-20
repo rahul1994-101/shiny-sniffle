@@ -13,7 +13,7 @@ GO
 CREATE TABLE [dbo].[ChatMessage] (
     -- Primary key with auto-generated sequential UUID
     [id]                                    UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWSEQUENTIALID(),
-    [threadId]                              UNIQUEIDENTIFIER NOT NULL,                 -- Owning chat thread (FK to ChatThread)
+    [chatThreadId]                          UNIQUEIDENTIFIER NOT NULL,                 -- Owning chat thread (FK to ChatThread)
 
     -- Data fields
     [role]                                  NVARCHAR(20) NOT NULL,                     -- Sender role (e.g. user, assistant, system)
@@ -30,7 +30,7 @@ CREATE TABLE [dbo].[ChatMessage] (
     [updatedAt]                              DATETIME2 DEFAULT SYSUTCDATETIME(),
 
     -- Foreign keys
-    CONSTRAINT [FK_ChatMessage_ChatThread] FOREIGN KEY ([threadId]) REFERENCES [dbo].[ChatThread] ([id])
+    CONSTRAINT [FK_ChatMessage_ChatThread] FOREIGN KEY ([chatThreadId]) REFERENCES [dbo].[ChatThread] ([id])
 );
 GO
 
@@ -39,7 +39,7 @@ GO
 -- =====================================================
 
 -- Index for listing a thread's messages (chat history queries)
-CREATE INDEX [IX_ChatMessage_ThreadId] ON [dbo].[ChatMessage] ([threadId]) WHERE [isDeleted] = 0;
+CREATE INDEX [IX_ChatMessage_ChatThreadId] ON [dbo].[ChatMessage] ([chatThreadId]) WHERE [isDeleted] = 0;
 GO
 
 -- Index for filtering by active status

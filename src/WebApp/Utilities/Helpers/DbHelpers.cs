@@ -96,7 +96,7 @@ public class AppDbContext : DbContext
 
             // Map properties to database columns (camelCase in DB, PascalCase in C#)
             //entity.Property(e => e.Id).HasColumnName("id");
-            //entity.Property(e => e.ThreadId).HasColumnName("threadId");
+            //entity.Property(e => e.ChatThreadId).HasColumnName("chatThreadId");
             //entity.Property(e => e.Role).HasColumnName("role");
             //entity.Property(e => e.Content).HasColumnName("content");
             //entity.Property(e => e.IsActive).HasColumnName("isActive");
