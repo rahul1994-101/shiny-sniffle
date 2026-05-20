@@ -1,5 +1,7 @@
 ﻿@page "/settings"
 
+@inherits BaseComponent
+
 <PageTitle>Settings</PageTitle>
 
 <div class="settings-shell">
@@ -21,7 +23,7 @@
         <input id="model-id"
                type="text"
                class="form-control settings-input"
-               @bind="_vm.ModelName"
+               @bind="_settingsViewModel.ModelName"
                placeholder="e.g. gpt-4.1"
                autocomplete="off" />
         <p class="settings-hint">Display label only; the deployed model is chosen in Azure AI Foundry.</p>
@@ -30,7 +32,7 @@
     <section class="settings-card" aria-labelledby="appearance-heading">
         <h2 id="appearance-heading" class="settings-section-title">Appearance</h2>
         <label class="form-label" for="theme">Theme</label>
-        <select id="theme" class="form-select settings-input" @bind="_vm.Theme">
+        <select id="theme" class="form-select settings-input" @bind="_settingsViewModel.Theme">
             <option value="dark">Dark (default)</option>
             <option value="light">Light</option>
             <option value="system">System</option>
@@ -40,11 +42,19 @@
 </div>
 
 @code {
-    private readonly SettingsVM _vm = new();
+    #region # State
 
-    public sealed class SettingsVM
+    private readonly SettingsViewModel _settingsViewModel = new();
+
+    #endregion
+
+    #region # Types
+
+    public sealed class SettingsViewModel
     {
         public string ModelName { get; set; } = "mailer-mini";
         public string Theme { get; set; } = "dark";
     }
+
+    #endregion
 }

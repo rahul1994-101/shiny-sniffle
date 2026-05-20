@@ -1,13 +1,8 @@
 @page "/chat/{ThreadId:guid?}"
 
+@inherits BaseComponent
+
 @implements IAsyncDisposable
-
-@inject Features F
-@inject NavigationManager Nav
-@inject IJSRuntime JS
-
-@using Microsoft.JSInterop
-@using WebApp.Utilities.Helpers
 
 <PageTitle>Chat</PageTitle>
 
@@ -86,11 +81,14 @@
 </div>
 
 @code {
-    [CascadingParameter(Name = "NotifyLayoutRefresh")]
-    public EventCallback NotifyLayoutRefresh { get; set; }
+    #region # Parameters
 
     [Parameter]
     public Guid? ThreadId { get; set; }
+
+    #endregion
+
+    #region # State
 
     private Guid _activeThreadId;
     private List<GetChatMessageResponse> _messages = [];
@@ -102,6 +100,10 @@
     private bool _enterWired;
     private bool _didNormalizeRoute;
     private string? _routeKey;
+
+    #endregion
+
+    #region # Lifecycle
 
     protected override async Task OnParametersSetAsync()
     {
@@ -121,33 +123,6 @@
         }
     }
 
-    private async Task LoadMessagesAsync()
-    {
-        var result = await F.GetChatMessagesByChatThreadIdAsync(new GetChatMessagesByChatThreadIdRequest { ChatThreadId = _activeThreadId });
-        _messages = result.Payload ?? [];
-    }
-
-    private async Task<Guid> ResolveActiveThreadIdAsync()
-    {
-        if (ThreadId is { } tid)
-        {
-            var byId = await F.GetChatThreadByIdAsync(new GetChatThreadByIdRequest { Id = tid });
-            if (!byId.HasError && byId.Payload is not null)
-            {
-                return byId.Payload.Id;
-            }
-        }
-
-        var threads = await F.GetChatThreadsByUserIdAsync(new GetChatThreadsByUserIdRequest { UserId = CurrentUser.Id });
-        if (threads.Payload is { Count: > 0 } existing)
-        {
-            return existing[0].Id;
-        }
-
-        var created = await F.AddChatThreadAsync(new AddChatThreadRequest { Title = "New chat", UserId = CurrentUser.Id });
-        return created.Payload?.Id ?? Guid.Empty;
-    }
-
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!_didNormalizeRoute)
@@ -155,7 +130,7 @@
             _didNormalizeRoute = true;
             if (ThreadId != _activeThreadId)
             {
-                Nav.NavigateTo($"/chat/{_activeThreadId}", replace: true);
+                NavigationManager.NavigateTo($"/chat/{_activeThreadId}", replace: true);
                 return;
             }
         }
@@ -166,12 +141,53 @@
             _dotNetRef = DotNetObjectReference.Create(this);
             try
             {
-                await JS.InvokeVoidAsync("webAppChat.wireEnter", _input, _dotNetRef);
+                await JsRuntime.InvokeVoidAsync("webAppChat.wireEnter", _input, _dotNetRef);
             }
             catch (JSException)
             {
             }
         }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        _dotNetRef?.Dispose();
+        await ValueTask.CompletedTask;
+    }
+
+    #endregion
+
+    #region # ChatThread
+
+    private async Task<Guid> ResolveActiveThreadIdAsync()
+    {
+        if (ThreadId is { } tid)
+        {
+            var byId = await Features.GetChatThreadByIdAsync(new GetChatThreadByIdRequest { Id = tid });
+            if (!byId.HasError && byId.Payload is not null)
+            {
+                return byId.Payload.Id;
+            }
+        }
+
+        var threads = await Features.GetChatThreadsByUserIdAsync(new GetChatThreadsByUserIdRequest { UserId = CurrentUser.Id });
+        if (threads.Payload is { Count: > 0 } existing)
+        {
+            return existing[0].Id;
+        }
+
+        var created = await Features.AddChatThreadAsync(new AddChatThreadRequest { Title = "New chat", UserId = CurrentUser.Id });
+        return created.Payload?.Id ?? Guid.Empty;
+    }
+
+    #endregion
+
+    #region # ChatMessage
+
+    private async Task LoadMessagesAsync()
+    {
+        var result = await Features.GetChatMessagesByChatThreadIdAsync(new GetChatMessagesByChatThreadIdRequest { ChatThreadId = _activeThreadId });
+        _messages = result.Payload ?? [];
     }
 
     [JSInvokable]
@@ -187,13 +203,20 @@
 
         _draft = string.Empty;
 
-        var userResult = await F.AddChatMessageAsync(new AddChatMessageRequest
+        #region # Execute
+
+        var userResult = await Features.AddChatMessageAsync(new AddChatMessageRequest
         {
             ChatThreadId = _activeThreadId,
             Role = "user",
             Content = text,
             UserId = CurrentUser.Id
         });
+
+        #endregion
+
+        #region # Handle Result
+
         if (!userResult.HasError && userResult.Payload is not null)
         {
             _messages.Add(new GetChatMessageResponse
@@ -206,8 +229,11 @@
             });
         }
 
+        #endregion
+
         var assistantText = AssistantReply(text);
-        var assistantResult = await F.AddChatMessageAsync(new AddChatMessageRequest
+
+        var assistantResult = await Features.AddChatMessageAsync(new AddChatMessageRequest
         {
             ChatThreadId = _activeThreadId,
             Role = "assistant",
@@ -226,20 +252,20 @@
             });
         }
 
-        if (NotifyLayoutRefresh.HasDelegate)
-        {
-            await NotifyLayoutRefresh.InvokeAsync();
-        }
-
+        await RefreshLayoutAsync();
         await ScrollToEndAsync();
     }
+
+    #endregion
+
+    #region # Helpers
 
     private async Task ScrollToEndAsync()
     {
         await Task.Yield();
         try
         {
-            await JS.InvokeVoidAsync("webAppScroll.scrollElementToEnd", _messagesRegion);
+            await JsRuntime.InvokeVoidAsync("webAppScroll.scrollElementToEnd", _messagesRegion);
         }
         catch
         {
@@ -254,9 +280,5 @@
         return $"Thanks — I received: \"{preview}\". (Local mock reply — replace when the agent API is wired back in.)";
     }
 
-    public async ValueTask DisposeAsync()
-    {
-        _dotNetRef?.Dispose();
-        await ValueTask.CompletedTask;
-    }
+    #endregion
 }

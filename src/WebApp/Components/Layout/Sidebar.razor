@@ -1,8 +1,4 @@
-@inject Features F
-@inject NavigationManager Nav
-@inject IJSRuntime JS
-
-@using WebApp.Utilities.Helpers
+@inherits BaseComponent
 
 <aside id="app-sidebar" class="sidebar">
     <div class="sidebar-chrome">
@@ -98,10 +94,18 @@
 </aside>
 
 @code {
-    [CascadingParameter(Name = "NotifyLayoutRefresh")]
-    public EventCallback NotifyLayoutRefresh { get; set; }
+    #region # State
 
     private List<GetChatThreadResponse> _threads = [];
+
+    private Guid? _editingId;
+    private string _editTitle = string.Empty;
+    private ElementReference _renameInput;
+    private bool _focusRenameInput;
+
+    #endregion
+
+    #region # Lifecycle
 
     protected override async Task OnInitializedAsync()
     {
@@ -123,58 +127,15 @@
         }
     }
 
-    private async Task LoadThreadsAsync()
-    {
-        var result = await F.GetChatThreadsByUserIdAsync(new GetChatThreadsByUserIdRequest { UserId = CurrentUser.Id });
-        _threads = result.Payload ?? [];
-    }
+    #endregion
 
-    private bool IsThreadActive(Guid id) =>
-        TryParseChatRouteThreadId(Nav, out var cur) && cur == id;
-
-    private static bool TryParseChatRouteThreadId(NavigationManager nav, out Guid threadId)
-    {
-        threadId = default;
-        var rel = nav.ToBaseRelativePath(nav.Uri);
-        var q = rel.IndexOf('?', StringComparison.Ordinal);
-        if (q >= 0)
-        {
-            rel = rel[..q];
-        }
-
-        rel = rel.Trim('/').ToLowerInvariant();
-        const string prefix = "chat/";
-        if (!rel.StartsWith(prefix, StringComparison.Ordinal))
-        {
-            return false;
-        }
-
-        var seg = rel[prefix.Length..].Trim('/');
-        return !string.IsNullOrEmpty(seg) && Guid.TryParse(seg, out threadId);
-    }
-
-    private async Task RefreshLayoutAsync()
-    {
-        if (NotifyLayoutRefresh.HasDelegate)
-        {
-            await NotifyLayoutRefresh.InvokeAsync();
-        }
-    }
-
-    private async Task NavigateToChatThreadAsync(Guid threadId)
-    {
-        Nav.NavigateTo($"/chat/{threadId}", replace: true);
-        await CollapseMobileDrawerAsync();
-        await RefreshLayoutAsync();
-    }
-
-    #region # Mobile shell
+    #region # Shell
 
     private async Task CollapseMobileDrawerAsync()
     {
         try
         {
-            await JS.InvokeVoidAsync("webAppShell.collapseSidebarIfMobile", "app-shell");
+            await JsRuntime.InvokeVoidAsync("webAppShell.collapseSidebarIfMobile", "app-shell");
         }
         catch (JSException)
         {
@@ -188,11 +149,26 @@
 
     #endregion
 
-    #region # Chat threads
+    #region # ChatThread
+
+    private async Task LoadThreadsAsync()
+    {
+        var result = await Features.GetChatThreadsByUserIdAsync(new GetChatThreadsByUserIdRequest { UserId = CurrentUser.Id });
+        _threads = result.Payload ?? [];
+    }
+
+    private async Task NavigateToChatThreadAsync(Guid threadId)
+    {
+        NavigationManager.NavigateTo($"/chat/{threadId}", replace: true);
+        await CollapseMobileDrawerAsync();
+        await RefreshLayoutAsync();
+    }
+
+    private Task SelectThreadAsync(Guid id) => NavigateToChatThreadAsync(id);
 
     private async Task StartNewChatAsync()
     {
-        var result = await F.AddChatThreadAsync(new AddChatThreadRequest { Title = "New chat", UserId = CurrentUser.Id });
+        var result = await Features.AddChatThreadAsync(new AddChatThreadRequest { Title = "New chat", UserId = CurrentUser.Id });
         if (result.HasError || result.Payload is null)
         {
             return;
@@ -210,11 +186,9 @@
         await NavigateToChatThreadAsync(result.Payload.Id);
     }
 
-    private Task SelectThreadAsync(Guid id) => NavigateToChatThreadAsync(id);
-
     private async Task DeleteThreadAsync(Guid id)
     {
-        var result = await F.DeleteChatThreadAsync(new DeleteChatThreadRequest { Id = id, UserId = CurrentUser.Id });
+        var result = await Features.DeleteChatThreadAsync(new DeleteChatThreadRequest { Id = id, UserId = CurrentUser.Id });
         if (result.HasError)
         {
             return;
@@ -224,7 +198,7 @@
 
         if (_threads.Count == 0)
         {
-            var created = await F.AddChatThreadAsync(new AddChatThreadRequest { Title = "New chat", UserId = CurrentUser.Id });
+            var created = await Features.AddChatThreadAsync(new AddChatThreadRequest { Title = "New chat", UserId = CurrentUser.Id });
             if (created.Payload is not null)
             {
                 _threads.Insert(0, new GetChatThreadResponse
@@ -243,15 +217,6 @@
             await NavigateToChatThreadAsync(_threads[0].Id);
         }
     }
-
-    #endregion
-
-    #region # Thread rename
-
-    private Guid? _editingId;
-    private string _editTitle = string.Empty;
-    private ElementReference _renameInput;
-    private bool _focusRenameInput;
 
     private void BeginRename(GetChatThreadResponse t)
     {
@@ -288,7 +253,7 @@
         }
 
         var threadId = _editingId.Value;
-        var result = await F.UpdateChatThreadTitleAsync(new UpdateChatThreadTitleRequest
+        var result = await Features.UpdateChatThreadTitleAsync(new UpdateChatThreadTitleRequest
         {
             Id = threadId,
             Title = _editTitle,
@@ -313,6 +278,34 @@
     private void CancelRename()
     {
         _editingId = null;
+    }
+
+    #endregion
+
+    #region # Helpers
+
+    private bool IsThreadActive(Guid id) =>
+        TryParseChatRouteThreadId(NavigationManager, out var cur) && cur == id;
+
+    private static bool TryParseChatRouteThreadId(NavigationManager nav, out Guid threadId)
+    {
+        threadId = default;
+        var rel = nav.ToBaseRelativePath(nav.Uri);
+        var q = rel.IndexOf('?', StringComparison.Ordinal);
+        if (q >= 0)
+        {
+            rel = rel[..q];
+        }
+
+        rel = rel.Trim('/').ToLowerInvariant();
+        const string prefix = "chat/";
+        if (!rel.StartsWith(prefix, StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        var seg = rel[prefix.Length..].Trim('/');
+        return !string.IsNullOrEmpty(seg) && Guid.TryParse(seg, out threadId);
     }
 
     #endregion

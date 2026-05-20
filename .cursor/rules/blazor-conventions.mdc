@@ -1,0 +1,138 @@
+---
+description: Blazor component file layout, directive order, and @code organization
+globs: src/WebApp/Components/**/*.razor
+alwaysApply: false
+---
+
+# Blazor conventions
+
+Match the same discipline as SQL (`#` regions) and C# (`Features`, `Persistence`, entities).
+
+## File layout (top to bottom)
+
+1. **Directives** (see order below) — blank line after the last directive
+2. **`<PageTitle>`** — routable pages only
+3. **Markup**
+4. **`@code { }`** — or a sibling `ComponentName.razor.cs` partial when `@code` is large
+
+### Directive order
+
+Use only what the file needs, in this order:
+
+1. `@page`
+2. `@layout`
+3. `@rendermode`
+4. `@inherits` — `BaseComponent` for app components; `LayoutComponentBase` for layouts
+5. `@implements`
+6. `@attribute`
+7. `@using` — only namespaces **not** in `_Imports.razor`; System first, then Microsoft, then `WebApp.*` (alphabetical within each group)
+8. `@inject` — avoid when inheriting `BaseComponent` (injections live on the base class)
+
+**Do not** repeat `@using` already declared in `Components/_Imports.razor`.
+
+### Global usings (`_Imports.razor`)
+
+Framework and app-wide namespaces belong here, not on every page.
+
+## Inheritance
+
+| Component kind | Inherits |
+|----------------|----------|
+| Pages, layout parts with logic (Sidebar, Navbar if needed) | `BaseComponent` |
+| `MainLayout`, other layout roots | `LayoutComponentBase` |
+| `App.razor`, `Routes.razor`, static markup-only | No base (or `BaseComponent` only when injections are needed) |
+
+Shared members on `BaseComponent`:
+
+- `Features`, `NavigationManager`, `JsRuntime` — injected properties use **PascalCase** (Blazor convention)
+- `NotifyLayoutRefresh` — cascading parameter (PascalCase)
+- `RefreshLayoutAsync()`
+
+## `@code` block order
+
+Use `#region # Name` (same style as C# data layer). **PascalCase, no spaces** — mirror entity regions (`# ChatThread`, `# ChatMessage`, `# User`), not `# Chat threads`.
+
+1. **`#region # Parameters`** — `[Parameter]` only (not on base)
+2. **`#region # State`** — private fields, element refs, flags
+3. **`#region # Lifecycle`** — `OnInitialized*`, `OnParametersSet*`, `OnAfterRender*`, `Dispose*`
+4. **`#region # <EntityOrArea>`** — e.g. `# ChatThread`, `# ChatMessage`, `# Shell`; methods only, no fields
+5. **`#region # Helpers`** — static/private utilities, parsing, formatting
+6. **`#region # Types`** — nested view models (suffix `ViewModel`, e.g. `SettingsViewModel`)
+
+`BaseComponent` uses `#region # Init` for injections and cascading parameters.
+
+Within each region: public before private; async grouped with related sync helpers below the main action.
+
+## Method body pattern (when calling `Features`)
+
+Mirror `Features.cs` for non-trivial actions:
+
+```csharp
+#region # Validate
+// guard clauses, early return
+#endregion
+
+#region # Execute
+// call Features.*Async
+#endregion
+
+#region # Handle Result
+// check HasError / Payload, update state
+#endregion
+```
+
+## Naming
+
+| Kind | Convention | Example |
+|------|------------|---------|
+| Injected services (base) | PascalCase (Blazor) | `Features`, `NavigationManager`, `JsRuntime` |
+| Private component state | `_camelCase` | `_threads`, `_draft` |
+| View models | `*ViewModel` | `SettingsViewModel` |
+| Parameters / cascade | PascalCase | `ThreadId`, `NotifyLayoutRefresh` |
+| Event handlers | `OnXxx` / `*Async` | `SendAsync`, `OnRenameBlurAsync` |
+| `#region` names | PascalCase, C# style (match entities) | `# ChatThread`, `# Init`, `# Validate` |
+| CSS classes | kebab-case | `chat-shell`, `thread-list` |
+
+**Note:** Underscore prefix (`_repo`, `_ctx`) is for the **data layer** (constructor-injected services), not for Blazor `[Inject]` properties.
+
+## File location
+
+Keep all UI under `Components/`:
+
+- `Components/Pages/` — routable pages
+- `Components/Layout/` — shell, sidebar, navbar
+- `Components/Shared/` — error, not-found
+- `Components/Base/` — `BaseComponent.cs`
+- Optional: `Component.razor` + `Component.razor.cs` partial in the same folder
+
+## Markup
+
+- One blank line between major sections (header, list, footer)
+- `aria-*` on interactive controls
+- Prefer `NavLink` for in-app navigation
+
+## Page template
+
+```razor
+@page "/your-route"
+
+@inherits BaseComponent
+
+<PageTitle>Your Page</PageTitle>
+
+<!-- markup -->
+
+@code {
+    #region # State
+
+    #endregion
+
+    #region # Lifecycle
+
+    #endregion
+
+    #region # Helpers
+
+    #endregion
+}
+```
