@@ -1,0 +1,26 @@
+---
+description: WebApp root folder layout — where APIs, UI, data, and AI code live
+alwaysApply: true
+---
+
+# Project structure (WebApp)
+
+Keep code in the folder that matches its role. Root: `src/WebApp/`.
+
+| Folder | Purpose |
+|--------|---------|
+| **Endpoints/** | Minimal APIs and HTTP route handlers (`*Endpoints.cs`). Register groups in `EndpointExtensions.MapAppEndpoints`. |
+| **Components/** | Blazor UI (pages, layout, shared). See `blazor-conventions.mdc`. |
+| **Data/** | Blazor-facing backend: `Features`, `Persistence`, EF `AppDbContext`. |
+| **AI/** | Python AI service (separate from .NET minimal APIs). |
+| **Models/** | DTOs, entities, constants. |
+| **Utilities/** | Cross-cutting helpers (auth, DB setup, extensions). |
+
+## Endpoints
+
+- One file per area: `AuthEndpoints.cs`, `ChatEndpoints.cs`, etc.
+- Namespace: `WebApp.Endpoints`
+- Each file exposes `MapXxxEndpoints(this WebApplication app)`
+- Wire new groups in `Endpoints/EndpointExtensions.cs` → `MapAppEndpoints`
+
+Do not put minimal API routes under `Components/` or `Data/`.

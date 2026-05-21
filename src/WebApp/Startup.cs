@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Localization;
 using System.Globalization;
 
 using WebApp;
-using WebApp.Auth;
+using WebApp.Endpoints;
 using WebApp.Components;
 using WebApp.Data;
 using WebApp.Models;
@@ -65,7 +65,7 @@ public static class DependencyInject
 
         app.UseAntiforgery();
 
-        app.MapAuthEndpoints();
+        app.MapAppEndpoints();
         app.MapStaticAssets();
         app
             .MapRazorComponents<App>()

@@ -4,7 +4,7 @@ using WebApp.Data;
 using WebApp.Models;
 using WebApp.Utilities.Helpers;
 
-namespace WebApp.Auth;
+namespace WebApp.Endpoints;
 
 public static class AuthEndpoints
 {

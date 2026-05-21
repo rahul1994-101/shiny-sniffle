@@ -4,22 +4,309 @@
 
 @inherits BaseComponent
 
-<PageTitle>Home</PageTitle>
+<PageTitle>Dashboard</PageTitle>
 
-<div class="dashboard-shell">
-    <h1 class="dashboard-title">Welcome</h1>
-    <p class="dashboard-lead">
-        This is your workspace home. Open the assistant to continue a conversation or start a new thread.
-    </p>
-    <div class="dashboard-actions">
-        <NavLink class="btn btn-primary dashboard-chat-btn" href="/chat">
-            Open chat
-        </NavLink>
-        <NavLink class="btn btn-outline-secondary dashboard-settings-btn" href="settings">
-            Settings
-        </NavLink>
-    </div>
+<div class="dash">
+    <header class="dash-hero">
+        <p class="dash-eyebrow">Dashboard</p>
+        <h1 class="dash-title">@Greeting(), @DisplayName()</h1>
+        <p class="dash-lead">
+            Your workspace overview — pick up a recent conversation or start fresh.
+        </p>
+        <div class="dash-hero-actions">
+            <button type="button"
+                    class="dash-btn dash-btn-primary"
+                    disabled="@_loading"
+                    @onclick="StartNewChatAsync">
+                <svg class="dash-btn-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <path d="M12 5v14M5 12h14" />
+                </svg>
+                New chat
+            </button>
+            <NavLink class="dash-btn dash-btn-secondary" href="/chat">
+                <svg class="dash-btn-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                </svg>
+                Open assistant
+            </NavLink>
+        </div>
+    </header>
+
+    @if (_loading)
+    {
+        <div class="dash-loading" aria-busy="true" aria-label="Loading dashboard">
+            <div class="dash-stat-grid">
+                @for (var i = 0; i < 3; i++)
+                {
+                    <div class="dash-stat-card dash-skeleton" @key="i"></div>
+                }
+            </div>
+            <div class="dash-panel dash-skeleton dash-skeleton-panel"></div>
+        </div>
+    }
+    else
+    {
+        <div class="dash-stat-grid" aria-label="Overview">
+            <article class="dash-stat-card">
+                <div class="dash-stat-icon dash-stat-icon-threads" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                    </svg>
+                </div>
+                <div class="dash-stat-body">
+                    <p class="dash-stat-label">Conversations</p>
+                    <p class="dash-stat-value">@_threadCount</p>
+                </div>
+            </article>
+
+            <article class="dash-stat-card">
+                <div class="dash-stat-icon dash-stat-icon-activity" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <path d="M12 6v6l4 2" />
+                    </svg>
+                </div>
+                <div class="dash-stat-body">
+                    <p class="dash-stat-label">Last activity</p>
+                    <p class="dash-stat-value dash-stat-value-sm">@LastActivityLabel()</p>
+                </div>
+            </article>
+
+            <article class="dash-stat-card">
+                <div class="dash-stat-icon dash-stat-icon-account" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                        <circle cx="12" cy="7" r="4" />
+                    </svg>
+                </div>
+                <div class="dash-stat-body">
+                    <p class="dash-stat-label">Signed in as</p>
+                    <p class="dash-stat-value dash-stat-value-sm" title="@CurrentUser.Email">@CurrentUser.Email</p>
+                </div>
+            </article>
+        </div>
+
+        <div class="dash-main-grid">
+            <section class="dash-panel" aria-labelledby="dash-recent-heading">
+                <div class="dash-panel-head">
+                    <h2 id="dash-recent-heading" class="dash-panel-title">Recent conversations</h2>
+                    @if (_recentThreads.Count > 0)
+                    {
+                        <NavLink class="dash-panel-link" href="/chat">View all</NavLink>
+                    }
+                </div>
+
+                @if (_loadFailed)
+                {
+                    <p class="dash-empty" role="alert">Could not load conversations. Try refreshing the page.</p>
+                }
+                else if (_recentThreads.Count == 0)
+                {
+                    <div class="dash-empty-state">
+                        <div class="dash-empty-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                            </svg>
+                        </div>
+                        <p class="dash-empty-title">No conversations yet</p>
+                        <p class="dash-empty-copy">Start your first chat with the assistant.</p>
+                        <button type="button" class="dash-btn dash-btn-primary dash-empty-cta" @onclick="StartNewChatAsync">
+                            Start a chat
+                        </button>
+                    </div>
+                }
+                else
+                {
+                    <ul class="dash-thread-list">
+                        @foreach (var thread in _recentThreads)
+                        {
+                            <li @key="thread.Id">
+                                <button type="button"
+                                        class="dash-thread-row"
+                                        @onclick="() => OpenThreadAsync(thread.Id)">
+                                    <span class="dash-thread-icon" aria-hidden="true">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                                        </svg>
+                                    </span>
+                                    <span class="dash-thread-text">
+                                        <span class="dash-thread-title">@thread.Title</span>
+                                        <span class="dash-thread-meta">Updated @FormatRelative(thread.UpdatedAt)</span>
+                                    </span>
+                                    <span class="dash-thread-chevron" aria-hidden="true">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M9 18l6-6-6-6" />
+                                        </svg>
+                                    </span>
+                                </button>
+                            </li>
+                        }
+                    </ul>
+                }
+            </section>
+
+            <aside class="dash-panel dash-panel-aside" aria-labelledby="dash-quick-heading">
+                <h2 id="dash-quick-heading" class="dash-panel-title">Quick links</h2>
+                <nav class="dash-quick-nav" aria-label="Quick links">
+                    <NavLink class="dash-quick-link" href="/chat">
+                        <span class="dash-quick-link-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                            </svg>
+                        </span>
+                        <span class="dash-quick-link-text">
+                            <span class="dash-quick-link-label">Assistant</span>
+                            <span class="dash-quick-link-desc">Continue or browse threads</span>
+                        </span>
+                    </NavLink>
+                    <NavLink class="dash-quick-link" href="settings">
+                        <span class="dash-quick-link-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="3" />
+                                <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
+                            </svg>
+                        </span>
+                        <span class="dash-quick-link-text">
+                            <span class="dash-quick-link-label">Settings</span>
+                            <span class="dash-quick-link-desc">Model and appearance</span>
+                        </span>
+                    </NavLink>
+                    <a class="dash-quick-link dash-quick-link-muted" href="@AuthConstants.LogoutPath">
+                        <span class="dash-quick-link-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" />
+                            </svg>
+                        </span>
+                        <span class="dash-quick-link-text">
+                            <span class="dash-quick-link-label">Sign out</span>
+                            <span class="dash-quick-link-desc">End your session</span>
+                        </span>
+                    </a>
+                </nav>
+            </aside>
+        </div>
+    }
 </div>
 
 @code {
+    private const int RecentThreadLimit = 6;
+
+    private List<GetChatThreadResponse> _recentThreads = [];
+    private int _threadCount;
+    private DateTime? _lastActivityAt;
+    private bool _loading = true;
+    private bool _loadFailed;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDashboardAsync();
+    }
+
+
+    #region # List
+
+    private async Task LoadDashboardAsync()
+    {
+        _loading = true;
+        _loadFailed = false;
+
+        var result = await Features.GetChatThreadsByUserIdAsync(
+            new GetChatThreadsByUserIdRequest { UserId = CurrentUser.Id });
+
+        if (result.HasError || result.Payload is null)
+        {
+            _recentThreads = [];
+            _threadCount = 0;
+            _lastActivityAt = null;
+            _loadFailed = true;
+        }
+        else
+        {
+            var ordered = result.Payload
+                .OrderByDescending(t => t.UpdatedAt)
+                .ToList();
+
+            _threadCount = ordered.Count;
+            _lastActivityAt = ordered.FirstOrDefault()?.UpdatedAt;
+            _recentThreads = ordered.Take(RecentThreadLimit).ToList();
+        }
+
+        _loading = false;
+    }
+
+    private Task OpenThreadAsync(Guid threadId) => NavigateToThreadAsync(threadId);
+
+    #endregion
+
+
+    #region # Create
+
+    private async Task StartNewChatAsync()
+    {
+        var result = await Features.AddChatThreadAsync(
+            new AddChatThreadRequest { Title = "New chat", UserId = CurrentUser.Id });
+
+        if (result.HasError || result.Payload is null)
+            return;
+
+        await NavigateToThreadAsync(result.Payload.Id);
+    }
+
+    #endregion
+
+
+    #region # Helpers
+
+    private string DisplayName()
+    {
+        if (!string.IsNullOrWhiteSpace(CurrentUser.FullName))
+            return CurrentUser.FullName.Trim();
+
+        if (!string.IsNullOrWhiteSpace(CurrentUser.Email))
+        {
+            var local = CurrentUser.Email.Split('@')[0];
+            return string.IsNullOrWhiteSpace(local) ? "there" : local;
+        }
+
+        return "there";
+    }
+
+    private static string Greeting()
+    {
+        var hour = DateTime.Now.Hour;
+        return hour switch
+        {
+            < 12 => "Good morning",
+            < 17 => "Good afternoon",
+            _ => "Good evening"
+        };
+    }
+
+    private string LastActivityLabel() =>
+        _lastActivityAt is null ? "No activity yet" : FormatRelative(_lastActivityAt.Value);
+
+    private static string FormatRelative(DateTime utc)
+    {
+        var local = utc.Kind == DateTimeKind.Utc ? utc.ToLocalTime() : utc;
+        var delta = DateTime.Now - local;
+
+        if (delta.TotalMinutes < 1)
+            return "just now";
+        if (delta.TotalHours < 1)
+            return $"{(int)delta.TotalMinutes}m ago";
+        if (delta.TotalDays < 1)
+            return $"{(int)delta.TotalHours}h ago";
+        if (delta.TotalDays < 7)
+            return $"{(int)delta.TotalDays}d ago";
+
+        return local.ToString("MMM d");
+    }
+
+    private Task NavigateToThreadAsync(Guid threadId)
+    {
+        NavigationManager.NavigateTo($"/chat/{threadId}");
+        return Task.CompletedTask;
+    }
+
+    #endregion
 }
