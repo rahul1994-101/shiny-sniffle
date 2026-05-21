@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 
 using WebApp.Data;
+using WebApp.Utilities.Helpers;
 
 namespace WebApp.Components.Base;
 
@@ -21,6 +22,9 @@ public abstract class BaseComponent : ComponentBase
 
     [Inject]
     protected IJSRuntime JsRuntime { get; set; } = null!;
+
+    [Inject]
+    protected CurrentUser CurrentUser { get; set; } = null!;
 
     [CascadingParameter(Name = "NotifyLayoutRefresh")]
     public EventCallback NotifyLayoutRefresh { get; set; }

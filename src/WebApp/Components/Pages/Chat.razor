@@ -1,5 +1,7 @@
 @page "/chat/{ThreadId:guid?}"
 
+@attribute [Authorize]
+
 @inherits BaseComponent
 
 @implements IAsyncDisposable

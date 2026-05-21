@@ -1,10 +1,13 @@
-﻿using Microsoft.AspNetCore.Localization;
+﻿using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Localization;
 
 using System.Globalization;
 
 using WebApp;
+using WebApp.Auth;
 using WebApp.Components;
 using WebApp.Data;
+using WebApp.Models;
 using WebApp.Utilities.Helpers;
 
 namespace WebApp;
@@ -17,10 +20,29 @@ public static class DependencyInject
 
         builder.Services.InjectRazorComponents();
 
+        builder.Services.AddHttpContextAccessor();
+        builder.Services
+            .AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+            .AddCookie(options =>
+            {
+                options.LoginPath = AuthConstants.LoginPath;
+                options.LogoutPath = AuthConstants.LoginPath;
+                options.AccessDeniedPath = AuthConstants.LoginPath;
+                options.SlidingExpiration = true;
+                options.ExpireTimeSpan = TimeSpan.FromDays(7);
+                options.Cookie.HttpOnly = true;
+                options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+                options.Cookie.SameSite = SameSiteMode.Lax;
+            });
+        builder.Services.AddAuthorization();
+        builder.Services.AddCascadingAuthenticationState();
+
         builder.Services.AddDbContext<AppDbContext>();
 
         builder.Services.AddScoped<Features>();
         builder.Services.AddScoped<Persistence>();
+        builder.Services.AddScoped<AuthService>();
+        builder.Services.AddScoped<CurrentUser>();
     }
 
     public static void UseServices(this WebApplication app)
@@ -36,10 +58,14 @@ public static class DependencyInject
         app.UseHttpsRedirection();
         app.UseRequestLocalization();
 
+        app.UseAuthentication();
+        app.UseAuthorization();
+
         app.UseStatusCodePagesWithReExecute("/page-not-found", createScopeForStatusCodePages: true);
 
         app.UseAntiforgery();
 
+        app.MapAuthEndpoints();
         app.MapStaticAssets();
         app
             .MapRazorComponents<App>()

@@ -1,8 +1,24 @@
+using System.Security.Claims;
+
 namespace WebApp.Utilities.Helpers;
 
-// Placeholder until auth is wired up. Replace this with a value
-// derived from the authenticated user (e.g. SignInResponse.Id).
-public static class CurrentUser
+public sealed class CurrentUser(IHttpContextAccessor httpContextAccessor)
 {
-    public static Guid Id { get; } = Guid.Parse("550E8400-E29B-41D4-A716-446655440001");
+    public bool IsAuthenticated =>
+        httpContextAccessor.HttpContext?.User.Identity?.IsAuthenticated == true;
+
+    public Guid Id
+    {
+        get
+        {
+            var value = httpContextAccessor.HttpContext?.User.FindFirstValue(ClaimTypes.NameIdentifier);
+            return Guid.TryParse(value, out var id) ? id : Guid.Empty;
+        }
+    }
+
+    public string Email =>
+        httpContextAccessor.HttpContext?.User.FindFirstValue(ClaimTypes.Email) ?? string.Empty;
+
+    public string FullName =>
+        httpContextAccessor.HttpContext?.User.FindFirstValue(ClaimTypes.Name) ?? string.Empty;
 }

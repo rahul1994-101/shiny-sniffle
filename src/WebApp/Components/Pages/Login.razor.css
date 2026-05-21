@@ -1,0 +1,56 @@
+.login-shell {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+    background: var(--app-main-bg);
+    background-image: var(--app-main-gradient);
+}
+
+.login-card {
+    width: 100%;
+    max-width: 24rem;
+    padding: 2rem;
+    border-radius: 0.75rem;
+    background: var(--app-surface);
+    border: 1px solid var(--app-border);
+}
+
+.login-title {
+    margin: 0 0 0.25rem;
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--app-fg);
+}
+
+.login-subtitle {
+    margin: 0 0 1.5rem;
+    font-size: 0.875rem;
+    color: var(--app-muted);
+}
+
+.login-input {
+    background: var(--app-main-bg);
+    border-color: var(--app-border);
+    color: var(--app-fg);
+}
+
+.login-input::placeholder {
+    color: var(--app-muted);
+}
+
+.login-submit {
+    margin-top: 0.5rem;
+    background: var(--app-accent);
+    border-color: var(--app-accent);
+}
+
+.login-submit:hover:not(:disabled) {
+    background: var(--app-accent-hover);
+    border-color: var(--app-accent-hover);
+}
+
+.login-alert {
+    font-size: 0.875rem;
+}
