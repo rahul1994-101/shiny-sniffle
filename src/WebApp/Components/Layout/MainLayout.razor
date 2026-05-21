@@ -31,20 +31,13 @@
 </div>
 
 @code {
-    #region # State
-
     private EventCallback _notifyLayoutRefresh;
-
-    #endregion
-
-    #region # Lifecycle
 
     protected override void OnInitialized()
     {
         _notifyLayoutRefresh = EventCallback.Factory.Create(this, RefreshLayoutAsync);
     }
 
-    #endregion
 
     #region # Helpers
 

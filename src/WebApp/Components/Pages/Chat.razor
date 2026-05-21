@@ -81,14 +81,8 @@
 </div>
 
 @code {
-    #region # Parameters
-
     [Parameter]
     public Guid? ThreadId { get; set; }
-
-    #endregion
-
-    #region # State
 
     private Guid _activeThreadId;
     private List<GetChatMessageResponse> _messages = [];
@@ -100,10 +94,6 @@
     private bool _enterWired;
     private bool _didNormalizeRoute;
     private string? _routeKey;
-
-    #endregion
-
-    #region # Lifecycle
 
     protected override async Task OnParametersSetAsync()
     {
@@ -155,9 +145,8 @@
         await ValueTask.CompletedTask;
     }
 
-    #endregion
 
-    #region # ChatThread
+    #region # Thread
 
     private async Task<Guid> ResolveActiveThreadIdAsync()
     {
@@ -182,16 +171,16 @@
 
     #endregion
 
-    #region # ChatMessage
+    #region # Messages
+
+    [JSInvokable]
+    public Task SendFromJsAsync() => SendAsync();
 
     private async Task LoadMessagesAsync()
     {
         var result = await Features.GetChatMessagesByChatThreadIdAsync(new GetChatMessagesByChatThreadIdRequest { ChatThreadId = _activeThreadId });
         _messages = result.Payload ?? [];
     }
-
-    [JSInvokable]
-    public Task SendFromJsAsync() => SendAsync();
 
     private async Task SendAsync()
     {
@@ -203,8 +192,6 @@
 
         _draft = string.Empty;
 
-        #region # Execute
-
         var userResult = await Features.AddChatMessageAsync(new AddChatMessageRequest
         {
             ChatThreadId = _activeThreadId,
@@ -212,11 +199,6 @@
             Content = text,
             UserId = CurrentUser.Id
         });
-
-        #endregion
-
-        #region # Handle Result
-
         if (!userResult.HasError && userResult.Payload is not null)
         {
             _messages.Add(new GetChatMessageResponse
@@ -228,8 +210,6 @@
                 CreatedAt = userResult.Payload.CreatedAt
             });
         }
-
-        #endregion
 
         var assistantText = AssistantReply(text);
 
@@ -277,7 +257,7 @@
     private string AssistantReply(string userMessage)
     {
         var preview = userMessage.Length > 90 ? userMessage[..90].Trim() + "…" : userMessage.Trim();
-        return $"Thanks — I received: \"{preview}\". (Local mock reply — replace when the agent API is wired back in.)";
+        return $"Thanks — I received: \"{preview}\".";
     }
 
     #endregion

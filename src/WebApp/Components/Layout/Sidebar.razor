@@ -94,18 +94,7 @@
 </aside>
 
 @code {
-    #region # State
-
     private List<GetChatThreadResponse> _threads = [];
-
-    private Guid? _editingId;
-    private string _editTitle = string.Empty;
-    private ElementReference _renameInput;
-    private bool _focusRenameInput;
-
-    #endregion
-
-    #region # Lifecycle
 
     protected override async Task OnInitializedAsync()
     {
@@ -127,29 +116,8 @@
         }
     }
 
-    #endregion
 
-    #region # Shell
-
-    private async Task CollapseMobileDrawerAsync()
-    {
-        try
-        {
-            await JsRuntime.InvokeVoidAsync("webAppShell.collapseSidebarIfMobile", "app-shell");
-        }
-        catch (JSException)
-        {
-        }
-        catch (InvalidOperationException)
-        {
-        }
-    }
-
-    private Task FooterNavAsync() => CollapseMobileDrawerAsync();
-
-    #endregion
-
-    #region # ChatThread
+    #region # List
 
     private async Task LoadThreadsAsync()
     {
@@ -157,14 +125,11 @@
         _threads = result.Payload ?? [];
     }
 
-    private async Task NavigateToChatThreadAsync(Guid threadId)
-    {
-        NavigationManager.NavigateTo($"/chat/{threadId}", replace: true);
-        await CollapseMobileDrawerAsync();
-        await RefreshLayoutAsync();
-    }
-
     private Task SelectThreadAsync(Guid id) => NavigateToChatThreadAsync(id);
+
+    #endregion
+
+    #region # Create/Delete
 
     private async Task StartNewChatAsync()
     {
@@ -217,6 +182,15 @@
             await NavigateToChatThreadAsync(_threads[0].Id);
         }
     }
+
+    #endregion
+
+    #region # Rename
+
+    private Guid? _editingId;
+    private string _editTitle = string.Empty;
+    private ElementReference _renameInput;
+    private bool _focusRenameInput;
 
     private void BeginRename(GetChatThreadResponse t)
     {
@@ -307,6 +281,29 @@
         var seg = rel[prefix.Length..].Trim('/');
         return !string.IsNullOrEmpty(seg) && Guid.TryParse(seg, out threadId);
     }
+
+    private async Task NavigateToChatThreadAsync(Guid threadId)
+    {
+        NavigationManager.NavigateTo($"/chat/{threadId}", replace: true);
+        await CollapseMobileDrawerAsync();
+        await RefreshLayoutAsync();
+    }
+
+    private async Task CollapseMobileDrawerAsync()
+    {
+        try
+        {
+            await JsRuntime.InvokeVoidAsync("webAppShell.collapseSidebarIfMobile", "app-shell");
+        }
+        catch (JSException)
+        {
+        }
+        catch (InvalidOperationException)
+        {
+        }
+    }
+
+    private Task FooterNavAsync() => CollapseMobileDrawerAsync();
 
     #endregion
 }

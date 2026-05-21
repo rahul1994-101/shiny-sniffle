@@ -26,24 +26,12 @@
 </p>
 
 @code {
-    #region # Init
-
     [CascadingParameter]
     private HttpContext? HttpContext { get; set; }
-
-    #endregion
-
-    #region # State
 
     private string? RequestId { get; set; }
     private bool ShowRequestId => !string.IsNullOrEmpty(RequestId);
 
-    #endregion
-
-    #region # Lifecycle
-
     protected override void OnInitialized() =>
         RequestId = Activity.Current?.Id ?? HttpContext?.TraceIdentifier;
-
-    #endregion
 }
