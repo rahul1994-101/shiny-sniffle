@@ -86,3 +86,14 @@ h1:focus {
 .form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
     text-align: start;
 }
+
+/* Login: hide Blazor reconnect UI during full-page form POST */
+body.login-pending-navigation #components-reconnect-modal {
+    display: none !important;
+    pointer-events: none !important;
+}
+
+body.app-login-page {
+    background: var(--app-main-bg);
+    color: var(--app-fg);
+}

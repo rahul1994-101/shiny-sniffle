@@ -158,3 +158,49 @@ window.webAppChat = {
     });
   }
 };
+
+window.webAppLogin = {
+  wireForm: function (formOrId) {
+    var form =
+      typeof formOrId === "string" ? document.getElementById(formOrId) : formOrId;
+    if (!form || form.dataset.loginWired === "1") return;
+    form.dataset.loginWired = "1";
+
+    document.body.classList.add("app-login-page");
+
+    form.addEventListener("submit", function () {
+      document.body.classList.add("login-pending-navigation");
+      form.classList.add("is-submitting");
+      form.setAttribute("aria-busy", "true");
+
+      var overlay = document.getElementById("login-loading");
+      if (overlay) {
+        overlay.hidden = false;
+        overlay.setAttribute("aria-hidden", "false");
+      }
+
+      var submit = form.querySelector(".login-submit");
+      if (submit) {
+        submit.disabled = true;
+        submit.setAttribute("aria-busy", "true");
+      }
+
+      // Do not disable inputs — disabled fields are omitted from form POST data.
+      form.querySelectorAll(".login-input").forEach(function (input) {
+        input.readOnly = true;
+      });
+    });
+  }
+};
+
+(function () {
+  function tryInitLogin() {
+    var form = document.getElementById("login-form");
+    if (!form) return;
+    window.webAppLogin.wireForm(form);
+  }
+
+  var loginObs = new MutationObserver(tryInitLogin);
+  loginObs.observe(document.documentElement, { childList: true, subtree: true });
+  tryInitLogin();
+})();

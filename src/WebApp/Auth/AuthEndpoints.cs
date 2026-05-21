@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Antiforgery;
-using Microsoft.AspNetCore.Mvc;
 
 using WebApp.Data;
 using WebApp.Models;
@@ -20,10 +19,11 @@ public static class AuthEndpoints
         HttpContext httpContext,
         IAntiforgery antiforgery,
         Features features,
-        AuthService auth,
-        [FromForm] SignInRequest signInRequest,
-        [FromForm(Name = AuthConstants.ReturnUrlQuery)] string? returnUrl)
+        AuthService auth)
     {
+        var form = await httpContext.Request.ReadFormAsync();
+        var returnUrl = form[AuthConstants.ReturnUrlQuery].ToString();
+
         try
         {
             await antiforgery.ValidateRequestAsync(httpContext);
@@ -32,6 +32,13 @@ public static class AuthEndpoints
         {
             return RedirectToLogin(returnUrl, "Invalid request. Please try again.");
         }
+
+        var signInRequest = new SignInRequest
+        {
+            EmailId = form["EmailId"].ToString(),
+            Password = form["Password"].ToString()
+        };
+
         var result = await features.SignInAsync(signInRequest);
         if (result.HasError || result.Payload is null)
         {
