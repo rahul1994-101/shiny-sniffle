@@ -9,8 +9,6 @@
 
   <ItemGroup>
     <PackageReference Include="Azure.AI.OpenAI" Version="2.1.0" />
-    <PackageReference Include="Azure.AI.Projects" Version="2.0.1" />
-    <PackageReference Include="Azure.Identity" Version="1.21.0" />
     <PackageReference Include="EntityFrameworkCore.Exceptions.SqlServer" Version="10.0.0" />
     <PackageReference Include="HtmlSanitizer" Version="9.0.892" />
     <PackageReference Include="Markdig" Version="1.1.2" />

@@ -6,24 +6,35 @@ public sealed class FoundryOptions
 
     public bool Enabled { get; set; }
 
-    public string ProjectEndpoint { get; set; } = string.Empty;
+    /// <summary>
+    /// Azure OpenAI resource base URL (maps to AZURE_OPENAI_ENDPOINT without deployment path).
+    /// </summary>
+    public string Endpoint { get; set; } = string.Empty;
 
     /// <summary>
-    /// Optional Foundry API key (Plesk, user secrets). When set, used instead of Azure identity (az login / MI).
+    /// Azure OpenAI API key (maps to AZURE_OPENAI_API_KEY).
     /// </summary>
     public string ApiKey { get; set; } = string.Empty;
 
     /// <summary>
-    /// Optional override for the OpenAI-compatible Foundry URL (defaults to {resource}/openai/v1/ derived from ProjectEndpoint).
+    /// Optional API version override (maps to AZURE_OPENAI_API_VERSION).
     /// </summary>
-    public string OpenAiEndpoint { get; set; } = string.Empty;
+    public string ApiVersion { get; set; } = string.Empty;
 
     public Dictionary<string, AgentProfileOptions> Profiles { get; set; } =
         new(StringComparer.OrdinalIgnoreCase);
+
+    public bool IsConfigured =>
+        Enabled &&
+        !string.IsNullOrWhiteSpace(Endpoint) &&
+        !string.IsNullOrWhiteSpace(ApiKey);
 }
 
 public sealed class AgentProfileOptions
 {
+    /// <summary>
+    /// Model deployment name (maps to AZURE_OPENAI_DEPLOYMENT_NAME per profile).
+    /// </summary>
     public string ModelDeployment { get; set; } = string.Empty;
 
     public string Name { get; set; } = string.Empty;

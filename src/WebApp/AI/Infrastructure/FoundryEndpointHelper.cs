@@ -3,24 +3,47 @@ namespace WebApp.AI.Infrastructure;
 public static class FoundryEndpointHelper
 {
     /// <summary>
-    /// Maps a Foundry project endpoint to the OpenAI-compatible <c>/openai/v1</c> data-plane URL used with API keys.
+    /// Normalizes AZURE_OPENAI_ENDPOINT to the base resource URL expected by <see cref="Azure.AI.OpenAI.AzureOpenAIClient"/>.
+    /// Accepts either a base URL or a full deployment chat/completions URL.
     /// </summary>
-    public static Uri GetOpenAiV1Endpoint(string projectEndpoint, string? openAiEndpointOverride = null)
+    public static Uri GetAzureOpenAiEndpoint(string endpoint)
     {
-        if (!string.IsNullOrWhiteSpace(openAiEndpointOverride))
+        if (string.IsNullOrWhiteSpace(endpoint))
         {
-            return NormalizeOpenAiEndpoint(openAiEndpointOverride);
+            throw new InvalidOperationException("Foundry:Endpoint is not configured.");
         }
 
-        if (!Uri.TryCreate(projectEndpoint, UriKind.Absolute, out var projectUri))
+        var trimmed = endpoint.Trim();
+
+        if (!Uri.TryCreate(trimmed, UriKind.Absolute, out var uri))
         {
-            throw new InvalidOperationException("Foundry:ProjectEndpoint is not a valid absolute URL.");
+            throw new InvalidOperationException("Foundry:Endpoint is not a valid absolute URL.");
         }
 
-        return new Uri($"{projectUri.Scheme}://{projectUri.Authority}/openai/v1/");
+        var baseUrl = ExtractBaseUrl(uri);
+        return NormalizeTrailingSlash(baseUrl);
     }
 
-    private static Uri NormalizeOpenAiEndpoint(string endpoint)
+    private static string ExtractBaseUrl(Uri uri)
+    {
+        var path = uri.AbsolutePath;
+
+        var deploymentsIndex = path.IndexOf("/openai/deployments/", StringComparison.OrdinalIgnoreCase);
+        if (deploymentsIndex >= 0)
+        {
+            return $"{uri.Scheme}://{uri.Authority}{path[..deploymentsIndex]}/";
+        }
+
+        var openAiIndex = path.IndexOf("/openai/", StringComparison.OrdinalIgnoreCase);
+        if (openAiIndex >= 0)
+        {
+            return $"{uri.Scheme}://{uri.Authority}{path[..openAiIndex]}/";
+        }
+
+        return $"{uri.Scheme}://{uri.Authority}/";
+    }
+
+    private static Uri NormalizeTrailingSlash(string endpoint)
     {
         var trimmed = endpoint.Trim();
         if (!trimmed.EndsWith('/'))

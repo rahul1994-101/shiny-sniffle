@@ -1,6 +1,5 @@
 using Azure;
 using Azure.AI.OpenAI;
-using Azure.AI.Projects;
 
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
@@ -10,42 +9,21 @@ using WebApp.AI.Configuration;
 
 namespace WebApp.AI.Infrastructure;
 
-public sealed class AgentFactory(
-    FoundryClientFactory clientFactory,
-    IOptions<FoundryOptions> options,
-    IServiceProvider services)
+public sealed class AgentFactory(IOptions<FoundryOptions> options, IServiceProvider services)
 {
+    private AzureOpenAIClient? _openAiClient;
+
     public AIAgent CreateAgent(string profileKey, IList<AITool>? tools = null)
     {
+        var foundry = options.Value;
+        if (!foundry.IsConfigured)
+        {
+            throw new InvalidOperationException(
+                "Foundry is not configured. Set Foundry:Enabled, Foundry:Endpoint, and Foundry:ApiKey.");
+        }
+
         var profile = ResolveProfile(profileKey);
-
-        return options.Value.ApiKey is { Length: > 0 } apiKey
-            ? CreateWithApiKey(profile, apiKey, tools)
-            : CreateWithIdentity(profile, tools);
-    }
-
-    public AgentProfileOptions GetProfile(string profileKey) => ResolveProfile(profileKey);
-
-    private AIAgent CreateWithIdentity(AgentProfileOptions profile, IList<AITool>? tools)
-    {
-        AIProjectClient client = clientFactory.GetIdentityClient();
-
-        return client.AsAIAgent(
-            model: profile.ModelDeployment,
-            instructions: profile.Instructions,
-            name: profile.Name,
-            description: profile.Description,
-            tools: tools,
-            services: services);
-    }
-
-    private AIAgent CreateWithApiKey(AgentProfileOptions profile, string apiKey, IList<AITool>? tools)
-    {
-        var openAiEndpoint = FoundryEndpointHelper.GetOpenAiV1Endpoint(
-            options.Value.ProjectEndpoint,
-            options.Value.OpenAiEndpoint);
-
-        var chatClient = new AzureOpenAIClient(openAiEndpoint, new AzureKeyCredential(apiKey))
+        var chatClient = GetOpenAiClient(foundry)
             .GetChatClient(profile.ModelDeployment)
             .AsIChatClient();
 
@@ -56,6 +34,22 @@ public sealed class AgentFactory(
             profile.Description,
             tools,
             services: services);
+    }
+
+    public AgentProfileOptions GetProfile(string profileKey) => ResolveProfile(profileKey);
+
+    private AzureOpenAIClient GetOpenAiClient(FoundryOptions foundry)
+    {
+        if (_openAiClient is not null)
+        {
+            return _openAiClient;
+        }
+
+        var endpoint = FoundryEndpointHelper.GetAzureOpenAiEndpoint(foundry.Endpoint);
+
+        return _openAiClient = new AzureOpenAIClient(
+            endpoint,
+            new AzureKeyCredential(foundry.ApiKey));
     }
 
     private AgentProfileOptions ResolveProfile(string profileKey)

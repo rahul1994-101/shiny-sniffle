@@ -1,12 +1,14 @@
+using Microsoft.Extensions.Options;
+
 using WebApp.AI.Agents.Intent;
+using WebApp.AI.Configuration;
 using WebApp.AI.Contracts;
-using WebApp.AI.Infrastructure;
 using WebApp.AI.Memory;
 
 namespace WebApp.AI.Orchestration;
 
 public sealed class ChatOrchestrator(
-    FoundryClientFactory foundryClientFactory,
+    IOptions<FoundryOptions> foundryOptions,
     ThreadMemoryProvider threadMemoryProvider,
     IntentAgent intentAgent,
     IntentRouter intentRouter)
@@ -15,13 +17,13 @@ public sealed class ChatOrchestrator(
         ChatTurnRequest request,
         CancellationToken cancellationToken = default)
     {
-        if (!foundryClientFactory.IsConfigured)
+        if (!foundryOptions.Value.IsConfigured)
         {
             return new ChatTurnResult
             {
                 AssistantContent =
-                    "AI is not configured yet. Set Foundry:Enabled and Foundry:ProjectEndpoint. " +
-                    "For Plesk or local dev without az login, also set Foundry:ApiKey (user secrets or environment variable).",
+                    "AI is not configured yet. Set Foundry:Enabled, Foundry:Endpoint, and Foundry:ApiKey " +
+                    "(user secrets locally or environment variables on Plesk).",
                 Intent = IntentKeys.GeneralChat,
                 Handler = nameof(ChatOrchestrator)
             };
