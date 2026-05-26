@@ -1,6 +1,5 @@
 using Microsoft.Extensions.AI;
 
-using WebApp.AI.Contracts;
 using WebApp.Data;
 using WebApp.Models;
 

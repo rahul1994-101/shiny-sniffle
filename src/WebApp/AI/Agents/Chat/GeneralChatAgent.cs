@@ -1,7 +1,7 @@
 using Microsoft.Extensions.AI;
 
 using WebApp.AI.Agents;
-using WebApp.AI.Contracts;
+using WebApp.Models;
 using WebApp.Utilities.Helpers;
 
 namespace WebApp.AI.Agents.Chat;
@@ -13,20 +13,16 @@ public sealed class GeneralChatAgent(FoundryAgentFactory agentFactory)
         MemoryContext memory,
         CancellationToken cancellationToken = default)
     {
-        var profile = agentFactory.GetProfile(AgentProfileKeys.ChatGeneral);
         var agent = agentFactory.CreateAgent(AgentProfileKeys.ChatGeneral);
 
         var messages = memory.ToChatMessages();
-        messages.Add(new ChatMessage(ChatRole.User, request.UserMessage));
+        messages.Add(new Microsoft.Extensions.AI.ChatMessage(ChatRole.User, request.UserMessage));
 
         var response = await agent.RunAsync(messages, cancellationToken: cancellationToken);
 
         return new ChatTurnResult
         {
-            AssistantContent = ExtractAssistantText(response),
-            Intent = IntentKeys.GeneralChat,
-            Handler = nameof(GeneralChatAgent),
-            ModelDeployment = profile.ModelDeployment
+            AssistantContent = ExtractAssistantText(response)
         };
     }
 

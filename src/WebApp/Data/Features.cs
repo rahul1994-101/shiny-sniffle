@@ -1,5 +1,4 @@
-﻿using WebApp.AI.Contracts;
-using WebApp.AI.Orchestration;
+﻿using WebApp.AI.Orchestration;
 using WebApp.Models;
 
 namespace WebApp.Data;
@@ -374,10 +373,7 @@ public class Features(Persistence _repo, ChatOrchestrator _chatOrchestrator)
 
             result.Success(new ProcessChatTurnResponse
             {
-                AssistantContent = turn.AssistantContent,
-                Intent = turn.Intent,
-                Handler = turn.Handler,
-                ModelDeployment = turn.ModelDeployment
+                AssistantContent = turn.AssistantContent
             });
 
             #endregion

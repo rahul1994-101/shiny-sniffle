@@ -10,6 +10,7 @@ using WebApp.AI.Agents.Chat;
 using WebApp.AI.Agents.Intent;
 using WebApp.AI.Memory;
 using WebApp.AI.Orchestration;
+using WebApp.Models;
 
 namespace WebApp.Utilities.Helpers;
 
@@ -76,33 +77,6 @@ public static class AzureAiFoundryHelpers
 
         return new Uri(trimmed, UriKind.Absolute);
     }
-}
-
-public sealed class FoundryOptions
-{
-    public const string SectionName = "Foundry";
-
-    public bool Enabled { get; set; }
-
-    /// <summary>
-    /// Azure OpenAI resource base URL (maps to AZURE_OPENAI_ENDPOINT without deployment path).
-    /// </summary>
-    public string Endpoint { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Azure OpenAI API key (maps to AZURE_OPENAI_API_KEY).
-    /// </summary>
-    public string ApiKey { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Optional API version override (maps to AZURE_OPENAI_API_VERSION).
-    /// </summary>
-    public string ApiVersion { get; set; } = string.Empty;
-
-    public bool IsConfigured =>
-        Enabled &&
-        !string.IsNullOrWhiteSpace(Endpoint) &&
-        !string.IsNullOrWhiteSpace(ApiKey);
 }
 
 public sealed class FoundryAgentFactory(IOptions<FoundryOptions> options, IServiceProvider services)

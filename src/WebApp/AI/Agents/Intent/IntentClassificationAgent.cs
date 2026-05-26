@@ -1,7 +1,7 @@
 using Microsoft.Extensions.AI;
 
 using WebApp.AI.Agents;
-using WebApp.AI.Contracts;
+using WebApp.Models;
 using WebApp.Utilities.Helpers;
 
 namespace WebApp.AI.Agents.Intent;
@@ -15,7 +15,7 @@ public sealed class IntentClassificationAgent(FoundryAgentFactory agentFactory)
     {
         var agent = agentFactory.CreateAgent(AgentProfileKeys.IntentRouter);
         var messages = memory.ToChatMessages();
-        messages.Add(new ChatMessage(
+        messages.Add(new Microsoft.Extensions.AI.ChatMessage(
             ChatRole.User,
             $"""
              Classify this user message.

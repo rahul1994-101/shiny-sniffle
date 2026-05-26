@@ -1,8 +1,8 @@
 using Microsoft.Extensions.Options;
 
 using WebApp.AI.Agents.Intent;
-using WebApp.AI.Contracts;
 using WebApp.AI.Memory;
+using WebApp.Models;
 using WebApp.Utilities.Helpers;
 
 namespace WebApp.AI.Orchestration;
@@ -23,22 +23,12 @@ public sealed class ChatOrchestrator(
             {
                 AssistantContent =
                     "AI is not configured yet. Set Foundry:Enabled, Foundry:Endpoint, and Foundry:ApiKey " +
-                    "(user secrets locally or environment variables on Plesk).",
-                Intent = IntentKeys.GeneralChat,
-                Handler = nameof(ChatOrchestrator)
+                    "(user secrets locally or environment variables on Plesk)."
             };
         }
 
         var memory = await threadMemoryProvider.LoadAsync(request.ChatThreadId, cancellationToken);
         var intent = await intentClassificationAgent.ClassifyAsync(request, memory, cancellationToken);
-        var result = await intentRouter.RouteAsync(intent.Intent, request, memory, cancellationToken);
-
-        return new ChatTurnResult
-        {
-            AssistantContent = result.AssistantContent,
-            Handler = result.Handler,
-            ModelDeployment = result.ModelDeployment,
-            Intent = intent.Intent
-        };
+        return await intentRouter.RouteAsync(intent.Intent, request, memory, cancellationToken);
     }
 }

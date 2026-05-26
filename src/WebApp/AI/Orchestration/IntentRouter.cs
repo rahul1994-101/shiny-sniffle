@@ -1,5 +1,5 @@
-using WebApp.AI.Contracts;
 using WebApp.AI.Agents.Chat;
+using WebApp.Models;
 
 namespace WebApp.AI.Orchestration;
 

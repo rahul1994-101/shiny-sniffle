@@ -1,6 +1,8 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel.DataAnnotations;
 
+using AiChatMessage = Microsoft.Extensions.AI.ChatMessage;
+
 namespace WebApp.Models;
 
 #region # Common
@@ -278,12 +280,74 @@ public class ProcessChatTurnRequest
 public class ProcessChatTurnResponse
 {
     public string AssistantContent { get; set; } = string.Empty;
+}
 
-    public string Intent { get; set; } = string.Empty;
+#endregion
 
-    public string Handler { get; set; } = string.Empty;
+#region # AI
 
-    public string ModelDeployment { get; set; } = string.Empty;
+public sealed class FoundryOptions
+{
+    public const string SectionName = "Foundry";
+
+    public bool Enabled { get; set; }
+
+    /// <summary>
+    /// Azure OpenAI resource base URL (maps to AZURE_OPENAI_ENDPOINT without deployment path).
+    /// </summary>
+    public string Endpoint { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Azure OpenAI API key (maps to AZURE_OPENAI_API_KEY).
+    /// </summary>
+    public string ApiKey { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Optional API version override (maps to AZURE_OPENAI_API_VERSION).
+    /// </summary>
+    public string ApiVersion { get; set; } = string.Empty;
+
+    public bool IsConfigured =>
+        Enabled &&
+        !string.IsNullOrWhiteSpace(Endpoint) &&
+        !string.IsNullOrWhiteSpace(ApiKey);
+}
+
+public sealed class ChatTurnRequest
+{
+    public Guid UserId { get; init; }
+
+    public Guid ChatThreadId { get; init; }
+
+    public string UserMessage { get; init; } = string.Empty;
+}
+
+public sealed class ChatTurnResult
+{
+    public string AssistantContent { get; init; } = string.Empty;
+}
+
+public sealed class IntentResult
+{
+    public string Intent { get; set; } = IntentKeys.GeneralChat;
+
+    public double Confidence { get; set; }
+
+    public string Reason { get; set; } = string.Empty;
+}
+
+public static class IntentKeys
+{
+    public const string GeneralChat = "general.chat";
+}
+
+public sealed class MemoryContext
+{
+    public Guid ChatThreadId { get; init; }
+
+    public IReadOnlyList<AiChatMessage> Messages { get; init; } = [];
+
+    public List<AiChatMessage> ToChatMessages() => Messages.ToList();
 }
 
 #endregion
