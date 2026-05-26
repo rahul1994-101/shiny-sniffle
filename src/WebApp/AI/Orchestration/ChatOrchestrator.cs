@@ -10,7 +10,7 @@ namespace WebApp.AI.Orchestration;
 public sealed class ChatOrchestrator(
     IOptions<FoundryOptions> foundryOptions,
     ThreadMemoryProvider threadMemoryProvider,
-    IntentAgent intentAgent,
+    IntentClassificationAgent intentClassificationAgent,
     IntentRouter intentRouter)
 {
     public async Task<ChatTurnResult> ProcessTurnAsync(
@@ -30,7 +30,7 @@ public sealed class ChatOrchestrator(
         }
 
         var memory = await threadMemoryProvider.LoadAsync(request.ChatThreadId, cancellationToken);
-        var intent = await intentAgent.ClassifyAsync(request, memory, cancellationToken);
+        var intent = await intentClassificationAgent.ClassifyAsync(request, memory, cancellationToken);
         var result = await intentRouter.RouteAsync(intent.Intent, request, memory, cancellationToken);
 
         return new ChatTurnResult

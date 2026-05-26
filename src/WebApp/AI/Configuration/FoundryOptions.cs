@@ -48,6 +48,4 @@ public static class AgentProfileKeys
 {
     public const string IntentRouter = "intent-router";
     public const string ChatGeneral = "chat-general";
-    public const string WorkspaceData = "workspace-data";
-    public const string WorkspacePresenter = "workspace-presenter";
 }

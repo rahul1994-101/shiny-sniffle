@@ -1,4 +1,3 @@
-using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
 
 using WebApp.AI.Configuration;
@@ -7,7 +6,7 @@ using WebApp.AI.Infrastructure;
 
 namespace WebApp.AI.Agents.Intent;
 
-public sealed class IntentAgent(AgentFactory agentFactory)
+public sealed class IntentClassificationAgent(AgentFactory agentFactory)
 {
     public async Task<IntentResult> ClassifyAsync(
         ChatTurnRequest request,
@@ -44,11 +43,13 @@ public sealed class IntentAgent(AgentFactory agentFactory)
         return intent;
     }
 
-    private static string NormalizeIntent(string intent) =>
-        intent.Trim().ToLowerInvariant() switch
+    private static string NormalizeIntent(string intent)
+    {
+        var normalized = intent.Trim().ToLowerInvariant();
+        return normalized switch
         {
-            IntentKeys.WorkspaceInfo => IntentKeys.WorkspaceInfo,
             IntentKeys.GeneralChat => IntentKeys.GeneralChat,
-            _ => IntentKeys.GeneralChat
+            _ => normalized
         };
+    }
 }

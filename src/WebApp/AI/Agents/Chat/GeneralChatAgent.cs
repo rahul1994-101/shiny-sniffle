@@ -3,11 +3,10 @@ using Microsoft.Extensions.AI;
 using WebApp.AI.Configuration;
 using WebApp.AI.Contracts;
 using WebApp.AI.Infrastructure;
-using WebApp.AI.Tools;
 
-namespace WebApp.AI.Skills.General;
+namespace WebApp.AI.Agents.Chat;
 
-public sealed class GeneralSkill(AgentFactory agentFactory, WorkspaceTools workspaceTools)
+public sealed class GeneralChatAgent(AgentFactory agentFactory)
 {
     public async Task<ChatTurnResult> RunAsync(
         ChatTurnRequest request,
@@ -15,8 +14,7 @@ public sealed class GeneralSkill(AgentFactory agentFactory, WorkspaceTools works
         CancellationToken cancellationToken = default)
     {
         var profile = agentFactory.GetProfile(AgentProfileKeys.ChatGeneral);
-        var tools = workspaceTools.CreateTools(request.UserId, request.ChatThreadId);
-        var agent = agentFactory.CreateAgent(AgentProfileKeys.ChatGeneral, tools);
+        var agent = agentFactory.CreateAgent(AgentProfileKeys.ChatGeneral);
 
         var messages = memory.ToChatMessages();
         messages.Add(new ChatMessage(ChatRole.User, request.UserMessage));
@@ -27,7 +25,7 @@ public sealed class GeneralSkill(AgentFactory agentFactory, WorkspaceTools works
         {
             AssistantContent = ExtractAssistantText(response),
             Intent = IntentKeys.GeneralChat,
-            Handler = nameof(GeneralSkill),
+            Handler = nameof(GeneralChatAgent),
             ModelDeployment = profile.ModelDeployment
         };
     }

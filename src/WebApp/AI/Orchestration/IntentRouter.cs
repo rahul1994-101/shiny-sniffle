@@ -1,12 +1,9 @@
 using WebApp.AI.Contracts;
-using WebApp.AI.Skills.General;
-using WebApp.AI.Workflows.Workspace;
+using WebApp.AI.Agents.Chat;
 
 namespace WebApp.AI.Orchestration;
 
-public sealed class IntentRouter(
-    GeneralSkill generalSkill,
-    WorkspaceInfoWorkflow workspaceInfoWorkflow)
+public sealed class IntentRouter(GeneralChatAgent generalChatAgent)
 {
     public Task<ChatTurnResult> RouteAsync(
         string intent,
@@ -15,7 +12,8 @@ public sealed class IntentRouter(
         CancellationToken cancellationToken = default) =>
         intent switch
         {
-            IntentKeys.WorkspaceInfo => workspaceInfoWorkflow.RunAsync(request, memory, cancellationToken),
-            _ => generalSkill.RunAsync(request, memory, cancellationToken)
+            IntentKeys.GeneralChat => generalChatAgent.RunAsync(request, memory, cancellationToken),
+            // Add new intent cases here and register handlers in AiServiceRegistration.
+            _ => generalChatAgent.RunAsync(request, memory, cancellationToken)
         };
 }

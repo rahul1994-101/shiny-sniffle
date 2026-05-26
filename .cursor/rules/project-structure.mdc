@@ -12,7 +12,7 @@ Keep code in the folder that matches its role. Root: `src/WebApp/`.
 | **Endpoints/** | Minimal APIs and HTTP route handlers (`*Endpoints.cs`). Register groups in `EndpointExtensions.MapAppEndpoints`. |
 | **Components/** | Blazor UI (pages, layout, shared). See `blazor-conventions.mdc`. |
 | **Data/** | Blazor-facing backend: `Features`, `Persistence`, EF `AppDbContext`. |
-| **AI/** | MAF agents, skills, workflows, tools, orchestration (C#). `_Legacy_Python/` is reference only. |
+| **AI/** | MAF agents, workflows, tools, memory, orchestration, and Foundry configuration (C#). `_Legacy_Python/` is reference only. |
 | **Models/** | DTOs, entities, constants. |
 | **Utilities/** | Cross-cutting helpers (auth, DB setup, extensions). |
 
@@ -25,8 +25,15 @@ Keep code in the folder that matches its role. Root: `src/WebApp/`.
 
 Do not put minimal API routes under `Components/` or `Data/`.
 
+## AI boundaries
+
+- **Agents/**: LLM runners only. One class per agent role, named clearly, e.g. `IntentClassificationAgent`, `GeneralChatAgent`. Agents may build messages and call `AgentFactory`.
+- **Tools/**: Plain C# capabilities exposed to agents via MAF tools. Tools may call app services/DB/APIs, but must not call LLMs or route chat turns.
+- **Workflows/**: Multi-step MAF workflows that compose agents and tools. Keep placeholder `.gitkeep` files in empty workflow folders.
+- **Orchestration/**: Turn-level coordination only: load memory, classify intent, route to an agent/workflow, return the result.
+- Do not add a `Skills/` folder unless a future capability layer has a clear responsibility distinct from agents and workflows.
+
 ## Foundry auth
 
-- **Plesk / key-based:** set `Foundry:ApiKey` in environment variables or host secrets (never commit keys).
-- **Local Azure identity:** omit `ApiKey` and run `az login`.
-- **Azure hosting:** omit `ApiKey`; use managed identity + RBAC on the Foundry project.
+- Use key-based Azure OpenAI configuration for now: `Foundry:Enabled`, `Foundry:Endpoint`, `Foundry:ApiKey`, and per-profile `ModelDeployment`.
+- Put keys in user secrets or host environment variables (never commit keys).
