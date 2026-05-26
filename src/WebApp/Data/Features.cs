@@ -1,8 +1,10 @@
-﻿using WebApp.Models;
+﻿using WebApp.AI.Contracts;
+using WebApp.AI.Orchestration;
+using WebApp.Models;
 
 namespace WebApp.Data;
 
-public class Features(Persistence _repo)
+public class Features(Persistence _repo, ChatOrchestrator _chatOrchestrator)
 {
     #region # User
 
@@ -339,6 +341,52 @@ public class Features(Persistence _repo)
         {
             result.Failure(ErrorCode.InternalServerError, ex.Message);
         }
+        return result;
+    }
+
+    public async Task<AppResult<ProcessChatTurnResponse?>> ProcessChatTurnAsync(ProcessChatTurnRequest processChatTurnRequest)
+    {
+        var result = new AppResult<ProcessChatTurnResponse?>();
+        try
+        {
+            #region # Validate
+
+            var hasError = result.Validate(processChatTurnRequest);
+            if (hasError)
+            {
+                return result;
+            }
+
+            #endregion
+
+            #region # Execute
+
+            var turn = await _chatOrchestrator.ProcessTurnAsync(new ChatTurnRequest
+            {
+                ChatThreadId = processChatTurnRequest.ChatThreadId,
+                UserId = processChatTurnRequest.UserId,
+                UserMessage = processChatTurnRequest.Message.Trim()
+            });
+
+            #endregion
+
+            #region # Handle Result
+
+            result.Success(new ProcessChatTurnResponse
+            {
+                AssistantContent = turn.AssistantContent,
+                Intent = turn.Intent,
+                Handler = turn.Handler,
+                ModelDeployment = turn.ModelDeployment
+            });
+
+            #endregion
+        }
+        catch (Exception ex)
+        {
+            result.Failure(ErrorCode.InternalServerError, ex.Message);
+        }
+
         return result;
     }
 

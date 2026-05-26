@@ -12,7 +12,7 @@ Keep code in the folder that matches its role. Root: `src/WebApp/`.
 | **Endpoints/** | Minimal APIs and HTTP route handlers (`*Endpoints.cs`). Register groups in `EndpointExtensions.MapAppEndpoints`. |
 | **Components/** | Blazor UI (pages, layout, shared). See `blazor-conventions.mdc`. |
 | **Data/** | Blazor-facing backend: `Features`, `Persistence`, EF `AppDbContext`. |
-| **AI/** | Python AI service (separate from .NET minimal APIs). |
+| **AI/** | MAF agents, skills, workflows, tools, orchestration (C#). `_Legacy_Python/` is reference only. |
 | **Models/** | DTOs, entities, constants. |
 | **Utilities/** | Cross-cutting helpers (auth, DB setup, extensions). |
 
@@ -24,3 +24,9 @@ Keep code in the folder that matches its role. Root: `src/WebApp/`.
 - Wire new groups in `Endpoints/EndpointExtensions.cs` → `MapAppEndpoints`
 
 Do not put minimal API routes under `Components/` or `Data/`.
+
+## Foundry auth
+
+- **Plesk / key-based:** set `Foundry:ApiKey` in environment variables or host secrets (never commit keys).
+- **Local Azure identity:** omit `ApiKey` and run `az login`.
+- **Azure hosting:** omit `ApiKey`; use managed identity + RBAC on the Foundry project.

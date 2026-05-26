@@ -263,4 +263,27 @@ public class GetChatMessageResponse
     public DateTime CreatedAt { get; set; }
 }
 
+public class ProcessChatTurnRequest
+{
+    [Required(ErrorMessage = "Chat Thread Id is required.")]
+    public Guid ChatThreadId { get; set; }
+
+    [Required(ErrorMessage = "User Id is required.")]
+    public Guid UserId { get; set; }
+
+    [Required(ErrorMessage = "Message is required.")]
+    public string Message { get; set; } = string.Empty;
+}
+
+public class ProcessChatTurnResponse
+{
+    public string AssistantContent { get; set; } = string.Empty;
+
+    public string Intent { get; set; } = string.Empty;
+
+    public string Handler { get; set; } = string.Empty;
+
+    public string ModelDeployment { get; set; } = string.Empty;
+}
+
 #endregion

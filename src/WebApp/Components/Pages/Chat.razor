@@ -213,7 +213,17 @@
             });
         }
 
-        var assistantText = AssistantReply(text);
+        var assistantText = "Something went wrong while generating a reply.";
+        var turnResult = await Features.ProcessChatTurnAsync(new ProcessChatTurnRequest
+        {
+            ChatThreadId = _activeThreadId,
+            UserId = CurrentUser.Id,
+            Message = text
+        });
+        if (!turnResult.HasError && turnResult.Payload is not null)
+        {
+            assistantText = turnResult.Payload.AssistantContent;
+        }
 
         var assistantResult = await Features.AddChatMessageAsync(new AddChatMessageRequest
         {
@@ -255,12 +265,6 @@
     }
 
     private static bool IsUser(string role) => role == "user";
-
-    private string AssistantReply(string userMessage)
-    {
-        var preview = userMessage.Length > 90 ? userMessage[..90].Trim() + "…" : userMessage.Trim();
-        return $"Thanks — I received: \"{preview}\".";
-    }
 
     #endregion
 }

@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Localization;
 using System.Globalization;
 
 using WebApp;
+using WebApp.AI.Infrastructure;
 using WebApp.Endpoints;
 using WebApp.Components;
 using WebApp.Data;
@@ -43,6 +44,8 @@ public static class DependencyInject
         builder.Services.AddScoped<Persistence>();
         builder.Services.AddScoped<AuthService>();
         builder.Services.AddScoped<CurrentUser>();
+
+        builder.Services.AddAiServices(builder.Configuration);
     }
 
     public static void UseServices(this WebApplication app)
