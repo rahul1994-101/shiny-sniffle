@@ -12,7 +12,7 @@ Keep code in the folder that matches its role. Root: `src/WebApp/`.
 | **Endpoints/** | Minimal APIs and HTTP route handlers (`*Endpoints.cs`). Register groups in `EndpointExtensions.MapAppEndpoints`. |
 | **Components/** | Blazor UI (pages, layout, shared). See `blazor-conventions.mdc`. |
 | **Data/** | Blazor-facing backend: `Features`, `Persistence`, EF `AppDbContext`. |
-| **AI/** | MAF agents, workflows, tools, memory, orchestration, and Foundry configuration (C#). `_Legacy_Python/` is reference only. |
+| **AI/** | App AI behavior: MAF agents, workflows, tools, memory, orchestration, and contracts (C#). `_Legacy_Python/` is reference only. |
 | **Models/** | DTOs, entities, constants. |
 | **Utilities/** | Cross-cutting helpers (auth, DB setup, extensions). |
 
@@ -28,12 +28,14 @@ Do not put minimal API routes under `Components/` or `Data/`.
 ## AI boundaries
 
 - **Agents/**: LLM runners only. One class per agent role, named clearly, e.g. `IntentClassificationAgent`, `GeneralChatAgent`. Agents may build messages and call `AgentFactory`.
+- **Agents/AgentProfiles.cs**: Keep agent profile keys, deployment names, names, descriptions, and instructions in C#. Do not put prompts/profile definitions in `appsettings`.
 - **Tools/**: Plain C# capabilities exposed to agents via MAF tools. Tools may call app services/DB/APIs, but must not call LLMs or route chat turns.
 - **Workflows/**: Multi-step MAF workflows that compose agents and tools. Keep placeholder `.gitkeep` files in empty workflow folders.
 - **Orchestration/**: Turn-level coordination only: load memory, classify intent, route to an agent/workflow, return the result.
+- **Utilities/Helpers/AzureAiFoundryHelpers.cs**: Keep Azure AI Foundry plumbing here: options, endpoint normalization, Foundry agent factory, and AI DI registration.
 - Do not add a `Skills/` folder unless a future capability layer has a clear responsibility distinct from agents and workflows.
 
 ## Foundry auth
 
-- Use key-based Azure OpenAI configuration for now: `Foundry:Enabled`, `Foundry:Endpoint`, `Foundry:ApiKey`, and per-profile `ModelDeployment`.
+- Use key-based Azure OpenAI configuration for now: `Foundry:Enabled`, `Foundry:Endpoint`, and `Foundry:ApiKey`.
 - Put keys in user secrets or host environment variables (never commit keys).

@@ -1,12 +1,12 @@
 using Microsoft.Extensions.AI;
 
-using WebApp.AI.Configuration;
+using WebApp.AI.Agents;
 using WebApp.AI.Contracts;
-using WebApp.AI.Infrastructure;
+using WebApp.Utilities.Helpers;
 
 namespace WebApp.AI.Agents.Chat;
 
-public sealed class GeneralChatAgent(AgentFactory agentFactory)
+public sealed class GeneralChatAgent(FoundryAgentFactory agentFactory)
 {
     public async Task<ChatTurnResult> RunAsync(
         ChatTurnRequest request,

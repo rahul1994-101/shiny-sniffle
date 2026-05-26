@@ -1,9 +1,9 @@
 using Microsoft.Extensions.Options;
 
 using WebApp.AI.Agents.Intent;
-using WebApp.AI.Configuration;
 using WebApp.AI.Contracts;
 using WebApp.AI.Memory;
+using WebApp.Utilities.Helpers;
 
 namespace WebApp.AI.Orchestration;
 

@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.Localization;
 using System.Globalization;
 
 using WebApp;
-using WebApp.AI.Infrastructure;
 using WebApp.Endpoints;
 using WebApp.Components;
 using WebApp.Data;

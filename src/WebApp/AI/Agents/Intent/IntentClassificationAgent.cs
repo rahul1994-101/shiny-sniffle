@@ -1,12 +1,12 @@
 using Microsoft.Extensions.AI;
 
-using WebApp.AI.Configuration;
+using WebApp.AI.Agents;
 using WebApp.AI.Contracts;
-using WebApp.AI.Infrastructure;
+using WebApp.Utilities.Helpers;
 
 namespace WebApp.AI.Agents.Intent;
 
-public sealed class IntentClassificationAgent(AgentFactory agentFactory)
+public sealed class IntentClassificationAgent(FoundryAgentFactory agentFactory)
 {
     public async Task<IntentResult> ClassifyAsync(
         ChatTurnRequest request,
