@@ -7,7 +7,7 @@ namespace WebApp.Utilities.Helpers;
 /// <summary>
 /// Renders assistant/system chat text as Markdown, then sanitizes HTML for safe <see cref="MarkupString"/> use.
 /// </summary>
-public static class ChatMarkdown
+public static class ChatHelpers
 {
     private static readonly MarkdownPipeline Pipeline = new MarkdownPipelineBuilder()
         .UsePipeTables()

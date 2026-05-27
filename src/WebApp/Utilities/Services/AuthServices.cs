@@ -1,6 +1,6 @@
 using System.Security.Claims;
 
-namespace WebApp.Utilities.Helpers;
+namespace WebApp.Utilities.Services;
 
 /// <summary>
 /// Reads the signed-in user from the current HTTP context (cookie claims). Blazor UI only — not sign-in/out.

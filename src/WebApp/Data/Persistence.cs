@@ -1,7 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 
 using WebApp.Models;
-using WebApp.Utilities.Helpers;
 
 namespace WebApp.Data;
 

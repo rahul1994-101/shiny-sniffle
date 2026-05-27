@@ -39,7 +39,7 @@
                     <div class="msg-row msg-row-system">
                         <div class="msg-system-banner">
                             <span class="msg-system-label">System</span>
-                            <div class="msg-text msg-text-system msg-markdown">@ChatMarkdown.ToSanitizedHtml(msg.Content)</div>
+                            <div class="msg-text msg-text-system msg-markdown">@ChatHelpers.ToSanitizedHtml(msg.Content)</div>
                         </div>
                     </div>
                 }
@@ -50,7 +50,7 @@
                             <div class="msg-avatar msg-avatar-assistant" aria-hidden="true">AI</div>
                             <div class="msg-bubble msg-bubble-assistant">
                                 <span class="visually-hidden">Assistant</span>
-                                <div class="msg-text msg-markdown">@ChatMarkdown.ToSanitizedHtml(msg.Content)</div>
+                                <div class="msg-text msg-markdown">@ChatHelpers.ToSanitizedHtml(msg.Content)</div>
                             </div>
                         </div>
                     </div>

@@ -11,10 +11,10 @@ Keep code in the folder that matches its role. Root: `src/WebApp/`.
 |--------|---------|
 | **Endpoints/** | MVC controllers named `*Endpoints.cs` (e.g. `AuthEndpoints`). Register via `AddControllers` / `MapControllers` in `Startup.cs`. |
 | **Components/** | Blazor UI (pages, layout, shared). See `blazor-conventions.mdc`. |
-| **Data/** | Blazor-facing backend: `Features`, `Persistence`, EF `AppDbContext`. |
+| **Data/** | Blazor-facing backend: `Features`, `Persistence`, `Database.cs` (`AppDbContext`). |
 | **AI/** | App AI behavior: MAF agents, workflows, tools, memory, and orchestration (C#). `_Legacy_Python/` is reference only. |
 | **Models/** | DTOs, entities, constants. |
-| **Utilities/** | Cross-cutting helpers (auth, DB setup, extensions). |
+| **Utilities/** | Cross-cutting code: `Extensions/`, `Services/`, `Helpers/`. See Utilities section below. |
 
 ## Endpoints
 
@@ -25,6 +25,21 @@ Keep code in the folder that matches its role. Root: `src/WebApp/`.
 - Blazor pages use UI routes (e.g. `/auth/login`); HTTP actions live under `/api/...` (e.g. `/api/auth/login`)
 
 Do not put HTTP routes under `Components/` or `Data/`.
+
+## Utilities
+
+Group code by **concern** into one file per concern per subfolder: `{Concern}{FolderKind}.cs` (e.g. `AuthServices.cs`, `AuthExtensions.cs`).
+
+| Subfolder | Purpose | File vs types |
+|-----------|---------|----------------|
+| **Extensions/** | Static extension methods | One `{Concern}Extensions` class per file; **class name matches file** (e.g. `AuthExtensions.cs` → `AuthExtensions`). |
+| **Helpers/** | Static utilities (no DI) | One `{Concern}Helpers` class per file; **class name matches file** (e.g. `CryptographyHelpers.cs` → `CryptographyHelpers`). |
+| **Services/** | DI-registered types (`AddScoped`, etc.) | File name is the concern bucket (`AuthServices.cs`). **Types inside use clear names** — they do not have to match the file. One file may hold several related service types (e.g. `CurrentUser`, and later `AuthService` if needed), not only a class called `AuthServices`. |
+
+Example: auth UI reads claims via `CurrentUser` in `Utilities/Services/AuthServices.cs`; sign-in/out stays in **Endpoints** and **Data**.
+
+- Namespaces: `WebApp.Utilities.Extensions`, `WebApp.Utilities.Services`, `WebApp.Utilities.Helpers`
+- Do not put EF `DbContext` or HTTP endpoints under Utilities — use **Data/** and **Endpoints/**
 
 ## AI boundaries
 

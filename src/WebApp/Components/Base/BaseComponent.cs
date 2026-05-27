@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 
 using WebApp.Data;
-using WebApp.Utilities.Helpers;
+using WebApp.Utilities.Services;
 
 namespace WebApp.Components.Base;
 
