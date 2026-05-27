@@ -9,7 +9,7 @@ Keep code in the folder that matches its role. Root: `src/WebApp/`.
 
 | Folder | Purpose |
 |--------|---------|
-| **Endpoints/** | Minimal APIs and HTTP route handlers (`*Endpoints.cs`). Register groups in `EndpointExtensions.MapAppEndpoints`. |
+| **Endpoints/** | MVC controllers named `*Endpoints.cs` (e.g. `AuthEndpoints`). Register via `AddControllers` / `MapControllers` in `Startup.cs`. |
 | **Components/** | Blazor UI (pages, layout, shared). See `blazor-conventions.mdc`. |
 | **Data/** | Blazor-facing backend: `Features`, `Persistence`, EF `AppDbContext`. |
 | **AI/** | App AI behavior: MAF agents, workflows, tools, memory, and orchestration (C#). `_Legacy_Python/` is reference only. |
@@ -18,12 +18,12 @@ Keep code in the folder that matches its role. Root: `src/WebApp/`.
 
 ## Endpoints
 
-- One file per area: `AuthEndpoints.cs`, `ChatEndpoints.cs`, etc.
+- One file per area: `AuthEndpoints.cs`, `ChatEndpoints.cs`, etc. (class name matches file name, not `*Controller`)
 - Namespace: `WebApp.Endpoints`
-- Each file exposes `MapXxxEndpoints(this WebApplication app)`
-- Wire new groups in `Endpoints/EndpointExtensions.cs` → `MapAppEndpoints`
+- Each class inherits `Controller` and uses `[Route]`, `[HttpPost]`, `[HttpGet]`, etc.
+- Wire routing in `Startup.cs` with `MapControllers()` (no separate extension file)
 
-Do not put minimal API routes under `Components/` or `Data/`.
+Do not put HTTP routes under `Components/` or `Data/`.
 
 ## AI boundaries
 

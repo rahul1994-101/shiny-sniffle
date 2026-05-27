@@ -2,7 +2,7 @@ using System.Security.Claims;
 
 namespace WebApp.Utilities.Helpers;
 
-public sealed class CurrentUser(IHttpContextAccessor httpContextAccessor)
+public sealed class AuthHelpers(IHttpContextAccessor httpContextAccessor)
 {
     public bool IsAuthenticated =>
         httpContextAccessor.HttpContext?.User.Identity?.IsAuthenticated == true;

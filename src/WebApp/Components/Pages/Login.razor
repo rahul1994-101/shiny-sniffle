@@ -91,12 +91,12 @@
         var httpContext = HttpContextAccessor.HttpContext;
         if (httpContext?.User.Identity?.IsAuthenticated == true)
         {
-            var destination = AuthService.NormalizeReturnUrl(ReturnUrl);
+            var destination = ReturnUrl.NormalizeReturnUrl();
             NavigationManager.NavigateTo(destination, forceLoad: true);
             return;
         }
 
-        _returnUrl = AuthService.NormalizeReturnUrl(ReturnUrl);
+        _returnUrl = ReturnUrl.NormalizeReturnUrl();
         _errorMessage = string.IsNullOrWhiteSpace(Error) ? null : Error;
 
         if (httpContext is not null)

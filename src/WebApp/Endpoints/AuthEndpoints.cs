@@ -1,69 +1,75 @@
-using Microsoft.AspNetCore.Antiforgery;
-
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 using WebApp.Data;
 using WebApp.Models;
-using WebApp.Utilities.Helpers;
+using WebApp.Utilities.Extensions;
 
 namespace WebApp.Endpoints;
 
-public static class AuthEndpoints
+[Route("auth")]
+public sealed class AuthEndpoints(Features features) : Controller
 {
-    public static void MapAuthEndpoints(this WebApplication app)
+    [HttpPost("login")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Login(
+        [FromForm] SignInRequest signInRequest,
+        [FromForm(Name = AuthConstants.ReturnUrlQuery)] string? returnUrl)
     {
-        app.MapPost("/auth/login", LoginAsync);
-        app.MapGet("/auth/logout", LogoutAsync);
-        app.MapGet("/logout", () => Results.Redirect(AuthConstants.LogoutPath));
-    }
-
-    private static async Task<IResult> LoginAsync(
-        HttpContext httpContext,
-        IAntiforgery antiforgery,
-        Features features,
-        AuthService auth)
-    {
-        var form = await httpContext.Request.ReadFormAsync();
-        var returnUrl = form[AuthConstants.ReturnUrlQuery].ToString();
-
-        try
-        {
-            await antiforgery.ValidateRequestAsync(httpContext);
-        }
-        catch (AntiforgeryValidationException)
-        {
-            return RedirectToLogin(returnUrl, "Invalid request. Please try again.");
-        }
-
-        var signInRequest = new SignInRequest
-        {
-            EmailId = form["EmailId"].ToString(),
-            Password = form["Password"].ToString()
-        };
-
         var result = await features.SignInAsync(signInRequest);
         if (result.HasError || result.Payload is null)
         {
             var message = result.Errors.FirstOrDefault()?.Message ?? "Invalid email or password.";
-            return RedirectToLogin(returnUrl, message);
+            var safeReturn = returnUrl.NormalizeReturnUrl();
+            var loginUrl =
+                $"{AuthConstants.LoginPath}?{AuthConstants.ErrorQuery}={Uri.EscapeDataString(message)}" +
+                $"&{AuthConstants.ReturnUrlQuery}={Uri.EscapeDataString(safeReturn)}";
+            return LocalRedirect(loginUrl);
         }
 
-        await auth.SignInAsync(result.Payload);
+        await SignInAsync(result.Payload);
 
-        var destination = AuthService.NormalizeReturnUrl(returnUrl);
-        return Results.LocalRedirect(destination);
+        return LocalRedirect(returnUrl.NormalizeReturnUrl());
     }
 
-    private static async Task<IResult> LogoutAsync(HttpContext httpContext, AuthService auth)
+    [HttpGet("logout")]
+    public async Task<IActionResult> Logout()
     {
-        await auth.SignOutAsync();
-        return Results.LocalRedirect(AuthConstants.LoginPath);
+        await SignOutAsync();
+        return LocalRedirect(AuthConstants.LoginPath);
     }
 
-    private static IResult RedirectToLogin(string? returnUrl, string errorMessage)
+    #region # Private Helpers
+
+    private async Task SignInAsync(SignInResponse user, bool isPersistent = true)
     {
-        var safeReturn = AuthService.IsLocalReturnUrl(returnUrl) ? returnUrl! : AuthConstants.DefaultReturnUrl;
-        var loginUrl =
-            $"{AuthConstants.LoginPath}?{AuthConstants.ErrorQuery}={Uri.EscapeDataString(errorMessage)}" +
-            $"&{AuthConstants.ReturnUrlQuery}={Uri.EscapeDataString(safeReturn)}";
-        return Results.LocalRedirect(loginUrl);
+        ArgumentNullException.ThrowIfNull(user);
+
+        var claims = new List<Claim>
+        {
+            new(ClaimTypes.NameIdentifier, user.Id.ToString("D")),
+            new(ClaimTypes.Email, user.Email),
+            new(ClaimTypes.Name, user.FullName)
+        };
+
+        var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+        var principal = new ClaimsPrincipal(identity);
+
+        var properties = new AuthenticationProperties
+        {
+            IsPersistent = isPersistent,
+            AllowRefresh = true
+        };
+
+        await HttpContext.SignInAsync(
+            CookieAuthenticationDefaults.AuthenticationScheme,
+            principal,
+            properties);
     }
+
+    private Task SignOutAsync() =>
+        HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+
+    #endregion
 }

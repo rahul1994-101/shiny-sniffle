@@ -131,7 +131,7 @@
 
     private async Task LoadThreadsAsync()
     {
-        var result = await Features.GetChatThreadsByUserIdAsync(new GetChatThreadsByUserIdRequest { UserId = CurrentUser.Id });
+        var result = await Features.GetChatThreadsByUserIdAsync(new GetChatThreadsByUserIdRequest { UserId = Auth.Id });
         _threads = result.Payload ?? [];
     }
 
@@ -143,7 +143,7 @@
 
     private async Task StartNewChatAsync()
     {
-        var result = await Features.AddChatThreadAsync(new AddChatThreadRequest { Title = "New chat", UserId = CurrentUser.Id });
+        var result = await Features.AddChatThreadAsync(new AddChatThreadRequest { Title = "New chat", UserId = Auth.Id });
         if (result.HasError || result.Payload is null)
         {
             return;
@@ -163,7 +163,7 @@
 
     private async Task DeleteThreadAsync(Guid id)
     {
-        var result = await Features.DeleteChatThreadAsync(new DeleteChatThreadRequest { Id = id, UserId = CurrentUser.Id });
+        var result = await Features.DeleteChatThreadAsync(new DeleteChatThreadRequest { Id = id, UserId = Auth.Id });
         if (result.HasError)
         {
             return;
@@ -173,7 +173,7 @@
 
         if (_threads.Count == 0)
         {
-            var created = await Features.AddChatThreadAsync(new AddChatThreadRequest { Title = "New chat", UserId = CurrentUser.Id });
+            var created = await Features.AddChatThreadAsync(new AddChatThreadRequest { Title = "New chat", UserId = Auth.Id });
             if (created.Payload is not null)
             {
                 _threads.Insert(0, new GetChatThreadResponse
@@ -241,7 +241,7 @@
         {
             Id = threadId,
             Title = _editTitle,
-            UserId = CurrentUser.Id
+            UserId = Auth.Id
         });
 
         _editingId = null;

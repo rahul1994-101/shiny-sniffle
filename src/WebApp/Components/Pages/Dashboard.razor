@@ -81,7 +81,7 @@
                 </div>
                 <div class="dash-stat-body">
                     <p class="dash-stat-label">Signed in as</p>
-                    <p class="dash-stat-value dash-stat-value-sm" title="@CurrentUser.Email">@CurrentUser.Email</p>
+                    <p class="dash-stat-value dash-stat-value-sm" title="@Auth.Email">@Auth.Email</p>
                 </div>
             </article>
         </div>
@@ -211,7 +211,7 @@
         _loadFailed = false;
 
         var result = await Features.GetChatThreadsByUserIdAsync(
-            new GetChatThreadsByUserIdRequest { UserId = CurrentUser.Id });
+            new GetChatThreadsByUserIdRequest { UserId = Auth.Id });
 
         if (result.HasError || result.Payload is null)
         {
@@ -244,7 +244,7 @@
     private async Task StartNewChatAsync()
     {
         var result = await Features.AddChatThreadAsync(
-            new AddChatThreadRequest { Title = "New chat", UserId = CurrentUser.Id });
+            new AddChatThreadRequest { Title = "New chat", UserId = Auth.Id });
 
         if (result.HasError || result.Payload is null)
             return;
@@ -259,12 +259,12 @@
 
     private string DisplayName()
     {
-        if (!string.IsNullOrWhiteSpace(CurrentUser.FullName))
-            return CurrentUser.FullName.Trim();
+        if (!string.IsNullOrWhiteSpace(Auth.FullName))
+            return Auth.FullName.Trim();
 
-        if (!string.IsNullOrWhiteSpace(CurrentUser.Email))
+        if (!string.IsNullOrWhiteSpace(Auth.Email))
         {
-            var local = CurrentUser.Email.Split('@')[0];
+            var local = Auth.Email.Split('@')[0];
             return string.IsNullOrWhiteSpace(local) ? "there" : local;
         }
 

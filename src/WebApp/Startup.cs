@@ -1,10 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Localization;
-
 using System.Globalization;
-
 using WebApp;
-using WebApp.Endpoints;
 using WebApp.Components;
 using WebApp.Data;
 using WebApp.Models;
@@ -18,31 +15,14 @@ public static class DependencyInject
     {
         ArgumentNullException.ThrowIfNull(builder);
 
+        builder.Services.InjectControllers();
         builder.Services.InjectRazorComponents();
+        builder.Services.InjectAuth();
 
-        builder.Services.AddHttpContextAccessor();
-        builder.Services
-            .AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-            .AddCookie(options =>
-            {
-                options.LoginPath = AuthConstants.LoginPath;
-                options.LogoutPath = AuthConstants.LoginPath;
-                options.AccessDeniedPath = AuthConstants.LoginPath;
-                options.SlidingExpiration = true;
-                options.ExpireTimeSpan = TimeSpan.FromDays(7);
-                options.Cookie.HttpOnly = true;
-                options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
-                options.Cookie.SameSite = SameSiteMode.Lax;
-            });
-        builder.Services.AddAuthorization();
-        builder.Services.AddCascadingAuthenticationState();
-
+        builder.Services.AddScoped<AuthHelpers>();
         builder.Services.AddDbContext<AppDbContext>();
-
         builder.Services.AddScoped<Features>();
         builder.Services.AddScoped<Persistence>();
-        builder.Services.AddScoped<AuthService>();
-        builder.Services.AddScoped<CurrentUser>();
 
         builder.Services.AddAiServices(builder.Configuration);
     }
@@ -67,7 +47,7 @@ public static class DependencyInject
 
         app.UseAntiforgery();
 
-        app.MapAppEndpoints();
+        app.MapControllers();
         app.MapStaticAssets();
         app
             .MapRazorComponents<App>()
@@ -75,11 +55,36 @@ public static class DependencyInject
     }
 
 
+    public static void InjectControllers(this IServiceCollection services)
+    {
+        services.AddControllers();
+    }
+
     public static void InjectRazorComponents(this IServiceCollection services)
     {
         services
             .AddRazorComponents()
             .AddInteractiveServerComponents();
+    }
+
+    public static void InjectAuth(this IServiceCollection services)
+    {
+        services.AddHttpContextAccessor();
+        services
+            .AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+            .AddCookie(options =>
+            {
+                options.LoginPath = AuthConstants.LoginPath;
+                options.LogoutPath = AuthConstants.LoginPath;
+                options.AccessDeniedPath = AuthConstants.LoginPath;
+                options.SlidingExpiration = true;
+                options.ExpireTimeSpan = TimeSpan.FromDays(7);
+                options.Cookie.HttpOnly = true;
+                options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+                options.Cookie.SameSite = SameSiteMode.Lax;
+            });
+        services.AddAuthorization();
+        services.AddCascadingAuthenticationState();
     }
 
     public static void UseRequestLocalization(this WebApplication app)

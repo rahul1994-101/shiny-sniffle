@@ -161,13 +161,13 @@
             }
         }
 
-        var threads = await Features.GetChatThreadsByUserIdAsync(new GetChatThreadsByUserIdRequest { UserId = CurrentUser.Id });
+        var threads = await Features.GetChatThreadsByUserIdAsync(new GetChatThreadsByUserIdRequest { UserId = Auth.Id });
         if (threads.Payload is { Count: > 0 } existing)
         {
             return existing[0].Id;
         }
 
-        var created = await Features.AddChatThreadAsync(new AddChatThreadRequest { Title = "New chat", UserId = CurrentUser.Id });
+        var created = await Features.AddChatThreadAsync(new AddChatThreadRequest { Title = "New chat", UserId = Auth.Id });
         return created.Payload?.Id ?? Guid.Empty;
     }
 
@@ -199,7 +199,7 @@
             ChatThreadId = _activeThreadId,
             Role = "user",
             Content = text,
-            UserId = CurrentUser.Id
+            UserId = Auth.Id
         });
         if (!userResult.HasError && userResult.Payload is not null)
         {
@@ -217,7 +217,7 @@
         var turnResult = await Features.ProcessChatTurnAsync(new ProcessChatTurnRequest
         {
             ChatThreadId = _activeThreadId,
-            UserId = CurrentUser.Id,
+            UserId = Auth.Id,
             Message = text
         });
         if (!turnResult.HasError && turnResult.Payload is not null)
@@ -230,7 +230,7 @@
             ChatThreadId = _activeThreadId,
             Role = "assistant",
             Content = assistantText,
-            UserId = CurrentUser.Id
+            UserId = Auth.Id
         });
         if (!assistantResult.HasError && assistantResult.Payload is not null)
         {
