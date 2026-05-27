@@ -145,7 +145,7 @@ Keep all UI under `Components/`:
 - `Components/Pages/` — routable pages
 - `Components/Layout/` — shell, sidebar, navbar
 - `Components/Shared/` — error, not-found
-- `Components/Base/` — `BaseComponent.cs`
+- `Components/BaseComponent.cs` — shared base for interactive components
 - Optional: `Component.razor` + `Component.razor.cs` partial in the same folder
 
 ## Markup

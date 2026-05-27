@@ -2,10 +2,14 @@
 using Microsoft.AspNetCore.Localization;
 using System.Globalization;
 using WebApp;
+using WebApp.AI.Agents.Chat;
+using WebApp.AI.Agents.Intent;
+using WebApp.AI.Foundry;
+using WebApp.AI.Memory;
+using WebApp.AI.Orchestration;
 using WebApp.Components;
 using WebApp.Data;
 using WebApp.Models;
-using WebApp.Utilities.Helpers;
 using WebApp.Utilities.Services;
 
 namespace WebApp;
@@ -16,16 +20,12 @@ public static class DependencyInject
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        builder.Services.InjectControllers();
+        builder.Services.InjectEndpoints();
         builder.Services.InjectRazorComponents();
         builder.Services.InjectAuth();
 
-        builder.Services.AddScoped<CurrentUser>();
-        builder.Services.AddDbContext<AppDbContext>();
-        builder.Services.AddScoped<Features>();
-        builder.Services.AddScoped<Persistence>();
-
-        builder.Services.AddAiServices(builder.Configuration);
+        builder.Services.InjectData(builder.Configuration);
+        builder.Services.InjectAi(builder.Configuration);
     }
 
     public static void UseServices(this WebApplication app)
@@ -56,7 +56,7 @@ public static class DependencyInject
     }
 
 
-    public static void InjectControllers(this IServiceCollection services)
+    public static void InjectEndpoints(this IServiceCollection services)
     {
         services.AddControllers();
     }
@@ -89,6 +89,27 @@ public static class DependencyInject
         services.AddAuthorization();
         services.AddCascadingAuthenticationState();
     }
+
+    public static void InjectData(this IServiceCollection services, IConfiguration configuration)
+    {
+        services.AddScoped<CurrentUser>();
+        services.AddDbContext<AppDbContext>();
+        services.AddScoped<Features>();
+        services.AddScoped<Persistence>();
+    }
+
+    public static void InjectAi(this IServiceCollection services, IConfiguration configuration)
+    {
+        services.Configure<FoundryOptions>(configuration.GetSection(FoundryOptions.SectionName));
+        services.AddSingleton<FoundryAgentFactory>();
+
+        services.AddScoped<ThreadMemoryProvider>();
+        services.AddScoped<IntentClassificationAgent>();
+        services.AddScoped<GeneralChatAgent>();
+        services.AddScoped<IntentRouter>();
+        services.AddScoped<ChatOrchestrator>();
+    }
+
 
     public static void UseRequestLocalization(this WebApplication app)
     {

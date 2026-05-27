@@ -39,7 +39,7 @@ Group code by **concern** into one file per concern per subfolder: `{Concern}{Fo
 Example: auth UI reads claims via `CurrentUser` in `Utilities/Services/AuthServices.cs`; sign-in/out stays in **Endpoints** and **Data**.
 
 - Namespaces: `WebApp.Utilities.Extensions`, `WebApp.Utilities.Services`, `WebApp.Utilities.Helpers`
-- Do not put EF `DbContext` or HTTP endpoints under Utilities — use **Data/** and **Endpoints/**
+- Do not put EF `DbContext`, HTTP endpoints, or Foundry/AI plumbing under Utilities — use **Data/**, **Endpoints/**, and **AI/Foundry/**
 
 ## AI boundaries
 
@@ -48,7 +48,7 @@ Example: auth UI reads claims via `CurrentUser` in `Utilities/Services/AuthServi
 - **Tools/**: Plain C# capabilities exposed to agents via MAF tools. Tools may call app services/DB/APIs, but must not call LLMs or route chat turns.
 - **Workflows/**: Multi-step MAF workflows that compose agents and tools. Keep placeholder `.gitkeep` files in empty workflow folders.
 - **Orchestration/**: Turn-level coordination only: load memory, classify intent, route to an agent/workflow, return the result.
-- **Utilities/Helpers/AzureAiFoundryHelpers.cs**: Keep Azure AI Foundry plumbing here: endpoint normalization, Foundry agent factory, and AI DI registration.
+- **Foundry/**: Azure OpenAI / MAF plumbing — `FoundryExtensions.cs` (endpoint URL helpers), `FoundryServices.cs` (`FoundryAgentFactory`). Register AI types in `Startup.InjectAi`.
 - **Models/DTOs.cs**: Keep small AI/config request/result/intent DTOs in the `# AI` region instead of an `AI/Contracts` folder.
 - Do not add a `Skills/` folder unless a future capability layer has a clear responsibility distinct from agents and workflows.
 

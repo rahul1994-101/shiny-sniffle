@@ -3,7 +3,6 @@ using Microsoft.Extensions.Options;
 using WebApp.AI.Agents.Intent;
 using WebApp.AI.Memory;
 using WebApp.Models;
-using WebApp.Utilities.Helpers;
 
 namespace WebApp.AI.Orchestration;
 

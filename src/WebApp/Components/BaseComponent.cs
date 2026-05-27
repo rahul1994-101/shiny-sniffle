@@ -4,7 +4,7 @@ using Microsoft.JSInterop;
 using WebApp.Data;
 using WebApp.Utilities.Services;
 
-namespace WebApp.Components.Base;
+namespace WebApp.Components;
 
 /// <summary>
 /// Base class for interactive Blazor components. Provides shared injections and layout helpers.

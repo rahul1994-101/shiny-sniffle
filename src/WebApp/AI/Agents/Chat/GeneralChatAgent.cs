@@ -1,8 +1,6 @@
 using Microsoft.Extensions.AI;
-
-using WebApp.AI.Agents;
+using WebApp.AI.Foundry;
 using WebApp.Models;
-using WebApp.Utilities.Helpers;
 
 namespace WebApp.AI.Agents.Chat;
 
