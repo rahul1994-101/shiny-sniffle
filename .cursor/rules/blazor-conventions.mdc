@@ -142,11 +142,18 @@ For non-trivial calls to `Features`, mirror `Features.cs` with inner regions:
 
 Keep all UI under `Components/`:
 
-- `Components/Pages/` — routable pages
-- `Components/Layout/` — shell, sidebar, navbar
-- `Components/Shared/` — error, not-found
-- `Components/BaseComponent.cs` — shared base for interactive components
+- `Components/Pages/` — all routable pages
+- `Components/Pages/{Area}/` — when routes share a URL prefix (e.g. `/auth/login` → `Pages/Auth/Login.razor`); `@page` keeps the full path
+- `Components/Layout/` — layout roots only (`MainLayout`, `EmptyLayout`) and layout-scoped CSS
+- `Components/Shared/` — non-routable components (auth helpers, shell chrome, reconnect modal, etc.)
+- `Components/BaseComponent.cs` — shared base for interactive components (folder root, not `Shared/`)
 - Optional: `Component.razor` + `Component.razor.cs` partial in the same folder
+
+**Pages subfolders:** Use a subfolder when multiple pages share a route segment (`auth/login` → `Pages/Auth/`). Top-level `Pages/` is fine for single-segment routes (`/settings`, `/chat/...`, `/Error`).
+
+**Page-local components:** When a page has multiple small, non-routable pieces used only on that page, use `Pages/{PageName}/{PageName}.razor` plus `Pages/{PageName}/Shared/` for widgets. Add `Pages/{PageName}/_Imports.razor` with `@using WebApp.Components.Pages.{PageName}.Shared`. Do not put page-local widgets in app-wide `Components/Shared/`.
+
+**When to extract (page `Shared/`):** A distinct UI block with its own markup (or repeated structure), not tied to parent `@ref`/JS interop. **Do not extract:** static nav/aside with no logic; composer/input wired to parent refs; single small form sections; entire pages with one cohesive layout (Settings). **Auth:** route-prefix folder only (`Pages/Auth/Login.razor`) — no page `Shared/` until a second auth page needs shared fragments.
 
 ## Markup
 

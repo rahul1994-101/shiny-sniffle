@@ -1,0 +1,54 @@
+@if (Messages.Count == 0)
+{
+    <div class="chat-empty">
+        <div class="chat-empty-mark" aria-hidden="true"></div>
+        <h2 class="chat-empty-title">How can I help you today?</h2>
+        <p class="chat-empty-hint">Choose a chat in the sidebar or start below. Each thread is separate until you refresh.</p>
+    </div>
+}
+else
+{
+    @foreach (var msg in Messages)
+    {
+        if (IsUser(msg.Role))
+        {
+            <div class="msg-row msg-row-user">
+                <div class="msg-chunk msg-chunk-user">
+                    <div class="msg-bubble msg-bubble-user">
+                        <span class="visually-hidden">You</span>
+                        <div class="msg-text">@msg.Content</div>
+                    </div>
+                    <div class="msg-avatar msg-avatar-user" aria-hidden="true">You</div>
+                </div>
+            </div>
+        }
+        else if (msg.Role == "system")
+        {
+            <div class="msg-row msg-row-system">
+                <div class="msg-system-banner">
+                    <span class="msg-system-label">System</span>
+                    <div class="msg-text msg-text-system msg-markdown">@ChatHelpers.ToSanitizedHtml(msg.Content)</div>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="msg-row msg-row-assistant">
+                <div class="msg-chunk msg-chunk-assistant">
+                    <div class="msg-avatar msg-avatar-assistant" aria-hidden="true">AI</div>
+                    <div class="msg-bubble msg-bubble-assistant">
+                        <span class="visually-hidden">Assistant</span>
+                        <div class="msg-text msg-markdown">@ChatHelpers.ToSanitizedHtml(msg.Content)</div>
+                    </div>
+                </div>
+            </div>
+        }
+    }
+}
+
+@code {
+    [Parameter]
+    public IReadOnlyList<GetChatMessageResponse> Messages { get; set; } = [];
+
+    private static bool IsUser(string role) => role == "user";
+}

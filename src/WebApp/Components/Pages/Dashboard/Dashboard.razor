@@ -7,30 +7,10 @@
 <PageTitle>Dashboard</PageTitle>
 
 <div class="dash">
-    <header class="dash-hero">
-        <p class="dash-eyebrow">Dashboard</p>
-        <h1 class="dash-title">@Greeting(), @DisplayName()</h1>
-        <p class="dash-lead">
-            Your workspace overview — pick up a recent conversation or start fresh.
-        </p>
-        <div class="dash-hero-actions">
-            <button type="button"
-                    class="dash-btn dash-btn-primary"
-                    disabled="@_loading"
-                    @onclick="StartNewChatAsync">
-                <svg class="dash-btn-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                    <path d="M12 5v14M5 12h14" />
-                </svg>
-                New chat
-            </button>
-            <NavLink class="dash-btn dash-btn-secondary" href="/chat">
-                <svg class="dash-btn-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                </svg>
-                Open assistant
-            </NavLink>
-        </div>
-    </header>
+    <DashboardHero Greeting="@Greeting()"
+                   DisplayName="@DisplayName()"
+                   Loading="_loading"
+                   OnNewChat="StartNewChatAsync" />
 
     @if (_loading)
     {
@@ -46,104 +26,16 @@
     }
     else
     {
-        <div class="dash-stat-grid" aria-label="Overview">
-            <article class="dash-stat-card">
-                <div class="dash-stat-icon dash-stat-icon-threads" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                    </svg>
-                </div>
-                <div class="dash-stat-body">
-                    <p class="dash-stat-label">Conversations</p>
-                    <p class="dash-stat-value">@_threadCount</p>
-                </div>
-            </article>
-
-            <article class="dash-stat-card">
-                <div class="dash-stat-icon dash-stat-icon-activity" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="10" />
-                        <path d="M12 6v6l4 2" />
-                    </svg>
-                </div>
-                <div class="dash-stat-body">
-                    <p class="dash-stat-label">Last activity</p>
-                    <p class="dash-stat-value dash-stat-value-sm">@LastActivityLabel()</p>
-                </div>
-            </article>
-
-            <article class="dash-stat-card">
-                <div class="dash-stat-icon dash-stat-icon-account" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                        <circle cx="12" cy="7" r="4" />
-                    </svg>
-                </div>
-                <div class="dash-stat-body">
-                    <p class="dash-stat-label">Signed in as</p>
-                    <p class="dash-stat-value dash-stat-value-sm" title="@CurrentUser.Email">@CurrentUser.Email</p>
-                </div>
-            </article>
-        </div>
+        <DashboardStatGrid ThreadCount="_threadCount"
+                         LastActivityLabel="@LastActivityLabel()"
+                         UserEmail="@CurrentUser.Email" />
 
         <div class="dash-main-grid">
-            <section class="dash-panel" aria-labelledby="dash-recent-heading">
-                <div class="dash-panel-head">
-                    <h2 id="dash-recent-heading" class="dash-panel-title">Recent conversations</h2>
-                    @if (_recentThreads.Count > 0)
-                    {
-                        <NavLink class="dash-panel-link" href="/chat">View all</NavLink>
-                    }
-                </div>
-
-                @if (_loadFailed)
-                {
-                    <p class="dash-empty" role="alert">Could not load conversations. Try refreshing the page.</p>
-                }
-                else if (_recentThreads.Count == 0)
-                {
-                    <div class="dash-empty-state">
-                        <div class="dash-empty-icon" aria-hidden="true">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                            </svg>
-                        </div>
-                        <p class="dash-empty-title">No conversations yet</p>
-                        <p class="dash-empty-copy">Start your first chat with the assistant.</p>
-                        <button type="button" class="dash-btn dash-btn-primary dash-empty-cta" @onclick="StartNewChatAsync">
-                            Start a chat
-                        </button>
-                    </div>
-                }
-                else
-                {
-                    <ul class="dash-thread-list">
-                        @foreach (var thread in _recentThreads)
-                        {
-                            <li @key="thread.Id">
-                                <button type="button"
-                                        class="dash-thread-row"
-                                        @onclick="() => OpenThreadAsync(thread.Id)">
-                                    <span class="dash-thread-icon" aria-hidden="true">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                                        </svg>
-                                    </span>
-                                    <span class="dash-thread-text">
-                                        <span class="dash-thread-title">@thread.Title</span>
-                                        <span class="dash-thread-meta">Updated @FormatRelative(thread.UpdatedAt)</span>
-                                    </span>
-                                    <span class="dash-thread-chevron" aria-hidden="true">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <path d="M9 18l6-6-6-6" />
-                                        </svg>
-                                    </span>
-                                </button>
-                            </li>
-                        }
-                    </ul>
-                }
-            </section>
+            <DashboardRecentThreads Threads="_recentThreads"
+                                   LoadFailed="_loadFailed"
+                                   OnOpenThread="OpenThreadAsync"
+                                   OnStartChat="StartNewChatAsync"
+                                   FormatUpdatedAt="FormatRelative" />
 
             <aside class="dash-panel dash-panel-aside" aria-labelledby="dash-quick-heading">
                 <h2 id="dash-quick-heading" class="dash-panel-title">Quick links</h2>

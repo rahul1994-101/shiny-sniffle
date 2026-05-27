@@ -1,0 +1,38 @@
+<header class="dash-hero">
+    <p class="dash-eyebrow">Dashboard</p>
+    <h1 class="dash-title">@Greeting, @DisplayName</h1>
+    <p class="dash-lead">
+        Your workspace overview — pick up a recent conversation or start fresh.
+    </p>
+    <div class="dash-hero-actions">
+        <button type="button"
+                class="dash-btn dash-btn-primary"
+                disabled="@Loading"
+                @onclick="OnNewChat">
+            <svg class="dash-btn-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path d="M12 5v14M5 12h14" />
+            </svg>
+            New chat
+        </button>
+        <NavLink class="dash-btn dash-btn-secondary" href="/chat">
+            <svg class="dash-btn-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+            </svg>
+            Open assistant
+        </NavLink>
+    </div>
+</header>
+
+@code {
+    [Parameter]
+    public string Greeting { get; set; } = "";
+
+    [Parameter]
+    public string DisplayName { get; set; } = "";
+
+    [Parameter]
+    public bool Loading { get; set; }
+
+    [Parameter]
+    public EventCallback OnNewChat { get; set; }
+}

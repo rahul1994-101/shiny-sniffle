@@ -28,7 +28,7 @@ Do not put HTTP routes under `Components/` or `Data/`.
 
 ## Components
 
-- All Blazor UI under `Components/` — `Pages/`, `Layout/`, `Shared/`, plus `BaseComponent.cs` at the folder root.
+- All Blazor UI under `Components/` — `Pages/` (routable; nested `Pages/{Area}/` when routes share a prefix like `auth/`), `Layout/` (layout roots), `Shared/` (non-routable), plus `BaseComponent.cs` at the folder root.
 - Follow `blazor-conventions.mdc` for directive order, `@code` regions, and naming.
 - Scoped styles: `Component.razor.css` beside the `.razor` file.
 
