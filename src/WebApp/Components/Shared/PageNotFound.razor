@@ -1,8 +1,18 @@
 ﻿@page "/page-not-found"
 
-@attribute [AllowAnonymous]
-
 @layout MainLayout
 
-<h3>Not Found</h3>
-<p>Sorry, the content you are looking for does not exist.</p>
+@attribute [AllowAnonymous]
+
+<PageTitle>Page not found</PageTitle>
+
+<div class="status-shell">
+    <div class="status-card" role="alert">
+        <p class="status-eyebrow">404</p>
+        <h1 class="status-title">Page not found</h1>
+        <p class="status-message">
+            That address does not exist or you may not have access to it.
+        </p>
+        <NavLink class="status-action" href="/">Back to home</NavLink>
+    </div>
+</div>

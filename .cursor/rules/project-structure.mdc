@@ -26,6 +26,12 @@ Keep code in the folder that matches its role. Root: `src/WebApp/`.
 
 Do not put HTTP routes under `Components/` or `Data/`.
 
+## Components
+
+- All Blazor UI under `Components/` — `Pages/`, `Layout/`, `Shared/`, plus `BaseComponent.cs` at the folder root.
+- Follow `blazor-conventions.mdc` for directive order, `@code` regions, and naming.
+- Scoped styles: `Component.razor.css` beside the `.razor` file.
+
 ## Utilities
 
 Group code by **concern** into one file per concern per subfolder: `{Concern}{FolderKind}.cs` (e.g. `AuthServices.cs`, `AuthExtensions.cs`).

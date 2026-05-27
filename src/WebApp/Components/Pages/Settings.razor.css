@@ -76,10 +76,14 @@
 }
 
 .settings-input {
+    display: block;
+    width: 100%;
+    padding: 0.5rem 0.65rem;
     background: rgba(0, 0, 0, 0.2);
-    border-color: var(--app-border);
+    border: 1px solid var(--app-border);
     color: var(--app-fg);
     border-radius: 0.5rem;
+    box-sizing: border-box;
 }
 
 .settings-input:focus {
@@ -87,10 +91,17 @@
     box-shadow: 0 0 0 0.12rem color-mix(in srgb, var(--app-accent) 28%, transparent);
 }
 
+.settings-label,
 .form-label {
+    display: block;
     font-size: 0.8125rem;
     color: var(--app-fg);
     margin-bottom: 0.35rem;
+}
+
+.settings-select {
+    width: 100%;
+    padding: 0.5rem 0.65rem;
 }
 
 .settings-hint,
