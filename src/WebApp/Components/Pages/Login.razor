@@ -1,4 +1,4 @@
-@page "/login"
+@page "/auth/login"
 
 @layout EmptyLayout
 
@@ -34,7 +34,7 @@
         <form id="login-form"
               class="login-form"
               method="post"
-              action="@AuthConstants.LoginPostPath"
+              action="@AuthConstants.LoginApiPath"
               autocomplete="on">
             @if (_antiforgeryToken is not null)
             {

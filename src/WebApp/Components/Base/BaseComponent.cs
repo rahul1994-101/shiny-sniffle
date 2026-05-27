@@ -24,7 +24,7 @@ public abstract class BaseComponent : ComponentBase
     protected IJSRuntime JsRuntime { get; set; } = null!;
 
     [Inject]
-    protected AuthHelpers Auth { get; set; } = null!;
+    protected CurrentUser CurrentUser { get; set; } = null!;
 
     [CascadingParameter(Name = "NotifyLayoutRefresh")]
     public EventCallback NotifyLayoutRefresh { get; set; }

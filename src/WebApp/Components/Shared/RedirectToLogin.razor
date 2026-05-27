@@ -5,7 +5,6 @@
     {
         var relative = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
         var returnUrl = string.IsNullOrEmpty(relative) ? "/" : "/" + relative.TrimStart('/');
-        var loginUrl = $"{AuthConstants.LoginPath}?{AuthConstants.ReturnUrlQuery}={Uri.EscapeDataString(returnUrl)}";
-        NavigationManager.NavigateTo(loginUrl, forceLoad: true);
+        NavigationManager.NavigateTo(AuthExtensions.LoginUrl(returnUrl), forceLoad: true);
     }
 }

@@ -88,14 +88,14 @@
                         </svg>
                         <span>Settings</span>
                     </NavLink>
-                    <a class="sidebar-footer-link" href="@AuthConstants.LogoutPath" @onclick="FooterNavAsync">
+                    <SignOutForm ButtonClass="sidebar-footer-link" OnClick="FooterNavAsync">
                         <svg class="sidebar-footer-link-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
                             <polyline points="16 17 21 12 16 7" />
                             <line x1="21" y1="12" x2="9" y2="12" />
                         </svg>
                         <span>Sign out</span>
-                    </a>
+                    </SignOutForm>
                     <div class="sidebar-footer-extras"></div>
                 </nav>
             </footer>
@@ -131,7 +131,7 @@
 
     private async Task LoadThreadsAsync()
     {
-        var result = await Features.GetChatThreadsByUserIdAsync(new GetChatThreadsByUserIdRequest { UserId = Auth.Id });
+        var result = await Features.GetChatThreadsByUserIdAsync(new GetChatThreadsByUserIdRequest { UserId = CurrentUser.Id });
         _threads = result.Payload ?? [];
     }
 
@@ -143,7 +143,7 @@
 
     private async Task StartNewChatAsync()
     {
-        var result = await Features.AddChatThreadAsync(new AddChatThreadRequest { Title = "New chat", UserId = Auth.Id });
+        var result = await Features.AddChatThreadAsync(new AddChatThreadRequest { Title = "New chat", UserId = CurrentUser.Id });
         if (result.HasError || result.Payload is null)
         {
             return;
@@ -163,7 +163,7 @@
 
     private async Task DeleteThreadAsync(Guid id)
     {
-        var result = await Features.DeleteChatThreadAsync(new DeleteChatThreadRequest { Id = id, UserId = Auth.Id });
+        var result = await Features.DeleteChatThreadAsync(new DeleteChatThreadRequest { Id = id, UserId = CurrentUser.Id });
         if (result.HasError)
         {
             return;
@@ -173,7 +173,7 @@
 
         if (_threads.Count == 0)
         {
-            var created = await Features.AddChatThreadAsync(new AddChatThreadRequest { Title = "New chat", UserId = Auth.Id });
+            var created = await Features.AddChatThreadAsync(new AddChatThreadRequest { Title = "New chat", UserId = CurrentUser.Id });
             if (created.Payload is not null)
             {
                 _threads.Insert(0, new GetChatThreadResponse
@@ -241,7 +241,7 @@
         {
             Id = threadId,
             Title = _editTitle,
-            UserId = Auth.Id
+            UserId = CurrentUser.Id
         });
 
         _editingId = null;

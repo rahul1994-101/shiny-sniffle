@@ -2,7 +2,10 @@ using System.Security.Claims;
 
 namespace WebApp.Utilities.Helpers;
 
-public sealed class AuthHelpers(IHttpContextAccessor httpContextAccessor)
+/// <summary>
+/// Reads the signed-in user from the current HTTP context (cookie claims). Blazor UI only — not sign-in/out.
+/// </summary>
+public sealed class CurrentUser(IHttpContextAccessor httpContextAccessor)
 {
     public bool IsAuthenticated =>
         httpContextAccessor.HttpContext?.User.Identity?.IsAuthenticated == true;

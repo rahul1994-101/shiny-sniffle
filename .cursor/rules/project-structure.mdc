@@ -20,8 +20,9 @@ Keep code in the folder that matches its role. Root: `src/WebApp/`.
 
 - One file per area: `AuthEndpoints.cs`, `ChatEndpoints.cs`, etc. (class name matches file name, not `*Controller`)
 - Namespace: `WebApp.Endpoints`
-- Each class inherits `Controller` and uses `[Route]`, `[HttpPost]`, `[HttpGet]`, etc.
+- Each class inherits `Controller` and uses `[Route("api/...")]`, `[HttpPost]`, `[HttpGet]`, etc.
 - Wire routing in `Startup.cs` with `MapControllers()` (no separate extension file)
+- Blazor pages use UI routes (e.g. `/auth/login`); HTTP actions live under `/api/...` (e.g. `/api/auth/login`)
 
 Do not put HTTP routes under `Components/` or `Data/`.
 

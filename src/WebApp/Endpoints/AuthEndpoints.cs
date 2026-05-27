@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
@@ -8,24 +9,24 @@ using WebApp.Utilities.Extensions;
 
 namespace WebApp.Endpoints;
 
-[Route("auth")]
-public sealed class AuthEndpoints(Features features) : Controller
+[Route("api/auth")]
+public sealed class AuthEndpoints(Features features, IAntiforgery antiforgery) : Controller
 {
     [HttpPost("login")]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Login(
+    public async Task<IActionResult> SignIn(
         [FromForm] SignInRequest signInRequest,
         [FromForm(Name = AuthConstants.ReturnUrlQuery)] string? returnUrl)
     {
+        if (!await TryValidateAntiforgeryAsync())
+        {
+            return LocalRedirect(AuthExtensions.LoginUrl(returnUrl, "Invalid request. Please try again."));
+        }
+
         var result = await features.SignInAsync(signInRequest);
         if (result.HasError || result.Payload is null)
         {
             var message = result.Errors.FirstOrDefault()?.Message ?? "Invalid email or password.";
-            var safeReturn = returnUrl.NormalizeReturnUrl();
-            var loginUrl =
-                $"{AuthConstants.LoginPath}?{AuthConstants.ErrorQuery}={Uri.EscapeDataString(message)}" +
-                $"&{AuthConstants.ReturnUrlQuery}={Uri.EscapeDataString(safeReturn)}";
-            return LocalRedirect(loginUrl);
+            return LocalRedirect(AuthExtensions.LoginUrl(returnUrl, message));
         }
 
         await SignInAsync(result.Payload);
@@ -33,14 +34,32 @@ public sealed class AuthEndpoints(Features features) : Controller
         return LocalRedirect(returnUrl.NormalizeReturnUrl());
     }
 
-    [HttpGet("logout")]
+    [HttpPost("logout")]
     public async Task<IActionResult> Logout()
     {
+        if (!await TryValidateAntiforgeryAsync())
+        {
+            return LocalRedirect(AuthExtensions.LoginUrl(error: "Invalid request. Please try again."));
+        }
+
         await SignOutAsync();
-        return LocalRedirect(AuthConstants.LoginPath);
+        return LocalRedirect(AuthConstants.LoginPagePath);
     }
 
     #region # Private Helpers
+
+    private async Task<bool> TryValidateAntiforgeryAsync()
+    {
+        try
+        {
+            await antiforgery.ValidateRequestAsync(HttpContext);
+            return true;
+        }
+        catch (AntiforgeryValidationException)
+        {
+            return false;
+        }
+    }
 
     private async Task SignInAsync(SignInResponse user, bool isPersistent = true)
     {

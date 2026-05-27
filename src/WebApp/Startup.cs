@@ -19,7 +19,7 @@ public static class DependencyInject
         builder.Services.InjectRazorComponents();
         builder.Services.InjectAuth();
 
-        builder.Services.AddScoped<AuthHelpers>();
+        builder.Services.AddScoped<CurrentUser>();
         builder.Services.AddDbContext<AppDbContext>();
         builder.Services.AddScoped<Features>();
         builder.Services.AddScoped<Persistence>();
@@ -47,11 +47,11 @@ public static class DependencyInject
 
         app.UseAntiforgery();
 
-        app.MapControllers();
         app.MapStaticAssets();
         app
             .MapRazorComponents<App>()
             .AddInteractiveServerRenderMode();
+        app.MapControllers();
     }
 
 
@@ -74,9 +74,11 @@ public static class DependencyInject
             .AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
             .AddCookie(options =>
             {
-                options.LoginPath = AuthConstants.LoginPath;
-                options.LogoutPath = AuthConstants.LoginPath;
-                options.AccessDeniedPath = AuthConstants.LoginPath;
+                // Where to redirect unauthenticated or forbidden requests (not the logout action URL).
+                options.LoginPath = AuthConstants.LoginPagePath;
+                options.AccessDeniedPath = AuthConstants.LoginPagePath;
+                // After sign-out, AuthEndpoints sends users here; cookie middleware uses the same target.
+                options.LogoutPath = AuthConstants.LoginPagePath;
                 options.SlidingExpiration = true;
                 options.ExpireTimeSpan = TimeSpan.FromDays(7);
                 options.Cookie.HttpOnly = true;
