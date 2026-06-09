@@ -49,12 +49,12 @@ Example: auth UI reads claims via `CurrentUser` in `Utilities/Services/AuthServi
 
 ## AI boundaries
 
-- **Agents/**: LLM runners only. One class per agent role at the folder root (no `Chat/` subfolder), e.g. `AssistantAgent`, `EmailAgent`. Agents may build messages and call `FoundryAgentFactory`.
-- **Agents/AgentProfiles.cs**: Keep agent profile keys, deployment names, names, descriptions, and instructions in C#. Do not put prompts/profile definitions in `appsettings`.
+- **Agents/**: LLM runners only. One class per agent role at the folder root (no `Chat/` subfolder), e.g. `AssistantAgent`, `EmailAgent`. Agents load memory, call `FoundryAgentFactory.Create*Agent()`, and return the turn result. No prompts or deployment names in agent files.
 - **Tools/**: Plain C# capabilities exposed to agents via MAF tools. Tools may call app services/DB/APIs, but must not call LLMs or route chat turns.
 - **Workflows/**: Multi-step MAF workflows that compose agents and tools. Keep placeholder `.gitkeep` files in empty workflow folders.
-- **Orchestration/**: Turn-level coordination only: load memory, classify intent, route to an agent/workflow, return the result.
-- **Foundry/**: Azure OpenAI / MAF plumbing — `FoundryExtensions.cs` (endpoint URL helpers), `FoundryServices.cs` (`FoundryAgentFactory`). Register AI types in `Startup.InjectAi`.
+- **Memory/**: Load recent thread messages from persistence for agent context (`ThreadMemoryProvider`). No LLM calls.
+- **Orchestration/**: Turn-level coordination only: `ChatOrchestrator` loads memory, routes by `ChatAgent`, returns the result. No LLM calls in orchestration.
+- **Foundry/**: Azure OpenAI / MAF plumbing — `FoundryAgentDefinitions.cs` (deployment names + instructions per agent), `FoundryServices.cs` (`FoundryAgentFactory` with `CreateAssistantAgent` / `CreateEmailAgent` and private endpoint helpers). Do not put prompts in `appsettings`. Register AI types in `Startup.InjectAi`.
 - **Models/DTOs.cs**: Keep small AI/config request/result/intent DTOs in the `# AI` region instead of an `AI/Contracts` folder.
 - Do not add a `Skills/` folder unless a future capability layer has a clear responsibility distinct from agents and workflows.
 

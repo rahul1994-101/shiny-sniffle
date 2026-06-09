@@ -10,14 +10,12 @@ public sealed class EmailAgent(FoundryAgentFactory agentFactory, EmailTools emai
 {
     public async Task<ChatTurnResult> RunAsync(
         ChatTurnRequest request,
-        MemoryContext memory,
+        IReadOnlyList<Microsoft.Extensions.AI.ChatMessage> history,
         CancellationToken cancellationToken = default)
     {
         var tools = emailTools.CreateTools(request.UserId, request.ChatThreadId);
-        var agent = agentFactory.CreateAgent(AgentProfileKeys.Email, tools);
-
-        var messages = memory.ToChatMessages();
-        messages.Add(new Microsoft.Extensions.AI.ChatMessage(ChatRole.User, request.UserMessage));
+        var agent = agentFactory.CreateEmailAgent(tools);
+        var messages = history.ToList();
 
         var response = await agent.RunAsync(messages, cancellationToken: cancellationToken);
 

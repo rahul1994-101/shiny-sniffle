@@ -1,8 +1,6 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel.DataAnnotations;
 
-using AiChatMessage = Microsoft.Extensions.AI.ChatMessage;
-
 namespace WebApp.Models;
 
 #region # Common
@@ -353,15 +351,6 @@ public sealed class ChatTurnRequest
 public sealed class ChatTurnResult
 {
     public string AssistantContent { get; init; } = string.Empty;
-}
-
-public sealed class MemoryContext
-{
-    public Guid ChatThreadId { get; init; }
-
-    public IReadOnlyList<AiChatMessage> Messages { get; init; } = [];
-
-    public List<AiChatMessage> ToChatMessages() => Messages.ToList();
 }
 
 #endregion

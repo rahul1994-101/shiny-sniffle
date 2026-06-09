@@ -9,13 +9,11 @@ public sealed class AssistantAgent(FoundryAgentFactory agentFactory)
 {
     public async Task<ChatTurnResult> RunAsync(
         ChatTurnRequest request,
-        MemoryContext memory,
+        IReadOnlyList<Microsoft.Extensions.AI.ChatMessage> history,
         CancellationToken cancellationToken = default)
     {
-        var agent = agentFactory.CreateAgent(AgentProfileKeys.Assistant);
-
-        var messages = memory.ToChatMessages();
-        messages.Add(new Microsoft.Extensions.AI.ChatMessage(ChatRole.User, request.UserMessage));
+        var agent = agentFactory.CreateAssistantAgent();
+        var messages = history.ToList();
 
         var response = await agent.RunAsync(messages, cancellationToken: cancellationToken);
 

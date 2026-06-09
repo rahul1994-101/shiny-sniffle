@@ -9,22 +9,20 @@ public sealed class ThreadMemoryProvider(Persistence persistence)
 {
     private const int DefaultMessageLimit = 12;
 
-    public async Task<MemoryContext> LoadAsync(Guid chatThreadId, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<Microsoft.Extensions.AI.ChatMessage>> LoadAsync(
+        Guid chatThreadId,
+        CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+
         var messages = await persistence.GetChatMessagesByChatThreadIdAsync(
             new GetChatMessagesByChatThreadIdRequest { ChatThreadId = chatThreadId });
 
-        var chatMessages = (messages ?? [])
+        return (messages ?? [])
             .OrderBy(m => m.CreatedAt)
             .TakeLast(DefaultMessageLimit)
             .Select(m => new Microsoft.Extensions.AI.ChatMessage(ToChatRole(m.Role), m.Content))
             .ToList();
-
-        return new MemoryContext
-        {
-            ChatThreadId = chatThreadId,
-            Messages = chatMessages
-        };
     }
 
     private static ChatRole ToChatRole(string role) =>

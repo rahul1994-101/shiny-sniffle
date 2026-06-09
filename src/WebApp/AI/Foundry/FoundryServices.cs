@@ -5,7 +5,6 @@ using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Options;
 
-using WebApp.AI.Agents;
 using WebApp.Models;
 
 namespace WebApp.AI.Foundry;
@@ -14,7 +13,16 @@ public sealed class FoundryAgentFactory(IOptions<FoundryOptions> options, IServi
 {
     private AzureOpenAIClient? _openAiClient;
 
-    public AIAgent CreateAgent(string profileKey, IList<AITool>? tools = null)
+    public AIAgent CreateAssistantAgent() =>
+        CreateAgent(FoundryAgentDefinitions.Assistant);
+
+    public AIAgent CreateEmailAgent(IList<AITool>? tools = null) =>
+        CreateAgent(FoundryAgentDefinitions.Email, tools);
+
+
+    #region # Private Helpers
+
+    private AIAgent CreateAgent(FoundryAgentDefinition definition, IList<AITool>? tools = null)
     {
         var foundry = options.Value;
         if (!foundry.IsConfigured)
@@ -23,21 +31,18 @@ public sealed class FoundryAgentFactory(IOptions<FoundryOptions> options, IServi
                 "Foundry is not configured. Set Foundry:Enabled, Foundry:Endpoint, and Foundry:ApiKey.");
         }
 
-        var profile = AgentProfiles.Get(profileKey);
         var chatClient = GetOpenAiClient(foundry)
-            .GetChatClient(profile.ModelDeployment)
+            .GetChatClient(definition.ModelDeployment)
             .AsIChatClient();
 
         return new ChatClientAgent(
             chatClient,
-            profile.Instructions,
-            profile.Name,
-            profile.Description,
+            definition.Instructions,
+            definition.Name,
+            definition.Description,
             tools,
             services: services);
     }
-
-    public AgentProfile GetProfile(string profileKey) => AgentProfiles.Get(profileKey);
 
     private AzureOpenAIClient GetOpenAiClient(FoundryOptions foundry)
     {
@@ -46,10 +51,59 @@ public sealed class FoundryAgentFactory(IOptions<FoundryOptions> options, IServi
             return _openAiClient;
         }
 
-        var endpoint = FoundryExtensions.GetAzureOpenAiEndpoint(foundry.Endpoint);
+        var endpoint = GetAzureOpenAiEndpoint(foundry.Endpoint);
 
         return _openAiClient = new AzureOpenAIClient(
             endpoint,
             new AzureKeyCredential(foundry.ApiKey));
     }
+
+    private static Uri GetAzureOpenAiEndpoint(string endpoint)
+    {
+        if (string.IsNullOrWhiteSpace(endpoint))
+        {
+            throw new InvalidOperationException("Foundry:Endpoint is not configured.");
+        }
+
+        var trimmed = endpoint.Trim();
+
+        if (!Uri.TryCreate(trimmed, UriKind.Absolute, out var uri))
+        {
+            throw new InvalidOperationException("Foundry:Endpoint is not a valid absolute URL.");
+        }
+
+        return NormalizeTrailingSlash(ExtractBaseUrl(uri));
+    }
+
+    private static string ExtractBaseUrl(Uri uri)
+    {
+        var path = uri.AbsolutePath;
+
+        var deploymentsIndex = path.IndexOf("/openai/deployments/", StringComparison.OrdinalIgnoreCase);
+        if (deploymentsIndex >= 0)
+        {
+            return $"{uri.Scheme}://{uri.Authority}{path[..deploymentsIndex]}/";
+        }
+
+        var openAiIndex = path.IndexOf("/openai/", StringComparison.OrdinalIgnoreCase);
+        if (openAiIndex >= 0)
+        {
+            return $"{uri.Scheme}://{uri.Authority}{path[..openAiIndex]}/";
+        }
+
+        return $"{uri.Scheme}://{uri.Authority}/";
+    }
+
+    private static Uri NormalizeTrailingSlash(string endpoint)
+    {
+        var trimmed = endpoint.Trim();
+        if (!trimmed.EndsWith('/'))
+        {
+            trimmed += "/";
+        }
+
+        return new Uri(trimmed, UriKind.Absolute);
+    }
+
+    #endregion
 }

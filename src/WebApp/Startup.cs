@@ -107,7 +107,6 @@ public static class DependencyInject
         services.AddScoped<EmailTools>();
         services.AddScoped<AssistantAgent>();
         services.AddScoped<EmailAgent>();
-        services.AddScoped<ChatAgentRouter>();
         services.AddScoped<ChatOrchestrator>();
     }
 
