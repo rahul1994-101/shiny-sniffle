@@ -17,6 +17,7 @@ CREATE TABLE [dbo].[ChatThread] (
 
     -- Data fields
     [title]                                 NVARCHAR(200) NOT NULL,                    -- Human-readable thread title
+    [chatAgent]                             INT NOT NULL DEFAULT 0,                    -- ChatAgent enum: 0=General, 1=Email, ...
 
     -- Status and lifecycle management
     [isActive]                               BIT DEFAULT 1,                            -- Whether the chat thread is active

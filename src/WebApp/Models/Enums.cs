@@ -1,5 +1,17 @@
 ﻿namespace WebApp.Models;
 
+/// <summary>
+/// Chat thread agent selection. Stored on <see cref="ChatThread.ChatAgent"/> (not a lookup table).
+/// <see cref="General"/> is 0 — the default for new instances, <c>default(ChatAgent)</c>, and the DB column default.
+/// </summary>
+public enum ChatAgent
+{
+    /// <summary>Default assistant for new threads.</summary>
+    General = 0,
+
+    Email = 1
+}
+
 public enum ErrorCode
 {
     BadRequest = 400,

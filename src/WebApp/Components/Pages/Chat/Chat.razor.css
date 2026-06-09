@@ -71,21 +71,39 @@
 
     display: flex;
 
-    align-items: flex-end;
+    flex-direction: column;
 
-    gap: 0.5rem;
+    align-items: stretch;
+
+    gap: 0.35rem;
 
     border: 1px solid rgba(255, 255, 255, 0.12);
 
-    border-radius: 1rem;
+    border-radius: 1.25rem;
 
-    padding: 0.55rem 0.55rem 0.55rem 0.85rem;
+    padding: 0.65rem 0.75rem 0.45rem;
 
     background: var(--app-surface);
 
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
 
     transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+}
+
+
+
+.chat-composer-actions {
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: flex-end;
+
+    gap: 0.15rem;
+
+    padding-top: 0.1rem;
 
 }
 
@@ -103,7 +121,7 @@
 
 .chat-input {
 
-    flex: 1;
+    width: 100%;
 
     border: none;
 
@@ -113,13 +131,65 @@
 
     resize: none;
 
-    min-height: 2.5rem;
+    overflow-y: hidden;
 
-    max-height: 12rem;
+    min-height: 1.75rem;
+
+    max-height: calc(0.9375rem * 1.45 * 3 + 0.2rem);
 
     line-height: 1.45;
 
     font-size: 0.9375rem;
+
+    padding: 0.1rem 0.15rem;
+
+    box-sizing: border-box;
+
+    scrollbar-width: thin;
+
+    scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+
+}
+
+
+
+.chat-input::-webkit-scrollbar {
+
+    width: 5px;
+
+}
+
+
+
+.chat-input::-webkit-scrollbar-track {
+
+    background: transparent;
+
+}
+
+
+
+.chat-input::-webkit-scrollbar-thumb {
+
+    background: rgba(255, 255, 255, 0.16);
+
+    border-radius: 999px;
+
+}
+
+
+
+.chat-input::-webkit-scrollbar-thumb:hover {
+
+    background: rgba(255, 255, 255, 0.28);
+
+}
+
+
+
+.chat-input.chat-input-scrollable {
+
+    padding-right: 0.35rem;
 
 }
 

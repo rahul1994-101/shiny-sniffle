@@ -148,14 +148,30 @@ window.webAppScroll = {
 };
 
 window.webAppChat = {
-  wireEnter: function (textarea, dotnetHelper) {
-    if (!textarea || !dotnetHelper) return;
-    textarea.addEventListener("keydown", function (e) {
-      if (e.key === "Enter" && !e.shiftKey) {
-        e.preventDefault();
-        dotnetHelper.invokeMethodAsync("SendFromJsAsync");
-      }
-    });
+  resizeTextarea: function (el, maxLines) {
+    if (!el) return;
+    var lines = maxLines || 3;
+    var style = window.getComputedStyle(el);
+    var lineHeight = parseFloat(style.lineHeight);
+    if (!lineHeight || isNaN(lineHeight)) {
+      lineHeight = parseFloat(style.fontSize) * 1.45;
+    }
+    var verticalPad =
+      (parseFloat(style.paddingTop) || 0) + (parseFloat(style.paddingBottom) || 0);
+    var verticalBorder =
+      (parseFloat(style.borderTopWidth) || 0) +
+      (parseFloat(style.borderBottomWidth) || 0);
+    var maxHeight = Math.ceil(lineHeight * lines + verticalPad + verticalBorder);
+
+    el.style.overflowY = "hidden";
+    el.style.height = "auto";
+    var contentHeight = el.scrollHeight;
+    var next = Math.min(contentHeight, maxHeight);
+    el.style.height = next + "px";
+
+    var scrollable = contentHeight > maxHeight;
+    el.classList.toggle("chat-input-scrollable", scrollable);
+    el.style.overflowY = scrollable ? "auto" : "hidden";
   }
 };
 

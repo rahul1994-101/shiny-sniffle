@@ -137,6 +137,8 @@ public class AddChatThreadRequest
 
     [Required(ErrorMessage = "User Id is required.")]
     public Guid UserId { get; set; }
+
+    public ChatAgent ChatAgent { get; set; }
 }
 
 public class AddChatThreadResponse
@@ -146,6 +148,8 @@ public class AddChatThreadResponse
     public string Title { get; set; } = string.Empty;
 
     public Guid UserId { get; set; }
+
+    public ChatAgent ChatAgent { get; set; }
 
     public DateTime CreatedAt { get; set; }
 }
@@ -170,7 +174,29 @@ public class GetChatThreadResponse
 
     public Guid UserId { get; set; }
 
+    public ChatAgent ChatAgent { get; set; }
+
     public DateTime CreatedAt { get; set; }
+
+    public DateTime UpdatedAt { get; set; }
+}
+
+public class UpdateChatThreadAgentRequest
+{
+    [Required(ErrorMessage = "Thread Id is required.")]
+    public Guid Id { get; set; }
+
+    [Required(ErrorMessage = "User Id is required.")]
+    public Guid UserId { get; set; }
+
+    public ChatAgent ChatAgent { get; set; }
+}
+
+public class UpdateChatThreadAgentResponse
+{
+    public Guid Id { get; set; }
+
+    public ChatAgent ChatAgent { get; set; }
 
     public DateTime UpdatedAt { get; set; }
 }

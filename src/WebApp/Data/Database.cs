@@ -62,6 +62,7 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<ChatThread>(entity =>
         {
             entity.ToTable("ChatThread", "dbo");
+            entity.Property(e => e.ChatAgent).HasColumnName("chatAgent");
         });
         modelBuilder.Entity<ChatMessage>(entity =>
         {

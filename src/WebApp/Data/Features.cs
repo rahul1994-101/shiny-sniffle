@@ -216,6 +216,47 @@ public class Features(Persistence _repo, ChatOrchestrator _chatOrchestrator)
         return result;
     }
 
+    public async Task<AppResult<UpdateChatThreadAgentResponse?>> UpdateChatThreadAgentAsync(UpdateChatThreadAgentRequest updateChatThreadAgentRequest)
+    {
+        var result = new AppResult<UpdateChatThreadAgentResponse?>();
+        try
+        {
+            #region # Validate
+
+            var hasError = result.Validate(updateChatThreadAgentRequest);
+            if (hasError)
+            {
+                return result;
+            }
+
+            #endregion
+
+            #region # Execute
+
+            var chatThread = await _repo.UpdateChatThreadAgentAsync(updateChatThreadAgentRequest);
+
+            #endregion
+
+            #region # Handle Result
+
+            if (chatThread is null)
+            {
+                result.Failure(ErrorCode.NotFound, "Chat thread not found.");
+            }
+            else
+            {
+                result.Success(chatThread);
+            }
+
+            #endregion
+        }
+        catch (Exception ex)
+        {
+            result.Failure(ErrorCode.InternalServerError, ex.Message);
+        }
+        return result;
+    }
+
     public async Task<AppResult<DeleteChatThreadResponse?>> DeleteChatThreadAsync(DeleteChatThreadRequest deleteChatThreadRequest)
     {
         var result = new AppResult<DeleteChatThreadResponse?>();

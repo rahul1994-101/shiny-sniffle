@@ -49,6 +49,7 @@ public sealed class Persistence(AppDbContext _ctx)
                 Id = x.Id,
                 Title = x.Title,
                 UserId = x.UserId,
+                ChatAgent = x.ChatAgent,
                 CreatedAt = x.CreatedAt,
                 UpdatedAt = x.UpdatedAt
             })
@@ -69,6 +70,7 @@ public sealed class Persistence(AppDbContext _ctx)
                 Id = x.Id,
                 Title = x.Title,
                 UserId = x.UserId,
+                ChatAgent = x.ChatAgent,
                 CreatedAt = x.CreatedAt,
                 UpdatedAt = x.UpdatedAt
             })
@@ -81,6 +83,7 @@ public sealed class Persistence(AppDbContext _ctx)
         {
             Title = addChatThreadRequest.Title,
             UserId = addChatThreadRequest.UserId,
+            ChatAgent = addChatThreadRequest.ChatAgent,
             CreatedBy = addChatThreadRequest.UserId,
             UpdatedBy = addChatThreadRequest.UserId
         };
@@ -93,7 +96,38 @@ public sealed class Persistence(AppDbContext _ctx)
             Id = entity.Id,
             Title = entity.Title,
             UserId = entity.UserId,
+            ChatAgent = entity.ChatAgent,
             CreatedAt = entity.CreatedAt
+        };
+    }
+
+    public async Task<UpdateChatThreadAgentResponse?> UpdateChatThreadAgentAsync(UpdateChatThreadAgentRequest updateChatThreadAgentRequest)
+    {
+        var entity = await _ctx.ChatThreads
+            .Where(x =>
+                x.Id == updateChatThreadAgentRequest.Id &&
+                x.UserId == updateChatThreadAgentRequest.UserId &&
+                x.IsActive == true &&
+                x.IsDeleted == false
+            )
+            .FirstOrDefaultAsync();
+
+        if (entity is null)
+        {
+            return null;
+        }
+
+        entity.ChatAgent = updateChatThreadAgentRequest.ChatAgent;
+        entity.UpdatedBy = updateChatThreadAgentRequest.UserId;
+        entity.UpdatedAt = DateTime.UtcNow;
+
+        await _ctx.SaveChangesAsync();
+
+        return new UpdateChatThreadAgentResponse
+        {
+            Id = entity.Id,
+            ChatAgent = entity.ChatAgent,
+            UpdatedAt = entity.UpdatedAt
         };
     }
 
