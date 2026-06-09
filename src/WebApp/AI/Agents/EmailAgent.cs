@@ -1,7 +1,7 @@
 using Microsoft.Extensions.AI;
 
 using WebApp.AI.Foundry;
-using WebApp.AI.Tools.Email;
+using WebApp.AI.Tools;
 using WebApp.Models;
 
 namespace WebApp.AI.Agents;

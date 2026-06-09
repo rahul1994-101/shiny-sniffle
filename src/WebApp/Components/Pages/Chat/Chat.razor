@@ -210,26 +210,6 @@
         _draft = string.Empty;
         await ResizeComposerAsync();
 
-        var userResult = await Features.AddChatMessageAsync(new AddChatMessageRequest
-        {
-            ChatThreadId = _activeThreadId,
-            Role = "user",
-            Content = text,
-            UserId = CurrentUser.Id
-        });
-        if (!userResult.HasError && userResult.Payload is not null)
-        {
-            _messages.Add(new GetChatMessageResponse
-            {
-                Id = userResult.Payload.Id,
-                ChatThreadId = userResult.Payload.ChatThreadId,
-                Role = userResult.Payload.Role,
-                Content = userResult.Payload.Content,
-                CreatedAt = userResult.Payload.CreatedAt
-            });
-        }
-
-        var assistantText = "Something went wrong while generating a reply.";
         var turnResult = await Features.ProcessChatTurnAsync(new ProcessChatTurnRequest
         {
             ChatThreadId = _activeThreadId,
@@ -238,26 +218,8 @@
         });
         if (!turnResult.HasError && turnResult.Payload is not null)
         {
-            assistantText = turnResult.Payload.AssistantContent;
-        }
-
-        var assistantResult = await Features.AddChatMessageAsync(new AddChatMessageRequest
-        {
-            ChatThreadId = _activeThreadId,
-            Role = "assistant",
-            Content = assistantText,
-            UserId = CurrentUser.Id
-        });
-        if (!assistantResult.HasError && assistantResult.Payload is not null)
-        {
-            _messages.Add(new GetChatMessageResponse
-            {
-                Id = assistantResult.Payload.Id,
-                ChatThreadId = assistantResult.Payload.ChatThreadId,
-                Role = assistantResult.Payload.Role,
-                Content = assistantResult.Payload.Content,
-                CreatedAt = assistantResult.Payload.CreatedAt
-            });
+            _messages.Add(turnResult.Payload.UserMessage);
+            _messages.Add(turnResult.Payload.AssistantMessage);
         }
 
         await RefreshLayoutAsync();

@@ -303,7 +303,9 @@ public class ProcessChatTurnRequest
 
 public class ProcessChatTurnResponse
 {
-    public string AssistantContent { get; set; } = string.Empty;
+    public GetChatMessageResponse UserMessage { get; set; } = null!;
+
+    public GetChatMessageResponse AssistantMessage { get; set; } = null!;
 }
 
 #endregion
@@ -344,8 +346,6 @@ public sealed class ChatTurnRequest
     public Guid ChatThreadId { get; init; }
 
     public ChatAgent ChatAgent { get; init; }
-
-    public string UserMessage { get; init; } = string.Empty;
 }
 
 public sealed class ChatTurnResult

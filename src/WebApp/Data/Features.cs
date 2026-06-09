@@ -397,9 +397,30 @@ public class Features(Persistence _repo, ChatOrchestrator _chatOrchestrator)
                 return result;
             }
 
+            var text = processChatTurnRequest.Message.Trim();
+            if (string.IsNullOrEmpty(text))
+            {
+                result.Failure(ErrorCode.BadRequest, "Message is required.");
+                return result;
+            }
+
             #endregion
 
             #region # Execute
+
+            var userMessage = await _repo.AddChatMessageAsync(new AddChatMessageRequest
+            {
+                ChatThreadId = processChatTurnRequest.ChatThreadId,
+                Role = "user",
+                Content = text,
+                UserId = processChatTurnRequest.UserId
+            });
+
+            if (userMessage is null)
+            {
+                result.Failure(ErrorCode.InternalServerError, "Failed to create chat message.");
+                return result;
+            }
 
             var thread = await _repo.GetChatThreadByIdAsync(new GetChatThreadByIdRequest
             {
@@ -410,9 +431,22 @@ public class Features(Persistence _repo, ChatOrchestrator _chatOrchestrator)
             {
                 ChatThreadId = processChatTurnRequest.ChatThreadId,
                 UserId = processChatTurnRequest.UserId,
-                ChatAgent = thread?.ChatAgent ?? ChatAgent.Assistant,
-                UserMessage = processChatTurnRequest.Message.Trim()
+                ChatAgent = thread?.ChatAgent ?? ChatAgent.Assistant
             });
+
+            var assistantMessage = await _repo.AddChatMessageAsync(new AddChatMessageRequest
+            {
+                ChatThreadId = processChatTurnRequest.ChatThreadId,
+                Role = "assistant",
+                Content = turn.AssistantContent,
+                UserId = processChatTurnRequest.UserId
+            });
+
+            if (assistantMessage is null)
+            {
+                result.Failure(ErrorCode.InternalServerError, "Failed to create chat message.");
+                return result;
+            }
 
             #endregion
 
@@ -420,7 +454,8 @@ public class Features(Persistence _repo, ChatOrchestrator _chatOrchestrator)
 
             result.Success(new ProcessChatTurnResponse
             {
-                AssistantContent = turn.AssistantContent
+                UserMessage = ToGetChatMessageResponse(userMessage),
+                AssistantMessage = ToGetChatMessageResponse(assistantMessage)
             });
 
             #endregion
@@ -432,6 +467,16 @@ public class Features(Persistence _repo, ChatOrchestrator _chatOrchestrator)
 
         return result;
     }
+
+    private static GetChatMessageResponse ToGetChatMessageResponse(AddChatMessageResponse message) =>
+        new()
+        {
+            Id = message.Id,
+            ChatThreadId = message.ChatThreadId,
+            Role = message.Role,
+            Content = message.Content,
+            CreatedAt = message.CreatedAt
+        };
 
     #endregion
 }

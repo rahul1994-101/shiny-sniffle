@@ -2,7 +2,7 @@ using System.ComponentModel;
 
 using Microsoft.Extensions.AI;
 
-namespace WebApp.AI.Tools.Email;
+namespace WebApp.AI.Tools;
 
 /// <summary>
 /// Mail capabilities exposed to the email agent. Mock implementations until mailbox integration ships.

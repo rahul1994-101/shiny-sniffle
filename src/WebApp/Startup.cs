@@ -4,7 +4,7 @@ using System.Globalization;
 using WebApp;
 using WebApp.AI.Agents;
 using WebApp.AI.Foundry;
-using WebApp.AI.Tools.Email;
+using WebApp.AI.Tools;
 using WebApp.AI.Memory;
 using WebApp.AI.Orchestration;
 using WebApp.Components;
