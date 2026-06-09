@@ -49,7 +49,7 @@ Example: auth UI reads claims via `CurrentUser` in `Utilities/Services/AuthServi
 
 ## AI boundaries
 
-- **Agents/**: LLM runners only. One class per agent role, named clearly, e.g. `IntentClassificationAgent`, `GeneralChatAgent`. Agents may build messages and call `AgentFactory`.
+- **Agents/**: LLM runners only. One class per agent role at the folder root (no `Chat/` subfolder), e.g. `AssistantAgent`, `EmailAgent`. Agents may build messages and call `FoundryAgentFactory`.
 - **Agents/AgentProfiles.cs**: Keep agent profile keys, deployment names, names, descriptions, and instructions in C#. Do not put prompts/profile definitions in `appsettings`.
 - **Tools/**: Plain C# capabilities exposed to agents via MAF tools. Tools may call app services/DB/APIs, but must not call LLMs or route chat turns.
 - **Workflows/**: Multi-step MAF workflows that compose agents and tools. Keep placeholder `.gitkeep` files in empty workflow folders.

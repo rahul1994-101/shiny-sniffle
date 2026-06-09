@@ -1,6 +1,5 @@
 using Microsoft.Extensions.Options;
 
-using WebApp.AI.Agents.Intent;
 using WebApp.AI.Memory;
 using WebApp.Models;
 
@@ -9,8 +8,7 @@ namespace WebApp.AI.Orchestration;
 public sealed class ChatOrchestrator(
     IOptions<FoundryOptions> foundryOptions,
     ThreadMemoryProvider threadMemoryProvider,
-    IntentClassificationAgent intentClassificationAgent,
-    IntentRouter intentRouter)
+    ChatAgentRouter chatAgentRouter)
 {
     public async Task<ChatTurnResult> ProcessTurnAsync(
         ChatTurnRequest request,
@@ -27,7 +25,6 @@ public sealed class ChatOrchestrator(
         }
 
         var memory = await threadMemoryProvider.LoadAsync(request.ChatThreadId, cancellationToken);
-        var intent = await intentClassificationAgent.ClassifyAsync(request, memory, cancellationToken);
-        return await intentRouter.RouteAsync(intent.Intent, request, memory, cancellationToken);
+        return await chatAgentRouter.RouteAsync(request.ChatAgent, request, memory, cancellationToken);
     }
 }

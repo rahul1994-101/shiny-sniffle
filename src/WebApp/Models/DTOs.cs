@@ -345,26 +345,14 @@ public sealed class ChatTurnRequest
 
     public Guid ChatThreadId { get; init; }
 
+    public ChatAgent ChatAgent { get; init; }
+
     public string UserMessage { get; init; } = string.Empty;
 }
 
 public sealed class ChatTurnResult
 {
     public string AssistantContent { get; init; } = string.Empty;
-}
-
-public sealed class IntentResult
-{
-    public string Intent { get; set; } = IntentKeys.GeneralChat;
-
-    public double Confidence { get; set; }
-
-    public string Reason { get; set; } = string.Empty;
-}
-
-public static class IntentKeys
-{
-    public const string GeneralChat = "general.chat";
 }
 
 public sealed class MemoryContext

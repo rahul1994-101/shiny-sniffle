@@ -401,10 +401,16 @@ public class Features(Persistence _repo, ChatOrchestrator _chatOrchestrator)
 
             #region # Execute
 
+            var thread = await _repo.GetChatThreadByIdAsync(new GetChatThreadByIdRequest
+            {
+                Id = processChatTurnRequest.ChatThreadId
+            });
+
             var turn = await _chatOrchestrator.ProcessTurnAsync(new ChatTurnRequest
             {
                 ChatThreadId = processChatTurnRequest.ChatThreadId,
                 UserId = processChatTurnRequest.UserId,
+                ChatAgent = thread?.ChatAgent ?? ChatAgent.Assistant,
                 UserMessage = processChatTurnRequest.Message.Trim()
             });
 

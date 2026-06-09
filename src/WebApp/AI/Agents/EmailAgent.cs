@@ -1,17 +1,20 @@
 using Microsoft.Extensions.AI;
+
 using WebApp.AI.Foundry;
+using WebApp.AI.Tools.Email;
 using WebApp.Models;
 
-namespace WebApp.AI.Agents.Chat;
+namespace WebApp.AI.Agents;
 
-public sealed class GeneralChatAgent(FoundryAgentFactory agentFactory)
+public sealed class EmailAgent(FoundryAgentFactory agentFactory, EmailTools emailTools)
 {
     public async Task<ChatTurnResult> RunAsync(
         ChatTurnRequest request,
         MemoryContext memory,
         CancellationToken cancellationToken = default)
     {
-        var agent = agentFactory.CreateAgent(AgentProfileKeys.ChatGeneral);
+        var tools = emailTools.CreateTools(request.UserId, request.ChatThreadId);
+        var agent = agentFactory.CreateAgent(AgentProfileKeys.Email, tools);
 
         var messages = memory.ToChatMessages();
         messages.Add(new Microsoft.Extensions.AI.ChatMessage(ChatRole.User, request.UserMessage));

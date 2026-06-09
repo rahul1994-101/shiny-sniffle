@@ -2,9 +2,9 @@
 using Microsoft.AspNetCore.Localization;
 using System.Globalization;
 using WebApp;
-using WebApp.AI.Agents.Chat;
-using WebApp.AI.Agents.Intent;
+using WebApp.AI.Agents;
 using WebApp.AI.Foundry;
+using WebApp.AI.Tools.Email;
 using WebApp.AI.Memory;
 using WebApp.AI.Orchestration;
 using WebApp.Components;
@@ -104,9 +104,10 @@ public static class DependencyInject
         services.AddSingleton<FoundryAgentFactory>();
 
         services.AddScoped<ThreadMemoryProvider>();
-        services.AddScoped<IntentClassificationAgent>();
-        services.AddScoped<GeneralChatAgent>();
-        services.AddScoped<IntentRouter>();
+        services.AddScoped<EmailTools>();
+        services.AddScoped<AssistantAgent>();
+        services.AddScoped<EmailAgent>();
+        services.AddScoped<ChatAgentRouter>();
         services.AddScoped<ChatOrchestrator>();
     }
 
