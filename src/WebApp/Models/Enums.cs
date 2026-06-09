@@ -2,12 +2,12 @@
 
 /// <summary>
 /// Chat thread agent selection. Stored on <see cref="ChatThread.ChatAgent"/> (not a lookup table).
-/// <see cref="General"/> is 0 — the default for new instances, <c>default(ChatAgent)</c>, and the DB column default.
+/// <see cref="Assistant"/> is 0 — the default for new instances, <c>default(ChatAgent)</c>, and the DB column default.
 /// </summary>
 public enum ChatAgent
 {
     /// <summary>Default assistant for new threads.</summary>
-    General = 0,
+    Assistant = 0,
 
     Email = 1
 }

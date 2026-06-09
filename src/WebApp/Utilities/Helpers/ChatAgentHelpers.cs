@@ -7,7 +7,7 @@ public static class ChatAgentHelpers
     public static string GetDisplayName(ChatAgent chatAgent) =>
         chatAgent switch
         {
-            ChatAgent.General => "Assistant",
+            ChatAgent.Assistant => "Assistant",
             ChatAgent.Email => "Email",
             _ => chatAgent.ToString()
         };
