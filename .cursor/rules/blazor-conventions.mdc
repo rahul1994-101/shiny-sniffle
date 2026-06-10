@@ -6,7 +6,7 @@ alwaysApply: false
 
 # Blazor conventions
 
-Use the same **tooling habits** as the rest of the solution (`#region #`, consistent file layout) — but **do not copy C# data-layer grouping or region names into Blazor**. They answer different questions.
+Use the same **tooling habits** as the rest of the solution (`#region #`, consistent file layout) — but **do not copy C# data-layer or AI-layer grouping or region names into Blazor**. They answer different questions.
 
 ## C# data layer vs Blazor — two perspectives
 

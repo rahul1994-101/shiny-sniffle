@@ -8,10 +8,10 @@ using WebApp.Models;
 namespace WebApp.AI.Orchestration;
 
 public sealed class ChatOrchestrator(
-    IOptions<FoundryOptions> foundryOptions,
-    Persistence persistence,
-    AssistantAgent assistantAgent,
-    EmailAgent emailAgent)
+    IOptions<FoundryOptions> _foundryOptions,
+    Persistence _persistence,
+    AssistantAgent _assistantAgent,
+    EmailAgent _emailAgent)
 {
     private const int DefaultMessageLimit = 12;
 
@@ -19,7 +19,9 @@ public sealed class ChatOrchestrator(
         ChatTurnRequest request,
         CancellationToken cancellationToken = default)
     {
-        if (!foundryOptions.Value.IsConfigured)
+        #region # Validate
+
+        if (!_foundryOptions.Value.IsConfigured)
         {
             return new ChatTurnResult
             {
@@ -29,15 +31,25 @@ public sealed class ChatOrchestrator(
             };
         }
 
+        #endregion
+
+        #region # Execute
+
         var history = await LoadThreadHistoryAsync(request.ChatThreadId, cancellationToken);
-
-        return request.ChatAgent switch
+        var response = request.ChatAgent switch
         {
-            ChatAgent.Email => await emailAgent.RunAsync(request, history, cancellationToken),
-            _ => await assistantAgent.RunAsync(request, history, cancellationToken)
+            ChatAgent.Email => await _emailAgent.RunAsync(request, history, cancellationToken),
+            _ => await _assistantAgent.RunAsync(request, history, cancellationToken)
         };
-    }
 
+        #endregion
+
+        #region # Handle Result
+
+        return response;
+
+        #endregion
+    }
 
     #region # Private Helpers
 
@@ -47,7 +59,7 @@ public sealed class ChatOrchestrator(
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var messages = await persistence.GetRecentChatMessagesByChatThreadIdAsync(
+        var messages = await _persistence.GetRecentChatMessagesByChatThreadIdAsync(
             new GetRecentChatMessagesByChatThreadIdRequest
             {
                 ChatThreadId = chatThreadId,

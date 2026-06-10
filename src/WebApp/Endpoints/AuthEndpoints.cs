@@ -1,8 +1,10 @@
+using System.Security.Claims;
+
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
-using System.Security.Claims;
+
 using WebApp.Data;
 using WebApp.Models;
 using WebApp.Utilities.Extensions;
@@ -10,7 +12,7 @@ using WebApp.Utilities.Extensions;
 namespace WebApp.Endpoints;
 
 [Route("api/auth")]
-public sealed class AuthEndpoints(Features features, IAntiforgery antiforgery) : Controller
+public sealed class AuthEndpoints(Features _features, IAntiforgery _antiforgery) : Controller
 {
     [HttpPost("login")]
     public async Task<IActionResult> SignIn(
@@ -22,7 +24,7 @@ public sealed class AuthEndpoints(Features features, IAntiforgery antiforgery) :
             return LocalRedirect(AuthExtensions.LoginUrl(returnUrl, "Invalid request. Please try again."));
         }
 
-        var result = await features.SignInAsync(signInRequest);
+        var result = await _features.SignInAsync(signInRequest);
         if (result.HasError || result.Payload is null)
         {
             var message = result.Errors.FirstOrDefault()?.Message ?? "Invalid email or password.";
@@ -52,7 +54,7 @@ public sealed class AuthEndpoints(Features features, IAntiforgery antiforgery) :
     {
         try
         {
-            await antiforgery.ValidateRequestAsync(HttpContext);
+            await _antiforgery.ValidateRequestAsync(HttpContext);
             return true;
         }
         catch (AntiforgeryValidationException)

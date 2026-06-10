@@ -6,24 +6,33 @@ using WebApp.Models;
 
 namespace WebApp.AI.Agents;
 
-public sealed class EmailAgent(FoundryAgentFactory agentFactory, EmailTools emailTools)
+public sealed class EmailAgent(FoundryAgentFactory _agentFactory, EmailTools _emailTools)
 {
     public async Task<ChatTurnResult> RunAsync(
         ChatTurnRequest request,
         IReadOnlyList<Microsoft.Extensions.AI.ChatMessage> history,
         CancellationToken cancellationToken = default)
     {
-        var tools = emailTools.CreateTools(request.UserId, request.ChatThreadId);
-        var agent = agentFactory.CreateEmailAgent(tools);
-        var messages = history.ToList();
+        #region # Execute
 
+        var tools = _emailTools.CreateTools(request.UserId, request.ChatThreadId);
+        var agent = _agentFactory.CreateEmailAgent(tools);
+        var messages = history.ToList();
         var response = await agent.RunAsync(messages, cancellationToken: cancellationToken);
+
+        #endregion
+
+        #region # Handle Result
 
         return new ChatTurnResult
         {
             AssistantContent = ExtractAssistantText(response)
         };
+
+        #endregion
     }
+
+    #region # Private Helpers
 
     private static string ExtractAssistantText(Microsoft.Agents.AI.AgentResponse response)
     {
@@ -32,4 +41,6 @@ public sealed class EmailAgent(FoundryAgentFactory agentFactory, EmailTools emai
             ? "I could not generate a response."
             : text.Trim();
     }
+
+    #endregion
 }

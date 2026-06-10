@@ -6,9 +6,6 @@ internal sealed record FoundryAgentDefinition(
     string Description,
     string Instructions);
 
-/// <summary>
-/// Deployment names, display metadata, and system instructions for each MAF agent profile.
-/// </summary>
 internal static class FoundryAgentDefinitions
 {
     public static readonly FoundryAgentDefinition Assistant = new(

@@ -216,8 +216,7 @@ public sealed class Persistence(AppDbContext _ctx)
             .ToListAsync();
     }
 
-    public async Task<List<GetChatMessageResponse>?> GetRecentChatMessagesByChatThreadIdAsync(
-        GetRecentChatMessagesByChatThreadIdRequest getRecentChatMessagesByChatThreadIdRequest)
+    public async Task<List<GetChatMessageResponse>?> GetRecentChatMessagesByChatThreadIdAsync(GetRecentChatMessagesByChatThreadIdRequest getRecentChatMessagesByChatThreadIdRequest)
     {
         return await _ctx.ChatMessages
             .AsNoTracking()

@@ -9,7 +9,7 @@ using WebApp.Models;
 
 namespace WebApp.AI.Foundry;
 
-public sealed class FoundryAgentFactory(IOptions<FoundryOptions> options, IServiceProvider services)
+public sealed class FoundryAgentFactory(IOptions<FoundryOptions> _options, IServiceProvider _services)
 {
     private AzureOpenAIClient? _openAiClient;
 
@@ -19,12 +19,11 @@ public sealed class FoundryAgentFactory(IOptions<FoundryOptions> options, IServi
     public AIAgent CreateEmailAgent(IList<AITool>? tools = null) =>
         CreateAgent(FoundryAgentDefinitions.Email, tools);
 
-
     #region # Private Helpers
 
     private AIAgent CreateAgent(FoundryAgentDefinition definition, IList<AITool>? tools = null)
     {
-        var foundry = options.Value;
+        var foundry = _options.Value;
         if (!foundry.IsConfigured)
         {
             throw new InvalidOperationException(
@@ -41,7 +40,7 @@ public sealed class FoundryAgentFactory(IOptions<FoundryOptions> options, IServi
             definition.Name,
             definition.Description,
             tools,
-            services: services);
+            services: _services);
     }
 
     private AzureOpenAIClient GetOpenAiClient(FoundryOptions foundry)

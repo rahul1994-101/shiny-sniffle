@@ -5,23 +5,32 @@ using WebApp.Models;
 
 namespace WebApp.AI.Agents;
 
-public sealed class AssistantAgent(FoundryAgentFactory agentFactory)
+public sealed class AssistantAgent(FoundryAgentFactory _agentFactory)
 {
     public async Task<ChatTurnResult> RunAsync(
         ChatTurnRequest request,
         IReadOnlyList<Microsoft.Extensions.AI.ChatMessage> history,
         CancellationToken cancellationToken = default)
     {
-        var agent = agentFactory.CreateAssistantAgent();
-        var messages = history.ToList();
+        #region # Execute
 
+        var agent = _agentFactory.CreateAssistantAgent();
+        var messages = history.ToList();
         var response = await agent.RunAsync(messages, cancellationToken: cancellationToken);
+
+        #endregion
+
+        #region # Handle Result
 
         return new ChatTurnResult
         {
             AssistantContent = ExtractAssistantText(response)
         };
+
+        #endregion
     }
+
+    #region # Private Helpers
 
     private static string ExtractAssistantText(Microsoft.Agents.AI.AgentResponse response)
     {
@@ -30,4 +39,6 @@ public sealed class AssistantAgent(FoundryAgentFactory agentFactory)
             ? "I could not generate a response."
             : text.Trim();
     }
+
+    #endregion
 }

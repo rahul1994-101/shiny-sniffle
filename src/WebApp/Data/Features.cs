@@ -343,47 +343,6 @@ public class Features(Persistence _repo, ChatOrchestrator _chatOrchestrator)
         return result;
     }
 
-    public async Task<AppResult<AddChatMessageResponse?>> AddChatMessageAsync(AddChatMessageRequest addChatMessageRequest)
-    {
-        var result = new AppResult<AddChatMessageResponse?>();
-        try
-        {
-            #region # Validate
-
-            var hasError = result.Validate(addChatMessageRequest);
-            if (hasError)
-            {
-                return result;
-            }
-
-            #endregion
-
-            #region # Execute
-
-            var chatMessage = await _repo.AddChatMessageAsync(addChatMessageRequest);
-
-            #endregion
-
-            #region # Handle Result
-
-            if (chatMessage is null)
-            {
-                result.Failure(ErrorCode.InternalServerError, "Failed to create chat message.");
-            }
-            else
-            {
-                result.Success(chatMessage);
-            }
-
-            #endregion
-        }
-        catch (Exception ex)
-        {
-            result.Failure(ErrorCode.InternalServerError, ex.Message);
-        }
-        return result;
-    }
-
     public async Task<AppResult<ProcessChatTurnResponse?>> ProcessChatTurnAsync(ProcessChatTurnRequest processChatTurnRequest)
     {
         var result = new AppResult<ProcessChatTurnResponse?>();
@@ -467,6 +426,10 @@ public class Features(Persistence _repo, ChatOrchestrator _chatOrchestrator)
 
         return result;
     }
+
+    #endregion
+
+    #region # Private Helpers
 
     private static GetChatMessageResponse ToGetChatMessageResponse(AddChatMessageResponse message) =>
         new()

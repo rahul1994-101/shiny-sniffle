@@ -1,12 +1,8 @@
-using System.ComponentModel;
-
 using Microsoft.Extensions.AI;
+using System.ComponentModel;
 
 namespace WebApp.AI.Tools;
 
-/// <summary>
-/// Mail capabilities exposed to the email agent. Mock implementations until mailbox integration ships.
-/// </summary>
 public sealed class EmailTools
 {
     public IList<AITool> CreateTools(Guid userId, Guid chatThreadId) =>
@@ -24,6 +20,8 @@ public sealed class EmailTools
             name: "get_mailbox_status",
             description: "Returns whether a mailbox is configured and reachable for the user.")
     ];
+
+    #region # Private Helpers
 
     private static string ListInboxMessages(
         Guid userId,
@@ -50,4 +48,6 @@ public sealed class EmailTools
 
     private static string GetMailboxStatus(Guid userId) =>
         $"[Mock] Mailbox status for user {userId:D}: not configured (mock mode). Connect mail in Settings when available.";
+
+    #endregion
 }
