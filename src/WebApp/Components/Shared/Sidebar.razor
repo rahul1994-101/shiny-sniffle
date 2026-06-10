@@ -130,7 +130,7 @@
 
     private async Task LoadThreadsAsync()
     {
-        var result = await Features.GetChatThreadsByUserIdAsync(new GetChatThreadsByUserIdRequest { UserId = CurrentUser.Id });
+        var result = await Features.GetChatThreadsByUserIdAsync(CurrentUser.Id);
         _threads = result.Payload ?? [];
     }
 

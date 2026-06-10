@@ -102,8 +102,7 @@
         _loading = true;
         _loadFailed = false;
 
-        var result = await Features.GetChatThreadsByUserIdAsync(
-            new GetChatThreadsByUserIdRequest { UserId = CurrentUser.Id });
+        var result = await Features.GetChatThreadsByUserIdAsync(CurrentUser.Id);
 
         if (result.HasError || result.Payload is null)
         {

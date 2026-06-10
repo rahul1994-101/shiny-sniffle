@@ -120,7 +120,7 @@
             return;
         }
 
-        var result = await Features.GetChatThreadByIdAsync(new GetChatThreadByIdRequest { Id = _activeThreadId });
+        var result = await Features.GetChatThreadByIdAsync(_activeThreadId);
         if (!result.HasError && result.Payload is not null)
         {
             _chatAgent = result.Payload.ChatAgent;
@@ -137,7 +137,7 @@
     {
         if (GetRouteThreadId() is { } routeThreadId)
         {
-            var byId = await Features.GetChatThreadByIdAsync(new GetChatThreadByIdRequest { Id = routeThreadId });
+            var byId = await Features.GetChatThreadByIdAsync(routeThreadId);
             if (!byId.HasError && byId.Payload is not null)
             {
                 return byId.Payload.Id;
@@ -147,7 +147,7 @@
             return routeThreadId;
         }
 
-        var threads = await Features.GetChatThreadsByUserIdAsync(new GetChatThreadsByUserIdRequest { UserId = CurrentUser.Id });
+        var threads = await Features.GetChatThreadsByUserIdAsync(CurrentUser.Id);
         if (threads.Payload is { Count: > 0 } existing)
         {
             return existing[0].Id;
@@ -195,7 +195,7 @@
 
     private async Task LoadMessagesAsync()
     {
-        var result = await Features.GetChatMessagesByChatThreadIdAsync(new GetChatMessagesByChatThreadIdRequest { ChatThreadId = _activeThreadId });
+        var result = await Features.GetChatMessagesByChatThreadIdAsync(_activeThreadId);
         _messages = result.Payload ?? [];
     }
 

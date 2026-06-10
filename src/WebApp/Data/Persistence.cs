@@ -34,12 +34,12 @@ public sealed class Persistence(AppDbContext _ctx)
 
     #region # ChatThread
 
-    public async Task<List<GetChatThreadResponse>?> GetChatThreadsByUserIdAsync(GetChatThreadsByUserIdRequest getChatThreadsByUserIdRequest)
+    public async Task<List<GetChatThreadResponse>?> GetChatThreadsByUserIdAsync(Guid userId)
     {
         return await _ctx.ChatThreads
             .AsNoTracking()
             .Where(x =>
-                x.UserId == getChatThreadsByUserIdRequest.UserId &&
+                x.UserId == userId &&
                 x.IsActive == true &&
                 x.IsDeleted == false
             )
@@ -56,12 +56,12 @@ public sealed class Persistence(AppDbContext _ctx)
             .ToListAsync();
     }
 
-    public async Task<GetChatThreadResponse?> GetChatThreadByIdAsync(GetChatThreadByIdRequest getChatThreadByIdRequest)
+    public async Task<GetChatThreadResponse?> GetChatThreadByIdAsync(Guid id)
     {
         return await _ctx.ChatThreads
             .AsNoTracking()
             .Where(x =>
-                x.Id == getChatThreadByIdRequest.Id &&
+                x.Id == id &&
                 x.IsActive == true &&
                 x.IsDeleted == false
             )
@@ -195,12 +195,12 @@ public sealed class Persistence(AppDbContext _ctx)
 
     #region # ChatMessage
 
-    public async Task<List<GetChatMessageResponse>?> GetChatMessagesByChatThreadIdAsync(GetChatMessagesByChatThreadIdRequest getChatMessagesByChatThreadIdRequest)
+    public async Task<List<GetChatMessageResponse>?> GetChatMessagesByChatThreadIdAsync(Guid chatThreadId)
     {
         return await _ctx.ChatMessages
             .AsNoTracking()
             .Where(x =>
-                x.ChatThreadId == getChatMessagesByChatThreadIdRequest.ChatThreadId &&
+                x.ChatThreadId == chatThreadId &&
                 x.IsActive == true &&
                 x.IsDeleted == false
             )
@@ -216,17 +216,19 @@ public sealed class Persistence(AppDbContext _ctx)
             .ToListAsync();
     }
 
-    public async Task<List<GetChatMessageResponse>?> GetRecentChatMessagesByChatThreadIdAsync(GetRecentChatMessagesByChatThreadIdRequest getRecentChatMessagesByChatThreadIdRequest)
+    public async Task<List<GetChatMessageResponse>?> GetRecentChatMessagesByChatThreadIdAsync(Guid chatThreadId, int limit)
     {
+        var take = Math.Clamp(limit, 1, 100);
+
         return await _ctx.ChatMessages
             .AsNoTracking()
             .Where(x =>
-                x.ChatThreadId == getRecentChatMessagesByChatThreadIdRequest.ChatThreadId &&
+                x.ChatThreadId == chatThreadId &&
                 x.IsActive == true &&
                 x.IsDeleted == false
             )
             .OrderByDescending(x => x.CreatedAt)
-            .Take(getRecentChatMessagesByChatThreadIdRequest.Limit)
+            .Take(take)
             .OrderBy(x => x.CreatedAt)
             .Select(x => new GetChatMessageResponse
             {

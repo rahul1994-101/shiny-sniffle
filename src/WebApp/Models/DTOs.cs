@@ -152,18 +152,6 @@ public class AddChatThreadResponse
     public DateTime CreatedAt { get; set; }
 }
 
-public class GetChatThreadsByUserIdRequest
-{
-    [Required(ErrorMessage = "User Id is required.")]
-    public Guid UserId { get; set; }
-}
-
-public class GetChatThreadByIdRequest
-{
-    [Required(ErrorMessage = "Thread Id is required.")]
-    public Guid Id { get; set; }
-}
-
 public class GetChatThreadResponse
 {
     public Guid Id { get; set; }
@@ -268,21 +256,6 @@ public class AddChatMessageResponse
     public string Content { get; set; } = string.Empty;
 
     public DateTime CreatedAt { get; set; }
-}
-
-public class GetChatMessagesByChatThreadIdRequest
-{
-    [Required(ErrorMessage = "Chat Thread Id is required.")]
-    public Guid ChatThreadId { get; set; }
-}
-
-public class GetRecentChatMessagesByChatThreadIdRequest
-{
-    [Required(ErrorMessage = "Chat Thread Id is required.")]
-    public Guid ChatThreadId { get; set; }
-
-    [Range(1, 100, ErrorMessage = "Limit must be between 1 and 100.")]
-    public int Limit { get; set; } = 12;
 }
 
 public class GetChatMessageResponse

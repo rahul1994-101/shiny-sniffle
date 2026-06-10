@@ -52,16 +52,16 @@ public class Features(Persistence _repo, ChatOrchestrator _chatOrchestrator)
 
     #region # ChatThread
 
-    public async Task<AppResult<List<GetChatThreadResponse>?>> GetChatThreadsByUserIdAsync(GetChatThreadsByUserIdRequest getChatThreadsByUserIdRequest)
+    public async Task<AppResult<List<GetChatThreadResponse>?>> GetChatThreadsByUserIdAsync(Guid userId)
     {
         var result = new AppResult<List<GetChatThreadResponse>?>();
         try
         {
             #region # Validate
 
-            var hasError = result.Validate(getChatThreadsByUserIdRequest);
-            if (hasError)
+            if (userId == Guid.Empty)
             {
+                result.Failure(ErrorCode.BadRequest, "User Id is required.");
                 return result;
             }
 
@@ -69,7 +69,7 @@ public class Features(Persistence _repo, ChatOrchestrator _chatOrchestrator)
 
             #region # Execute
 
-            var chatThreads = await _repo.GetChatThreadsByUserIdAsync(getChatThreadsByUserIdRequest);
+            var chatThreads = await _repo.GetChatThreadsByUserIdAsync(userId);
 
             #endregion
 
@@ -93,16 +93,16 @@ public class Features(Persistence _repo, ChatOrchestrator _chatOrchestrator)
         return result;
     }
 
-    public async Task<AppResult<GetChatThreadResponse?>> GetChatThreadByIdAsync(GetChatThreadByIdRequest getChatThreadByIdRequest)
+    public async Task<AppResult<GetChatThreadResponse?>> GetChatThreadByIdAsync(Guid id)
     {
         var result = new AppResult<GetChatThreadResponse?>();
         try
         {
             #region # Validate
 
-            var hasError = result.Validate(getChatThreadByIdRequest);
-            if (hasError)
+            if (id == Guid.Empty)
             {
+                result.Failure(ErrorCode.BadRequest, "Thread Id is required.");
                 return result;
             }
 
@@ -110,7 +110,7 @@ public class Features(Persistence _repo, ChatOrchestrator _chatOrchestrator)
 
             #region # Execute
 
-            var chatThread = await _repo.GetChatThreadByIdAsync(getChatThreadByIdRequest);
+            var chatThread = await _repo.GetChatThreadByIdAsync(id);
 
             #endregion
 
@@ -302,16 +302,16 @@ public class Features(Persistence _repo, ChatOrchestrator _chatOrchestrator)
 
     #region # ChatMessage
 
-    public async Task<AppResult<List<GetChatMessageResponse>?>> GetChatMessagesByChatThreadIdAsync(GetChatMessagesByChatThreadIdRequest getChatMessagesByChatThreadIdRequest)
+    public async Task<AppResult<List<GetChatMessageResponse>?>> GetChatMessagesByChatThreadIdAsync(Guid chatThreadId)
     {
         var result = new AppResult<List<GetChatMessageResponse>?>();
         try
         {
             #region # Validate
 
-            var hasError = result.Validate(getChatMessagesByChatThreadIdRequest);
-            if (hasError)
+            if (chatThreadId == Guid.Empty)
             {
+                result.Failure(ErrorCode.BadRequest, "Chat Thread Id is required.");
                 return result;
             }
 
@@ -319,7 +319,7 @@ public class Features(Persistence _repo, ChatOrchestrator _chatOrchestrator)
 
             #region # Execute
 
-            var chatMessages = await _repo.GetChatMessagesByChatThreadIdAsync(getChatMessagesByChatThreadIdRequest);
+            var chatMessages = await _repo.GetChatMessagesByChatThreadIdAsync(chatThreadId);
 
             #endregion
 
@@ -363,10 +363,7 @@ public class Features(Persistence _repo, ChatOrchestrator _chatOrchestrator)
                 return result;
             }
 
-            var thread = await _repo.GetChatThreadByIdAsync(new GetChatThreadByIdRequest
-            {
-                Id = processChatTurnRequest.ChatThreadId
-            });
+            var thread = await _repo.GetChatThreadByIdAsync(processChatTurnRequest.ChatThreadId);
             if (thread is null || thread.UserId != processChatTurnRequest.UserId)
             {
                 result.Failure(ErrorCode.NotFound, "Chat thread not found.");
