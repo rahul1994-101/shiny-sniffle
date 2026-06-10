@@ -48,7 +48,7 @@
 
     private Guid _activeThreadId;
     private ChatAgent _chatAgent;
-    private List<GetChatMessageResponse> _messages = [];
+    private List<ChatMessageDto> _messages = [];
 
     private ElementReference _messagesRegion;
     private ElementReference _input;
@@ -210,17 +210,17 @@
         _draft = string.Empty;
         await ResizeComposerAsync();
 
-        var turnResult = await Features.ProcessChatTurnAsync(new ProcessChatTurnRequest
+        var sendResult = await Features.SendChatMessageAsync(new SendChatMessageRequest
         {
             ChatThreadId = _activeThreadId,
             UserId = CurrentUser.Id,
             ChatAgent = _chatAgent,
             Message = text
         });
-        if (!turnResult.HasError && turnResult.Payload is not null)
+        if (!sendResult.HasError && sendResult.Payload is not null)
         {
-            _messages.Add(turnResult.Payload.UserMessage);
-            _messages.Add(turnResult.Payload.AssistantMessage);
+            _messages.Add(sendResult.Payload.UserMessage);
+            _messages.Add(sendResult.Payload.AssistantMessage);
         }
 
         await RefreshLayoutAsync();

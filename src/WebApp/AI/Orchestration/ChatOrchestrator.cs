@@ -15,15 +15,15 @@ public sealed class ChatOrchestrator(
 {
     private const int DefaultMessageLimit = 12;
 
-    public async Task<ChatTurnResult> ProcessTurnAsync(
-        ChatTurnRequest request,
+    public async Task<RunChatAgentResponse> RunChatAgentAsync(
+        RunChatAgentRequest request,
         CancellationToken cancellationToken = default)
     {
         #region # Validate
 
         if (!_foundryOptions.Value.IsConfigured)
         {
-            return new ChatTurnResult
+            return new RunChatAgentResponse
             {
                 AssistantContent =
                     "AI is not configured yet. Set Foundry:Enabled, Foundry:Endpoint, and Foundry:ApiKey " +

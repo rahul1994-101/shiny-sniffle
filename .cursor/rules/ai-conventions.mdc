@@ -27,7 +27,7 @@ Use the same **tooling habits** as **Data** and **Models**: `#region #`, undersc
 2. **Namespace** — `WebApp.AI.{Folder}` (`Agents`, `Foundry`, `Memory`, `Orchestration`, `Tools`, `Workflows`)
 3. **Type** — `public sealed class` for DI services; `internal` for Foundry definitions not used outside `AI/`
 4. **Constants / fields** — `private const` at top of class body (before public methods), when needed
-5. **Public API** — entry methods (`ProcessTurnAsync`, `RunAsync`, `CreateTools`, `Create*Agent`)
+5. **Public API** — entry methods (`RunChatAgentAsync`, `RunAsync`, `CreateTools`, `Create*Agent`)
 6. **`#region # Private Helpers`** — always last; private/static helpers only
 
 Foundry bucket file: `FoundryServices.cs` may hold `FoundryAgentFactory` (file name = concern bucket; type name is explicit).
@@ -50,8 +50,8 @@ Register AI types in `Startup.InjectAi` only — not scattered across the app.
 
 | Folder | One file per | Public entry | Notes |
 |--------|--------------|--------------|-------|
-| **Orchestration/** | coordinator | `ProcessTurnAsync` | Load thread history, route by `ChatAgent`. No LLM calls. |
-| **Agents/** | agent role | `RunAsync` | Receive history from orchestration; call `FoundryAgentFactory`; return `ChatTurnResult`. No prompts in agent files. |
+| **Orchestration/** | coordinator | `RunChatAgentAsync` | Load thread history, route by `ChatAgent`. No LLM calls. |
+| **Agents/** | agent role | `RunAsync` | Receive history from orchestration; call `FoundryAgentFactory`; return `RunChatAgentResponse`. No prompts in agent files. |
 | **Tools/** | agent domain | `CreateTools` | MAF `AITool` list; mock/real impls in `# Private Helpers`. No LLM calls. |
 | **Memory/** | agent domain | `LoadAsync` / enrich | Agent-specific context only (parallel to Tools). No LLM calls. |
 | **Foundry/** | definitions + factory | `Create*Agent` | Prompts and deployment names in `FoundryAgentDefinitions.cs` only. |
@@ -71,12 +71,12 @@ Mirror `Features.cs` with inner regions where they add clarity:
 #endregion
 
 #region # Handle Result
-// map to ChatTurnResult (when shaping happens in this method)
+// map to RunChatAgentResponse (when shaping happens in this method)
 #endregion
 ```
 
 - **Orchestration** — use `# Validate` + `# Execute` + `# Handle Result` (same three-step shape as `Features`). Execute assigns the routed agent result to a local; Handle Result returns it.
-- **Agents** — use `# Execute` + `# Handle Result` (Execute runs MAF; Handle Result maps to `ChatTurnResult`).
+- **Agents** — use `# Execute` + `# Handle Result` (Execute runs MAF; Handle Result maps to `RunChatAgentResponse`).
 - **Definition-only files** (e.g. `FoundryAgentDefinitions.cs`) — flat static fields/records; no regions required.
 
 Simple one-liner public methods may omit inner regions. Private helpers always go in `#region # Private Helpers` at the bottom — never mixed above the public API.
@@ -89,7 +89,7 @@ Simple one-liner public methods may omit inner regions. Private helpers always g
 | Agent classes | `{Role}Agent` | `AssistantAgent`, `EmailAgent` |
 | Tool classes | `{Domain}Tools` | `EmailTools` |
 | Orchestrator | `{Area}Orchestrator` | `ChatOrchestrator` |
-| Turn entry | `ProcessTurnAsync` | orchestration |
+| Agent run entry | `RunChatAgentAsync` | orchestration |
 | Agent entry | `RunAsync` | agents |
 | MAF tool factory | `CreateTools` | tools |
 | Foundry factory | `CreateAssistantAgent`, `CreateEmailAgent` | foundry |
@@ -101,7 +101,7 @@ Simple one-liner public methods may omit inner regions. Private helpers always g
 - **Orchestration** — coordinates turn; may read Persistence for shared thread history.
 - **Tools / Memory** — capabilities and context; may call Persistence/services; no LLM, no routing.
 - **Foundry** — Azure OpenAI / MAF wiring and agent profiles only.
-- **Features** — saves messages, calls `ChatOrchestrator`, saves reply; does not shape LLM context.
+- **Features** — `SendChatMessageAsync` saves messages, calls `ChatOrchestrator.RunChatAgentAsync`, saves reply; does not shape LLM context.
 
 ## Reference: ChatOrchestrator shape
 
@@ -110,7 +110,7 @@ public sealed class ChatOrchestrator(...)
 {
     private const int DefaultMessageLimit = 12;
 
-    public async Task<ChatTurnResult> ProcessTurnAsync(...)
+    public async Task<RunChatAgentResponse> RunChatAgentAsync(...)
     {
         #region # Validate
         if (!_foundryOptions.Value.IsConfigured) { return ...; }
@@ -141,7 +141,7 @@ public sealed class ChatOrchestrator(...)
 ```csharp
 public sealed class AssistantAgent(FoundryAgentFactory _agentFactory)
 {
-    public async Task<ChatTurnResult> RunAsync(...)
+    public async Task<RunChatAgentResponse> RunAsync(...)
     {
         #region # Execute
         #endregion

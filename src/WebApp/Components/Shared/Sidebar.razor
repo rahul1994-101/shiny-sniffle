@@ -103,7 +103,7 @@
 </aside>
 
 @code {
-    private List<GetChatThreadResponse> _threads = [];
+    private List<ChatThreadDto> _threads = [];
 
     protected override async Task OnInitializedAsync()
     {
@@ -148,14 +148,7 @@
             return;
         }
 
-        _threads.Insert(0, new GetChatThreadResponse
-        {
-            Id = result.Payload.Id,
-            Title = result.Payload.Title,
-            UserId = result.Payload.UserId,
-            CreatedAt = result.Payload.CreatedAt,
-            UpdatedAt = result.Payload.CreatedAt
-        });
+        _threads.Insert(0, result.Payload);
 
         await NavigateToChatThreadAsync(result.Payload.Id);
     }
@@ -175,14 +168,7 @@
             var created = await Features.AddChatThreadAsync(new AddChatThreadRequest { Title = "New chat", UserId = CurrentUser.Id });
             if (created.Payload is not null)
             {
-                _threads.Insert(0, new GetChatThreadResponse
-                {
-                    Id = created.Payload.Id,
-                    Title = created.Payload.Title,
-                    UserId = created.Payload.UserId,
-                    CreatedAt = created.Payload.CreatedAt,
-                    UpdatedAt = created.Payload.CreatedAt
-                });
+                _threads.Insert(0, created.Payload);
             }
         }
 
@@ -201,7 +187,7 @@
     private ElementReference _renameInput;
     private bool _focusRenameInput;
 
-    private void BeginRename(GetChatThreadResponse t)
+    private void BeginRename(ChatThreadDto t)
     {
         _editingId = t.Id;
         _editTitle = t.Title;
@@ -250,8 +236,7 @@
             var idx = _threads.FindIndex(t => t.Id == threadId);
             if (idx >= 0)
             {
-                _threads[idx].Title = result.Payload.Title;
-                _threads[idx].UpdatedAt = result.Payload.UpdatedAt;
+                _threads[idx] = result.Payload;
             }
         }
 

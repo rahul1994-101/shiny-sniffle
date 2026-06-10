@@ -7,8 +7,8 @@ namespace WebApp.AI.Agents;
 
 public sealed class AssistantAgent(FoundryAgentFactory _agentFactory)
 {
-    public async Task<ChatTurnResult> RunAsync(
-        ChatTurnRequest request,
+    public async Task<RunChatAgentResponse> RunAsync(
+        RunChatAgentRequest request,
         IReadOnlyList<Microsoft.Extensions.AI.ChatMessage> history,
         CancellationToken cancellationToken = default)
     {
@@ -22,7 +22,7 @@ public sealed class AssistantAgent(FoundryAgentFactory _agentFactory)
 
         #region # Handle Result
 
-        return new ChatTurnResult
+        return new RunChatAgentResponse
         {
             AssistantContent = ExtractAssistantText(response)
         };

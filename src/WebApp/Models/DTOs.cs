@@ -127,6 +127,21 @@ public class SignInResponse
 
 #region # ChatThread
 
+public class ChatThreadDto
+{
+    public Guid Id { get; set; }
+
+    public string Title { get; set; } = string.Empty;
+
+    public Guid UserId { get; set; }
+
+    public ChatAgent ChatAgent { get; set; }
+
+    public DateTime CreatedAt { get; set; }
+
+    public DateTime UpdatedAt { get; set; }
+}
+
 public class AddChatThreadRequest
 {
     [Required(ErrorMessage = "Title is required.")]
@@ -139,34 +154,6 @@ public class AddChatThreadRequest
     public ChatAgent ChatAgent { get; set; }
 }
 
-public class AddChatThreadResponse
-{
-    public Guid Id { get; set; }
-
-    public string Title { get; set; } = string.Empty;
-
-    public Guid UserId { get; set; }
-
-    public ChatAgent ChatAgent { get; set; }
-
-    public DateTime CreatedAt { get; set; }
-}
-
-public class GetChatThreadResponse
-{
-    public Guid Id { get; set; }
-
-    public string Title { get; set; } = string.Empty;
-
-    public Guid UserId { get; set; }
-
-    public ChatAgent ChatAgent { get; set; }
-
-    public DateTime CreatedAt { get; set; }
-
-    public DateTime UpdatedAt { get; set; }
-}
-
 public class UpdateChatThreadAgentRequest
 {
     [Required(ErrorMessage = "Thread Id is required.")]
@@ -176,15 +163,6 @@ public class UpdateChatThreadAgentRequest
     public Guid UserId { get; set; }
 
     public ChatAgent ChatAgent { get; set; }
-}
-
-public class UpdateChatThreadAgentResponse
-{
-    public Guid Id { get; set; }
-
-    public ChatAgent ChatAgent { get; set; }
-
-    public DateTime UpdatedAt { get; set; }
 }
 
 public class UpdateChatThreadTitleRequest
@@ -200,17 +178,6 @@ public class UpdateChatThreadTitleRequest
     public Guid UserId { get; set; }
 }
 
-public class UpdateChatThreadTitleResponse
-{
-    public Guid Id { get; set; }
-
-    public string Title { get; set; } = string.Empty;
-
-    public Guid UserId { get; set; }
-
-    public DateTime UpdatedAt { get; set; }
-}
-
 public class DeleteChatThreadRequest
 {
     [Required(ErrorMessage = "Thread Id is required.")]
@@ -220,32 +187,11 @@ public class DeleteChatThreadRequest
     public Guid UserId { get; set; }
 }
 
-public class DeleteChatThreadResponse
-{
-    public Guid Id { get; set; }
-}
-
 #endregion
 
 #region # ChatMessage
 
-public class AddChatMessageRequest
-{
-    [Required(ErrorMessage = "Chat Thread Id is required.")]
-    public Guid ChatThreadId { get; set; }
-
-    [Required(ErrorMessage = "Role is required.")]
-    [StringLength(20, MinimumLength = 1, ErrorMessage = "Role must be between 1 and 20 characters.")]
-    public string Role { get; set; } = string.Empty;
-
-    [Required(ErrorMessage = "Content is required.")]
-    public string Content { get; set; } = string.Empty;
-
-    [Required(ErrorMessage = "User Id is required.")]
-    public Guid UserId { get; set; }
-}
-
-public class AddChatMessageResponse
+public class ChatMessageDto
 {
     public Guid Id { get; set; }
 
@@ -258,20 +204,7 @@ public class AddChatMessageResponse
     public DateTime CreatedAt { get; set; }
 }
 
-public class GetChatMessageResponse
-{
-    public Guid Id { get; set; }
-
-    public Guid ChatThreadId { get; set; }
-
-    public string Role { get; set; } = string.Empty;
-
-    public string Content { get; set; } = string.Empty;
-
-    public DateTime CreatedAt { get; set; }
-}
-
-public class ProcessChatTurnRequest
+public class SendChatMessageRequest
 {
     [Required(ErrorMessage = "Chat Thread Id is required.")]
     public Guid ChatThreadId { get; set; }
@@ -285,11 +218,11 @@ public class ProcessChatTurnRequest
     public string Message { get; set; } = string.Empty;
 }
 
-public class ProcessChatTurnResponse
+public class SendChatMessageResponse
 {
-    public GetChatMessageResponse UserMessage { get; set; } = null!;
+    public ChatMessageDto UserMessage { get; set; } = null!;
 
-    public GetChatMessageResponse AssistantMessage { get; set; } = null!;
+    public ChatMessageDto AssistantMessage { get; set; } = null!;
 }
 
 #endregion
@@ -323,7 +256,7 @@ public sealed class FoundryOptions
         !string.IsNullOrWhiteSpace(ApiKey);
 }
 
-public sealed class ChatTurnRequest
+public sealed class RunChatAgentRequest
 {
     public Guid UserId { get; init; }
 
@@ -332,7 +265,7 @@ public sealed class ChatTurnRequest
     public ChatAgent ChatAgent { get; init; }
 }
 
-public sealed class ChatTurnResult
+public sealed class RunChatAgentResponse
 {
     public string AssistantContent { get; init; } = string.Empty;
 }

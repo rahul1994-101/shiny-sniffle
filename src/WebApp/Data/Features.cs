@@ -52,9 +52,9 @@ public class Features(Persistence _repo, ChatOrchestrator _chatOrchestrator)
 
     #region # ChatThread
 
-    public async Task<AppResult<List<GetChatThreadResponse>?>> GetChatThreadsByUserIdAsync(Guid userId)
+    public async Task<AppResult<List<ChatThreadDto>?>> GetChatThreadsByUserIdAsync(Guid userId)
     {
-        var result = new AppResult<List<GetChatThreadResponse>?>();
+        var result = new AppResult<List<ChatThreadDto>?>();
         try
         {
             #region # Validate
@@ -93,9 +93,9 @@ public class Features(Persistence _repo, ChatOrchestrator _chatOrchestrator)
         return result;
     }
 
-    public async Task<AppResult<GetChatThreadResponse?>> GetChatThreadByIdAsync(Guid id)
+    public async Task<AppResult<ChatThreadDto?>> GetChatThreadByIdAsync(Guid id)
     {
-        var result = new AppResult<GetChatThreadResponse?>();
+        var result = new AppResult<ChatThreadDto?>();
         try
         {
             #region # Validate
@@ -134,9 +134,9 @@ public class Features(Persistence _repo, ChatOrchestrator _chatOrchestrator)
         return result;
     }
 
-    public async Task<AppResult<AddChatThreadResponse?>> AddChatThreadAsync(AddChatThreadRequest addChatThreadRequest)
+    public async Task<AppResult<ChatThreadDto?>> AddChatThreadAsync(AddChatThreadRequest addChatThreadRequest)
     {
-        var result = new AppResult<AddChatThreadResponse?>();
+        var result = new AppResult<ChatThreadDto?>();
         try
         {
             #region # Validate
@@ -175,9 +175,9 @@ public class Features(Persistence _repo, ChatOrchestrator _chatOrchestrator)
         return result;
     }
 
-    public async Task<AppResult<UpdateChatThreadTitleResponse?>> UpdateChatThreadTitleAsync(UpdateChatThreadTitleRequest updateChatThreadTitleRequest)
+    public async Task<AppResult<ChatThreadDto?>> UpdateChatThreadTitleAsync(UpdateChatThreadTitleRequest updateChatThreadTitleRequest)
     {
-        var result = new AppResult<UpdateChatThreadTitleResponse?>();
+        var result = new AppResult<ChatThreadDto?>();
         try
         {
             #region # Validate
@@ -216,9 +216,9 @@ public class Features(Persistence _repo, ChatOrchestrator _chatOrchestrator)
         return result;
     }
 
-    public async Task<AppResult<UpdateChatThreadAgentResponse?>> UpdateChatThreadAgentAsync(UpdateChatThreadAgentRequest updateChatThreadAgentRequest)
+    public async Task<AppResult<ChatThreadDto?>> UpdateChatThreadAgentAsync(UpdateChatThreadAgentRequest updateChatThreadAgentRequest)
     {
-        var result = new AppResult<UpdateChatThreadAgentResponse?>();
+        var result = new AppResult<ChatThreadDto?>();
         try
         {
             #region # Validate
@@ -257,9 +257,9 @@ public class Features(Persistence _repo, ChatOrchestrator _chatOrchestrator)
         return result;
     }
 
-    public async Task<AppResult<DeleteChatThreadResponse?>> DeleteChatThreadAsync(DeleteChatThreadRequest deleteChatThreadRequest)
+    public async Task<AppResult> DeleteChatThreadAsync(DeleteChatThreadRequest deleteChatThreadRequest)
     {
-        var result = new AppResult<DeleteChatThreadResponse?>();
+        var result = new AppResult();
         try
         {
             #region # Validate
@@ -274,19 +274,19 @@ public class Features(Persistence _repo, ChatOrchestrator _chatOrchestrator)
 
             #region # Execute
 
-            var chatThread = await _repo.DeleteChatThreadAsync(deleteChatThreadRequest);
+            var deleted = await _repo.DeleteChatThreadAsync(deleteChatThreadRequest);
 
             #endregion
 
             #region # Handle Result
 
-            if (chatThread is null)
+            if (!deleted)
             {
                 result.Failure(ErrorCode.NotFound, "Chat thread not found.");
             }
             else
             {
-                result.Success(chatThread);
+                result.Success();
             }
 
             #endregion
@@ -302,9 +302,9 @@ public class Features(Persistence _repo, ChatOrchestrator _chatOrchestrator)
 
     #region # ChatMessage
 
-    public async Task<AppResult<List<GetChatMessageResponse>?>> GetChatMessagesByChatThreadIdAsync(Guid chatThreadId)
+    public async Task<AppResult<List<ChatMessageDto>?>> GetChatMessagesByChatThreadIdAsync(Guid chatThreadId)
     {
-        var result = new AppResult<List<GetChatMessageResponse>?>();
+        var result = new AppResult<List<ChatMessageDto>?>();
         try
         {
             #region # Validate
@@ -343,47 +343,48 @@ public class Features(Persistence _repo, ChatOrchestrator _chatOrchestrator)
         return result;
     }
 
-    public async Task<AppResult<ProcessChatTurnResponse?>> ProcessChatTurnAsync(ProcessChatTurnRequest processChatTurnRequest)
+    public async Task<AppResult<SendChatMessageResponse?>> SendChatMessageAsync(SendChatMessageRequest sendChatMessageRequest)
     {
-        var result = new AppResult<ProcessChatTurnResponse?>();
+        var result = new AppResult<SendChatMessageResponse?>();
         try
         {
             #region # Validate
 
-            var hasError = result.Validate(processChatTurnRequest);
+            var hasError = result.Validate(sendChatMessageRequest);
             if (hasError)
             {
                 return result;
             }
 
-            var text = processChatTurnRequest.Message.Trim();
+            var text = sendChatMessageRequest.Message.Trim();
             if (string.IsNullOrEmpty(text))
             {
                 result.Failure(ErrorCode.BadRequest, "Message is required.");
                 return result;
             }
 
-            var thread = await _repo.GetChatThreadByIdAsync(processChatTurnRequest.ChatThreadId);
-            if (thread is null || thread.UserId != processChatTurnRequest.UserId)
+            var thread = await _repo.GetChatThreadByIdAsync(sendChatMessageRequest.ChatThreadId);
+            if (thread is null || thread.UserId != sendChatMessageRequest.UserId)
             {
                 result.Failure(ErrorCode.NotFound, "Chat thread not found.");
                 return result;
             }
 
-            var chatAgent = processChatTurnRequest.ChatAgent == thread.ChatAgent
-                ? processChatTurnRequest.ChatAgent
+            var chatAgent = sendChatMessageRequest.ChatAgent == thread.ChatAgent
+                ? sendChatMessageRequest.ChatAgent
                 : thread.ChatAgent;
 
             #endregion
 
             #region # Execute
 
-            var userMessage = await _repo.AddChatMessageAsync(new AddChatMessageRequest
+            var userMessage = await _repo.AddChatMessageAsync(new ChatMessage
             {
-                ChatThreadId = processChatTurnRequest.ChatThreadId,
+                ChatThreadId = sendChatMessageRequest.ChatThreadId,
                 Role = "user",
                 Content = text,
-                UserId = processChatTurnRequest.UserId
+                CreatedBy = sendChatMessageRequest.UserId,
+                UpdatedBy = sendChatMessageRequest.UserId
             });
             if (userMessage is null)
             {
@@ -391,19 +392,20 @@ public class Features(Persistence _repo, ChatOrchestrator _chatOrchestrator)
                 return result;
             }
 
-            var turn = await _chatOrchestrator.ProcessTurnAsync(new ChatTurnRequest
+            var agentRun = await _chatOrchestrator.RunChatAgentAsync(new RunChatAgentRequest
             {
-                ChatThreadId = processChatTurnRequest.ChatThreadId,
-                UserId = processChatTurnRequest.UserId,
+                ChatThreadId = sendChatMessageRequest.ChatThreadId,
+                UserId = sendChatMessageRequest.UserId,
                 ChatAgent = chatAgent
             });
 
-            var assistantMessage = await _repo.AddChatMessageAsync(new AddChatMessageRequest
+            var assistantMessage = await _repo.AddChatMessageAsync(new ChatMessage
             {
-                ChatThreadId = processChatTurnRequest.ChatThreadId,
+                ChatThreadId = sendChatMessageRequest.ChatThreadId,
                 Role = "assistant",
-                Content = turn.AssistantContent,
-                UserId = processChatTurnRequest.UserId
+                Content = agentRun.AssistantContent,
+                CreatedBy = sendChatMessageRequest.UserId,
+                UpdatedBy = sendChatMessageRequest.UserId
             });
             if (assistantMessage is null)
             {
@@ -415,10 +417,10 @@ public class Features(Persistence _repo, ChatOrchestrator _chatOrchestrator)
 
             #region # Handle Result
 
-            result.Success(new ProcessChatTurnResponse
+            result.Success(new SendChatMessageResponse
             {
-                UserMessage = ToGetChatMessageResponse(userMessage),
-                AssistantMessage = ToGetChatMessageResponse(assistantMessage)
+                UserMessage = userMessage,
+                AssistantMessage = assistantMessage
             });
 
             #endregion
@@ -430,20 +432,6 @@ public class Features(Persistence _repo, ChatOrchestrator _chatOrchestrator)
 
         return result;
     }
-
-    #endregion
-
-    #region # Private Helpers
-
-    private static GetChatMessageResponse ToGetChatMessageResponse(AddChatMessageResponse message) =>
-        new()
-        {
-            Id = message.Id,
-            ChatThreadId = message.ChatThreadId,
-            Role = message.Role,
-            Content = message.Content,
-            CreatedAt = message.CreatedAt
-        };
 
     #endregion
 }

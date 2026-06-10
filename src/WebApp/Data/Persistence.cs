@@ -34,7 +34,7 @@ public sealed class Persistence(AppDbContext _ctx)
 
     #region # ChatThread
 
-    public async Task<List<GetChatThreadResponse>?> GetChatThreadsByUserIdAsync(Guid userId)
+    public async Task<List<ChatThreadDto>?> GetChatThreadsByUserIdAsync(Guid userId)
     {
         return await _ctx.ChatThreads
             .AsNoTracking()
@@ -44,7 +44,7 @@ public sealed class Persistence(AppDbContext _ctx)
                 x.IsDeleted == false
             )
             .OrderByDescending(x => x.UpdatedAt)
-            .Select(x => new GetChatThreadResponse
+            .Select(x => new ChatThreadDto
             {
                 Id = x.Id,
                 Title = x.Title,
@@ -56,7 +56,7 @@ public sealed class Persistence(AppDbContext _ctx)
             .ToListAsync();
     }
 
-    public async Task<GetChatThreadResponse?> GetChatThreadByIdAsync(Guid id)
+    public async Task<ChatThreadDto?> GetChatThreadByIdAsync(Guid id)
     {
         return await _ctx.ChatThreads
             .AsNoTracking()
@@ -65,7 +65,7 @@ public sealed class Persistence(AppDbContext _ctx)
                 x.IsActive == true &&
                 x.IsDeleted == false
             )
-            .Select(x => new GetChatThreadResponse
+            .Select(x => new ChatThreadDto
             {
                 Id = x.Id,
                 Title = x.Title,
@@ -77,7 +77,7 @@ public sealed class Persistence(AppDbContext _ctx)
             .FirstOrDefaultAsync();
     }
 
-    public async Task<AddChatThreadResponse?> AddChatThreadAsync(AddChatThreadRequest addChatThreadRequest)
+    public async Task<ChatThreadDto?> AddChatThreadAsync(AddChatThreadRequest addChatThreadRequest)
     {
         var entity = new ChatThread
         {
@@ -91,17 +91,10 @@ public sealed class Persistence(AppDbContext _ctx)
         await _ctx.ChatThreads.AddAsync(entity);
         await _ctx.SaveChangesAsync();
 
-        return new AddChatThreadResponse
-        {
-            Id = entity.Id,
-            Title = entity.Title,
-            UserId = entity.UserId,
-            ChatAgent = entity.ChatAgent,
-            CreatedAt = entity.CreatedAt
-        };
+        return ToChatThreadDto(entity);
     }
 
-    public async Task<UpdateChatThreadAgentResponse?> UpdateChatThreadAgentAsync(UpdateChatThreadAgentRequest updateChatThreadAgentRequest)
+    public async Task<ChatThreadDto?> UpdateChatThreadAgentAsync(UpdateChatThreadAgentRequest updateChatThreadAgentRequest)
     {
         var entity = await _ctx.ChatThreads
             .Where(x =>
@@ -123,15 +116,10 @@ public sealed class Persistence(AppDbContext _ctx)
 
         await _ctx.SaveChangesAsync();
 
-        return new UpdateChatThreadAgentResponse
-        {
-            Id = entity.Id,
-            ChatAgent = entity.ChatAgent,
-            UpdatedAt = entity.UpdatedAt
-        };
+        return ToChatThreadDto(entity);
     }
 
-    public async Task<UpdateChatThreadTitleResponse?> UpdateChatThreadTitleAsync(UpdateChatThreadTitleRequest updateChatThreadTitleRequest)
+    public async Task<ChatThreadDto?> UpdateChatThreadTitleAsync(UpdateChatThreadTitleRequest updateChatThreadTitleRequest)
     {
         var entity = await _ctx.ChatThreads
             .Where(x =>
@@ -153,16 +141,10 @@ public sealed class Persistence(AppDbContext _ctx)
 
         await _ctx.SaveChangesAsync();
 
-        return new UpdateChatThreadTitleResponse
-        {
-            Id = entity.Id,
-            Title = entity.Title,
-            UserId = entity.UserId,
-            UpdatedAt = entity.UpdatedAt
-        };
+        return ToChatThreadDto(entity);
     }
 
-    public async Task<DeleteChatThreadResponse?> DeleteChatThreadAsync(DeleteChatThreadRequest deleteChatThreadRequest)
+    public async Task<bool> DeleteChatThreadAsync(DeleteChatThreadRequest deleteChatThreadRequest)
     {
         var entity = await _ctx.ChatThreads
             .Where(x =>
@@ -175,7 +157,7 @@ public sealed class Persistence(AppDbContext _ctx)
 
         if (entity is null)
         {
-            return null;
+            return false;
         }
 
         entity.IsDeleted = true;
@@ -185,17 +167,14 @@ public sealed class Persistence(AppDbContext _ctx)
 
         await _ctx.SaveChangesAsync();
 
-        return new DeleteChatThreadResponse
-        {
-            Id = entity.Id
-        };
+        return true;
     }
 
     #endregion
 
     #region # ChatMessage
 
-    public async Task<List<GetChatMessageResponse>?> GetChatMessagesByChatThreadIdAsync(Guid chatThreadId)
+    public async Task<List<ChatMessageDto>?> GetChatMessagesByChatThreadIdAsync(Guid chatThreadId)
     {
         return await _ctx.ChatMessages
             .AsNoTracking()
@@ -205,7 +184,7 @@ public sealed class Persistence(AppDbContext _ctx)
                 x.IsDeleted == false
             )
             .OrderBy(x => x.CreatedAt)
-            .Select(x => new GetChatMessageResponse
+            .Select(x => new ChatMessageDto
             {
                 Id = x.Id,
                 ChatThreadId = x.ChatThreadId,
@@ -216,7 +195,7 @@ public sealed class Persistence(AppDbContext _ctx)
             .ToListAsync();
     }
 
-    public async Task<List<GetChatMessageResponse>?> GetRecentChatMessagesByChatThreadIdAsync(Guid chatThreadId, int limit)
+    public async Task<List<ChatMessageDto>?> GetRecentChatMessagesByChatThreadIdAsync(Guid chatThreadId, int limit)
     {
         var take = Math.Clamp(limit, 1, 100);
 
@@ -230,7 +209,7 @@ public sealed class Persistence(AppDbContext _ctx)
             .OrderByDescending(x => x.CreatedAt)
             .Take(take)
             .OrderBy(x => x.CreatedAt)
-            .Select(x => new GetChatMessageResponse
+            .Select(x => new ChatMessageDto
             {
                 Id = x.Id,
                 ChatThreadId = x.ChatThreadId,
@@ -241,21 +220,31 @@ public sealed class Persistence(AppDbContext _ctx)
             .ToListAsync();
     }
 
-    public async Task<AddChatMessageResponse?> AddChatMessageAsync(AddChatMessageRequest addChatMessageRequest)
+    public async Task<ChatMessageDto?> AddChatMessageAsync(ChatMessage entity)
     {
-        var entity = new ChatMessage
-        {
-            ChatThreadId = addChatMessageRequest.ChatThreadId,
-            Role = addChatMessageRequest.Role,
-            Content = addChatMessageRequest.Content,
-            CreatedBy = addChatMessageRequest.UserId,
-            UpdatedBy = addChatMessageRequest.UserId
-        };
-
         await _ctx.ChatMessages.AddAsync(entity);
         await _ctx.SaveChangesAsync();
 
-        return new AddChatMessageResponse
+        return ToChatMessageDto(entity);
+    }
+
+    #endregion
+
+    #region # Private Helpers
+
+    private static ChatThreadDto ToChatThreadDto(ChatThread entity) =>
+        new()
+        {
+            Id = entity.Id,
+            Title = entity.Title,
+            UserId = entity.UserId,
+            ChatAgent = entity.ChatAgent,
+            CreatedAt = entity.CreatedAt,
+            UpdatedAt = entity.UpdatedAt
+        };
+
+    private static ChatMessageDto ToChatMessageDto(ChatMessage entity) =>
+        new()
         {
             Id = entity.Id,
             ChatThreadId = entity.ChatThreadId,
@@ -263,7 +252,6 @@ public sealed class Persistence(AppDbContext _ctx)
             Content = entity.Content,
             CreatedAt = entity.CreatedAt
         };
-    }
 
     #endregion
 }

@@ -48,7 +48,7 @@ else
 
 @code {
     [Parameter]
-    public IReadOnlyList<GetChatMessageResponse> Messages { get; set; } = [];
+    public IReadOnlyList<ChatMessageDto> Messages { get; set; } = [];
 
     private static bool IsUser(string role) => role == "user";
 }
