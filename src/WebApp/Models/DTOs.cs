@@ -306,6 +306,8 @@ public class ProcessChatTurnRequest
     [Required(ErrorMessage = "User Id is required.")]
     public Guid UserId { get; set; }
 
+    public ChatAgent ChatAgent { get; set; }
+
     [Required(ErrorMessage = "Message is required.")]
     public string Message { get; set; } = string.Empty;
 }

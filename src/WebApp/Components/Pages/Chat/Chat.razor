@@ -214,6 +214,7 @@
         {
             ChatThreadId = _activeThreadId,
             UserId = CurrentUser.Id,
+            ChatAgent = _chatAgent,
             Message = text
         });
         if (!turnResult.HasError && turnResult.Payload is not null)

@@ -363,6 +363,20 @@ public class Features(Persistence _repo, ChatOrchestrator _chatOrchestrator)
                 return result;
             }
 
+            var thread = await _repo.GetChatThreadByIdAsync(new GetChatThreadByIdRequest
+            {
+                Id = processChatTurnRequest.ChatThreadId
+            });
+            if (thread is null || thread.UserId != processChatTurnRequest.UserId)
+            {
+                result.Failure(ErrorCode.NotFound, "Chat thread not found.");
+                return result;
+            }
+
+            var chatAgent = processChatTurnRequest.ChatAgent == thread.ChatAgent
+                ? processChatTurnRequest.ChatAgent
+                : thread.ChatAgent;
+
             #endregion
 
             #region # Execute
@@ -374,23 +388,17 @@ public class Features(Persistence _repo, ChatOrchestrator _chatOrchestrator)
                 Content = text,
                 UserId = processChatTurnRequest.UserId
             });
-
             if (userMessage is null)
             {
                 result.Failure(ErrorCode.InternalServerError, "Failed to create chat message.");
                 return result;
             }
 
-            var thread = await _repo.GetChatThreadByIdAsync(new GetChatThreadByIdRequest
-            {
-                Id = processChatTurnRequest.ChatThreadId
-            });
-
             var turn = await _chatOrchestrator.ProcessTurnAsync(new ChatTurnRequest
             {
                 ChatThreadId = processChatTurnRequest.ChatThreadId,
                 UserId = processChatTurnRequest.UserId,
-                ChatAgent = thread?.ChatAgent ?? ChatAgent.Assistant
+                ChatAgent = chatAgent
             });
 
             var assistantMessage = await _repo.AddChatMessageAsync(new AddChatMessageRequest
@@ -400,7 +408,6 @@ public class Features(Persistence _repo, ChatOrchestrator _chatOrchestrator)
                 Content = turn.AssistantContent,
                 UserId = processChatTurnRequest.UserId
             });
-
             if (assistantMessage is null)
             {
                 result.Failure(ErrorCode.InternalServerError, "Failed to create chat message.");
