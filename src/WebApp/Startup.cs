@@ -5,7 +5,6 @@ using WebApp;
 using WebApp.AI.Agents;
 using WebApp.AI.Foundry;
 using WebApp.AI.Tools;
-using WebApp.AI.Memory;
 using WebApp.AI.Orchestration;
 using WebApp.Components;
 using WebApp.Data;
@@ -103,7 +102,6 @@ public static class DependencyInject
         services.Configure<FoundryOptions>(configuration.GetSection(FoundryOptions.SectionName));
         services.AddSingleton<FoundryAgentFactory>();
 
-        services.AddScoped<ThreadMemoryProvider>();
         services.AddScoped<EmailTools>();
         services.AddScoped<AssistantAgent>();
         services.AddScoped<EmailAgent>();

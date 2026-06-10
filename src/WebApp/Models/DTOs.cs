@@ -276,6 +276,15 @@ public class GetChatMessagesByChatThreadIdRequest
     public Guid ChatThreadId { get; set; }
 }
 
+public class GetRecentChatMessagesByChatThreadIdRequest
+{
+    [Required(ErrorMessage = "Chat Thread Id is required.")]
+    public Guid ChatThreadId { get; set; }
+
+    [Range(1, 100, ErrorMessage = "Limit must be between 1 and 100.")]
+    public int Limit { get; set; } = 12;
+}
+
 public class GetChatMessageResponse
 {
     public Guid Id { get; set; }

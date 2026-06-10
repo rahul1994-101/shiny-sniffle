@@ -216,6 +216,30 @@ public sealed class Persistence(AppDbContext _ctx)
             .ToListAsync();
     }
 
+    public async Task<List<GetChatMessageResponse>?> GetRecentChatMessagesByChatThreadIdAsync(
+        GetRecentChatMessagesByChatThreadIdRequest getRecentChatMessagesByChatThreadIdRequest)
+    {
+        return await _ctx.ChatMessages
+            .AsNoTracking()
+            .Where(x =>
+                x.ChatThreadId == getRecentChatMessagesByChatThreadIdRequest.ChatThreadId &&
+                x.IsActive == true &&
+                x.IsDeleted == false
+            )
+            .OrderByDescending(x => x.CreatedAt)
+            .Take(getRecentChatMessagesByChatThreadIdRequest.Limit)
+            .OrderBy(x => x.CreatedAt)
+            .Select(x => new GetChatMessageResponse
+            {
+                Id = x.Id,
+                ChatThreadId = x.ChatThreadId,
+                Role = x.Role,
+                Content = x.Content,
+                CreatedAt = x.CreatedAt
+            })
+            .ToListAsync();
+    }
+
     public async Task<AddChatMessageResponse?> AddChatMessageAsync(AddChatMessageRequest addChatMessageRequest)
     {
         var entity = new ChatMessage

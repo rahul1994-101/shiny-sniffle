@@ -1,17 +1,20 @@
+using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Options;
 
 using WebApp.AI.Agents;
-using WebApp.AI.Memory;
+using WebApp.Data;
 using WebApp.Models;
 
 namespace WebApp.AI.Orchestration;
 
 public sealed class ChatOrchestrator(
     IOptions<FoundryOptions> foundryOptions,
-    ThreadMemoryProvider threadMemoryProvider,
+    Persistence persistence,
     AssistantAgent assistantAgent,
     EmailAgent emailAgent)
 {
+    private const int DefaultMessageLimit = 12;
+
     public async Task<ChatTurnResult> ProcessTurnAsync(
         ChatTurnRequest request,
         CancellationToken cancellationToken = default)
@@ -26,7 +29,7 @@ public sealed class ChatOrchestrator(
             };
         }
 
-        var history = await threadMemoryProvider.LoadAsync(request.ChatThreadId, cancellationToken);
+        var history = await LoadThreadHistoryAsync(request.ChatThreadId, cancellationToken);
 
         return request.ChatAgent switch
         {
@@ -34,4 +37,32 @@ public sealed class ChatOrchestrator(
             _ => await assistantAgent.RunAsync(request, history, cancellationToken)
         };
     }
+
+
+    #region # Private Helpers
+
+    private async Task<IReadOnlyList<Microsoft.Extensions.AI.ChatMessage>> LoadThreadHistoryAsync(
+        Guid chatThreadId,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var messages = await persistence.GetRecentChatMessagesByChatThreadIdAsync(
+            new GetRecentChatMessagesByChatThreadIdRequest
+            {
+                ChatThreadId = chatThreadId,
+                Limit = DefaultMessageLimit
+            });
+
+        return (messages ?? [])
+            .Select(m => new Microsoft.Extensions.AI.ChatMessage(ToChatRole(m.Role), m.Content))
+            .ToList();
+    }
+
+    private static ChatRole ToChatRole(string role) =>
+        role.Equals("assistant", StringComparison.OrdinalIgnoreCase)
+            ? ChatRole.Assistant
+            : ChatRole.User;
+
+    #endregion
 }

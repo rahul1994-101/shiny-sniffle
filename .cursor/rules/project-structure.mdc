@@ -49,11 +49,11 @@ Example: auth UI reads claims via `CurrentUser` in `Utilities/Services/AuthServi
 
 ## AI boundaries
 
-- **Agents/**: LLM runners only. One class per agent role at the folder root (no `Chat/` subfolder), e.g. `AssistantAgent`, `EmailAgent`. Agents load memory, call `FoundryAgentFactory.Create*Agent()`, and return the turn result. No prompts or deployment names in agent files.
-- **Tools/**: Plain C# capabilities exposed to agents via MAF tools. Tools may call app services/DB/APIs, but must not call LLMs or route chat turns.
+- **Agents/**: LLM runners only. One class per agent role at the folder root (no `Chat/` subfolder), e.g. `AssistantAgent`, `EmailAgent`. Agents receive history from orchestration, call `FoundryAgentFactory.Create*Agent()`, and return the turn result. No prompts or deployment names in agent files.
+- **Tools/**: Plain C# capabilities exposed to agents via MAF tools. One file per agent domain when needed (e.g. `EmailTools.cs`). Tools may call app services/DB/APIs, but must not call LLMs or route chat turns.
+- **Memory/**: Agent-specific memory helpers (summaries, mailbox context, pinned facts), parallel to **Tools/** — one file per agent domain when needed. No LLM calls. Keep `.gitkeep` until the first file is added.
 - **Workflows/**: Multi-step MAF workflows that compose agents and tools. Keep placeholder `.gitkeep` files in empty workflow folders.
-- **Memory/**: Load recent thread messages from persistence for agent context (`ThreadMemoryProvider`). No LLM calls.
-- **Orchestration/**: Turn-level coordination only: `ChatOrchestrator` loads memory, routes by `ChatAgent`, returns the result. No LLM calls in orchestration.
+- **Orchestration/**: Turn-level coordination: `ChatOrchestrator` loads recent thread messages from persistence, routes by `ChatAgent`, and returns the result. No LLM calls in orchestration.
 - **Foundry/**: Azure OpenAI / MAF plumbing — `FoundryAgentDefinitions.cs` (deployment names + instructions per agent), `FoundryServices.cs` (`FoundryAgentFactory` with `CreateAssistantAgent` / `CreateEmailAgent` and private endpoint helpers). Do not put prompts in `appsettings`. Register AI types in `Startup.InjectAi`.
 - **Models/DTOs.cs**: Keep small AI/config request/result/intent DTOs in the `# AI` region instead of an `AI/Contracts` folder.
 - Do not add a `Skills/` folder unless a future capability layer has a clear responsibility distinct from agents and workflows.
