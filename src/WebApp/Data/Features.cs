@@ -381,7 +381,7 @@ public class Features(Persistence _repo, ChatOrchestrator _chatOrchestrator)
             var userMessage = await _repo.AddChatMessageAsync(new ChatMessage
             {
                 ChatThreadId = sendChatMessageRequest.ChatThreadId,
-                Role = "user",
+                Role = ChatMessageRoles.User,
                 Content = text,
                 CreatedBy = sendChatMessageRequest.UserId,
                 UpdatedBy = sendChatMessageRequest.UserId
@@ -402,7 +402,7 @@ public class Features(Persistence _repo, ChatOrchestrator _chatOrchestrator)
             var assistantMessage = await _repo.AddChatMessageAsync(new ChatMessage
             {
                 ChatThreadId = sendChatMessageRequest.ChatThreadId,
-                Role = "assistant",
+                Role = ChatMessageRoles.Assistant,
                 Content = agentRun.AssistantContent,
                 CreatedBy = sendChatMessageRequest.UserId,
                 UpdatedBy = sendChatMessageRequest.UserId

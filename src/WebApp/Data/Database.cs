@@ -67,6 +67,7 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<ChatMessage>(entity =>
         {
             entity.ToTable("ChatMessage", "dbo");
+            entity.Property(e => e.Role).HasColumnName("role");
         });
     }
 

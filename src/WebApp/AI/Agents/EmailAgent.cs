@@ -36,7 +36,7 @@ public sealed class EmailAgent(FoundryAgentFactory _agentFactory, EmailTools _em
 
     private static string ExtractAssistantText(Microsoft.Agents.AI.AgentResponse response)
     {
-        var text = response.Messages.LastOrDefault(m => m.Role == ChatRole.Assistant)?.Text;
+        var text = response.Messages.LastOrDefault(m => m.Role == Microsoft.Extensions.AI.ChatRole.Assistant)?.Text;
         return string.IsNullOrWhiteSpace(text)
             ? "I could not generate a response."
             : text.Trim();

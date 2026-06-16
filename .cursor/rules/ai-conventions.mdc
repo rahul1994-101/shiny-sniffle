@@ -131,7 +131,7 @@ public sealed class ChatOrchestrator(...)
     }
 
     #region # Private Helpers
-    // LoadThreadHistoryAsync, ToChatRole
+    // LoadThreadHistoryAsync
     #endregion
 }
 ```

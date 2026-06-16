@@ -10,7 +10,7 @@ else
 {
     @foreach (var msg in Messages)
     {
-        if (IsUser(msg.Role))
+        if (msg.Role == ChatMessageRoles.User)
         {
             <div class="msg-row msg-row-user">
                 <div class="msg-chunk msg-chunk-user">
@@ -22,7 +22,7 @@ else
                 </div>
             </div>
         }
-        else if (msg.Role == "system")
+        else if (msg.Role == ChatMessageRoles.System)
         {
             <div class="msg-row msg-row-system">
                 <div class="msg-system-banner">
@@ -49,6 +49,4 @@ else
 @code {
     [Parameter]
     public IReadOnlyList<ChatMessageDto> Messages { get; set; } = [];
-
-    private static bool IsUser(string role) => role == "user";
 }

@@ -5,6 +5,8 @@ using WebApp.AI.Agents;
 using WebApp.Data;
 using WebApp.Models;
 
+using AiChatRole = Microsoft.Extensions.AI.ChatRole;
+
 namespace WebApp.AI.Orchestration;
 
 public sealed class ChatOrchestrator(
@@ -64,14 +66,9 @@ public sealed class ChatOrchestrator(
             DefaultMessageLimit);
 
         return (messages ?? [])
-            .Select(m => new Microsoft.Extensions.AI.ChatMessage(ToChatRole(m.Role), m.Content))
+            .Select(m => new Microsoft.Extensions.AI.ChatMessage(new AiChatRole(m.Role), m.Content))
             .ToList();
     }
-
-    private static ChatRole ToChatRole(string role) =>
-        role.Equals("assistant", StringComparison.OrdinalIgnoreCase)
-            ? ChatRole.Assistant
-            : ChatRole.User;
 
     #endregion
 }

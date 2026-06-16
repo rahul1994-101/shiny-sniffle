@@ -197,7 +197,7 @@ public class ChatMessageDto
 
     public Guid ChatThreadId { get; set; }
 
-    public string Role { get; set; } = string.Empty;
+    public string Role { get; set; } = ChatMessageRoles.User;
 
     public string Content { get; set; } = string.Empty;
 

@@ -5,7 +5,7 @@
 --
 -- Business Rules:
 -- - Each message belongs to exactly one chat thread
--- - Messages have a role (user, assistant, system) and textual content
+-- - Messages have a role (MAF ChatRole strings: user, assistant, system, tool) and textual content
 -- - All records include audit fields for tracking changes
 -- =====================================================
 GO
@@ -16,7 +16,7 @@ CREATE TABLE [dbo].[ChatMessage] (
     [chatThreadId]                          UNIQUEIDENTIFIER NOT NULL,                 -- Owning chat thread (FK to ChatThread)
 
     -- Data fields
-    [role]                                  NVARCHAR(20) NOT NULL,                     -- Sender role (e.g. user, assistant, system)
+    [role]                                  NVARCHAR(20) NOT NULL DEFAULT N'user',   -- MAF ChatRole: user, assistant, system, tool
     [content]                               NVARCHAR(MAX) NOT NULL,                    -- Message body
 
     -- Status and lifecycle management

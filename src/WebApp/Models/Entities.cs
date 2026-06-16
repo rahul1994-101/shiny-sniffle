@@ -83,7 +83,7 @@ public class ChatMessage : BaseAuditableEntity
 
     [Required(ErrorMessage = "Role is required.")]
     [StringLength(20, MinimumLength = 1, ErrorMessage = "Role must be between 1 and 20 characters.")]
-    public string Role { get; set; } = string.Empty;
+    public string Role { get; set; } = ChatMessageRoles.User;
 
     [Required(ErrorMessage = "Content is required.")]
     public string Content { get; set; } = string.Empty;
