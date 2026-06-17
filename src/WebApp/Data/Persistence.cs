@@ -4,7 +4,7 @@ using WebApp.Models;
 
 namespace WebApp.Data;
 
-public sealed class Persistence(AppDbContext _ctx)
+public sealed class Persistence(IDbContextFactory<AppDbContext> _dbContextFactory)
 {
     #region # User
 
@@ -13,7 +13,8 @@ public sealed class Persistence(AppDbContext _ctx)
         //var encPassword = signInRequest.Password.Encrypt();
         var encPassword = signInRequest.Password;
 
-        return await _ctx.Users
+        await using var ctx = await _dbContextFactory.CreateDbContextAsync();
+        var user = await ctx.Users
             .AsNoTracking()
             .Where(x =>
                 x.Email.ToLower() == signInRequest.EmailId.ToLower() &&
@@ -28,6 +29,8 @@ public sealed class Persistence(AppDbContext _ctx)
                 FullName = x.FirstName + " " + x.LastName
             })
             .FirstOrDefaultAsync();
+
+        return user;
     }
 
     #endregion
@@ -36,7 +39,8 @@ public sealed class Persistence(AppDbContext _ctx)
 
     public async Task<List<ChatThreadDto>?> GetChatThreadsByUserIdAsync(Guid userId)
     {
-        return await _ctx.ChatThreads
+        await using var ctx = await _dbContextFactory.CreateDbContextAsync();
+        var chatThreads = await ctx.ChatThreads
             .AsNoTracking()
             .Where(x =>
                 x.UserId == userId &&
@@ -54,11 +58,14 @@ public sealed class Persistence(AppDbContext _ctx)
                 UpdatedAt = x.UpdatedAt
             })
             .ToListAsync();
+
+        return chatThreads;
     }
 
     public async Task<ChatThreadDto?> GetChatThreadByIdAsync(Guid id)
     {
-        return await _ctx.ChatThreads
+        await using var ctx = await _dbContextFactory.CreateDbContextAsync();
+        var chatThread = await ctx.ChatThreads
             .AsNoTracking()
             .Where(x =>
                 x.Id == id &&
@@ -75,10 +82,14 @@ public sealed class Persistence(AppDbContext _ctx)
                 UpdatedAt = x.UpdatedAt
             })
             .FirstOrDefaultAsync();
+
+        return chatThread;
     }
 
     public async Task<ChatThreadDto?> AddChatThreadAsync(AddChatThreadRequest addChatThreadRequest)
     {
+        await using var ctx = await _dbContextFactory.CreateDbContextAsync();
+
         var entity = new ChatThread
         {
             Title = addChatThreadRequest.Title,
@@ -88,15 +99,19 @@ public sealed class Persistence(AppDbContext _ctx)
             UpdatedBy = addChatThreadRequest.UserId
         };
 
-        await _ctx.ChatThreads.AddAsync(entity);
-        await _ctx.SaveChangesAsync();
+        await ctx.ChatThreads.AddAsync(entity);
+        await ctx.SaveChangesAsync();
 
-        return ToChatThreadDto(entity);
+        var chatThread = ToChatThreadDto(entity);
+
+        return chatThread;
     }
 
     public async Task<ChatThreadDto?> UpdateChatThreadAgentAsync(UpdateChatThreadAgentRequest updateChatThreadAgentRequest)
     {
-        var entity = await _ctx.ChatThreads
+        await using var ctx = await _dbContextFactory.CreateDbContextAsync();
+
+        var entity = await ctx.ChatThreads
             .Where(x =>
                 x.Id == updateChatThreadAgentRequest.Id &&
                 x.UserId == updateChatThreadAgentRequest.UserId &&
@@ -114,14 +129,18 @@ public sealed class Persistence(AppDbContext _ctx)
         entity.UpdatedBy = updateChatThreadAgentRequest.UserId;
         entity.UpdatedAt = DateTime.UtcNow;
 
-        await _ctx.SaveChangesAsync();
+        await ctx.SaveChangesAsync();
 
-        return ToChatThreadDto(entity);
+        var chatThread = ToChatThreadDto(entity);
+
+        return chatThread;
     }
 
     public async Task<ChatThreadDto?> UpdateChatThreadTitleAsync(UpdateChatThreadTitleRequest updateChatThreadTitleRequest)
     {
-        var entity = await _ctx.ChatThreads
+        await using var ctx = await _dbContextFactory.CreateDbContextAsync();
+
+        var entity = await ctx.ChatThreads
             .Where(x =>
                 x.Id == updateChatThreadTitleRequest.Id &&
                 x.UserId == updateChatThreadTitleRequest.UserId &&
@@ -139,14 +158,18 @@ public sealed class Persistence(AppDbContext _ctx)
         entity.UpdatedBy = updateChatThreadTitleRequest.UserId;
         entity.UpdatedAt = DateTime.UtcNow;
 
-        await _ctx.SaveChangesAsync();
+        await ctx.SaveChangesAsync();
 
-        return ToChatThreadDto(entity);
+        var chatThread = ToChatThreadDto(entity);
+
+        return chatThread;
     }
 
     public async Task<bool> DeleteChatThreadAsync(DeleteChatThreadRequest deleteChatThreadRequest)
     {
-        var entity = await _ctx.ChatThreads
+        await using var ctx = await _dbContextFactory.CreateDbContextAsync();
+
+        var entity = await ctx.ChatThreads
             .Where(x =>
                 x.Id == deleteChatThreadRequest.Id &&
                 x.UserId == deleteChatThreadRequest.UserId &&
@@ -165,7 +188,7 @@ public sealed class Persistence(AppDbContext _ctx)
         entity.UpdatedBy = deleteChatThreadRequest.UserId;
         entity.UpdatedAt = DateTime.UtcNow;
 
-        await _ctx.SaveChangesAsync();
+        await ctx.SaveChangesAsync();
 
         return true;
     }
@@ -176,7 +199,8 @@ public sealed class Persistence(AppDbContext _ctx)
 
     public async Task<List<ChatMessageDto>?> GetChatMessagesByChatThreadIdAsync(Guid chatThreadId)
     {
-        return await _ctx.ChatMessages
+        await using var ctx = await _dbContextFactory.CreateDbContextAsync();
+        var chatMessages = await ctx.ChatMessages
             .AsNoTracking()
             .Where(x =>
                 x.ChatThreadId == chatThreadId &&
@@ -193,13 +217,16 @@ public sealed class Persistence(AppDbContext _ctx)
                 CreatedAt = x.CreatedAt
             })
             .ToListAsync();
+
+        return chatMessages;
     }
 
     public async Task<List<ChatMessageDto>?> GetRecentChatMessagesByChatThreadIdAsync(Guid chatThreadId, int limit)
     {
         var take = Math.Clamp(limit, 1, 100);
 
-        return await _ctx.ChatMessages
+        await using var ctx = await _dbContextFactory.CreateDbContextAsync();
+        var chatMessages = await ctx.ChatMessages
             .AsNoTracking()
             .Where(x =>
                 x.ChatThreadId == chatThreadId &&
@@ -218,14 +245,20 @@ public sealed class Persistence(AppDbContext _ctx)
                 CreatedAt = x.CreatedAt
             })
             .ToListAsync();
+
+        return chatMessages;
     }
 
     public async Task<ChatMessageDto?> AddChatMessageAsync(ChatMessage entity)
     {
-        await _ctx.ChatMessages.AddAsync(entity);
-        await _ctx.SaveChangesAsync();
+        await using var ctx = await _dbContextFactory.CreateDbContextAsync();
 
-        return ToChatMessageDto(entity);
+        await ctx.ChatMessages.AddAsync(entity);
+        await ctx.SaveChangesAsync();
+
+        var chatMessage = ToChatMessageDto(entity);
+
+        return chatMessage;
     }
 
     #endregion

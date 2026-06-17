@@ -94,7 +94,7 @@ public static class DependencyInject
     public static void InjectData(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddScoped<CurrentUser>();
-        services.AddDbContext<AppDbContext>();
+        services.AddDbContextFactory<AppDbContext>();
         services.AddScoped<Features>();
         services.AddScoped<Persistence>();
     }
