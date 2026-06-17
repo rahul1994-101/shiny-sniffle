@@ -9,149 +9,45 @@
 <div class="dash">
     <DashboardHero Greeting="@Greeting()"
                    DisplayName="@DisplayName()"
-                   Loading="_loading"
-                   OnNewChat="StartNewChatAsync" />
+                   UserEmail="@CurrentUser.Email" />
 
-    @if (_loading)
-    {
-        <div class="dash-loading" aria-busy="true" aria-label="Loading dashboard">
-            <div class="dash-stat-grid">
-                @for (var i = 0; i < 3; i++)
-                {
-                    <div class="dash-stat-card dash-skeleton" @key="i"></div>
-                }
-            </div>
-            <div class="dash-panel dash-skeleton dash-skeleton-panel"></div>
-        </div>
-    }
-    else
-    {
-        <DashboardStatGrid ThreadCount="_threadCount"
-                         LastActivityLabel="@LastActivityLabel()"
-                         UserEmail="@CurrentUser.Email" />
-
-        <div class="dash-main-grid">
-            <DashboardRecentThreads Threads="_recentThreads"
-                                   LoadFailed="_loadFailed"
-                                   OnOpenThread="OpenThreadAsync"
-                                   OnStartChat="StartNewChatAsync"
-                                   FormatUpdatedAt="FormatRelative" />
-
-            <aside class="dash-panel dash-panel-aside" aria-labelledby="dash-quick-heading">
-                <h2 id="dash-quick-heading" class="dash-panel-title">Quick links</h2>
-                <nav class="dash-quick-nav" aria-label="Quick links">
-                    <NavLink class="dash-quick-link" href="/chat">
-                        <span class="dash-quick-link-icon" aria-hidden="true">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                            </svg>
-                        </span>
-                        <span class="dash-quick-link-text">
-                            <span class="dash-quick-link-label">Assistant</span>
-                            <span class="dash-quick-link-desc">Continue or browse threads</span>
-                        </span>
-                    </NavLink>
-                    <NavLink class="dash-quick-link" href="settings">
-                        <span class="dash-quick-link-icon" aria-hidden="true">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <circle cx="12" cy="12" r="3" />
-                                <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
-                            </svg>
-                        </span>
-                        <span class="dash-quick-link-text">
-                            <span class="dash-quick-link-label">Settings</span>
-                            <span class="dash-quick-link-desc">Model and appearance</span>
-                        </span>
-                    </NavLink>
-                    <SignOutForm ButtonClass="dash-quick-link dash-quick-link-muted">
-                        <span class="dash-quick-link-icon" aria-hidden="true">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" />
-                            </svg>
-                        </span>
-                        <span class="dash-quick-link-text">
-                            <span class="dash-quick-link-label">Sign out</span>
-                            <span class="dash-quick-link-desc">End your session</span>
-                        </span>
-                    </SignOutForm>
-                </nav>
-            </aside>
-        </div>
-    }
+    <aside class="dash-panel dash-quick-panel" aria-labelledby="dash-quick-heading">
+        <h2 id="dash-quick-heading" class="dash-panel-title">Quick links</h2>
+        <nav class="dash-quick-nav" aria-label="Quick links">
+            <NavLink class="dash-quick-link" href="settings">
+                <span class="dash-quick-link-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3" />
+                        <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
+                    </svg>
+                </span>
+                <span class="dash-quick-link-text">
+                    <span class="dash-quick-link-label">Settings</span>
+                    <span class="dash-quick-link-desc">Model and appearance</span>
+                </span>
+            </NavLink>
+            <SignOutForm ButtonClass="dash-quick-link dash-quick-link-muted">
+                <span class="dash-quick-link-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" />
+                    </svg>
+                </span>
+                <span class="dash-quick-link-text">
+                    <span class="dash-quick-link-label">Sign out</span>
+                    <span class="dash-quick-link-desc">End your session</span>
+                </span>
+            </SignOutForm>
+        </nav>
+    </aside>
 </div>
 
 @code {
-    private const int RecentThreadLimit = 6;
-
-    private List<ChatThreadDto> _recentThreads = [];
-    private int _threadCount;
-    private DateTime? _lastActivityAt;
-    private bool _loading = true;
-    private bool _loadFailed;
-
-    protected override async Task OnInitializedAsync()
-    {
-        await LoadDashboardAsync();
-    }
-
-
-    #region # List
-
-    private async Task LoadDashboardAsync()
-    {
-        _loading = true;
-        _loadFailed = false;
-
-        var result = await Features.GetChatThreadsByUserIdAsync(CurrentUser.Id);
-
-        if (result.HasError || result.Payload is null)
-        {
-            _recentThreads = [];
-            _threadCount = 0;
-            _lastActivityAt = null;
-            _loadFailed = true;
-        }
-        else
-        {
-            var ordered = result.Payload
-                .OrderByDescending(t => t.UpdatedAt)
-                .ToList();
-
-            _threadCount = ordered.Count;
-            _lastActivityAt = ordered.FirstOrDefault()?.UpdatedAt;
-            _recentThreads = ordered.Take(RecentThreadLimit).ToList();
-        }
-
-        _loading = false;
-    }
-
-    private Task OpenThreadAsync(Guid threadId) => NavigateToThreadAsync(threadId);
-
-    #endregion
-
-
-    #region # Create
-
-    private async Task StartNewChatAsync()
-    {
-        var result = await Features.AddChatThreadAsync(
-            new AddChatThreadRequest { Title = "New chat", UserId = CurrentUser.Id });
-
-        if (result.HasError || result.Payload is null)
-            return;
-
-        await NavigateToThreadAsync(result.Payload.Id);
-    }
-
-    #endregion
-
-
-    #region # Helpers
-
     private string DisplayName()
     {
         if (!string.IsNullOrWhiteSpace(CurrentUser.FullName))
+        {
             return CurrentUser.FullName.Trim();
+        }
 
         if (!string.IsNullOrWhiteSpace(CurrentUser.Email))
         {
@@ -172,32 +68,4 @@
             _ => "Good evening"
         };
     }
-
-    private string LastActivityLabel() =>
-        _lastActivityAt is null ? "No activity yet" : FormatRelative(_lastActivityAt.Value);
-
-    private static string FormatRelative(DateTime utc)
-    {
-        var local = utc.Kind == DateTimeKind.Utc ? utc.ToLocalTime() : utc;
-        var delta = DateTime.Now - local;
-
-        if (delta.TotalMinutes < 1)
-            return "just now";
-        if (delta.TotalHours < 1)
-            return $"{(int)delta.TotalMinutes}m ago";
-        if (delta.TotalDays < 1)
-            return $"{(int)delta.TotalHours}h ago";
-        if (delta.TotalDays < 7)
-            return $"{(int)delta.TotalDays}d ago";
-
-        return local.ToString("MMM d");
-    }
-
-    private Task NavigateToThreadAsync(Guid threadId)
-    {
-        NavigationManager.NavigateTo($"/chat/{threadId}");
-        return Task.CompletedTask;
-    }
-
-    #endregion
 }

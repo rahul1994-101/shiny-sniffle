@@ -143,7 +143,10 @@ window.webAppShell = (function () {
 
 window.webAppScroll = {
   scrollElementToEnd: function (el) {
-    if (el) el.scrollTop = el.scrollHeight;
+    if (!el) return;
+    requestAnimationFrame(function () {
+      el.scrollTop = el.scrollHeight;
+    });
   }
 };
 

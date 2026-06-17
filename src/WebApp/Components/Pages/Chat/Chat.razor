@@ -25,8 +25,7 @@
                       aria-label="Message"></textarea>
             <div class="chat-composer-actions">
                 <ChatAgentSelector ThreadId="_activeThreadId"
-                                   Value="_chatAgent"
-                                   ValueChanged="OnChatAgentChangedAsync" />
+                                   @bind-Value="_chatAgent" />
                 <button type="button"
                         class="chat-send"
                         @onclick="SendAsync"
@@ -49,136 +48,76 @@
     private Guid _activeThreadId;
     private ChatAgent _chatAgent;
     private List<ChatMessageDto> _messages = [];
-
-    private ElementReference _messagesRegion;
-    private ElementReference _input;
-    private string _draft = string.Empty;
-    private bool _preventEnterNewline;
-    private bool _didNormalizeRoute;
     private bool _resizeComposerAfterRender;
-    private string? _routeKey;
+    private bool _scrollMessagesAfterRender;
 
     protected override async Task OnParametersSetAsync()
     {
-        var key = GetRouteThreadId()?.ToString("D") ?? NavigationManager.Uri;
-        if (_routeKey != key)
+        // Bare /chat or empty id — chat is only reachable via sidebar (/chat/{id}).
+        if (ThreadId is not { } threadId || threadId == Guid.Empty)
         {
-            _routeKey = key;
-            _didNormalizeRoute = false;
+            NavigationManager.NavigateTo("/", replace: true);
+            return;
         }
 
-        var previousThreadId = _activeThreadId;
-        _activeThreadId = await ResolveActiveThreadIdAsync();
-
-        if (previousThreadId != _activeThreadId)
+        // Same thread as last render; skip reload.
+        if (_activeThreadId == threadId)
         {
-            _draft = string.Empty;
-            await LoadThreadContextAsync();
-            await LoadMessagesAsync();
-            _resizeComposerAfterRender = true;
+            return;
         }
+
+        // Load thread, validate ownership, then switch active thread and messages.
+        await LoadThreadContextAsync(threadId);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (!_resizeComposerAfterRender)
+        if (_resizeComposerAfterRender)
         {
-            return;
+            _resizeComposerAfterRender = false;
+            await ResizeComposerAsync();
         }
 
-        _resizeComposerAfterRender = false;
-        await ResizeComposerAsync();
-    }
-
-    protected override void OnAfterRender(bool firstRender)
-    {
-        if (_didNormalizeRoute)
+        if (_scrollMessagesAfterRender)
         {
-            return;
-        }
-
-        _didNormalizeRoute = true;
-
-        if (_activeThreadId == Guid.Empty)
-        {
-            return;
-        }
-
-        if (GetRouteThreadId() != _activeThreadId)
-        {
-            NavigationManager.NavigateTo($"/chat/{_activeThreadId}", replace: true);
+            _scrollMessagesAfterRender = false;
+            await ScrollToEndAsync();
         }
     }
 
 
     #region # Thread
 
-    private async Task LoadThreadContextAsync()
+    private async Task LoadThreadContextAsync(Guid threadId)
     {
-        if (_activeThreadId == Guid.Empty)
+        var result = await Features.GetChatThreadByIdAsync(threadId);
+
+        // Missing, deleted, or another user's thread — send home.
+        if (result.HasError
+            || result.Payload is null
+            || result.Payload.UserId != CurrentUser.Id)
         {
+            NavigationManager.NavigateTo("/", replace: true);
             return;
         }
 
-        var result = await Features.GetChatThreadByIdAsync(_activeThreadId);
-        if (!result.HasError && result.Payload is not null)
-        {
-            _chatAgent = result.Payload.ChatAgent;
-        }
-    }
+        // Valid thread: adopt route id, agent, and message history.
+        _activeThreadId = threadId;
+        _chatAgent = result.Payload.ChatAgent;
+        _draft = string.Empty;
 
-    private Task OnChatAgentChangedAsync(ChatAgent chatAgent)
-    {
-        _chatAgent = chatAgent;
-        return Task.CompletedTask;
-    }
+        await LoadMessagesAsync();
 
-    private async Task<Guid> ResolveActiveThreadIdAsync()
-    {
-        if (GetRouteThreadId() is { } routeThreadId)
-        {
-            var byId = await Features.GetChatThreadByIdAsync(routeThreadId);
-            if (!byId.HasError && byId.Payload is not null)
-            {
-                return byId.Payload.Id;
-            }
-
-            // URL names a thread — keep it on refresh even if lookup fails transiently.
-            return routeThreadId;
-        }
-
-        var threads = await Features.GetChatThreadsByUserIdAsync(CurrentUser.Id);
-        if (threads.Payload is { Count: > 0 } existing)
-        {
-            return existing[0].Id;
-        }
-
-        var created = await Features.AddChatThreadAsync(new AddChatThreadRequest { Title = "New chat", UserId = CurrentUser.Id });
-        return created.Payload?.Id ?? Guid.Empty;
-    }
-
-    private Guid? GetRouteThreadId()
-    {
-        if (ThreadId is { } fromParameter)
-        {
-            return fromParameter;
-        }
-
-        var relative = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
-        var path = relative.Split('?', '#')[0].Trim('/').ToLowerInvariant();
-        const string prefix = "chat/";
-        if (!path.StartsWith(prefix, StringComparison.Ordinal))
-        {
-            return null;
-        }
-
-        var segment = path[prefix.Length..].Trim('/');
-        return Guid.TryParse(segment, out var parsed) ? parsed : null;
+        _resizeComposerAfterRender = true;
+        _scrollMessagesAfterRender = true;
     }
 
     #endregion
 
     #region # Messages
+
+    private string _draft = string.Empty;
+    private bool _preventEnterNewline;
 
     private async Task OnComposerKeyDownAsync(KeyboardEventArgs e)
     {
@@ -208,7 +147,7 @@
         }
 
         _draft = string.Empty;
-        await ResizeComposerAsync();
+        _resizeComposerAfterRender = true;
 
         var sendResult = await Features.SendChatMessageAsync(new SendChatMessageRequest
         {
@@ -224,12 +163,15 @@
         }
 
         await RefreshLayoutAsync();
-        await ScrollToEndAsync();
+        _scrollMessagesAfterRender = true;
     }
 
     #endregion
 
     #region # Helpers
+
+    private ElementReference _messagesRegion;
+    private ElementReference _input;
 
     private async Task ResizeComposerAsync()
     {
