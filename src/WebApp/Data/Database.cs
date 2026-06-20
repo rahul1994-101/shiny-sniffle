@@ -69,6 +69,12 @@ public class AppDbContext : DbContext
             entity.ToTable("ChatMessage", "dbo");
             entity.Property(e => e.Role).HasColumnName("role");
         });
+        modelBuilder.Entity<UserSetting>(entity =>
+        {
+            entity.ToTable("UserSetting", "dbo");
+            entity.Property(e => e.EmailSettings).HasColumnName("emailSettings");
+            entity.HasIndex(e => e.UserId).IsUnique();
+        });
     }
 
     #endregion
@@ -82,4 +88,5 @@ public class AppDbContext : DbContext
     public DbSet<User> Users { get; set; }
     public DbSet<ChatThread> ChatThreads { get; set; }
     public DbSet<ChatMessage> ChatMessages { get; set; }
+    public DbSet<UserSetting> UserSettings { get; set; }
 }

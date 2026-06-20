@@ -90,3 +90,18 @@ public class ChatMessage : BaseAuditableEntity
 }
 
 #endregion
+
+#region # UserSetting
+
+/// <summary>
+/// Per-user workspace settings. One row per user; mailbox config stored in <see cref="EmailSettings"/> JSON.
+/// </summary>
+public class UserSetting : BaseAuditableEntity
+{
+    [Required(ErrorMessage = "User Id is required.")]
+    public Guid UserId { get; set; }
+
+    public string? EmailSettings { get; set; }
+}
+
+#endregion

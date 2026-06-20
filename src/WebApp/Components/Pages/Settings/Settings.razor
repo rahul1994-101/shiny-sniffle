@@ -16,42 +16,168 @@
 
     <header class="settings-header">
         <h1 class="settings-title">Settings</h1>
-        <p class="settings-subtitle">Workspace preferences.</p>
+        <p class="settings-subtitle">Connect your mailbox for the Email agent.</p>
     </header>
 
-    <section class="settings-card" aria-labelledby="model-heading">
-        <h2 id="model-heading" class="settings-section-title">Model</h2>
-        <label class="settings-label" for="model-id">Display name</label>
-        <input id="model-id"
-               type="text"
-               class="settings-input"
-               @bind="_settingsViewModel.ModelName"
-               placeholder="e.g. gpt-4.1"
-               autocomplete="off" />
-        <p class="settings-hint">Display label only; the deployed model is chosen in Azure AI Foundry.</p>
-    </section>
+    @if (_isLoading)
+    {
+        <p class="settings-hint" role="status">Loading settings…</p>
+    }
+    else
+    {
+        <section class="settings-card" aria-labelledby="mail-heading">
+            <h2 id="mail-heading" class="settings-section-title">Mailbox (IMAP / SMTP)</h2>
 
-    <section class="settings-card" aria-labelledby="appearance-heading">
-        <h2 id="appearance-heading" class="settings-section-title">Appearance</h2>
-        <label class="settings-label" for="theme">Theme</label>
-        <select id="theme" class="settings-input settings-select" @bind="_settingsViewModel.Theme">
-            <option value="dark">Dark (default)</option>
-            <option value="light">Light</option>
-            <option value="system">System</option>
-        </select>
-        <p class="settings-hint">UI theme switching can be hooked up later.</p>
-    </section>
+            <label class="settings-label" for="mail-email">Email address</label>
+            <input id="mail-email"
+                   type="email"
+                   class="settings-input"
+                   @bind="_settings.Email.EmailAddress"
+                   autocomplete="email" />
+
+            <label class="settings-label" for="mail-username">Username</label>
+            <input id="mail-username"
+                   type="text"
+                   class="settings-input"
+                   @bind="_settings.Email.Username"
+                   autocomplete="username" />
+
+            <label class="settings-label" for="mail-password">Password</label>
+            <input id="mail-password"
+                   type="password"
+                   class="settings-input"
+                   @bind="_settings.Email.Password"
+                   autocomplete="new-password"
+                   placeholder="@(_settings.Email.HasStoredPassword ? "Saved — leave blank to keep" : "App password or mailbox password")" />
+            <p class="settings-hint">Stored encrypted. Leave blank on save to keep the existing password.</p>
+
+            <label class="settings-label" for="mail-imap-host">IMAP host</label>
+            <input id="mail-imap-host"
+                   type="text"
+                   class="settings-input"
+                   @bind="_settings.Email.ImapHost"
+                   placeholder="imap.example.com"
+                   autocomplete="off" />
+
+            <div class="settings-row">
+                <div class="settings-row-field">
+                    <label class="settings-label" for="mail-imap-port">IMAP port</label>
+                    <input id="mail-imap-port"
+                           type="number"
+                           min="1"
+                           max="65535"
+                           class="settings-input"
+                           @bind="_settings.Email.ImapPort" />
+                </div>
+                <div class="settings-row-field settings-row-check">
+                    <label class="settings-check">
+                        <input type="checkbox" @bind="_settings.Email.ImapUseSsl" />
+                        <span>IMAP SSL</span>
+                    </label>
+                </div>
+            </div>
+
+            <label class="settings-label" for="mail-smtp-host">SMTP host</label>
+            <input id="mail-smtp-host"
+                   type="text"
+                   class="settings-input"
+                   @bind="_settings.Email.SmtpHost"
+                   placeholder="smtp.example.com"
+                   autocomplete="off" />
+
+            <div class="settings-row">
+                <div class="settings-row-field">
+                    <label class="settings-label" for="mail-smtp-port">SMTP port</label>
+                    <input id="mail-smtp-port"
+                           type="number"
+                           min="1"
+                           max="65535"
+                           class="settings-input"
+                           @bind="_settings.Email.SmtpPort" />
+                </div>
+                <div class="settings-row-field settings-row-check">
+                    <label class="settings-check">
+                        <input type="checkbox" @bind="_settings.Email.SmtpUseSsl" />
+                        <span>SMTP SSL</span>
+                    </label>
+                </div>
+            </div>
+        </section>
+
+        <div class="settings-actions">
+            <button type="button"
+                    class="settings-btn-save"
+                    disabled="@_isSaving"
+                    @onclick="SaveAsync">
+                @(_isSaving ? "Saving…" : "Save settings")
+            </button>
+        </div>
+
+        @if (!string.IsNullOrEmpty(_statusMessage))
+        {
+            <p class="settings-sync-msg @(_saveFailed ? "settings-sync-msg-error" : "settings-sync-msg-success")" role="status">
+                @_statusMessage
+            </p>
+        }
+    }
 </div>
 
 @code {
-    private readonly SettingsViewModel _settingsViewModel = new();
+    private UserSettingsDto _settings = new();
+    private bool _isLoading = true;
+    private bool _isSaving;
+    private bool _saveFailed;
+    private string? _statusMessage;
 
-    #region # Helpers
+    #region # Lifecycle
 
-    public sealed class SettingsViewModel
+    protected override async Task OnInitializedAsync()
     {
-        public string ModelName { get; set; } = "mailer-mini";
-        public string Theme { get; set; } = "dark";
+        await LoadSettingsAsync();
+    }
+
+    #endregion
+
+    #region # Settings
+
+    private async Task LoadSettingsAsync()
+    {
+        _isLoading = true;
+        _statusMessage = null;
+
+        var result = await Features.GetUserSettingsAsync(CurrentUser.Id);
+        if (!result.HasError && result.Payload is not null)
+        {
+            _settings = result.Payload;
+        }
+
+        _isLoading = false;
+    }
+
+    private async Task SaveAsync()
+    {
+        _isSaving = true;
+        _statusMessage = null;
+        _saveFailed = false;
+
+        var result = await Features.SaveUserSettingsAsync(new SaveUserSettingsRequest
+        {
+            UserId = CurrentUser.Id,
+            Email = _settings.Email
+        });
+
+        if (result.HasError)
+        {
+            _saveFailed = true;
+            _statusMessage = result.Errors.FirstOrDefault()?.Message ?? "Failed to save settings.";
+        }
+        else if (result.Payload is not null)
+        {
+            _settings = result.Payload;
+            _statusMessage = "Settings saved.";
+        }
+
+        _isSaving = false;
     }
 
     #endregion

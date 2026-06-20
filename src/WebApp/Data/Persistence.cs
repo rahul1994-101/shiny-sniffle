@@ -263,6 +263,49 @@ public sealed class Persistence(IDbContextFactory<AppDbContext> _dbContextFactor
 
     #endregion
 
+    #region # UserSetting
+
+    public async Task<UserSetting?> GetUserSettingByUserIdAsync(Guid userId)
+    {
+        await using var ctx = await _dbContextFactory.CreateDbContextAsync();
+        var userSetting = await ctx.UserSettings
+            .AsNoTracking()
+            .Where(x =>
+                x.UserId == userId &&
+                x.IsActive == true &&
+                x.IsDeleted == false)
+            .FirstOrDefaultAsync();
+
+        return userSetting;
+    }
+
+    public async Task<UserSetting?> UpsertUserSettingAsync(UserSetting entity)
+    {
+        await using var ctx = await _dbContextFactory.CreateDbContextAsync();
+        var existing = await ctx.UserSettings
+            .Where(x =>
+                x.UserId == entity.UserId &&
+                x.IsActive == true &&
+                x.IsDeleted == false)
+            .FirstOrDefaultAsync();
+
+        if (existing is null)
+        {
+            await ctx.UserSettings.AddAsync(entity);
+            await ctx.SaveChangesAsync();
+            return entity;
+        }
+
+        existing.EmailSettings = entity.EmailSettings;
+        existing.UpdatedBy = entity.UpdatedBy;
+        existing.UpdatedAt = entity.UpdatedAt;
+
+        await ctx.SaveChangesAsync();
+        return existing;
+    }
+
+    #endregion
+
     #region # Private Helpers
 
     private static ChatThreadDto ToChatThreadDto(ChatThread entity) =>
