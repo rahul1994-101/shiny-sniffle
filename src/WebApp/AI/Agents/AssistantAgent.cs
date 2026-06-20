@@ -1,6 +1,4 @@
-using Microsoft.Extensions.AI;
-
-using WebApp.AI.Foundry;
+using Microsoft.Agents.AI;
 using WebApp.Models;
 
 namespace WebApp.AI.Agents;
@@ -14,7 +12,7 @@ public sealed class AssistantAgent(FoundryAgentFactory _agentFactory)
     {
         #region # Execute
 
-        var agent = _agentFactory.CreateAssistantAgent();
+        var agent = CreateAssistantAgent();
         var messages = history.ToList();
         var response = await agent.RunAsync(messages, cancellationToken: cancellationToken);
 
@@ -31,6 +29,19 @@ public sealed class AssistantAgent(FoundryAgentFactory _agentFactory)
     }
 
     #region # Private Helpers
+
+    private AIAgent CreateAssistantAgent()
+    {
+        var modelDeployment = "gpt-4o-mini-deploy";
+        var name = "Assistant";
+        var description = "General conversational assistant.";
+        var instructions =
+            "You are a helpful workspace assistant. Be concise and friendly. " +
+            "You do not have access to email or mailbox tools. " +
+            "If the user needs mail help, suggest switching to the Email agent in the chat composer.";
+
+        return _agentFactory.CreateAgent(modelDeployment, name, description, instructions);
+    }
 
     private static string ExtractAssistantText(Microsoft.Agents.AI.AgentResponse response)
     {

@@ -1,6 +1,5 @@
+using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
-
-using WebApp.AI.Foundry;
 using WebApp.AI.Tools;
 using WebApp.Models;
 
@@ -16,7 +15,7 @@ public sealed class EmailAgent(FoundryAgentFactory _agentFactory, EmailTools _em
         #region # Execute
 
         var tools = _emailTools.CreateTools(request.UserId, request.ChatThreadId);
-        var agent = _agentFactory.CreateEmailAgent(tools);
+        var agent = CreateEmailAgent(tools);
         var messages = history.ToList();
         var response = await agent.RunAsync(messages, cancellationToken: cancellationToken);
 
@@ -33,6 +32,20 @@ public sealed class EmailAgent(FoundryAgentFactory _agentFactory, EmailTools _em
     }
 
     #region # Private Helpers
+
+    private AIAgent CreateEmailAgent(IList<AITool> tools)
+    {
+        var modelDeployment = "gpt-4o-mini-deploy";
+        var name = "Email";
+        var description = "Email and mailbox assistant.";
+        var instructions =
+            "You help users read, summarize, and send email using the available tools. " +
+            "Use tools for mailbox operations — do not invent message contents. " +
+            "Before sending mail, confirm recipient, subject, and body with the user. " +
+            "Summarize tool results clearly.";
+
+        return _agentFactory.CreateAgent(modelDeployment, name, description, instructions, tools);
+    }
 
     private static string ExtractAssistantText(Microsoft.Agents.AI.AgentResponse response)
     {

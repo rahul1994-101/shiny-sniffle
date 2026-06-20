@@ -1,4 +1,4 @@
-﻿using WebApp.AI.Orchestration;
+﻿using WebApp.AI;
 using WebApp.Models;
 
 namespace WebApp.Data;

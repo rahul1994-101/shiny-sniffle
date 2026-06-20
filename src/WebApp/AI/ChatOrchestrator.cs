@@ -1,4 +1,3 @@
-using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Options;
 
 using WebApp.AI.Agents;
@@ -7,7 +6,7 @@ using WebApp.Models;
 
 using AiChatRole = Microsoft.Extensions.AI.ChatRole;
 
-namespace WebApp.AI.Orchestration;
+namespace WebApp.AI;
 
 public sealed class ChatOrchestrator(
     IOptions<FoundryOptions> _foundryOptions,

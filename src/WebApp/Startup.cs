@@ -5,8 +5,7 @@ using Microsoft.AspNetCore.Localization;
 
 using WebApp;
 using WebApp.AI.Agents;
-using WebApp.AI.Foundry;
-using WebApp.AI.Orchestration;
+using WebApp.AI;
 using WebApp.AI.Tools;
 using WebApp.Components;
 using WebApp.Data;
