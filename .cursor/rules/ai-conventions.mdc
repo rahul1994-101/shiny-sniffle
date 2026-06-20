@@ -51,7 +51,7 @@ Register AI types in `Startup.InjectAi` only — not scattered across the app.
 | Folder | One file per | Public entry | Notes |
 |--------|--------------|--------------|-------|
 | **AI/ (root)** | coordinator / factory | `RunChatAgentAsync`, `CreateAgent` | `ChatOrchestrator.cs`, `FoundryAgentFactory.cs` — turn routing and shared MAF wiring at AI root while only one coordinator exists. |
-| **Agents/** | agent role | `RunAsync` | Profile + `Create{Role}Agent` in `# Private Helpers`; call `FoundryAgentFactory.CreateAgent` for MAF wiring. Return `RunChatAgentResponse`. |
+| **Agents/** | agent role | `RunAsync` | `FoundryDeployments` in `FoundryAgentFactory.cs` for deployment names; per-agent name, description, instructions, and routing catalog in each file's private `Create{Role}Agent`; call `FoundryAgentFactory.CreateAgent`. Return `RunChatAgentResponse`. |
 | **Tools/** | agent domain | `CreateTools` | MAF `AITool` list; mock/real impls in `# Private Helpers`. No LLM calls. |
 | **Memory/** | agent domain | `LoadAsync` / enrich | Agent-specific context only (parallel to Tools). No LLM calls. |
 | **Workflows/** | workflow | `RunAsync` | Multi-step; compose agents and tools. Reintroduce **Orchestration/** if multiple coordinators are added. |
@@ -160,10 +160,10 @@ public sealed class AssistantAgent(FoundryAgentFactory _agentFactory)
     #region # Private Helpers
     private AIAgent CreateAssistantAgent()
     {
-        var modelDeployment = "gpt-4o-mini-deploy";
+        var modelDeployment = FoundryDeployments.Gpt4oMini;
         var name = "Assistant";
         var description = "...";
-        var instructions = "...";
+        var instructions = "..."; // receptionist prompt; inject FormatSpecialistDirectory() for departments
 
         return _agentFactory.CreateAgent(modelDeployment, name, description, instructions);
     }

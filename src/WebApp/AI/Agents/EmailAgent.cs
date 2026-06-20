@@ -1,8 +1,9 @@
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
+
+using WebApp.AI;
 using WebApp.AI.Tools;
 using WebApp.Models;
-
 namespace WebApp.AI.Agents;
 
 public sealed class EmailAgent(FoundryAgentFactory _agentFactory, EmailTools _emailTools)
@@ -35,7 +36,7 @@ public sealed class EmailAgent(FoundryAgentFactory _agentFactory, EmailTools _em
 
     private AIAgent CreateEmailAgent(IList<AITool> tools)
     {
-        var modelDeployment = "gpt-4o-mini-deploy";
+        var modelDeployment = FoundryDeployments.Gpt4oMini;
         var name = "Email";
         var description = "Email and mailbox assistant.";
         var instructions =
