@@ -1,8 +1,7 @@
 ﻿@page "/settings"
+@page "/settings/{Tab}"
 
 @inherits BaseComponent
-
-@inject UserMailboxService MailboxService
 
 @attribute [Authorize]
 
@@ -19,194 +18,45 @@
 
         <header class="settings-header">
             <h1 class="settings-title">Settings</h1>
-            <p class="settings-subtitle">Connect your mailbox for the Email agent.</p>
+            <p class="settings-subtitle">
+                @(IsEmailTab ? "Connect IMAP/SMTP for the Email agent." : "Your account and workspace preferences.")
+            </p>
         </header>
 
-        @if (_busy == SettingsBusy.Loading)
-        {
-            <p class="settings-hint" role="status">Loading settings…</p>
-        }
-        else
-        {
-            <section class="settings-card" aria-labelledby="mail-heading">
-                <h2 id="mail-heading" class="settings-section-title">Mailbox (IMAP / SMTP)</h2>
+        <nav class="settings-tabs" aria-label="Settings sections">
+            <NavLink class="settings-tab" href="/settings/general" Match="NavLinkMatch.All" ActiveClass="settings-tab-active">
+                General
+            </NavLink>
+            <NavLink class="settings-tab" href="/settings/email" Match="NavLinkMatch.All" ActiveClass="settings-tab-active">
+                Email
+            </NavLink>
+        </nav>
 
-                <label class="settings-label" for="mail-email">Email address</label>
-                <input id="mail-email"
-                       type="email"
-                       class="settings-input"
-                       @bind="_settings.Email.EmailAddress"
-                       autocomplete="email" />
-
-                <label class="settings-label" for="mail-username">Username</label>
-                <input id="mail-username"
-                       type="text"
-                       class="settings-input"
-                       @bind="_settings.Email.Username"
-                       autocomplete="username" />
-
-                <label class="settings-label" for="mail-password">Password</label>
-                <input id="mail-password"
-                       type="password"
-                       class="settings-input"
-                       @bind="_settings.Email.Password"
-                       autocomplete="new-password"
-                       placeholder="@(_settings.Email.HasStoredPassword ? "Saved — leave blank to keep" : "App password or mailbox password")" />
-                <p class="settings-hint">Stored encrypted. Leave blank on save to keep the existing password.</p>
-
-                <label class="settings-label" for="mail-imap-host">IMAP host</label>
-                <input id="mail-imap-host"
-                       type="text"
-                       class="settings-input"
-                       @bind="_settings.Email.ImapHost"
-                       placeholder="imap.example.com"
-                       autocomplete="off" />
-
-                <div class="settings-row">
-                    <div class="settings-row-field">
-                        <label class="settings-label" for="mail-imap-port">IMAP port</label>
-                        <input id="mail-imap-port"
-                               type="number"
-                               min="1"
-                               max="65535"
-                               class="settings-input"
-                               @bind="_settings.Email.ImapPort" />
-                    </div>
-                    <div class="settings-row-field settings-row-check">
-                        <label class="settings-check">
-                            <input type="checkbox" @bind="_settings.Email.ImapUseSsl" />
-                            <span>IMAP SSL</span>
-                        </label>
-                    </div>
-                </div>
-
-                <label class="settings-label" for="mail-smtp-host">SMTP host</label>
-                <input id="mail-smtp-host"
-                       type="text"
-                       class="settings-input"
-                       @bind="_settings.Email.SmtpHost"
-                       placeholder="smtp.example.com"
-                       autocomplete="off" />
-
-                <div class="settings-row">
-                    <div class="settings-row-field">
-                        <label class="settings-label" for="mail-smtp-port">SMTP port</label>
-                        <input id="mail-smtp-port"
-                               type="number"
-                               min="1"
-                               max="65535"
-                               class="settings-input"
-                               @bind="_settings.Email.SmtpPort" />
-                    </div>
-                    <div class="settings-row-field settings-row-check">
-                        <label class="settings-check">
-                            <input type="checkbox" @bind="_settings.Email.SmtpUseSsl" />
-                            <span>SMTP SSL</span>
-                        </label>
-                    </div>
-                </div>
-            </section>
-
-            <div class="settings-actions">
-                <button type="button"
-                        class="settings-btn-save"
-                        disabled="@IsBusy"
-                        @onclick="SaveAsync">
-                    @(_busy == SettingsBusy.Saving ? "Saving…" : "Save settings")
-                </button>
-                <button type="button"
-                        class="settings-btn-secondary"
-                        disabled="@IsBusy"
-                        @onclick="TestConnectionAsync">
-                    @(_busy == SettingsBusy.Testing ? "Testing…" : "Test connection")
-                </button>
-            </div>
-
-            @if (_status is not null)
+        <div class="settings-content">
+            @if (IsEmailTab)
             {
-                <p class="settings-sync-msg @(_status.IsError ? "settings-sync-msg-error" : "settings-sync-msg-success")" role="status">
-                    @_status.Message
-                </p>
+                <Email />
             }
-        }
+            else
+            {
+                <General />
+            }
+        </div>
     </div>
 </div>
 
 @code {
-    private UserSettingsDto _settings = new();
-    private SettingsBusy _busy = SettingsBusy.Loading;
-    private SettingsStatus? _status;
+    [Parameter]
+    public string? Tab { get; set; }
 
-    private bool IsBusy => _busy is SettingsBusy.Saving or SettingsBusy.Testing;
-
-    protected override async Task OnInitializedAsync()
+    protected override void OnParametersSet()
     {
-        await LoadAsync();
-    }
-
-    private async Task LoadAsync()
-    {
-        _busy = SettingsBusy.Loading;
-        _status = null;
-
-        var result = await Features.GetUserSettingsAsync(CurrentUser.Id);
-        if (result.HasError)
+        if (string.IsNullOrWhiteSpace(Tab))
         {
-            _status = new SettingsStatus(
-                result.Errors.FirstOrDefault()?.Message ?? "Failed to load settings.",
-                IsError: true);
+            NavigationManager.NavigateTo("/settings/general", replace: true);
         }
-        else if (result.Payload is not null)
-        {
-            _settings = result.Payload;
-        }
-
-        _busy = SettingsBusy.None;
     }
 
-    private async Task SaveAsync()
-    {
-        _busy = SettingsBusy.Saving;
-        _status = null;
-
-        var result = await Features.SaveUserSettingsAsync(new SaveUserSettingsRequest
-        {
-            UserId = CurrentUser.Id,
-            Settings = _settings
-        });
-        if (result.HasError)
-        {
-            _status = new SettingsStatus(
-                result.Errors.FirstOrDefault()?.Message ?? "Failed to save settings.",
-                IsError: true);
-        }
-        else if (result.Payload is not null)
-        {
-            _settings = result.Payload;
-            _status = new SettingsStatus("Settings saved.", IsError: false);
-        }
-
-        _busy = SettingsBusy.None;
-    }
-
-    private async Task TestConnectionAsync()
-    {
-        _busy = SettingsBusy.Testing;
-        _status = null;
-
-        var result = await MailboxService.TestConnectionAsync(CurrentUser.Id, _settings.Email);
-        _status = new SettingsStatus(result.Message, IsError: !result.Success);
-
-        _busy = SettingsBusy.None;
-    }
-
-    private enum SettingsBusy
-    {
-        None,
-        Loading,
-        Saving,
-        Testing
-    }
-
-    private sealed record SettingsStatus(string Message, bool IsError);
+    private bool IsEmailTab =>
+        string.Equals(Tab, "email", StringComparison.OrdinalIgnoreCase);
 }

@@ -5,6 +5,12 @@ namespace WebApp.Utilities.Helpers;
 
 internal static class EmailSettingsHelpers
 {
+    internal static EmailSettings? FromJson(string? json) =>
+        JsonColumnHelpers.Deserialize<EmailSettings>(json);
+
+    internal static string? ToJson(EmailSettings? settings) =>
+        JsonColumnHelpers.Serialize(settings);
+
     internal static EmailSettingsDto MapToDto(EmailSettings? stored)
     {
         if (stored is null)
@@ -27,12 +33,19 @@ internal static class EmailSettingsHelpers
         };
     }
 
-    internal static string? ValidateForSave(EmailSettingsDto email, bool hasStoredPassword)
+    internal static string? TryBuildForSave(
+        EmailSettingsDto email,
+        EmailSettings? existing,
+        out EmailSettings? settings)
     {
+        settings = null;
+
         if (IsEmpty(email))
         {
             return null;
         }
+
+        var hasStoredPassword = !string.IsNullOrWhiteSpace(existing?.Password);
 
         if (string.IsNullOrWhiteSpace(email.EmailAddress))
         {
@@ -59,17 +72,7 @@ internal static class EmailSettingsHelpers
             return "Mailbox password is required.";
         }
 
-        return null;
-    }
-
-    internal static EmailSettings? ApplyForSave(EmailSettingsDto email, EmailSettings? existing)
-    {
-        if (IsEmpty(email))
-        {
-            return null;
-        }
-
-        return new EmailSettings
+        settings = new EmailSettings
         {
             EmailAddress = email.EmailAddress.Trim(),
             ImapHost = email.ImapHost.Trim(),
@@ -81,6 +84,8 @@ internal static class EmailSettingsHelpers
             Username = email.Username.Trim(),
             Password = ResolvePasswordForSave(email.Password, existing?.Password)
         };
+
+        return null;
     }
 
     internal static MailboxConnectionOptions? ResolveConnectionOptions(

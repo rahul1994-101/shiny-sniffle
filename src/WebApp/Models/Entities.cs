@@ -98,7 +98,8 @@ public class UserSetting : BaseAuditableEntity
     [Required(ErrorMessage = "User Id is required.")]
     public Guid UserId { get; set; }
 
-    public EmailSettings? EmailSettings { get; set; }
+    /// <summary>JSON payload for <see cref="EmailSettings"/>; column <c>EmailSettingsJson</c>.</summary>
+    public string? EmailSettingsJson { get; set; }
 }
 
 public class EmailSettings

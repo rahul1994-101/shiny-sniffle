@@ -1,0 +1,60 @@
+@inherits BaseComponent
+
+<section class="settings-card">
+    <div class="settings-account">
+        <div class="settings-account-avatar" aria-hidden="true">@Initials()</div>
+        <div class="settings-account-body">
+            <p class="settings-account-name">@DisplayName()</p>
+            <p class="settings-account-email">@CurrentUser.Email</p>
+        </div>
+    </div>
+</section>
+
+<section class="settings-card settings-card-muted">
+    <h2 class="settings-section-title">On the way</h2>
+    <ul class="settings-soon-list">
+        <li class="settings-soon-item">
+            <span>Password reset</span>
+            <span class="settings-soon-badge">Soon</span>
+        </li>
+        <li class="settings-soon-item">
+            <span>Profile &amp; display name</span>
+            <span class="settings-soon-badge">Soon</span>
+        </li>
+    </ul>
+</section>
+
+@code {
+    private string DisplayName()
+    {
+        if (!string.IsNullOrWhiteSpace(CurrentUser.FullName))
+        {
+            return CurrentUser.FullName.Trim();
+        }
+
+        if (!string.IsNullOrWhiteSpace(CurrentUser.Email))
+        {
+            var local = CurrentUser.Email.Split('@')[0];
+            return string.IsNullOrWhiteSpace(local) ? "Your account" : local;
+        }
+
+        return "Your account";
+    }
+
+    private string Initials()
+    {
+        var name = DisplayName();
+        if (string.IsNullOrWhiteSpace(name) || name == "Your account")
+        {
+            return "?";
+        }
+
+        var parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length >= 2)
+        {
+            return $"{parts[0][0]}{parts[^1][0]}".ToUpperInvariant();
+        }
+
+        return char.ToUpperInvariant(name[0]).ToString();
+    }
+}

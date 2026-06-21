@@ -260,20 +260,19 @@ public class EmailSettingsDto
     public bool HasStoredPassword { get; set; }
 }
 
-public class UserSettingsDto
-{
-    public EmailSettingsDto Email { get; set; } = new();
-}
-
 public class SaveUserSettingsRequest
 {
     [Required(ErrorMessage = "User Id is required.")]
     public Guid UserId { get; set; }
 
-    public UserSettingsDto Settings { get; set; } = new();
+    public SettingsSection Section { get; set; }
+
+    public EmailSettingsDto? Email { get; set; }
 }
 
+#endregion
 
+#region # Mail
 
 public sealed class MailboxConnectionOptions
 {

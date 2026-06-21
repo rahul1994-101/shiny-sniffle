@@ -12,6 +12,13 @@ public enum ChatAgent
     Email = 1
 }
 
+/// <summary>Settings page tab / JSON column section for <see cref="SaveUserSettingsRequest.Section"/>.</summary>
+public enum SettingsSection
+{
+    General = 0,
+    Email = 1
+}
+
 public enum ErrorCode
 {
     BadRequest = 400,

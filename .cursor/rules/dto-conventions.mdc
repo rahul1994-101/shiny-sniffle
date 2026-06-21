@@ -70,12 +70,21 @@ Features validates and orchestrates; Persistence does not take UI-facing `*Reque
 ## Persistence pattern
 
 ```csharp
-// Read — project in SQL
+// Read — project in SQL (flat entities)
 .Select(x => new ChatMessageDto { Id = x.Id, ... })
+
+// Read — JSON settings column (UserSetting sections)
+var json = await ctx.UserSettings...Select(x => x.EmailSettingsJson).FirstOrDefaultAsync();
+return EmailSettingsHelpers.FromJson(json);
 
 // Write — entity in, Dto out
 public async Task<ChatMessageDto?> AddChatMessageAsync(ChatMessage entity)
+
+// Write — JSON settings column
+existing.EmailSettingsJson = EmailSettingsHelpers.ToJson(emailSettings);
 ```
+
+For JSON settings columns on `UserSetting`, follow `data-conventions.mdc` (no EF `ToJson()`). SQL column name matches the entity property (e.g. `EmailSettingsJson`).
 
 ## Feature response composing shared DTOs
 

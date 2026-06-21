@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 
 using WebApp.Models;
+using WebApp.Utilities.Helpers;
 
 namespace WebApp.Data;
 
@@ -265,43 +266,57 @@ public sealed class Persistence(IDbContextFactory<AppDbContext> _dbContextFactor
 
     #region # UserSetting
 
-    public async Task<UserSetting?> GetUserSettingByUserIdAsync(Guid userId)
+    public async Task<EmailSettings?> GetUserEmailSettingsAsync(Guid userId)
     {
         await using var ctx = await _dbContextFactory.CreateDbContextAsync();
-        var userSetting = await ctx.UserSettings
+        var emailSettingsJson = await ctx.UserSettings
             .AsNoTracking()
+            .Where(x =>
+                x.UserId == userId &&
+                x.IsActive == true &&
+                x.IsDeleted == false)
+            .Select(x => x.EmailSettingsJson)
+            .FirstOrDefaultAsync();
+
+        return EmailSettingsHelpers.FromJson(emailSettingsJson);
+    }
+
+    public async Task<EmailSettings?> SaveUserEmailSettingsAsync(Guid userId, EmailSettings? emailSettings, Guid updatedBy)
+    {
+        await using var ctx = await _dbContextFactory.CreateDbContextAsync();
+        var existing = await ctx.UserSettings
             .Where(x =>
                 x.UserId == userId &&
                 x.IsActive == true &&
                 x.IsDeleted == false)
             .FirstOrDefaultAsync();
 
-        return userSetting;
-    }
-
-    public async Task<UserSetting?> UpsertUserSettingAsync(UserSetting entity)
-    {
-        await using var ctx = await _dbContextFactory.CreateDbContextAsync();
-        var existing = await ctx.UserSettings
-            .Where(x =>
-                x.UserId == entity.UserId &&
-                x.IsActive == true &&
-                x.IsDeleted == false)
-            .FirstOrDefaultAsync();
+        var now = DateTime.UtcNow;
+        var emailSettingsJson = EmailSettingsHelpers.ToJson(emailSettings);
 
         if (existing is null)
         {
+            var entity = new UserSetting
+            {
+                UserId = userId,
+                EmailSettingsJson = emailSettingsJson,
+                CreatedBy = updatedBy,
+                UpdatedBy = updatedBy,
+                CreatedAt = now,
+                UpdatedAt = now
+            };
+
             await ctx.UserSettings.AddAsync(entity);
             await ctx.SaveChangesAsync();
-            return entity;
+            return EmailSettingsHelpers.FromJson(entity.EmailSettingsJson);
         }
 
-        existing.EmailSettings = entity.EmailSettings;
-        existing.UpdatedBy = entity.UpdatedBy;
-        existing.UpdatedAt = entity.UpdatedAt;
+        existing.EmailSettingsJson = emailSettingsJson;
+        existing.UpdatedBy = updatedBy;
+        existing.UpdatedAt = now;
 
         await ctx.SaveChangesAsync();
-        return existing;
+        return EmailSettingsHelpers.FromJson(existing.EmailSettingsJson);
     }
 
     #endregion

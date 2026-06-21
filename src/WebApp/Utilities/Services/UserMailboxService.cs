@@ -146,8 +146,8 @@ public sealed class UserMailboxService(Persistence _repo, IMailboxService _mailb
         CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var entity = await _repo.GetUserSettingByUserIdAsync(userId);
-        return EmailSettingsHelpers.ResolveConnectionOptions(entity?.EmailSettings, draft);
+        var emailSettings = await _repo.GetUserEmailSettingsAsync(userId);
+        return EmailSettingsHelpers.ResolveConnectionOptions(emailSettings, draft);
     }
 
     private static DateTime? ParseSinceUtc(string since)

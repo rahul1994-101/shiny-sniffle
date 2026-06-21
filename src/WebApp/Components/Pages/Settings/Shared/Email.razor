@@ -1,0 +1,208 @@
+@inherits BaseComponent
+
+@inject UserMailboxService MailboxService
+
+@if (_busy == TabBusy.Loading)
+{
+    <p class="settings-hint" role="status">Loading email settings…</p>
+}
+else
+{
+    <section class="settings-card" aria-labelledby="mail-heading">
+        <h2 id="mail-heading" class="settings-section-title">Mailbox (IMAP / SMTP)</h2>
+
+        <label class="settings-label" for="mail-email">Email address</label>
+        <input id="mail-email"
+               type="email"
+               class="settings-input"
+               @bind="_email.EmailAddress"
+               autocomplete="email" />
+
+        <label class="settings-label" for="mail-username">Username</label>
+        <input id="mail-username"
+               type="text"
+               class="settings-input"
+               @bind="_email.Username"
+               autocomplete="username" />
+
+        <label class="settings-label" for="mail-password">Password</label>
+        <input id="mail-password"
+               type="password"
+               class="settings-input"
+               @bind="_email.Password"
+               autocomplete="new-password"
+               placeholder="@(_email.HasStoredPassword ? "Saved — leave blank to keep" : "App password or mailbox password")" />
+        <p class="settings-hint">Stored encrypted. Leave blank on save to keep the existing password.</p>
+
+        <label class="settings-label" for="mail-imap-host">IMAP host</label>
+        <input id="mail-imap-host"
+               type="text"
+               class="settings-input"
+               @bind="_email.ImapHost"
+               placeholder="imap.example.com"
+               autocomplete="off" />
+
+        <div class="settings-row">
+            <div class="settings-row-field">
+                <label class="settings-label" for="mail-imap-port">IMAP port</label>
+                <input id="mail-imap-port"
+                       type="number"
+                       min="1"
+                       max="65535"
+                       class="settings-input"
+                       @bind="_email.ImapPort" />
+            </div>
+            <div class="settings-row-field settings-row-check">
+                <label class="settings-check">
+                    <input type="checkbox" @bind="_email.ImapUseSsl" />
+                    <span>IMAP SSL</span>
+                </label>
+            </div>
+        </div>
+
+        <label class="settings-label" for="mail-smtp-host">SMTP host</label>
+        <input id="mail-smtp-host"
+               type="text"
+               class="settings-input"
+               @bind="_email.SmtpHost"
+               placeholder="smtp.example.com"
+               autocomplete="off" />
+
+        <div class="settings-row">
+            <div class="settings-row-field">
+                <label class="settings-label" for="mail-smtp-port">SMTP port</label>
+                <input id="mail-smtp-port"
+                       type="number"
+                       min="1"
+                       max="65535"
+                       class="settings-input"
+                       @bind="_email.SmtpPort" />
+            </div>
+            <div class="settings-row-field settings-row-check">
+                <label class="settings-check">
+                    <input type="checkbox" @bind="_email.SmtpUseSsl" />
+                    <span>SMTP SSL</span>
+                </label>
+            </div>
+        </div>
+    </section>
+
+    <div class="settings-actions">
+        <button type="button"
+                class="settings-btn-save"
+                disabled="@IsBusy"
+                @onclick="SaveAsync">
+            @(_busy == TabBusy.Saving ? "Saving…" : "Save email settings")
+        </button>
+        <button type="button"
+                class="settings-btn-secondary"
+                disabled="@IsBusy"
+                @onclick="TestConnectionAsync">
+            @(_busy == TabBusy.Testing ? "Testing…" : "Test connection")
+        </button>
+    </div>
+
+    @if (_status is not null)
+    {
+        <p class="settings-sync-msg @(_status.IsError ? "settings-sync-msg-error" : "settings-sync-msg-success")" role="status">
+            @_status.Message
+        </p>
+    }
+}
+
+@code {
+    private EmailSettingsDto _email = new();
+    private TabBusy _busy = TabBusy.Loading;
+    private TabStatus? _status;
+
+    private bool IsBusy => _busy is TabBusy.Saving or TabBusy.Testing;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    #region # Load
+
+    private async Task LoadAsync()
+    {
+        _busy = TabBusy.Loading;
+        _status = null;
+
+        var result = await Features.GetEmailSettingsAsync(CurrentUser.Id);
+        if (result.HasError)
+        {
+            _status = new TabStatus(
+                result.Errors.FirstOrDefault()?.Message ?? "Failed to load email settings.",
+                IsError: true);
+        }
+        else if (result.Payload is not null)
+        {
+            _email = result.Payload;
+        }
+
+        _busy = TabBusy.None;
+    }
+
+    #endregion
+
+    #region # Save
+
+    private async Task SaveAsync()
+    {
+        _busy = TabBusy.Saving;
+        _status = null;
+
+        var result = await Features.SaveUserSettingsAsync(new SaveUserSettingsRequest
+        {
+            UserId = CurrentUser.Id,
+            Section = SettingsSection.Email,
+            Email = _email
+        });
+
+        if (result.HasError)
+        {
+            _status = new TabStatus(
+                result.Errors.FirstOrDefault()?.Message ?? "Failed to save email settings.",
+                IsError: true);
+        }
+        else if (result.Payload is not null)
+        {
+            _email = result.Payload;
+            _status = new TabStatus("Email settings saved.", IsError: false);
+        }
+
+        _busy = TabBusy.None;
+    }
+
+    #endregion
+
+    #region # Test Connection
+
+    private async Task TestConnectionAsync()
+    {
+        _busy = TabBusy.Testing;
+        _status = null;
+
+        var result = await MailboxService.TestConnectionAsync(CurrentUser.Id, _email);
+        _status = new TabStatus(result.Message, IsError: !result.Success);
+
+        _busy = TabBusy.None;
+    }
+
+    #endregion
+
+    #region # Helpers
+
+    private enum TabBusy
+    {
+        None,
+        Loading,
+        Saving,
+        Testing
+    }
+
+    private sealed record TabStatus(string Message, bool IsError);
+
+    #endregion
+}

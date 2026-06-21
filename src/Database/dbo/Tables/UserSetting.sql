@@ -5,7 +5,7 @@
 --
 -- Business Rules:
 -- - Each user has at most one active settings row
--- - Mailbox (IMAP/SMTP) credentials live in emailSettings as encrypted JSON
+-- - Mailbox (IMAP/SMTP) credentials live in EmailSettingsJson as encrypted JSON
 -- - Additional settings areas can be added as new JSON columns later
 -- - All records include audit fields for tracking changes
 -- =====================================================
@@ -17,7 +17,7 @@ CREATE TABLE [dbo].[UserSetting] (
     [userId]                                 UNIQUEIDENTIFIER NOT NULL,                 -- Owner of the settings row (FK to User)
 
     -- Data fields
-    [emailSettings]                          NVARCHAR(MAX) NULL,                        -- Mailbox IMAP/SMTP settings (JSON; password encrypted)
+    [EmailSettingsJson]                      NVARCHAR(MAX) NULL,                        -- Mailbox IMAP/SMTP settings (JSON; password encrypted)
 
     -- Status and lifecycle management
     [isActive]                               BIT DEFAULT 1,                            -- Whether the settings row is active

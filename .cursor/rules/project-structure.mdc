@@ -11,7 +11,7 @@ Keep code in the folder that matches its role. Root: `src/WebApp/`.
 |--------|---------|
 | **Endpoints/** | MVC controllers named `*Endpoints.cs` (e.g. `AuthEndpoints`). Register via `AddControllers` / `MapControllers` in `Startup.cs`. |
 | **Components/** | Blazor UI (pages, layout, shared). See `blazor-conventions.mdc`. |
-| **Data/** | Blazor-facing backend: `Features`, `Persistence`, `Database.cs` (`AppDbContext`). |
+| **Data/** | Blazor-facing backend: `Features`, `Persistence`, `Database.cs` (`AppDbContext`). See `data-conventions.mdc` for JSON columns and EF mapping. |
 | **AI/** | App AI behavior: MAF agents, workflows, tools, memory, and orchestration (C#). See `ai-conventions.mdc`. `_Legacy_Python/` is reference only. |
 | **Models/** | DTOs, entities, constants. See `dto-conventions.mdc` for naming and layer boundaries. |
 | **Utilities/** | Cross-cutting code: `Extensions/`, `Services/`, `Helpers/`. See Utilities section below. |

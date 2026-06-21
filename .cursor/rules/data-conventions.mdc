@@ -1,0 +1,69 @@
+---
+description: EF mapping and Persistence patterns for JSON columns and UserSetting rows
+globs: src/WebApp/Data/**/*.cs,src/WebApp/Models/Entities.cs,src/WebApp/Utilities/Helpers/*Helpers.cs
+alwaysApply: false
+---
+
+# Data conventions
+
+## JSON settings columns (`UserSetting` pattern)
+
+Use this for per-user settings stored as JSON in SQL (`EmailSettingsJson`, future `GeneralSettingsJson`, etc.).
+
+**Do not use EF `OwnsOne` + `ToJson()`** for these columns. Read/write the JSON explicitly in Persistence.
+
+| Layer | Pattern |
+|-------|---------|
+| **SQL** | One `NVARCHAR(MAX)` column per section, name `{Section}SettingsJson` (same as entity property) |
+| **Entity** | `string? {Section}SettingsJson` on `UserSetting` |
+| **Typed model** | `{Section}Settings` class in `Entities.cs` (plain C# model, not an EF navigation) |
+| **Persistence** | Load/save the `*Json` string; deserialize/serialize in the repo method |
+| **Helpers** | `{Section}SettingsHelpers.FromJson` / `ToJson` via `JsonColumnHelpers` |
+
+### Entity example
+
+```csharp
+public class UserSetting : BaseAuditableEntity
+{
+    public Guid UserId { get; set; }
+    public string? EmailSettingsJson { get; set; }
+}
+
+public class EmailSettings { /* typed JSON shape */ }
+```
+
+### Persistence example
+
+```csharp
+// Read
+var json = await ctx.UserSettings...Select(x => x.EmailSettingsJson).FirstOrDefaultAsync();
+return EmailSettingsHelpers.FromJson(json);
+
+// Write
+existing.EmailSettingsJson = EmailSettingsHelpers.ToJson(emailSettings);
+```
+
+### JSON serialization
+
+- Use `JsonColumnHelpers` (`Utilities/Helpers/JsonColumnHelpers.cs`)
+- **camelCase** property names in SQL JSON
+- **Case-insensitive** on deserialize (legacy rows)
+
+### Column mapping
+
+Map `UserSetting` audit/base columns to the database camelCase names in `Database.cs` (`userId`, `isActive`, `isDeleted`, `createdBy`, `createdAt`, `updatedBy`, `updatedAt`).
+
+## Persistence method naming (settings sections)
+
+Within `#region # UserSetting`, name methods after the **section** they touch:
+
+- `GetUserEmailSettingsAsync` / `SaveUserEmailSettingsAsync`
+- Future: `GetUserGeneralSettingsAsync` / `SaveUserGeneralSettingsAsync`
+
+Features uses **per-section get** (`GetEmailSettingsAsync`, …) and a **single hybrid save**:
+
+- `SaveUserSettingsAsync(SaveUserSettingsRequest)` — public router; `SettingsSection` + nullable section DTOs
+- `SaveEmailSettingsCoreAsync` (private) — validate + persist one section; add `SaveGeneralSettingsCoreAsync` when General has DB backing
+
+`SaveUserSettingsRequest`: `UserId`, `Section`, `EmailSettingsDto? Email`, …  
+`SaveUserSettingsAsync` returns `AppResult<EmailSettingsDto?>` for the Email section (extend return type when other sections need payloads).

@@ -72,10 +72,14 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<UserSetting>(entity =>
         {
             entity.ToTable("UserSetting", "dbo");
-            entity.OwnsOne(e => e.EmailSettings, email =>
-            {
-                email.ToJson("emailSettings");
-            });
+            entity.Property(e => e.UserId).HasColumnName("userId");
+            entity.Property(e => e.IsActive).HasColumnName("isActive");
+            entity.Property(e => e.IsDeleted).HasColumnName("isDeleted");
+            entity.Property(e => e.CreatedBy).HasColumnName("createdBy");
+            entity.Property(e => e.CreatedAt).HasColumnName("createdAt");
+            entity.Property(e => e.UpdatedBy).HasColumnName("updatedBy");
+            entity.Property(e => e.UpdatedAt).HasColumnName("updatedAt");
+            entity.Property(e => e.EmailSettingsJson).HasColumnName("EmailSettingsJson");
             entity.HasIndex(e => e.UserId).IsUnique();
         });
     }

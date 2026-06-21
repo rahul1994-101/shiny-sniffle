@@ -438,9 +438,9 @@ public class Features(Persistence _repo, ChatOrchestrator _chatOrchestrator)
 
     #region # UserSetting
 
-    public async Task<AppResult<UserSettingsDto?>> GetUserSettingsAsync(Guid userId)
+    public async Task<AppResult<EmailSettingsDto?>> GetEmailSettingsAsync(Guid userId)
     {
-        var result = new AppResult<UserSettingsDto?>();
+        var result = new AppResult<EmailSettingsDto?>();
         try
         {
             #region # Validate
@@ -455,13 +455,13 @@ public class Features(Persistence _repo, ChatOrchestrator _chatOrchestrator)
 
             #region # Execute
 
-            var entity = await _repo.GetUserSettingByUserIdAsync(userId);
+            var emailSettings = await _repo.GetUserEmailSettingsAsync(userId);
 
             #endregion
 
             #region # Handle Result
 
-            result.Success(UserSettingHelpers.MapToDto(entity));
+            result.Success(EmailSettingsHelpers.MapToDto(emailSettings));
 
             #endregion
         }
@@ -473,9 +473,9 @@ public class Features(Persistence _repo, ChatOrchestrator _chatOrchestrator)
         return result;
     }
 
-    public async Task<AppResult<UserSettingsDto?>> SaveUserSettingsAsync(SaveUserSettingsRequest saveUserSettingsRequest)
+    public async Task<AppResult<EmailSettingsDto?>> SaveUserSettingsAsync(SaveUserSettingsRequest saveUserSettingsRequest)
     {
-        var result = new AppResult<UserSettingsDto?>();
+        var result = new AppResult<EmailSettingsDto?>();
         try
         {
             #region # Validate
@@ -485,47 +485,33 @@ public class Features(Persistence _repo, ChatOrchestrator _chatOrchestrator)
                 return result;
             }
 
-            var existing = await _repo.GetUserSettingByUserIdAsync(saveUserSettingsRequest.UserId);
-            var emailValidationError = EmailSettingsHelpers.ValidateForSave(
-                saveUserSettingsRequest.Settings.Email,
-                !string.IsNullOrWhiteSpace(existing?.EmailSettings?.Password));
-            if (emailValidationError is not null)
+            if (saveUserSettingsRequest.UserId == Guid.Empty)
             {
-                result.Failure(ErrorCode.BadRequest, emailValidationError);
+                result.Failure(ErrorCode.BadRequest, "User Id is required.");
                 return result;
+            }
+
+            switch (saveUserSettingsRequest.Section)
+            {
+                case SettingsSection.General:
+                    result.Failure(ErrorCode.BadRequest, "General settings cannot be saved yet.");
+                    return result;
+                case SettingsSection.Email:
+                    break;
+                default:
+                    result.Failure(ErrorCode.BadRequest, "Unsupported settings section.");
+                    return result;
             }
 
             #endregion
 
             #region # Execute
 
-            var now = DateTime.UtcNow;
-            var entity = new UserSetting
+            return saveUserSettingsRequest.Section switch
             {
-                UserId = saveUserSettingsRequest.UserId,
-                EmailSettings = EmailSettingsHelpers.ApplyForSave(
-                    saveUserSettingsRequest.Settings.Email,
-                    existing?.EmailSettings),
-                CreatedBy = saveUserSettingsRequest.UserId,
-                UpdatedBy = saveUserSettingsRequest.UserId,
-                CreatedAt = now,
-                UpdatedAt = now
+                SettingsSection.Email => await SaveEmailSettingsCoreAsync(saveUserSettingsRequest.UserId, saveUserSettingsRequest.Email),
+                _ => throw new InvalidOperationException("Unsupported settings section.")
             };
-
-            var saved = await _repo.UpsertUserSettingAsync(entity);
-
-            #endregion
-
-            #region # Handle Result
-
-            if (saved is null)
-            {
-                result.Failure(ErrorCode.InternalServerError, "Failed to save user settings.");
-            }
-            else
-            {
-                result.Success(UserSettingHelpers.MapToDto(saved));
-            }
 
             #endregion
         }
@@ -533,6 +519,48 @@ public class Features(Persistence _repo, ChatOrchestrator _chatOrchestrator)
         {
             result.Failure(ErrorCode.InternalServerError, ex.Message);
         }
+
+        return result;
+    }
+
+    private async Task<AppResult<EmailSettingsDto?>> SaveEmailSettingsCoreAsync(Guid userId, EmailSettingsDto? emailSettingsDto)
+    {
+        var result = new AppResult<EmailSettingsDto?>();
+
+        #region # Validate
+
+        if (emailSettingsDto is null)
+        {
+            result.Failure(ErrorCode.BadRequest, "Email settings are required.");
+            return result;
+        }
+
+        if (result.Validate(emailSettingsDto))
+        {
+            return result;
+        }
+
+        var existingSettings = await _repo.GetUserEmailSettingsAsync(userId);
+        var validationError = EmailSettingsHelpers.TryBuildForSave(emailSettingsDto, existingSettings, out var newSettings);
+        if (validationError is not null)
+        {
+            result.Failure(ErrorCode.BadRequest, validationError);
+            return result;
+        }
+
+        #endregion
+
+        #region # Execute
+
+        var savedSettings = await _repo.SaveUserEmailSettingsAsync(userId, newSettings, userId);
+
+        #endregion
+
+        #region # Handle Result
+
+        result.Success(EmailSettingsHelpers.MapToDto(savedSettings));
+
+        #endregion
 
         return result;
     }
