@@ -96,6 +96,8 @@ public static class DependencyInject
         services.AddDbContextFactory<AppDbContext>();
         services.AddScoped<Features>();
         services.AddScoped<Persistence>();
+        services.AddScoped<IMailboxService, MailKitMailboxService>();
+        services.AddScoped<UserMailboxService>();
     }
 
     public static void InjectAi(this IServiceCollection services, IConfiguration configuration)

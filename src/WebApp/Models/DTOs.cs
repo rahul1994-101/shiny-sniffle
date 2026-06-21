@@ -260,28 +260,6 @@ public class EmailSettingsDto
     public bool HasStoredPassword { get; set; }
 }
 
-/// <summary>JSON shape persisted in <see cref="UserSetting.EmailSettings"/>.</summary>
-public sealed class EmailSettingsStoredDto
-{
-    public string EmailAddress { get; set; } = string.Empty;
-
-    public string ImapHost { get; set; } = string.Empty;
-
-    public int ImapPort { get; set; } = 993;
-
-    public bool ImapUseSsl { get; set; } = true;
-
-    public string SmtpHost { get; set; } = string.Empty;
-
-    public int SmtpPort { get; set; } = 587;
-
-    public bool SmtpUseSsl { get; set; } = true;
-
-    public string Username { get; set; } = string.Empty;
-
-    public string Password { get; set; } = string.Empty;
-}
-
 public class UserSettingsDto
 {
     public EmailSettingsDto Email { get; set; } = new();
@@ -292,7 +270,86 @@ public class SaveUserSettingsRequest
     [Required(ErrorMessage = "User Id is required.")]
     public Guid UserId { get; set; }
 
-    public EmailSettingsDto Email { get; set; } = new();
+    public UserSettingsDto Settings { get; set; } = new();
+}
+
+
+
+public sealed class MailboxConnectionOptions
+{
+    public string Provider { get; init; } = "generic";
+
+    public string EmailAddress { get; init; } = string.Empty;
+
+    public string Username { get; init; } = string.Empty;
+
+    public string Password { get; init; } = string.Empty;
+
+    public string ImapHost { get; init; } = string.Empty;
+
+    public int ImapPort { get; init; } = 993;
+
+    public bool ImapUseSsl { get; init; } = true;
+
+    public string SmtpHost { get; init; } = string.Empty;
+
+    public int SmtpPort { get; init; } = 587;
+
+    public bool SmtpUseSsl { get; init; } = true;
+}
+
+public sealed class InboxMessageSummary
+{
+    public string From { get; init; } = string.Empty;
+
+    public string Subject { get; init; } = string.Empty;
+
+    public DateTimeOffset Date { get; init; }
+
+    public string? Snippet { get; init; }
+}
+
+public sealed class InboxQuery
+{
+    public DateTime? SinceUtc { get; init; }
+
+    public int Limit { get; init; } = 20;
+}
+
+public sealed class OutboundMail
+{
+    public string To { get; init; } = string.Empty;
+
+    public string Subject { get; init; } = string.Empty;
+
+    public string Body { get; init; } = string.Empty;
+}
+
+public sealed class MailboxStatusResult
+{
+    public bool IsConfigured { get; init; }
+
+    public bool IsReachable { get; init; }
+
+    public string Message { get; init; } = string.Empty;
+}
+
+public sealed class MailboxTestResult
+{
+    public bool Success { get; init; }
+
+    public string Message { get; init; } = string.Empty;
+
+    public bool ImapOk { get; init; }
+
+    public bool SmtpOk { get; init; }
+}
+
+public sealed class SendMailResult
+{
+    public bool Success { get; init; }
+
+    public string Message { get; init; } = string.Empty;
 }
 
 #endregion

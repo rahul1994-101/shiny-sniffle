@@ -1,8 +1,6 @@
-﻿using System.Text.Json;
-
-using WebApp.AI;
+﻿using WebApp.AI;
 using WebApp.Models;
-using WebApp.Utilities.Extensions;
+using WebApp.Utilities.Helpers;
 
 namespace WebApp.Data;
 
@@ -440,11 +438,6 @@ public class Features(Persistence _repo, ChatOrchestrator _chatOrchestrator)
 
     #region # UserSetting
 
-    private static readonly JsonSerializerOptions UserSettingsJsonOptions = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-    };
-
     public async Task<AppResult<UserSettingsDto?>> GetUserSettingsAsync(Guid userId)
     {
         var result = new AppResult<UserSettingsDto?>();
@@ -468,7 +461,7 @@ public class Features(Persistence _repo, ChatOrchestrator _chatOrchestrator)
 
             #region # Handle Result
 
-            result.Success(MapToUserSettingsDto(entity));
+            result.Success(UserSettingHelpers.MapToDto(entity));
 
             #endregion
         }
@@ -487,17 +480,15 @@ public class Features(Persistence _repo, ChatOrchestrator _chatOrchestrator)
         {
             #region # Validate
 
-            var hasError = result.Validate(saveUserSettingsRequest);
-            if (hasError)
+            if (result.Validate(saveUserSettingsRequest))
             {
                 return result;
             }
 
             var existing = await _repo.GetUserSettingByUserIdAsync(saveUserSettingsRequest.UserId);
-            var existingEmail = DeserializeEmailSettings(existing?.EmailSettings);
-            var emailValidationError = ValidateEmailSettingsForSave(
-                saveUserSettingsRequest.Email,
-                !string.IsNullOrWhiteSpace(existingEmail?.Password));
+            var emailValidationError = EmailSettingsHelpers.ValidateForSave(
+                saveUserSettingsRequest.Settings.Email,
+                !string.IsNullOrWhiteSpace(existing?.EmailSettings?.Password));
             if (emailValidationError is not null)
             {
                 result.Failure(ErrorCode.BadRequest, emailValidationError);
@@ -508,15 +499,13 @@ public class Features(Persistence _repo, ChatOrchestrator _chatOrchestrator)
 
             #region # Execute
 
-            var emailJson = SerializeEmailSettingsForSave(
-                saveUserSettingsRequest.Email,
-                existingEmail?.Password);
             var now = DateTime.UtcNow;
-
             var entity = new UserSetting
             {
                 UserId = saveUserSettingsRequest.UserId,
-                EmailSettings = emailJson,
+                EmailSettings = EmailSettingsHelpers.ApplyForSave(
+                    saveUserSettingsRequest.Settings.Email,
+                    existing?.EmailSettings),
                 CreatedBy = saveUserSettingsRequest.UserId,
                 UpdatedBy = saveUserSettingsRequest.UserId,
                 CreatedAt = now,
@@ -535,7 +524,7 @@ public class Features(Persistence _repo, ChatOrchestrator _chatOrchestrator)
             }
             else
             {
-                result.Success(MapToUserSettingsDto(saved));
+                result.Success(UserSettingHelpers.MapToDto(saved));
             }
 
             #endregion
@@ -547,128 +536,6 @@ public class Features(Persistence _repo, ChatOrchestrator _chatOrchestrator)
 
         return result;
     }
-
-    #region # UserSetting Helpers
-
-    private static UserSettingsDto MapToUserSettingsDto(UserSetting? entity)
-    {
-        var emailStored = DeserializeEmailSettings(entity?.EmailSettings);
-
-        return new UserSettingsDto
-        {
-            Email = MapEmailSettingsToDto(emailStored)
-        };
-    }
-
-    private static EmailSettingsDto MapEmailSettingsToDto(EmailSettingsStoredDto? stored)
-    {
-        if (stored is null)
-        {
-            return new EmailSettingsDto();
-        }
-
-        return new EmailSettingsDto
-        {
-            EmailAddress = stored.EmailAddress,
-            ImapHost = stored.ImapHost,
-            ImapPort = stored.ImapPort,
-            ImapUseSsl = stored.ImapUseSsl,
-            SmtpHost = stored.SmtpHost,
-            SmtpPort = stored.SmtpPort,
-            SmtpUseSsl = stored.SmtpUseSsl,
-            Username = stored.Username,
-            Password = string.Empty,
-            HasStoredPassword = !string.IsNullOrWhiteSpace(stored.Password)
-        };
-    }
-
-    private static string? ValidateEmailSettingsForSave(EmailSettingsDto email, bool hasStoredPassword)
-    {
-        if (IsEmailSettingsEmpty(email))
-        {
-            return null;
-        }
-
-        if (string.IsNullOrWhiteSpace(email.EmailAddress))
-        {
-            return "Email address is required for mailbox settings.";
-        }
-
-        if (string.IsNullOrWhiteSpace(email.ImapHost))
-        {
-            return "IMAP host is required for mailbox settings.";
-        }
-
-        if (string.IsNullOrWhiteSpace(email.SmtpHost))
-        {
-            return "SMTP host is required for mailbox settings.";
-        }
-
-        if (string.IsNullOrWhiteSpace(email.Username))
-        {
-            return "Mailbox username is required.";
-        }
-
-        if (string.IsNullOrWhiteSpace(email.Password) && !hasStoredPassword)
-        {
-            return "Mailbox password is required.";
-        }
-
-        return null;
-    }
-
-    private static bool IsEmailSettingsEmpty(EmailSettingsDto email) =>
-        string.IsNullOrWhiteSpace(email.EmailAddress) &&
-        string.IsNullOrWhiteSpace(email.ImapHost) &&
-        string.IsNullOrWhiteSpace(email.SmtpHost) &&
-        string.IsNullOrWhiteSpace(email.Username) &&
-        string.IsNullOrWhiteSpace(email.Password);
-
-    private static string? SerializeEmailSettingsForSave(EmailSettingsDto email, string? existingEncryptedPassword)
-    {
-        if (IsEmailSettingsEmpty(email))
-        {
-            return null;
-        }
-
-        var password = ResolveEmailPasswordForSave(email.Password, existingEncryptedPassword);
-        var stored = new EmailSettingsStoredDto
-        {
-            EmailAddress = email.EmailAddress.Trim(),
-            ImapHost = email.ImapHost.Trim(),
-            ImapPort = email.ImapPort,
-            ImapUseSsl = email.ImapUseSsl,
-            SmtpHost = email.SmtpHost.Trim(),
-            SmtpPort = email.SmtpPort,
-            SmtpUseSsl = email.SmtpUseSsl,
-            Username = email.Username.Trim(),
-            Password = password
-        };
-
-        return JsonSerializer.Serialize(stored, UserSettingsJsonOptions);
-    }
-
-    private static string ResolveEmailPasswordForSave(string plainPassword, string? existingEncryptedPassword)
-    {
-        if (!string.IsNullOrWhiteSpace(plainPassword))
-        {
-            return plainPassword.Trim().Encrypt();
-        }
-
-        return existingEncryptedPassword ?? string.Empty;
-    }
-
-    private static EmailSettingsStoredDto? DeserializeEmailSettings(string? json)
-    {
-        if (string.IsNullOrWhiteSpace(json))
-        {
-            return null;
-        }
-
-        return JsonSerializer.Deserialize<EmailSettingsStoredDto>(json, UserSettingsJsonOptions);
-    }
-
-    #endregion
 
     #endregion
 }

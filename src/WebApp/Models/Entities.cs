@@ -93,15 +93,33 @@ public class ChatMessage : BaseAuditableEntity
 
 #region # UserSetting
 
-/// <summary>
-/// Per-user workspace settings. One row per user; mailbox config stored in <see cref="EmailSettings"/> JSON.
-/// </summary>
 public class UserSetting : BaseAuditableEntity
 {
     [Required(ErrorMessage = "User Id is required.")]
     public Guid UserId { get; set; }
 
-    public string? EmailSettings { get; set; }
+    public EmailSettings? EmailSettings { get; set; }
+}
+
+public class EmailSettings
+{
+    public string EmailAddress { get; set; } = string.Empty;
+
+    public string ImapHost { get; set; } = string.Empty;
+
+    public int ImapPort { get; set; } = 993;
+
+    public bool ImapUseSsl { get; set; } = true;
+
+    public string SmtpHost { get; set; } = string.Empty;
+
+    public int SmtpPort { get; set; } = 587;
+
+    public bool SmtpUseSsl { get; set; } = true;
+
+    public string Username { get; set; } = string.Empty;
+
+    public string Password { get; set; } = string.Empty;
 }
 
 #endregion

@@ -72,7 +72,10 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<UserSetting>(entity =>
         {
             entity.ToTable("UserSetting", "dbo");
-            entity.Property(e => e.EmailSettings).HasColumnName("emailSettings");
+            entity.OwnsOne(e => e.EmailSettings, email =>
+            {
+                email.ToJson("emailSettings");
+            });
             entity.HasIndex(e => e.UserId).IsUnique();
         });
     }

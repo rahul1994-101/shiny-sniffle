@@ -199,11 +199,38 @@
     width: 100%;
 }
 
+.settings-btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 1 1 auto;
+    min-height: 2.5rem;
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--app-fg);
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--app-border);
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: background-color 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+}
+
+.settings-btn-secondary:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.14);
+}
+
+.settings-btn-secondary:disabled {
+    opacity: 0.7;
+    cursor: wait;
+}
+
 .settings-btn-save {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 100%;
+    flex: 1 1 auto;
     min-height: 2.5rem;
     padding: 0.5rem 1rem;
     font-size: 0.9rem;
