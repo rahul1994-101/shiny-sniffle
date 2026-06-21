@@ -244,6 +244,12 @@
     box-shadow: 0 0 0 0.12rem color-mix(in srgb, var(--app-accent) 28%, transparent);
 }
 
+.settings-content ::deep .settings-input:disabled {
+    opacity: 0.72;
+    cursor: not-allowed;
+    background: rgba(0, 0, 0, 0.12);
+}
+
 .settings-content ::deep .settings-input[type="number"] {
     appearance: textfield;
     -moz-appearance: textfield;
@@ -264,8 +270,179 @@
 }
 
 .settings-content ::deep .settings-select {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    width: 100%;
+    padding: 0.5rem 2rem 0.5rem 0.65rem;
+    cursor: pointer;
+    color-scheme: dark;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%239b9ba8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.65rem center;
+    background-size: 1rem;
+}
+
+.settings-content ::deep .settings-select option {
+    background-color: var(--app-surface);
+    color: var(--app-fg);
+}
+
+.settings-content ::deep .settings-provider-picker {
+    position: relative;
+}
+
+.settings-content ::deep .settings-provider-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 20;
+    border: 0;
+    padding: 0;
+    margin: 0;
+    background: transparent;
+    cursor: default;
+}
+
+.settings-content ::deep .settings-provider-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
     width: 100%;
     padding: 0.5rem 0.65rem;
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--app-border);
+    color: var(--app-fg);
+    border-radius: 0.5rem;
+    box-sizing: border-box;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.settings-content ::deep .settings-provider-trigger:hover:not(:disabled) {
+    background: rgba(0, 0, 0, 0.28);
+}
+
+.settings-content ::deep .settings-provider-trigger:focus-visible {
+    outline: none;
+    border-color: var(--app-accent);
+    box-shadow: 0 0 0 0.12rem color-mix(in srgb, var(--app-accent) 28%, transparent);
+}
+
+.settings-content ::deep .settings-provider-trigger:disabled {
+    opacity: 0.72;
+    cursor: wait;
+}
+
+.settings-content ::deep .settings-provider-trigger-label {
+    min-width: 0;
+}
+
+.settings-content ::deep .settings-provider-chevron {
+    flex-shrink: 0;
+    width: 1rem;
+    height: 1rem;
+    color: var(--app-muted);
+    transition: transform 0.15s ease;
+}
+
+.settings-content ::deep .settings-provider-chevron-open {
+    transform: rotate(180deg);
+}
+
+.settings-content ::deep .settings-provider-menu {
+    position: absolute;
+    z-index: 21;
+    top: calc(100% + 0.35rem);
+    left: 0;
+    right: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    padding: 0.35rem;
+    border: 1px solid var(--app-border);
+    border-radius: 0.5rem;
+    background: var(--app-surface-elevated);
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+}
+
+.settings-content ::deep .settings-provider-option {
+    display: block;
+    width: 100%;
+    padding: 0.55rem 0.65rem;
+    border: 0;
+    border-radius: 0.4rem;
+    background: transparent;
+    color: var(--app-fg);
+    font: inherit;
+    font-size: 0.875rem;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.settings-content ::deep .settings-provider-option:hover {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.settings-content ::deep .settings-provider-option-active {
+    background: rgba(16, 163, 127, 0.16);
+    color: var(--app-fg);
+    box-shadow: inset 0 0 0 1px rgba(16, 163, 127, 0.35);
+}
+
+.settings-content ::deep .settings-collapsible-toggle {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    align-items: center;
+    gap: 0.5rem 0.65rem;
+    width: 100%;
+    margin-top: 0.65rem;
+    padding: 0.55rem 0.65rem;
+    border: 1px solid var(--app-border);
+    border-radius: 0.5rem;
+    background: rgba(255, 255, 255, 0.03);
+    color: var(--app-fg);
+    font: inherit;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.settings-content ::deep .settings-collapsible-toggle:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.settings-content ::deep .settings-collapsible-toggle:focus-visible {
+    outline: none;
+    border-color: var(--app-accent);
+    box-shadow: 0 0 0 0.12rem color-mix(in srgb, var(--app-accent) 28%, transparent);
+}
+
+.settings-content ::deep .settings-collapsible-toggle:disabled {
+    opacity: 0.72;
+    cursor: wait;
+}
+
+.settings-content ::deep .settings-collapsible-meta {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--app-muted);
+}
+
+.settings-content ::deep .settings-collapsible-chevron {
+    width: 1rem;
+    height: 1rem;
+    color: var(--app-muted);
+    transition: transform 0.15s ease;
+}
+
+.settings-content ::deep .settings-collapsible-chevron-open {
+    transform: rotate(180deg);
 }
 
 .settings-content ::deep .settings-hint,
@@ -410,6 +587,11 @@
 
 .settings-content ::deep .settings-check input {
     accent-color: var(--app-accent);
+}
+
+.settings-content ::deep .settings-check input:disabled {
+    cursor: not-allowed;
+    opacity: 0.72;
 }
 
 .settings-content ::deep .settings-sync-msg-success {

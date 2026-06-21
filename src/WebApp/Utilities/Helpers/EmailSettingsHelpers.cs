@@ -11,6 +11,16 @@ internal static class EmailSettingsHelpers
     internal static string? ToJson(EmailSettings? settings) =>
         JsonColumnHelpers.Serialize(settings);
 
+    internal static void ApplyProviderEndpoints(EmailSettingsDto dto)
+    {
+        EmailProviderPresets.ApplyToDto(dto);
+    }
+
+    internal static void ClearProviderEndpoints(EmailSettingsDto dto)
+    {
+        EmailProviderPresets.ClearDtoEndpoints(dto);
+    }
+
     internal static EmailSettingsDto MapToDto(EmailSettings? stored)
     {
         if (stored is null)
@@ -18,8 +28,11 @@ internal static class EmailSettingsHelpers
             return new EmailSettingsDto();
         }
 
+        var provider = ResolveProvider(stored);
+
         return new EmailSettingsDto
         {
+            Provider = provider,
             EmailAddress = stored.EmailAddress,
             ImapHost = stored.ImapHost,
             ImapPort = stored.ImapPort,
@@ -52,16 +65,6 @@ internal static class EmailSettingsHelpers
             return "Email address is required for mailbox settings.";
         }
 
-        if (string.IsNullOrWhiteSpace(email.ImapHost))
-        {
-            return "IMAP host is required for mailbox settings.";
-        }
-
-        if (string.IsNullOrWhiteSpace(email.SmtpHost))
-        {
-            return "SMTP host is required for mailbox settings.";
-        }
-
         if (string.IsNullOrWhiteSpace(email.Username))
         {
             return "Mailbox username is required.";
@@ -72,18 +75,40 @@ internal static class EmailSettingsHelpers
             return "Mailbox password is required.";
         }
 
+        if (email.Provider == EmailProvider.Custom)
+        {
+            if (string.IsNullOrWhiteSpace(email.ImapHost))
+            {
+                return "IMAP host is required for mailbox settings.";
+            }
+
+            if (string.IsNullOrWhiteSpace(email.SmtpHost))
+            {
+                return "SMTP host is required for mailbox settings.";
+            }
+        }
+
         settings = new EmailSettings
         {
+            Provider = email.Provider,
             EmailAddress = email.EmailAddress.Trim(),
-            ImapHost = email.ImapHost.Trim(),
-            ImapPort = email.ImapPort,
-            ImapUseSsl = email.ImapUseSsl,
-            SmtpHost = email.SmtpHost.Trim(),
-            SmtpPort = email.SmtpPort,
-            SmtpUseSsl = email.SmtpUseSsl,
             Username = email.Username.Trim(),
             Password = ResolvePasswordForSave(email.Password, existing?.Password)
         };
+
+        if (email.Provider == EmailProvider.Custom)
+        {
+            settings.ImapHost = email.ImapHost.Trim();
+            settings.ImapPort = email.ImapPort;
+            settings.ImapUseSsl = email.ImapUseSsl;
+            settings.SmtpHost = email.SmtpHost.Trim();
+            settings.SmtpPort = email.SmtpPort;
+            settings.SmtpUseSsl = email.SmtpUseSsl;
+        }
+        else
+        {
+            EmailProviderPresets.ApplyToEntity(settings);
+        }
 
         return null;
     }
@@ -101,6 +126,21 @@ internal static class EmailSettingsHelpers
         return merged is null ? null : ToConnectionOptions(merged);
     }
 
+    private static EmailProvider ResolveProvider(EmailSettings stored)
+    {
+        if (stored.Provider != EmailProvider.Custom && Enum.IsDefined(stored.Provider))
+        {
+            return stored.Provider;
+        }
+
+        if (EmailProviderPresets.Matches(stored, EmailProvider.Gmail))
+        {
+            return EmailProvider.Gmail;
+        }
+
+        return EmailProvider.Custom;
+    }
+
     private static bool IsConfigured(EmailSettings stored) =>
         !string.IsNullOrWhiteSpace(stored.EmailAddress) &&
         !string.IsNullOrWhiteSpace(stored.ImapHost) &&
@@ -115,9 +155,11 @@ internal static class EmailSettingsHelpers
             return null;
         }
 
+        var provider = ResolveProvider(stored);
+
         return new MailboxConnectionOptions
         {
-            Provider = "generic",
+            Provider = EmailProviderPresets.ToConnectionName(provider),
             EmailAddress = stored.EmailAddress.Trim(),
             Username = stored.Username.Trim(),
             Password = stored.Password.Decrypt(),
@@ -130,12 +172,23 @@ internal static class EmailSettingsHelpers
         };
     }
 
-    private static bool IsEmpty(EmailSettingsDto email) =>
-        string.IsNullOrWhiteSpace(email.EmailAddress) &&
-        string.IsNullOrWhiteSpace(email.ImapHost) &&
-        string.IsNullOrWhiteSpace(email.SmtpHost) &&
-        string.IsNullOrWhiteSpace(email.Username) &&
-        string.IsNullOrWhiteSpace(email.Password);
+    private static bool IsEmpty(EmailSettingsDto email)
+    {
+        if (!string.IsNullOrWhiteSpace(email.EmailAddress) ||
+            !string.IsNullOrWhiteSpace(email.Username) ||
+            !string.IsNullOrWhiteSpace(email.Password))
+        {
+            return false;
+        }
+
+        if (email.Provider != EmailProvider.Custom)
+        {
+            return true;
+        }
+
+        return string.IsNullOrWhiteSpace(email.ImapHost) &&
+               string.IsNullOrWhiteSpace(email.SmtpHost);
+    }
 
     private static string ResolvePasswordForSave(string plainPassword, string? existingEncryptedPassword)
     {
@@ -155,18 +208,29 @@ internal static class EmailSettingsHelpers
             return null;
         }
 
-        return new EmailSettings
+        var settings = new EmailSettings
         {
+            Provider = draft.Provider,
             EmailAddress = draft.EmailAddress.Trim(),
-            ImapHost = draft.ImapHost.Trim(),
-            ImapPort = draft.ImapPort,
-            ImapUseSsl = draft.ImapUseSsl,
-            SmtpHost = draft.SmtpHost.Trim(),
-            SmtpPort = draft.SmtpPort,
-            SmtpUseSsl = draft.SmtpUseSsl,
             Username = draft.Username.Trim(),
             Password = password
         };
+
+        if (draft.Provider == EmailProvider.Custom)
+        {
+            settings.ImapHost = draft.ImapHost.Trim();
+            settings.ImapPort = draft.ImapPort;
+            settings.ImapUseSsl = draft.ImapUseSsl;
+            settings.SmtpHost = draft.SmtpHost.Trim();
+            settings.SmtpPort = draft.SmtpPort;
+            settings.SmtpUseSsl = draft.SmtpUseSsl;
+        }
+        else
+        {
+            EmailProviderPresets.ApplyToEntity(settings);
+        }
+
+        return settings;
     }
 
     private static string ResolveDraftPassword(EmailSettingsDto draft, string? storedEncryptedPassword)

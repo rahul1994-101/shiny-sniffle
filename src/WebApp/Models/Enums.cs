@@ -19,6 +19,13 @@ public enum SettingsSection
     Email = 1
 }
 
+/// <summary>Mailbox provider preset for IMAP/SMTP endpoints stored on <see cref="EmailSettings"/>.</summary>
+public enum EmailProvider
+{
+    Custom = 0,
+    Gmail = 1
+}
+
 public enum ErrorCode
 {
     BadRequest = 400,

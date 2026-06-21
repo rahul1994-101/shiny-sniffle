@@ -104,6 +104,8 @@ public class UserSetting : BaseAuditableEntity
 
 public class EmailSettings
 {
+    public EmailProvider Provider { get; set; } = EmailProvider.Custom;
+
     public string EmailAddress { get; set; } = string.Empty;
 
     public string ImapHost { get; set; } = string.Empty;

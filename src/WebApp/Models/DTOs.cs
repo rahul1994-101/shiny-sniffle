@@ -231,6 +231,8 @@ public class SendChatMessageResponse
 
 public class EmailSettingsDto
 {
+    public EmailProvider Provider { get; set; } = EmailProvider.Custom;
+
     [StringLength(255, ErrorMessage = "Email address must be at most 255 characters.")]
     public string EmailAddress { get; set; } = string.Empty;
 

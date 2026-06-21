@@ -34,13 +34,85 @@ else
                placeholder="@(_email.HasStoredPassword ? "Saved — leave blank to keep" : "App password or mailbox password")" />
         <p class="settings-hint">Stored encrypted. Leave blank on save to keep the existing password.</p>
 
+        <label class="settings-label" id="mail-provider-label">Provider</label>
+        <div class="settings-provider-picker">
+            @if (_providerOpen)
+            {
+                <button type="button"
+                        class="settings-provider-backdrop"
+                        tabindex="-1"
+                        aria-hidden="true"
+                        @onclick="CloseProviderPicker"></button>
+            }
+
+            <button type="button"
+                    id="mail-provider"
+                    class="settings-provider-trigger"
+                    aria-haspopup="listbox"
+                    aria-expanded="@_providerOpen"
+                    aria-labelledby="mail-provider-label mail-provider"
+                    disabled="@IsBusy"
+                    @onclick="ToggleProviderPicker">
+                <span class="settings-provider-trigger-label">@GetProviderLabel(_email.Provider)</span>
+                <svg class="settings-provider-chevron @(_providerOpen ? "settings-provider-chevron-open" : null)"
+                     viewBox="0 0 24 24"
+                     fill="none"
+                     stroke="currentColor"
+                     stroke-width="2"
+                     aria-hidden="true">
+                    <path d="M6 9l6 6 6-6" />
+                </svg>
+            </button>
+
+            @if (_providerOpen)
+            {
+                <div class="settings-provider-menu" role="listbox" aria-labelledby="mail-provider-label">
+                    @foreach (var provider in _providerOptions)
+                    {
+                        var selected = provider == _email.Provider;
+                        <button type="button"
+                                role="option"
+                                aria-selected="@selected"
+                                class="settings-provider-option @(selected ? "settings-provider-option-active" : null)"
+                                @onclick="() => SelectProviderAsync(provider)">
+                            @GetProviderLabel(provider)
+                        </button>
+                    }
+                </div>
+            }
+        </div>
+        @if (_email.Provider == EmailProvider.Gmail)
+        {
+            <p class="settings-hint">Gmail uses fixed IMAP/SMTP endpoints. Use an app password if 2-step verification is enabled.</p>
+
+            <button type="button"
+                    class="settings-collapsible-toggle"
+                    aria-expanded="@_endpointsExpanded"
+                    disabled="@IsBusy"
+                    @onclick="ToggleEndpointsExpanded">
+                <span>Server settings</span>
+                <span class="settings-collapsible-meta">Gmail preset</span>
+                <svg class="settings-collapsible-chevron @(_endpointsExpanded ? "settings-collapsible-chevron-open" : null)"
+                     viewBox="0 0 24 24"
+                     fill="none"
+                     stroke="currentColor"
+                     stroke-width="2"
+                     aria-hidden="true">
+                    <path d="M6 9l6 6 6-6" />
+                </svg>
+            </button>
+        }
+
+        @if (ShowEndpointFields)
+        {
         <label class="settings-label" for="mail-imap-host">IMAP host</label>
         <input id="mail-imap-host"
                type="text"
                class="settings-input"
                @bind="_email.ImapHost"
                placeholder="imap.example.com"
-               autocomplete="off" />
+               autocomplete="off"
+               disabled="@IsProviderEndpointsLocked" />
 
         <div class="settings-row">
             <div class="settings-row-field">
@@ -50,11 +122,14 @@ else
                        min="1"
                        max="65535"
                        class="settings-input"
-                       @bind="_email.ImapPort" />
+                       @bind="_email.ImapPort"
+                       disabled="@IsProviderEndpointsLocked" />
             </div>
             <div class="settings-row-field settings-row-check">
                 <label class="settings-check">
-                    <input type="checkbox" @bind="_email.ImapUseSsl" />
+                    <input type="checkbox"
+                           @bind="_email.ImapUseSsl"
+                           disabled="@IsProviderEndpointsLocked" />
                     <span>IMAP SSL</span>
                 </label>
             </div>
@@ -66,7 +141,8 @@ else
                class="settings-input"
                @bind="_email.SmtpHost"
                placeholder="smtp.example.com"
-               autocomplete="off" />
+               autocomplete="off"
+               disabled="@IsProviderEndpointsLocked" />
 
         <div class="settings-row">
             <div class="settings-row-field">
@@ -76,15 +152,19 @@ else
                        min="1"
                        max="65535"
                        class="settings-input"
-                       @bind="_email.SmtpPort" />
+                       @bind="_email.SmtpPort"
+                       disabled="@IsProviderEndpointsLocked" />
             </div>
             <div class="settings-row-field settings-row-check">
                 <label class="settings-check">
-                    <input type="checkbox" @bind="_email.SmtpUseSsl" />
+                    <input type="checkbox"
+                           @bind="_email.SmtpUseSsl"
+                           disabled="@IsProviderEndpointsLocked" />
                     <span>SMTP SSL</span>
                 </label>
             </div>
         </div>
+        }
     </section>
 
     <div class="settings-actions">
@@ -111,11 +191,24 @@ else
 }
 
 @code {
+    private static readonly EmailProvider[] _providerOptions =
+    [
+        EmailProvider.Custom,
+        EmailProvider.Gmail
+    ];
+
     private EmailSettingsDto _email = new();
     private TabBusy _busy = TabBusy.Loading;
     private TabStatus? _status;
+    private bool _providerOpen;
+    private bool _endpointsExpanded;
 
     private bool IsBusy => _busy is TabBusy.Saving or TabBusy.Testing;
+
+    private bool IsProviderEndpointsLocked => _email.Provider != EmailProvider.Custom;
+
+    private bool ShowEndpointFields =>
+        _email.Provider == EmailProvider.Custom || _endpointsExpanded;
 
     protected override async Task OnInitializedAsync()
     {
@@ -139,6 +232,7 @@ else
         else if (result.Payload is not null)
         {
             _email = result.Payload;
+            _endpointsExpanded = _email.Provider == EmailProvider.Custom;
         }
 
         _busy = TabBusy.None;
@@ -169,6 +263,7 @@ else
         else if (result.Payload is not null)
         {
             _email = result.Payload;
+            _endpointsExpanded = _email.Provider == EmailProvider.Custom;
             _status = new TabStatus("Email settings saved.", IsError: false);
         }
 
@@ -193,6 +288,61 @@ else
     #endregion
 
     #region # Helpers
+
+    private void ToggleProviderPicker()
+    {
+        if (IsBusy)
+        {
+            return;
+        }
+
+        _providerOpen = !_providerOpen;
+    }
+
+    private void CloseProviderPicker()
+    {
+        _providerOpen = false;
+    }
+
+    private Task SelectProviderAsync(EmailProvider provider)
+    {
+        if (provider == _email.Provider)
+        {
+            CloseProviderPicker();
+            return Task.CompletedTask;
+        }
+
+        _email.Provider = provider;
+        OnProviderChanged();
+        CloseProviderPicker();
+        return Task.CompletedTask;
+    }
+
+    private void ToggleEndpointsExpanded()
+    {
+        _endpointsExpanded = !_endpointsExpanded;
+    }
+
+    private void OnProviderChanged()
+    {
+        if (_email.Provider == EmailProvider.Custom)
+        {
+            EmailSettingsHelpers.ClearProviderEndpoints(_email);
+            _endpointsExpanded = true;
+            return;
+        }
+
+        EmailSettingsHelpers.ApplyProviderEndpoints(_email);
+        _endpointsExpanded = false;
+    }
+
+    private static string GetProviderLabel(EmailProvider provider) =>
+        provider switch
+        {
+            EmailProvider.Gmail => "Gmail",
+            EmailProvider.Custom => "Custom",
+            _ => provider.ToString()
+        };
 
     private enum TabBusy
     {
