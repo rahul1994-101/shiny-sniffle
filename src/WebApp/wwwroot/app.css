@@ -34,6 +34,13 @@ a, .btn-link {
     color: #7dd3fc;
 }
 
+a.sidebar-brand,
+a.sidebar-brand:hover,
+a.sidebar-brand:visited {
+    color: var(--app-fg);
+    text-decoration: none;
+}
+
 .btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus, .form-select:focus {
     box-shadow: 0 0 0 0.15rem color-mix(in srgb, var(--app-accent) 35%, transparent);
 }

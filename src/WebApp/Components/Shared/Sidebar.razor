@@ -5,6 +5,8 @@
 <aside id="app-sidebar" class="sidebar">
     <div class="sidebar-chrome">
         <div class="sidebar-header">
+            <a class="sidebar-brand" href="/" title="Assistant">Assistant</a>
+            <div class="sidebar-header-actions">
             <button type="button"
                     class="sidebar-header-btn sidebar-header-close"
                     data-shell-close
@@ -25,6 +27,7 @@
                     <path d="M9 4v16" />
                 </svg>
             </button>
+            </div>
         </div>
         <div class="sidebar-body">
             <div class="nav-root">
@@ -287,7 +290,7 @@
     {
         try
         {
-            await JsRuntime.InvokeVoidAsync("webAppShell.collapseSidebarIfMobile", "app-shell");
+            await JsRuntime.InvokeVoidAsync("webAppShell.collapseSidebarIfMobile");
         }
         catch (JSException)
         {

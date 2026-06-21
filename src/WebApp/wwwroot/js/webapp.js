@@ -1,19 +1,25 @@
 window.webAppShell = (function () {
   var mq = window.matchMedia ? window.matchMedia("(max-width: 640px)") : null;
+  var shellId = "app-shell";
+  var delegationReady = false;
+  var viewportListenerReady = false;
 
-  function setSidebarClass(shellId, collapsed) {
-    var el = document.getElementById(shellId);
-    if (!el) return;
-    if (collapsed) el.classList.add("sidebar-collapsed");
-    else el.classList.remove("sidebar-collapsed");
+  function getShell() {
+    return document.getElementById(shellId);
+  }
+
+  function setSidebarClass(shell, collapsed) {
+    if (!shell) return;
+    if (collapsed) shell.classList.add("sidebar-collapsed");
+    else shell.classList.remove("sidebar-collapsed");
   }
 
   function isCollapsed(shell) {
     return shell.classList.contains("sidebar-collapsed");
   }
 
-  function syncShellUi(shellId) {
-    var shell = document.getElementById(shellId);
+  function syncShellUi() {
+    var shell = getShell();
     if (!shell) return;
     var collapsed = isCollapsed(shell);
     var mobile = mq && mq.matches;
@@ -37,60 +43,59 @@ window.webAppShell = (function () {
     document.body.classList.toggle("shell-sidebar-drawer-open", mobile && !collapsed);
   }
 
-  function setSidebarCollapsed(shellId, collapsed) {
-    setSidebarClass(shellId, collapsed);
-    syncShellUi(shellId);
+  function setSidebarCollapsed(collapsed) {
+    setSidebarClass(getShell(), collapsed);
+    syncShellUi();
   }
 
-  function collapseSidebar(shellId) {
-    setSidebarCollapsed(shellId, true);
+  function collapseSidebar() {
+    setSidebarCollapsed(true);
   }
 
-  function collapseSidebarIfMobile(shellId) {
+  function collapseSidebarIfMobile() {
     if (mq && mq.matches) {
-      collapseSidebar(shellId);
+      collapseSidebar();
     }
   }
 
-  function applyViewportDefault(shellId) {
-    var shell = document.getElementById(shellId);
+  function applyViewportDefault() {
+    var shell = getShell();
     if (!shell) return;
     if (mq && mq.matches) {
-      setSidebarClass(shellId, true);
+      setSidebarClass(shell, true);
     } else {
-      setSidebarClass(shellId, false);
+      setSidebarClass(shell, false);
     }
-    syncShellUi(shellId);
+    syncShellUi();
   }
 
-  function initShell(shellId) {
-    var shell = document.getElementById(shellId);
-    if (!shell || shell.dataset.shellInit === "1") return;
-    shell.dataset.shellInit = "1";
+  function setupDelegation() {
+    if (delegationReady) return;
+    delegationReady = true;
 
-    function close() {
-      collapseSidebar(shellId);
-    }
-
-    // Delegation: Navbar/Sidebar often render after #app-shell exists; per-button
-    // listeners would miss them. Capture phase runs before Blazor's delegation.
-    shell.addEventListener(
+    document.addEventListener(
       "click",
       function (e) {
+        var shell = getShell();
+        if (!shell) return;
+
         var t = e.target;
         var el = t && t.nodeType === 1 ? t : t && t.parentElement;
         if (!el || typeof el.closest !== "function") return;
+        if (!shell.contains(el)) return;
+
         var closeEl = el.closest("[data-shell-close]");
         if (closeEl && shell.contains(closeEl)) {
           e.preventDefault();
-          close();
+          collapseSidebar();
           return;
         }
+
         var toggleEl = el.closest("[data-shell-toggle]");
         if (toggleEl && shell.contains(toggleEl)) {
           e.preventDefault();
-          setSidebarClass(shellId, !isCollapsed(shell));
-          syncShellUi(shellId);
+          setSidebarClass(shell, !isCollapsed(shell));
+          syncShellUi();
         }
       },
       true
@@ -99,22 +104,31 @@ window.webAppShell = (function () {
     document.addEventListener("keydown", function (e) {
       if (e.key !== "Escape") return;
       if (!mq || !mq.matches) return;
-      if (isCollapsed(shell)) return;
-      close();
+      var shell = getShell();
+      if (!shell || isCollapsed(shell)) return;
+      collapseSidebar();
     });
+  }
 
-    if (mq) {
-      var onMedia = function () {
-        applyViewportDefault(shellId);
-      };
-      if (typeof mq.addEventListener === "function") {
-        mq.addEventListener("change", onMedia);
-      } else if (typeof mq.addListener === "function") {
-        mq.addListener(onMedia);
-      }
+  function setupViewportListener() {
+    if (viewportListenerReady || !mq) return;
+    viewportListenerReady = true;
+
+    var onMedia = function () {
+      applyViewportDefault();
+    };
+
+    if (typeof mq.addEventListener === "function") {
+      mq.addEventListener("change", onMedia);
+    } else if (typeof mq.addListener === "function") {
+      mq.addListener(onMedia);
     }
+  }
 
-    applyViewportDefault(shellId);
+  function initShell() {
+    setupDelegation();
+    setupViewportListener();
+    applyViewportDefault();
   }
 
   return {
@@ -127,18 +141,19 @@ window.webAppShell = (function () {
 })();
 
 (function () {
-  var obs;
   function tryInit() {
-    var shell = document.getElementById("app-shell");
-    if (!shell) return;
-    window.webAppShell.initShell("app-shell");
-    if (shell.dataset.shellInit === "1" && obs) {
-      obs.disconnect();
-    }
+    if (!document.getElementById("app-shell")) return;
+    window.webAppShell.initShell();
   }
-  obs = new MutationObserver(tryInit);
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", tryInit);
+  } else {
+    tryInit();
+  }
+
+  var obs = new MutationObserver(tryInit);
   obs.observe(document.documentElement, { childList: true, subtree: true });
-  tryInit();
 })();
 
 window.webAppScroll = {
@@ -204,7 +219,6 @@ window.webAppLogin = {
         submit.setAttribute("aria-busy", "true");
       }
 
-      // Do not disable inputs — disabled fields are omitted from form POST data.
       form.querySelectorAll(".login-input").forEach(function (input) {
         input.readOnly = true;
       });
