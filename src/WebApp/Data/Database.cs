@@ -58,6 +58,17 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<User>(entity =>
         {
             entity.ToTable("User", "dbo");
+            entity.Property(e => e.FirstName).HasColumnName("firstName");
+            entity.Property(e => e.LastName).HasColumnName("lastName");
+            entity.Property(e => e.Email).HasColumnName("email");
+            entity.Property(e => e.Mobile).HasColumnName("mobile");
+            entity.Property(e => e.Password).HasColumnName("password");
+            entity.Property(e => e.IsActive).HasColumnName("isActive");
+            entity.Property(e => e.IsDeleted).HasColumnName("isDeleted");
+            entity.Property(e => e.CreatedBy).HasColumnName("createdBy");
+            entity.Property(e => e.CreatedAt).HasColumnName("createdAt");
+            entity.Property(e => e.UpdatedBy).HasColumnName("updatedBy");
+            entity.Property(e => e.UpdatedAt).HasColumnName("updatedAt");
         });
         modelBuilder.Entity<ChatThread>(entity =>
         {

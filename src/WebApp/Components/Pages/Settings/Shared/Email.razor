@@ -8,22 +8,27 @@
 }
 else
 {
-    <section class="settings-card" aria-labelledby="mail-heading">
+    <div class="settings-panel">
+    <section class="settings-card settings-mail-card" aria-labelledby="mail-heading">
         <h2 id="mail-heading" class="settings-section-title">Mailbox (IMAP / SMTP)</h2>
 
+        <div class="settings-mail-body">
+            <div class="settings-mail-account">
         <label class="settings-label" for="mail-email">Email address</label>
         <input id="mail-email"
                type="email"
                class="settings-input"
                @bind="_email.EmailAddress"
-               autocomplete="email" />
+               autocomplete="email"
+               disabled="@IsFormBusy" />
 
         <label class="settings-label" for="mail-username">Username</label>
         <input id="mail-username"
                type="text"
                class="settings-input"
                @bind="_email.Username"
-               autocomplete="username" />
+               autocomplete="username"
+               disabled="@IsFormBusy" />
 
         <label class="settings-label" for="mail-password">Password</label>
         <input id="mail-password"
@@ -31,9 +36,12 @@ else
                class="settings-input"
                @bind="_email.Password"
                autocomplete="new-password"
-               placeholder="@(_email.HasStoredPassword ? "Saved — leave blank to keep" : "App password or mailbox password")" />
+               placeholder="@(_email.HasStoredPassword ? "Saved — leave blank to keep" : "App password or mailbox password")"
+               disabled="@IsFormBusy" />
         <p class="settings-hint">Stored encrypted. Leave blank on save to keep the existing password.</p>
+            </div>
 
+            <div class="settings-mail-server">
         <label class="settings-label" id="mail-provider-label">Provider</label>
         <div class="settings-provider-picker">
             @if (_providerOpen)
@@ -51,7 +59,7 @@ else
                     aria-haspopup="listbox"
                     aria-expanded="@_providerOpen"
                     aria-labelledby="mail-provider-label mail-provider"
-                    disabled="@IsBusy"
+                    disabled="@IsFormBusy"
                     @onclick="ToggleProviderPicker">
                 <span class="settings-provider-trigger-label">@GetProviderLabel(_email.Provider)</span>
                 <svg class="settings-provider-chevron @(_providerOpen ? "settings-provider-chevron-open" : null)"
@@ -74,13 +82,14 @@ else
                                 role="option"
                                 aria-selected="@selected"
                                 class="settings-provider-option @(selected ? "settings-provider-option-active" : null)"
-                                @onclick="() => SelectProviderAsync(provider)">
+                                @onclick="() => SelectProvider(provider)">
                             @GetProviderLabel(provider)
                         </button>
                     }
                 </div>
             }
         </div>
+
         @if (_email.Provider == EmailProvider.Gmail)
         {
             <p class="settings-hint">Gmail uses fixed IMAP/SMTP endpoints. Use an app password if 2-step verification is enabled.</p>
@@ -88,7 +97,7 @@ else
             <button type="button"
                     class="settings-collapsible-toggle"
                     aria-expanded="@_endpointsExpanded"
-                    disabled="@IsBusy"
+                    disabled="@IsFormBusy"
                     @onclick="ToggleEndpointsExpanded">
                 <span>Server settings</span>
                 <span class="settings-collapsible-meta">Gmail preset</span>
@@ -105,80 +114,84 @@ else
 
         @if (ShowEndpointFields)
         {
-        <label class="settings-label" for="mail-imap-host">IMAP host</label>
-        <input id="mail-imap-host"
-               type="text"
-               class="settings-input"
-               @bind="_email.ImapHost"
-               placeholder="imap.example.com"
-               autocomplete="off"
-               disabled="@IsProviderEndpointsLocked" />
-
-        <div class="settings-row">
-            <div class="settings-row-field">
-                <label class="settings-label" for="mail-imap-port">IMAP port</label>
-                <input id="mail-imap-port"
-                       type="number"
-                       min="1"
-                       max="65535"
+            <div class="settings-endpoints">
+                <label class="settings-label" for="mail-imap-host">IMAP host</label>
+                <input id="mail-imap-host"
+                       type="text"
                        class="settings-input"
-                       @bind="_email.ImapPort"
-                       disabled="@IsProviderEndpointsLocked" />
-            </div>
-            <div class="settings-row-field settings-row-check">
-                <label class="settings-check">
-                    <input type="checkbox"
-                           @bind="_email.ImapUseSsl"
-                           disabled="@IsProviderEndpointsLocked" />
-                    <span>IMAP SSL</span>
-                </label>
-            </div>
-        </div>
+                       @bind="_email.ImapHost"
+                       placeholder="imap.example.com"
+                       autocomplete="off"
+                       disabled="@IsProviderEndpointsLocked || IsFormBusy" />
 
-        <label class="settings-label" for="mail-smtp-host">SMTP host</label>
-        <input id="mail-smtp-host"
-               type="text"
-               class="settings-input"
-               @bind="_email.SmtpHost"
-               placeholder="smtp.example.com"
-               autocomplete="off"
-               disabled="@IsProviderEndpointsLocked" />
+                <div class="settings-row">
+                    <div class="settings-row-field">
+                        <label class="settings-label" for="mail-imap-port">IMAP port</label>
+                        <input id="mail-imap-port"
+                               type="number"
+                               min="1"
+                               max="65535"
+                               class="settings-input"
+                               @bind="_email.ImapPort"
+                               disabled="@IsProviderEndpointsLocked || IsFormBusy" />
+                    </div>
+                    <div class="settings-row-field settings-row-check">
+                        <label class="settings-check">
+                            <input type="checkbox"
+                                   @bind="_email.ImapUseSsl"
+                                   disabled="@IsProviderEndpointsLocked || IsFormBusy" />
+                            <span>IMAP SSL</span>
+                        </label>
+                    </div>
+                </div>
 
-        <div class="settings-row">
-            <div class="settings-row-field">
-                <label class="settings-label" for="mail-smtp-port">SMTP port</label>
-                <input id="mail-smtp-port"
-                       type="number"
-                       min="1"
-                       max="65535"
+                <label class="settings-label" for="mail-smtp-host">SMTP host</label>
+                <input id="mail-smtp-host"
+                       type="text"
                        class="settings-input"
-                       @bind="_email.SmtpPort"
-                       disabled="@IsProviderEndpointsLocked" />
+                       @bind="_email.SmtpHost"
+                       placeholder="smtp.example.com"
+                       autocomplete="off"
+                       disabled="@IsProviderEndpointsLocked || IsFormBusy" />
+
+                <div class="settings-row">
+                    <div class="settings-row-field">
+                        <label class="settings-label" for="mail-smtp-port">SMTP port</label>
+                        <input id="mail-smtp-port"
+                               type="number"
+                               min="1"
+                               max="65535"
+                               class="settings-input"
+                               @bind="_email.SmtpPort"
+                               disabled="@IsProviderEndpointsLocked || IsFormBusy" />
+                    </div>
+                    <div class="settings-row-field settings-row-check">
+                        <label class="settings-check">
+                            <input type="checkbox"
+                                   @bind="_email.SmtpUseSsl"
+                                   disabled="@IsProviderEndpointsLocked || IsFormBusy" />
+                            <span>SMTP SSL</span>
+                        </label>
+                    </div>
+                </div>
             </div>
-            <div class="settings-row-field settings-row-check">
-                <label class="settings-check">
-                    <input type="checkbox"
-                           @bind="_email.SmtpUseSsl"
-                           disabled="@IsProviderEndpointsLocked" />
-                    <span>SMTP SSL</span>
-                </label>
-            </div>
-        </div>
         }
+            </div>
+        </div>
     </section>
 
     <div class="settings-actions">
         <button type="button"
                 class="settings-btn-save"
-                disabled="@IsBusy"
+                disabled="@IsFormBusy"
                 @onclick="SaveAsync">
-            @(_busy == TabBusy.Saving ? "Saving…" : "Save email settings")
+            @(_saving ? "Saving…" : "Save email settings")
         </button>
         <button type="button"
                 class="settings-btn-secondary"
-                disabled="@IsBusy"
+                disabled="@IsFormBusy"
                 @onclick="TestConnectionAsync">
-            @(_busy == TabBusy.Testing ? "Testing…" : "Test connection")
+            @(_testing ? "Testing…" : "Test connection")
         </button>
     </div>
 
@@ -188,6 +201,7 @@ else
             @_status.Message
         </p>
     }
+    </div>
 }
 
 @code {
@@ -199,11 +213,13 @@ else
 
     private EmailSettingsDto _email = new();
     private TabBusy _busy = TabBusy.Loading;
+    private bool _saving;
+    private bool _testing;
     private TabStatus? _status;
     private bool _providerOpen;
     private bool _endpointsExpanded;
 
-    private bool IsBusy => _busy is TabBusy.Saving or TabBusy.Testing;
+    private bool IsFormBusy => _saving || _testing;
 
     private bool IsProviderEndpointsLocked => _email.Provider != EmailProvider.Custom;
 
@@ -223,6 +239,9 @@ else
         _status = null;
 
         var result = await Features.GetEmailSettingsAsync(CurrentUser.Id);
+
+        #region # Handle Result
+
         if (result.HasError)
         {
             _status = new TabStatus(
@@ -235,6 +254,8 @@ else
             _endpointsExpanded = _email.Provider == EmailProvider.Custom;
         }
 
+        #endregion
+
         _busy = TabBusy.None;
     }
 
@@ -244,15 +265,20 @@ else
 
     private async Task SaveAsync()
     {
-        _busy = TabBusy.Saving;
+        _saving = true;
         _status = null;
 
-        var result = await Features.SaveUserSettingsAsync(new SaveUserSettingsRequest
+        #region # Execute
+
+        var result = await Features.SaveEmailSettingsAsync(new SaveEmailSettingsRequest
         {
             UserId = CurrentUser.Id,
-            Section = SettingsSection.Email,
             Email = _email
         });
+
+        #endregion
+
+        #region # Handle Result
 
         if (result.HasError)
         {
@@ -267,7 +293,9 @@ else
             _status = new TabStatus("Email settings saved.", IsError: false);
         }
 
-        _busy = TabBusy.None;
+        #endregion
+
+        _saving = false;
     }
 
     #endregion
@@ -276,13 +304,22 @@ else
 
     private async Task TestConnectionAsync()
     {
-        _busy = TabBusy.Testing;
+        _testing = true;
         _status = null;
 
+        #region # Execute
+
         var result = await MailboxService.TestConnectionAsync(CurrentUser.Id, _email);
+
+        #endregion
+
+        #region # Handle Result
+
         _status = new TabStatus(result.Message, IsError: !result.Success);
 
-        _busy = TabBusy.None;
+        #endregion
+
+        _testing = false;
     }
 
     #endregion
@@ -291,7 +328,7 @@ else
 
     private void ToggleProviderPicker()
     {
-        if (IsBusy)
+        if (IsFormBusy)
         {
             return;
         }
@@ -304,18 +341,17 @@ else
         _providerOpen = false;
     }
 
-    private Task SelectProviderAsync(EmailProvider provider)
+    private void SelectProvider(EmailProvider provider)
     {
         if (provider == _email.Provider)
         {
             CloseProviderPicker();
-            return Task.CompletedTask;
+            return;
         }
 
         _email.Provider = provider;
         OnProviderChanged();
         CloseProviderPicker();
-        return Task.CompletedTask;
     }
 
     private void ToggleEndpointsExpanded()
@@ -347,9 +383,7 @@ else
     private enum TabBusy
     {
         None,
-        Loading,
-        Saving,
-        Testing
+        Loading
     }
 
     private sealed record TabStatus(string Message, bool IsError);

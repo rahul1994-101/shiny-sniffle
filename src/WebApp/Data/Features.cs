@@ -438,6 +438,162 @@ public class Features(Persistence _repo, ChatOrchestrator _chatOrchestrator)
 
     #region # UserSetting
 
+    #region # General
+
+    public async Task<AppResult<GeneralSettingsDto?>> GetGeneralSettingsAsync(Guid userId)
+    {
+        var result = new AppResult<GeneralSettingsDto?>();
+        try
+        {
+            #region # Validate
+
+            if (userId == Guid.Empty)
+            {
+                result.Failure(ErrorCode.BadRequest, "User Id is required.");
+                return result;
+            }
+
+            #endregion
+
+            #region # Execute
+
+            var generalSettings = await _repo.GetUserGeneralSettingsAsync(userId);
+
+            #endregion
+
+            #region # Handle Result
+
+            if (generalSettings is null)
+            {
+                result.Failure(ErrorCode.NotFound, "User not found.");
+            }
+            else
+            {
+                result.Success(generalSettings);
+            }
+
+            #endregion
+        }
+        catch (Exception ex)
+        {
+            result.Failure(ErrorCode.InternalServerError, ex.Message);
+        }
+
+        return result;
+    }
+
+    public async Task<AppResult<GeneralSettingsDto?>> SaveGeneralProfileAsync(SaveGeneralProfileRequest saveGeneralProfileRequest)
+    {
+        var result = new AppResult<GeneralSettingsDto?>();
+        try
+        {
+            #region # Validate
+
+            if (result.Validate(saveGeneralProfileRequest))
+            {
+                return result;
+            }
+
+            #endregion
+
+            #region # Execute
+
+            var savedProfile = await _repo.UpdateUserProfileAsync(
+                saveGeneralProfileRequest.UserId,
+                saveGeneralProfileRequest.FirstName,
+                saveGeneralProfileRequest.LastName,
+                saveGeneralProfileRequest.UserId);
+
+            #endregion
+
+            #region # Handle Result
+
+            if (savedProfile is null)
+            {
+                result.Failure(ErrorCode.NotFound, "User not found.");
+            }
+            else
+            {
+                result.Success(savedProfile);
+            }
+
+            #endregion
+        }
+        catch (Exception ex)
+        {
+            result.Failure(ErrorCode.InternalServerError, ex.Message);
+        }
+
+        return result;
+    }
+
+    public async Task<AppResult> ChangePasswordAsync(ChangePasswordRequest changePasswordRequest)
+    {
+        var result = new AppResult();
+        try
+        {
+            #region # Validate
+
+            if (result.Validate(changePasswordRequest))
+            {
+                return result;
+            }
+
+            if (!string.Equals(
+                    changePasswordRequest.NewPassword,
+                    changePasswordRequest.ConfirmPassword,
+                    StringComparison.Ordinal))
+            {
+                result.Failure(ErrorCode.BadRequest, "New password and confirmation do not match.");
+                return result;
+            }
+
+            var currentMatches = await _repo.UserPasswordMatchesAsync(
+                changePasswordRequest.UserId,
+                changePasswordRequest.CurrentPassword);
+
+            if (!currentMatches)
+            {
+                result.Failure(ErrorCode.BadRequest, "Current password is incorrect.");
+                return result;
+            }
+
+            #endregion
+
+            #region # Execute
+
+            var updated = await _repo.UpdateUserPasswordAsync(
+                changePasswordRequest.UserId,
+                changePasswordRequest.NewPassword,
+                changePasswordRequest.UserId);
+
+            #endregion
+
+            #region # Handle Result
+
+            if (!updated)
+            {
+                result.Failure(ErrorCode.NotFound, "User not found.");
+            }
+            else
+            {
+                result.Success();
+            }
+
+            #endregion
+        }
+        catch (Exception ex)
+        {
+            result.Failure(ErrorCode.InternalServerError, ex.Message);
+        }
+
+        return result;
+    }
+
+    #endregion
+
+    #region # Email
+
     public async Task<AppResult<EmailSettingsDto?>> GetEmailSettingsAsync(Guid userId)
     {
         var result = new AppResult<EmailSettingsDto?>();
@@ -473,45 +629,55 @@ public class Features(Persistence _repo, ChatOrchestrator _chatOrchestrator)
         return result;
     }
 
-    public async Task<AppResult<EmailSettingsDto?>> SaveUserSettingsAsync(SaveUserSettingsRequest saveUserSettingsRequest)
+    public async Task<AppResult<EmailSettingsDto?>> SaveEmailSettingsAsync(SaveEmailSettingsRequest saveEmailSettingsRequest)
     {
         var result = new AppResult<EmailSettingsDto?>();
         try
         {
             #region # Validate
 
-            if (result.Validate(saveUserSettingsRequest))
+            if (result.Validate(saveEmailSettingsRequest))
             {
                 return result;
             }
 
-            if (saveUserSettingsRequest.UserId == Guid.Empty)
+            if (saveEmailSettingsRequest.Email is null)
             {
-                result.Failure(ErrorCode.BadRequest, "User Id is required.");
+                result.Failure(ErrorCode.BadRequest, "Email settings are required.");
                 return result;
             }
 
-            switch (saveUserSettingsRequest.Section)
+            if (result.Validate(saveEmailSettingsRequest.Email))
             {
-                case SettingsSection.General:
-                    result.Failure(ErrorCode.BadRequest, "General settings cannot be saved yet.");
-                    return result;
-                case SettingsSection.Email:
-                    break;
-                default:
-                    result.Failure(ErrorCode.BadRequest, "Unsupported settings section.");
-                    return result;
+                return result;
+            }
+
+            var existingSettings = await _repo.GetUserEmailSettingsAsync(saveEmailSettingsRequest.UserId);
+            var validationError = EmailSettingsHelpers.TryBuildForSave(
+                saveEmailSettingsRequest.Email,
+                existingSettings,
+                out var newSettings);
+
+            if (validationError is not null)
+            {
+                result.Failure(ErrorCode.BadRequest, validationError);
+                return result;
             }
 
             #endregion
 
             #region # Execute
 
-            return saveUserSettingsRequest.Section switch
-            {
-                SettingsSection.Email => await SaveEmailSettingsCoreAsync(saveUserSettingsRequest.UserId, saveUserSettingsRequest.Email),
-                _ => throw new InvalidOperationException("Unsupported settings section.")
-            };
+            var savedSettings = await _repo.SaveUserEmailSettingsAsync(
+                saveEmailSettingsRequest.UserId,
+                newSettings,
+                saveEmailSettingsRequest.UserId);
+
+            #endregion
+
+            #region # Handle Result
+
+            result.Success(EmailSettingsHelpers.MapToDto(savedSettings));
 
             #endregion
         }
@@ -523,47 +689,7 @@ public class Features(Persistence _repo, ChatOrchestrator _chatOrchestrator)
         return result;
     }
 
-    private async Task<AppResult<EmailSettingsDto?>> SaveEmailSettingsCoreAsync(Guid userId, EmailSettingsDto? emailSettingsDto)
-    {
-        var result = new AppResult<EmailSettingsDto?>();
-
-        #region # Validate
-
-        if (emailSettingsDto is null)
-        {
-            result.Failure(ErrorCode.BadRequest, "Email settings are required.");
-            return result;
-        }
-
-        if (result.Validate(emailSettingsDto))
-        {
-            return result;
-        }
-
-        var existingSettings = await _repo.GetUserEmailSettingsAsync(userId);
-        var validationError = EmailSettingsHelpers.TryBuildForSave(emailSettingsDto, existingSettings, out var newSettings);
-        if (validationError is not null)
-        {
-            result.Failure(ErrorCode.BadRequest, validationError);
-            return result;
-        }
-
-        #endregion
-
-        #region # Execute
-
-        var savedSettings = await _repo.SaveUserEmailSettingsAsync(userId, newSettings, userId);
-
-        #endregion
-
-        #region # Handle Result
-
-        result.Success(EmailSettingsHelpers.MapToDto(savedSettings));
-
-        #endregion
-
-        return result;
-    }
+    #endregion
 
     #endregion
 }

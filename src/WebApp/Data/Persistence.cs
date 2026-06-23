@@ -266,6 +266,97 @@ public sealed class Persistence(IDbContextFactory<AppDbContext> _dbContextFactor
 
     #region # UserSetting
 
+    #region # General
+
+    public async Task<GeneralSettingsDto?> GetUserGeneralSettingsAsync(Guid userId)
+    {
+        await using var ctx = await _dbContextFactory.CreateDbContextAsync();
+        return await ctx.Users
+            .AsNoTracking()
+            .Where(x =>
+                x.Id == userId &&
+                x.IsActive == true &&
+                x.IsDeleted == false)
+            .Select(x => new GeneralSettingsDto
+            {
+                FirstName = x.FirstName,
+                LastName = x.LastName,
+                Email = x.Email
+            })
+            .FirstOrDefaultAsync();
+    }
+
+    public async Task<GeneralSettingsDto?> UpdateUserProfileAsync(
+        Guid userId,
+        string firstName,
+        string lastName,
+        Guid updatedBy)
+    {
+        await using var ctx = await _dbContextFactory.CreateDbContextAsync();
+        var user = await ctx.Users
+            .FirstOrDefaultAsync(x =>
+                x.Id == userId &&
+                x.IsActive == true &&
+                x.IsDeleted == false);
+
+        if (user is null)
+        {
+            return null;
+        }
+
+        user.FirstName = firstName.Trim();
+        user.LastName = lastName.Trim();
+        user.UpdatedBy = updatedBy;
+        user.UpdatedAt = DateTime.UtcNow;
+
+        await ctx.SaveChangesAsync();
+
+        return new GeneralSettingsDto
+        {
+            FirstName = user.FirstName,
+            LastName = user.LastName,
+            Email = user.Email
+        };
+    }
+
+    public async Task<bool> UserPasswordMatchesAsync(Guid userId, string password)
+    {
+        await using var ctx = await _dbContextFactory.CreateDbContextAsync();
+        return await ctx.Users
+            .AsNoTracking()
+            .AnyAsync(x =>
+                x.Id == userId &&
+                x.IsActive == true &&
+                x.IsDeleted == false &&
+                x.Password.ToLower() == password.ToLower());
+    }
+
+    public async Task<bool> UpdateUserPasswordAsync(Guid userId, string newPassword, Guid updatedBy)
+    {
+        await using var ctx = await _dbContextFactory.CreateDbContextAsync();
+        var user = await ctx.Users
+            .FirstOrDefaultAsync(x =>
+                x.Id == userId &&
+                x.IsActive == true &&
+                x.IsDeleted == false);
+
+        if (user is null)
+        {
+            return false;
+        }
+
+        user.Password = newPassword;
+        user.UpdatedBy = updatedBy;
+        user.UpdatedAt = DateTime.UtcNow;
+
+        await ctx.SaveChangesAsync();
+        return true;
+    }
+
+    #endregion
+
+    #region # Email
+
     public async Task<EmailSettings?> GetUserEmailSettingsAsync(Guid userId)
     {
         await using var ctx = await _dbContextFactory.CreateDbContextAsync();
@@ -318,6 +409,8 @@ public sealed class Persistence(IDbContextFactory<AppDbContext> _dbContextFactor
         await ctx.SaveChangesAsync();
         return EmailSettingsHelpers.FromJson(existing.EmailSettingsJson);
     }
+
+    #endregion
 
     #endregion
 

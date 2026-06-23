@@ -1,40 +1,274 @@
 @inherits BaseComponent
 
-<section class="settings-card">
-    <div class="settings-account">
-        <div class="settings-account-avatar" aria-hidden="true">@Initials()</div>
-        <div class="settings-account-body">
-            <p class="settings-account-name">@DisplayName()</p>
-            <p class="settings-account-email">@CurrentUser.Email</p>
-        </div>
-    </div>
-</section>
+@inject IHttpContextAccessor HttpContextAccessor
 
-<section class="settings-card settings-card-muted">
-    <h2 class="settings-section-title">On the way</h2>
-    <ul class="settings-soon-list">
-        <li class="settings-soon-item">
-            <span>Password reset</span>
-            <span class="settings-soon-badge">Soon</span>
-        </li>
-        <li class="settings-soon-item">
-            <span>Profile &amp; display name</span>
-            <span class="settings-soon-badge">Soon</span>
-        </li>
-    </ul>
-</section>
+@if (_busy == TabBusy.Loading)
+{
+    <p class="settings-hint" role="status">Loading account settings…</p>
+}
+else
+{
+    <div class="settings-sections">
+    <section class="settings-card" aria-labelledby="profile-heading">
+        <h2 id="profile-heading" class="settings-section-title">Profile</h2>
+        <p class="settings-section-lead">Your name is shown in the app, sidebar, and chat.</p>
+
+        <div class="settings-profile-header">
+            <div class="settings-account-avatar" aria-hidden="true">@Initials()</div>
+            <div class="settings-profile-identity">
+                <p class="settings-profile-display">@DisplayName()</p>
+            </div>
+        </div>
+
+        <div class="settings-name-row">
+            <div class="settings-name-field">
+                <label class="settings-label" for="profile-first-name">First name</label>
+                <input id="profile-first-name"
+                       type="text"
+                       class="settings-input"
+                       @bind="_profile.FirstName"
+                       autocomplete="given-name"
+                       disabled="@IsProfileSaving" />
+            </div>
+            <div class="settings-name-field">
+                <label class="settings-label" for="profile-last-name">Last name</label>
+                <input id="profile-last-name"
+                       type="text"
+                       class="settings-input"
+                       @bind="_profile.LastName"
+                       autocomplete="family-name"
+                       disabled="@IsProfileSaving" />
+            </div>
+        </div>
+
+        <label class="settings-label" for="profile-email">Email</label>
+        <input id="profile-email"
+               type="email"
+               class="settings-input"
+               value="@_profile.Email"
+               disabled
+               aria-readonly="true" />
+        <p class="settings-hint">Sign-in email cannot be changed here.</p>
+
+        <div class="settings-card-footer">
+            <button type="button"
+                    class="settings-btn-save"
+                    disabled="@IsProfileSaving"
+                    @onclick="SaveProfileAsync">
+                @(_profileSaving ? "Saving…" : "Save profile")
+            </button>
+        </div>
+
+        @if (_profileStatus is not null)
+        {
+            <p class="settings-sync-msg @(_profileStatus.IsError ? "settings-sync-msg-error" : "settings-sync-msg-success")" role="status">
+                @_profileStatus.Message
+            </p>
+        }
+    </section>
+
+    <section class="settings-card" aria-labelledby="password-heading">
+        <h2 id="password-heading" class="settings-section-title">Password</h2>
+        <p class="settings-section-lead">Choose a new sign-in password. No reset email is sent.</p>
+
+        <label class="settings-label" for="password-current">Current password</label>
+        <input id="password-current"
+               type="password"
+               class="settings-input"
+               @bind="_currentPassword"
+               autocomplete="current-password"
+               disabled="@IsPasswordSaving" />
+
+        <label class="settings-label" for="password-new">New password</label>
+        <input id="password-new"
+               type="password"
+               class="settings-input"
+               @bind="_newPassword"
+               autocomplete="new-password"
+               disabled="@IsPasswordSaving" />
+
+        <label class="settings-label" for="password-confirm">Confirm new password</label>
+        <input id="password-confirm"
+               type="password"
+               class="settings-input"
+               @bind="_confirmPassword"
+               autocomplete="new-password"
+               disabled="@IsPasswordSaving" />
+
+        <div class="settings-card-footer">
+            <button type="button"
+                    class="settings-btn-save"
+                    disabled="@IsPasswordSaving"
+                    @onclick="ChangePasswordAsync">
+                @(_passwordSaving ? "Updating…" : "Update password")
+            </button>
+        </div>
+
+        @if (_passwordStatus is not null)
+        {
+            <p class="settings-sync-msg @(_passwordStatus.IsError ? "settings-sync-msg-error" : "settings-sync-msg-success")" role="status">
+                @_passwordStatus.Message
+            </p>
+        }
+    </section>
+    </div>
+}
 
 @code {
-    private string DisplayName()
+    private GeneralSettingsDto _profile = new();
+    private TabBusy _busy = TabBusy.Loading;
+    private bool _profileSaving;
+    private bool _passwordSaving;
+    private TabStatus? _profileStatus;
+    private TabStatus? _passwordStatus;
+    private string _currentPassword = string.Empty;
+    private string _newPassword = string.Empty;
+    private string _confirmPassword = string.Empty;
+
+    private bool IsProfileSaving => _profileSaving;
+
+    private bool IsPasswordSaving => _passwordSaving;
+
+    protected override async Task OnInitializedAsync()
     {
-        if (!string.IsNullOrWhiteSpace(CurrentUser.FullName))
+        await LoadAsync();
+    }
+
+    #region # Load
+
+    private async Task LoadAsync()
+    {
+        _busy = TabBusy.Loading;
+        _profileStatus = null;
+        _passwordStatus = null;
+
+        var result = await Features.GetGeneralSettingsAsync(CurrentUser.Id);
+
+        #region # Handle Result
+
+        if (result.HasError)
         {
-            return CurrentUser.FullName.Trim();
+            _profileStatus = new TabStatus(
+                result.Errors.FirstOrDefault()?.Message ?? "Failed to load account settings.",
+                IsError: true);
+        }
+        else if (result.Payload is not null)
+        {
+            _profile = result.Payload;
         }
 
-        if (!string.IsNullOrWhiteSpace(CurrentUser.Email))
+        #endregion
+
+        _busy = TabBusy.None;
+    }
+
+    #endregion
+
+    #region # Profile
+
+    private async Task SaveProfileAsync()
+    {
+        _profileSaving = true;
+        _profileStatus = null;
+
+        #region # Execute
+
+        var result = await Features.SaveGeneralProfileAsync(new SaveGeneralProfileRequest
         {
-            var local = CurrentUser.Email.Split('@')[0];
+            UserId = CurrentUser.Id,
+            FirstName = _profile.FirstName,
+            LastName = _profile.LastName
+        });
+
+        #endregion
+
+        #region # Handle Result
+
+        if (result.HasError)
+        {
+            _profileStatus = new TabStatus(
+                result.Errors.FirstOrDefault()?.Message ?? "Failed to save profile.",
+                IsError: true);
+        }
+        else if (result.Payload is not null)
+        {
+            _profile = result.Payload;
+            _profileStatus = new TabStatus("Profile saved.", IsError: false);
+
+            var httpContext = HttpContextAccessor.HttpContext;
+            if (httpContext is not null)
+            {
+                await AuthCookieHelpers.SignInAsync(httpContext, new SignInResponse
+                {
+                    Id = CurrentUser.Id,
+                    Email = _profile.Email,
+                    FullName = $"{_profile.FirstName} {_profile.LastName}".Trim()
+                });
+            }
+        }
+
+        #endregion
+
+        _profileSaving = false;
+    }
+
+    #endregion
+
+    #region # Password
+
+    private async Task ChangePasswordAsync()
+    {
+        _passwordSaving = true;
+        _passwordStatus = null;
+
+        #region # Execute
+
+        var result = await Features.ChangePasswordAsync(new ChangePasswordRequest
+        {
+            UserId = CurrentUser.Id,
+            CurrentPassword = _currentPassword,
+            NewPassword = _newPassword,
+            ConfirmPassword = _confirmPassword
+        });
+
+        #endregion
+
+        #region # Handle Result
+
+        if (result.HasError)
+        {
+            _passwordStatus = new TabStatus(
+                result.Errors.FirstOrDefault()?.Message ?? "Failed to change password.",
+                IsError: true);
+        }
+        else
+        {
+            _currentPassword = string.Empty;
+            _newPassword = string.Empty;
+            _confirmPassword = string.Empty;
+            _passwordStatus = new TabStatus("Password updated.", IsError: false);
+        }
+
+        #endregion
+
+        _passwordSaving = false;
+    }
+
+    #endregion
+
+    #region # Helpers
+
+    private string DisplayName()
+    {
+        var fullName = $"{_profile.FirstName} {_profile.LastName}".Trim();
+        if (!string.IsNullOrWhiteSpace(fullName))
+        {
+            return fullName;
+        }
+
+        if (!string.IsNullOrWhiteSpace(_profile.Email))
+        {
+            var local = _profile.Email.Split('@')[0];
             return string.IsNullOrWhiteSpace(local) ? "Your account" : local;
         }
 
@@ -57,4 +291,14 @@
 
         return char.ToUpperInvariant(name[0]).ToString();
     }
+
+    private enum TabBusy
+    {
+        None,
+        Loading
+    }
+
+    private sealed record TabStatus(string Message, bool IsError);
+
+    #endregion
 }

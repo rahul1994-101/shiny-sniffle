@@ -23,6 +23,8 @@ Mirror the usual data flow — **Get → GetById → Add/Update → Delete** —
 
 **Example (`# ChatMessage`):** `ChatMessageDto` → `SendChatMessageRequest` → `SendChatMessageResponse`
 
+**Example (`# UserSetting`):** use subregions per settings page (`# General`, `# Email`). Within each page: shared `{Page}SettingsDto` first, then `{Verb}…Request` types in call order — e.g. `# General`: `GeneralSettingsDto` → `SaveGeneralProfileRequest` → `ChangePasswordRequest`; `# Email`: `EmailSettingsDto` → `SaveEmailSettingsRequest`.
+
 Non-CRUD regions (e.g. `# User` sign-in, `# AI`) keep a logical pair order — request before response.
 
 ## Two DTO kinds

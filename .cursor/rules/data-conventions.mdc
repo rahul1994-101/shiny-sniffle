@@ -55,15 +55,15 @@ Map `UserSetting` audit/base columns to the database camelCase names in `Databas
 
 ## Persistence method naming (settings sections)
 
-Within `#region # UserSetting`, name methods after the **section** they touch:
+Within `#region # UserSetting`, use **subregions per settings page** (`# General`, `# Email`, …). Name persistence methods after the section they touch:
 
-- `GetUserEmailSettingsAsync` / `SaveUserEmailSettingsAsync`
-- Future: `GetUserGeneralSettingsAsync` / `SaveUserGeneralSettingsAsync`
+- **General** (User table): `GetUserGeneralSettingsAsync`, `UpdateUserProfileAsync`, `UpdateUserPasswordAsync`
+- **Email** (JSON column): `GetUserEmailSettingsAsync`, `SaveUserEmailSettingsAsync`
 
-Features uses **per-section get** (`GetEmailSettingsAsync`, …) and a **single hybrid save**:
+Features mirrors the same subregions: per-page **get** (`GetGeneralSettingsAsync`, `GetEmailSettingsAsync`) and **dedicated saves** per action.
 
-- `SaveUserSettingsAsync(SaveUserSettingsRequest)` — public router; `SettingsSection` + nullable section DTOs
-- `SaveEmailSettingsCoreAsync` (private) — validate + persist one section; add `SaveGeneralSettingsCoreAsync` when General has DB backing
+- `SaveGeneralProfileAsync(SaveGeneralProfileRequest)` → `AppResult<GeneralSettingsDto?>`
+- `ChangePasswordAsync(ChangePasswordRequest)` → `AppResult`
+- `SaveEmailSettingsAsync(SaveEmailSettingsRequest)` → `AppResult<EmailSettingsDto?>`
 
-`SaveUserSettingsRequest`: `UserId`, `Section`, `EmailSettingsDto? Email`, …  
-`SaveUserSettingsAsync` returns `AppResult<EmailSettingsDto?>` for the Email section (extend return type when other sections need payloads).
+`SettingsSection` is for tab routes only, not save routing.

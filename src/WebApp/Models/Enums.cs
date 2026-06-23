@@ -12,7 +12,7 @@ public enum ChatAgent
     Email = 1
 }
 
-/// <summary>Settings page tab / JSON column section for <see cref="SaveUserSettingsRequest.Section"/>.</summary>
+/// <summary>Settings page tab routes (<c>/settings/general</c>, <c>/settings/email</c>).</summary>
 public enum SettingsSection
 {
     General = 0,

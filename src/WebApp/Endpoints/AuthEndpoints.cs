@@ -1,5 +1,3 @@
-using System.Security.Claims;
-
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -8,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using WebApp.Data;
 using WebApp.Models;
 using WebApp.Utilities.Extensions;
+using WebApp.Utilities.Helpers;
 
 namespace WebApp.Endpoints;
 
@@ -31,7 +30,7 @@ public sealed class AuthEndpoints(Features _features, IAntiforgery _antiforgery)
             return LocalRedirect(AuthExtensions.LoginUrl(returnUrl, message));
         }
 
-        await SignInAsync(result.Payload);
+        await AuthCookieHelpers.SignInAsync(HttpContext, result.Payload);
 
         return LocalRedirect(returnUrl.NormalizeReturnUrl());
     }
@@ -61,32 +60,6 @@ public sealed class AuthEndpoints(Features _features, IAntiforgery _antiforgery)
         {
             return false;
         }
-    }
-
-    private async Task SignInAsync(SignInResponse user, bool isPersistent = true)
-    {
-        ArgumentNullException.ThrowIfNull(user);
-
-        var claims = new List<Claim>
-        {
-            new(ClaimTypes.NameIdentifier, user.Id.ToString("D")),
-            new(ClaimTypes.Email, user.Email),
-            new(ClaimTypes.Name, user.FullName)
-        };
-
-        var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-        var principal = new ClaimsPrincipal(identity);
-
-        var properties = new AuthenticationProperties
-        {
-            IsPersistent = isPersistent,
-            AllowRefresh = true
-        };
-
-        await HttpContext.SignInAsync(
-            CookieAuthenticationDefaults.AuthenticationScheme,
-            principal,
-            properties);
     }
 
     private Task SignOutAsync() =>
