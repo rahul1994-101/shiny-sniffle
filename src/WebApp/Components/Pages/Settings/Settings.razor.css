@@ -92,7 +92,7 @@
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.25rem;
-    width: fit-content;
+    width: 100%;
     max-width: 100%;
     padding: 0.25rem;
     border: 1px solid var(--app-border);
@@ -199,8 +199,153 @@
     margin-bottom: 0.35rem;
 }
 
-.settings-content ::deep .settings-name-field {
+.settings-content ::deep .settings-name-row > .settings-field {
+    margin-top: 0;
+}
+
+.settings-content ::deep .settings-name-field,
+.settings-content ::deep .settings-name-row > .settings-field {
     min-width: 0;
+}
+
+.settings-content ::deep .settings-field {
+    margin-top: 0.85rem;
+}
+
+.settings-content ::deep .settings-section-lead + .settings-field,
+.settings-content ::deep .settings-section-lead + .settings-profile-header,
+.settings-content ::deep .settings-profile-header + .settings-name-row,
+.settings-content ::deep .settings-name-row + .settings-field {
+    margin-top: 0;
+}
+
+.settings-content ::deep .settings-field-error {
+    margin: 0.35rem 0 0;
+    font-size: 0.8rem;
+    color: #fecaca;
+    line-height: 1.45;
+}
+
+.settings-content ::deep .settings-field-invalid .settings-input {
+    border-color: rgba(248, 113, 113, 0.55);
+}
+
+.settings-content ::deep .settings-password-wrap {
+    display: flex;
+    align-items: stretch;
+    gap: 0.35rem;
+}
+
+.settings-content ::deep .settings-password-wrap .settings-input {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.settings-content ::deep .settings-password-toggle {
+    flex-shrink: 0;
+    align-self: stretch;
+    padding: 0 0.75rem;
+    border: 1px solid var(--app-border);
+    border-radius: 0.5rem;
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--app-muted);
+    font: inherit;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.settings-content ::deep .settings-password-toggle:hover:not(:disabled) {
+    color: var(--app-fg);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.settings-content ::deep .settings-password-toggle:disabled {
+    opacity: 0.72;
+    cursor: not-allowed;
+}
+
+.settings-content ::deep .settings-link {
+    color: #7dd3fc;
+    text-decoration: underline;
+    text-underline-offset: 0.12em;
+}
+
+.settings-content ::deep .settings-link:hover {
+    color: #bae6fd;
+}
+
+.settings-content ::deep .settings-status-strip {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.35rem 0.65rem;
+    padding: 0.65rem 0.85rem;
+    border: 1px solid var(--app-border);
+    border-radius: 0.625rem;
+    background: rgba(0, 0, 0, 0.14);
+}
+
+.settings-content ::deep .settings-status-strip-title {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--app-fg);
+}
+
+.settings-content ::deep .settings-status-strip-detail {
+    font-size: 0.8125rem;
+    color: var(--app-muted);
+}
+
+.settings-content ::deep .settings-status-strip-success {
+    border-color: rgba(16, 163, 127, 0.35);
+    background: rgba(16, 163, 127, 0.1);
+}
+
+.settings-content ::deep .settings-status-strip-warning {
+    border-color: rgba(251, 191, 36, 0.35);
+    background: rgba(251, 191, 36, 0.08);
+}
+
+.settings-content ::deep .settings-status-strip-error {
+    border-color: rgba(248, 113, 113, 0.35);
+    background: rgba(248, 113, 113, 0.1);
+}
+
+.settings-content ::deep .settings-loading {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.settings-content ::deep .settings-skeleton {
+    border-radius: 0.75rem;
+    background: linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0.04) 0%,
+        rgba(255, 255, 255, 0.08) 50%,
+        rgba(255, 255, 255, 0.04) 100%);
+    background-size: 200% 100%;
+    animation: settings-skeleton-shimmer 1.2s ease-in-out infinite;
+}
+
+.settings-content ::deep .settings-skeleton-card {
+    height: 12rem;
+}
+
+.settings-content ::deep .settings-sync-msg-fading {
+    opacity: 0;
+    transition: opacity 0.35s ease;
+}
+
+@keyframes settings-skeleton-shimmer {
+    0% {
+        background-position: 200% 0;
+    }
+
+    100% {
+        background-position: -200% 0;
+    }
 }
 
 .settings-content ::deep .settings-card-footer {
@@ -214,20 +359,12 @@
 
 .settings-content ::deep .settings-sections {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--settings-col-min)), 1fr));
-    gap: 1rem;
-    align-items: stretch;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.75rem;
 }
 
 .settings-content ::deep .settings-sections .settings-card {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
     margin-bottom: 0;
-}
-
-.settings-content ::deep .settings-sections .settings-card-footer {
-    margin-top: auto;
 }
 
 .settings-content ::deep .settings-panel {
@@ -721,18 +858,31 @@
     line-height: 1.45;
 }
 
-/* Responsive: mobile (base) → sm 480px → md 768px → lg 1024px → xl 1280px */
+/* Responsive: mobile (base) → desktop 641px (matches app shell) */
 
-@media (min-width: 480px) {
+@media (min-width: 641px) {
     .settings-inner {
-        --settings-max: 36rem;
-        --settings-pad-x: clamp(1rem, 4vw, 1.5rem);
-        --settings-pad-b: 2.25rem;
-        --settings-col-min: 16rem;
+        --settings-max: min(100%, 56rem);
+        --settings-pad-x: clamp(1.25rem, 3vw, 2rem);
+        --settings-pad-b: 2.75rem;
+        --settings-block-gap: 1.5rem;
+        --settings-col-min: 18rem;
     }
 
-    .settings-tabs ::deep a.settings-tab {
-        padding-inline: 1.15rem;
+    .settings-title {
+        font-size: 1.75rem;
+    }
+
+    .settings-subtitle {
+        font-size: 0.9375rem;
+    }
+
+    .settings-content ::deep .settings-card {
+        padding: 1.2rem 1.35rem;
+    }
+
+    .settings-content ::deep .settings-sections {
+        gap: 0.85rem;
     }
 
     .settings-content ::deep .settings-name-row {
@@ -752,61 +902,10 @@
         width: auto;
         min-width: 9.5rem;
     }
-}
-
-@media (min-width: 768px) {
-    .settings-inner {
-        --settings-max: 42rem;
-        --settings-pad-x: clamp(1.25rem, 4vw, 1.75rem);
-        --settings-pad-b: 2.5rem;
-        --settings-block-gap: 1.35rem;
-        --settings-col-min: 17rem;
-    }
-
-    .settings-title {
-        font-size: 1.625rem;
-    }
-
-    .settings-subtitle {
-        font-size: 0.9375rem;
-    }
-
-    .settings-content ::deep .settings-card {
-        padding: 1.2rem 1.35rem;
-    }
-}
-
-@media (min-width: 1024px) {
-    .settings-inner {
-        --settings-max: 56rem;
-        --settings-pad-x: clamp(1.5rem, 3vw, 2rem);
-        --settings-pad-b: 2.75rem;
-        --settings-col-min: 19rem;
-    }
-
-    .settings-title {
-        font-size: 1.75rem;
-    }
-
-    .settings-tabs ::deep a.settings-tab {
-        min-width: 7.5rem;
-        padding-inline: 1.35rem;
-    }
-}
-
-@media (min-width: 1280px) {
-    .settings-inner {
-        --settings-max: 68rem;
-        --settings-col-min: 20rem;
-    }
 
     .settings-content ::deep .settings-mail-server .settings-endpoints {
         margin-top: 0;
         padding-top: 0;
         border-top: 0;
-    }
-
-    .settings-content ::deep .settings-panel .settings-actions {
-        margin-top: 0.25rem;
     }
 }

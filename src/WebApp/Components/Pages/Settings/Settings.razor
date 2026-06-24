@@ -3,53 +3,106 @@
 
 @inherits BaseComponent
 
+@using Microsoft.AspNetCore.Components.Routing
+
+@implements IDisposable
+
 @attribute [Authorize]
 
 <PageTitle>Settings</PageTitle>
 
-<div class="settings-shell">
-    <div class="settings-inner settings-grid">
-        <header class="settings-header">
-            <h1 class="settings-title">Settings</h1>
-            <p class="settings-subtitle">
-                @(IsEmailTab ? "Connect IMAP/SMTP for the Email agent." : "Manage your profile and sign-in password.")
-            </p>
-        </header>
+<CascadingValue Value="_pageContext" IsFixed="true">
+    <NavigationLock OnBeforeInternalNavigation="OnBeforeInternalNavigationAsync"
+                    ConfirmExternalNavigation="@_pageContext.IsDirty" />
 
-        <nav class="settings-tabs" aria-label="Settings sections">
-            <NavLink class="settings-tab" href="/settings/general" Match="NavLinkMatch.All" ActiveClass="settings-tab-active">
-                General
-            </NavLink>
-            <NavLink class="settings-tab" href="/settings/email" Match="NavLinkMatch.All" ActiveClass="settings-tab-active">
-                Email
-            </NavLink>
-        </nav>
+    <div class="settings-shell">
+        <div class="settings-inner settings-grid">
+            <header class="settings-header">
+                <h1 class="settings-title">Settings</h1>
+                <p class="settings-subtitle">@_subtitle</p>
+            </header>
 
-        <div class="settings-content">
-            @if (IsEmailTab)
-            {
-                <Email />
-            }
-            else
-            {
-                <General />
-            }
+            <nav class="settings-tabs" aria-label="Settings sections">
+                @foreach (var tab in _tabs)
+                {
+                    <NavLink class="settings-tab"
+                             href="@($"/settings/{tab.Segment}")"
+                             Match="NavLinkMatch.All"
+                             ActiveClass="settings-tab-active">
+                        @tab.Label
+                    </NavLink>
+                }
+            </nav>
+
+            <div class="settings-content">
+                @if (IsEmailTab)
+                {
+                    <Email />
+                }
+                else
+                {
+                    <General />
+                }
+            </div>
         </div>
     </div>
-</div>
+</CascadingValue>
 
 @code {
+    private static readonly (string Segment, string Label, string Subtitle)[] _tabs =
+    [
+        ("general", "General", "Manage your profile and sign-in password."),
+        ("email", "Email", "Connect IMAP/SMTP for the Email agent.")
+    ];
+
     [Parameter]
     public string? Tab { get; set; }
+
+    private readonly SettingsPageContext _pageContext = new();
+    private string _subtitle = _tabs[0].Subtitle;
+
+    protected override void OnInitialized()
+    {
+        _pageContext.Changed += OnPageContextChanged;
+    }
 
     protected override void OnParametersSet()
     {
         if (string.IsNullOrWhiteSpace(Tab))
         {
             NavigationManager.NavigateTo("/settings/general", replace: true);
+            return;
         }
+
+        _subtitle = _tabs.FirstOrDefault(t => string.Equals(t.Segment, Tab, StringComparison.OrdinalIgnoreCase)).Subtitle
+            ?? _tabs[0].Subtitle;
     }
 
     private bool IsEmailTab =>
         string.Equals(Tab, "email", StringComparison.OrdinalIgnoreCase);
+
+    private void OnPageContextChanged() => InvokeAsync(StateHasChanged);
+
+    private async Task OnBeforeInternalNavigationAsync(LocationChangingContext context)
+    {
+        if (!_pageContext.IsDirty)
+        {
+            return;
+        }
+
+        var leave = await JsRuntime.InvokeAsync<bool>(
+            "confirm",
+            "You have unsaved changes. Leave without saving?");
+
+        if (!leave)
+        {
+            context.PreventNavigation();
+        }
+    }
+
+    public void Dispose()
+    {
+        _pageContext.Changed -= OnPageContextChanged;
+        _pageContext.Dispose();
+    }
 }
