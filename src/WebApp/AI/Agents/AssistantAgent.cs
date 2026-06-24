@@ -9,10 +9,7 @@ namespace WebApp.AI.Agents;
 
 public sealed class AssistantAgent(FoundryAgentFactory _agentFactory)
 {
-    public async Task<RunChatAgentResponse> RunAsync(
-        RunChatAgentRequest request,
-        IReadOnlyList<Microsoft.Extensions.AI.ChatMessage> history,
-        CancellationToken cancellationToken = default)
+    public async Task<RunChatAgentResponse> RunAsync(RunChatAgentRequest request, IReadOnlyList<Microsoft.Extensions.AI.ChatMessage> history, CancellationToken cancellationToken = default)
     {
         #region # Execute
 

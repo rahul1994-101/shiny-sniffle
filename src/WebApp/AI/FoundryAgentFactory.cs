@@ -14,12 +14,7 @@ public sealed class FoundryAgentFactory(IOptions<FoundryOptions> _options, IServ
 {
     private AzureOpenAIClient? _openAiClient;
 
-    public AIAgent CreateAgent(
-        string modelDeployment,
-        string name,
-        string description,
-        string instructions,
-        IList<AITool>? tools = null)
+    public AIAgent CreateAgent(string modelDeployment, string name, string description, string instructions, IList<AITool>? tools = null)
     {
         var foundry = _options.Value;
         if (!foundry.IsConfigured)

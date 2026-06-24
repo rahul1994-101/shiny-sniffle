@@ -286,11 +286,7 @@ public sealed class Persistence(IDbContextFactory<AppDbContext> _dbContextFactor
             .FirstOrDefaultAsync();
     }
 
-    public async Task<GeneralSettingsDto?> UpdateUserProfileAsync(
-        Guid userId,
-        string firstName,
-        string lastName,
-        Guid updatedBy)
+    public async Task<GeneralSettingsDto?> UpdateUserProfileAsync(Guid userId, string firstName, string lastName, Guid updatedBy)
     {
         await using var ctx = await _dbContextFactory.CreateDbContextAsync();
         var user = await ctx.Users

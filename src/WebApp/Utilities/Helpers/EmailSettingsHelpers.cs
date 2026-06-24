@@ -46,10 +46,7 @@ internal static class EmailSettingsHelpers
         };
     }
 
-    internal static string? TryBuildForSave(
-        EmailSettingsDto email,
-        EmailSettings? existing,
-        out EmailSettings? settings)
+    internal static string? TryBuildForSave(EmailSettingsDto email, EmailSettings? existing, out EmailSettings? settings)
     {
         settings = null;
 
@@ -113,9 +110,7 @@ internal static class EmailSettingsHelpers
         return null;
     }
 
-    internal static MailboxConnectionOptions? ResolveConnectionOptions(
-        EmailSettings? stored,
-        EmailSettingsDto? draft = null)
+    internal static MailboxConnectionOptions? ResolveConnectionOptions(EmailSettings? stored, EmailSettingsDto? draft = null)
     {
         if (draft is null)
         {

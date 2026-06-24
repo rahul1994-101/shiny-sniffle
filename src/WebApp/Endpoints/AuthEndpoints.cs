@@ -14,9 +14,7 @@ namespace WebApp.Endpoints;
 public sealed class AuthEndpoints(Features _features, IAntiforgery _antiforgery) : Controller
 {
     [HttpPost("login")]
-    public async Task<IActionResult> SignIn(
-        [FromForm] SignInRequest signInRequest,
-        [FromForm(Name = AuthConstants.ReturnUrlQuery)] string? returnUrl)
+    public async Task<IActionResult> SignIn([FromForm] SignInRequest signInRequest, [FromForm(Name = AuthConstants.ReturnUrlQuery)] string? returnUrl)
     {
         if (!await TryValidateAntiforgeryAsync())
         {

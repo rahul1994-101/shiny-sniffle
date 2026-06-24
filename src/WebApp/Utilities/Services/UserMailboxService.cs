@@ -22,11 +22,7 @@ public sealed class UserMailboxService(Persistence _repo, IMailboxService _mailb
         return status.Message;
     }
 
-    public async Task<string> ListInboxMessagesTextAsync(
-        Guid userId,
-        string since,
-        int limit,
-        CancellationToken cancellationToken = default)
+    public async Task<string> ListInboxMessagesTextAsync(Guid userId, string since, int limit, CancellationToken cancellationToken = default)
     {
         var config = await ResolveConnectionOptionsAsync(userId, cancellationToken: cancellationToken);
         if (config is null)
@@ -79,12 +75,7 @@ public sealed class UserMailboxService(Persistence _repo, IMailboxService _mailb
         }
     }
 
-    public async Task<string> SendEmailTextAsync(
-        Guid userId,
-        string to,
-        string subject,
-        string body,
-        CancellationToken cancellationToken = default)
+    public async Task<string> SendEmailTextAsync(Guid userId, string to, string subject, string body, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(to))
         {
@@ -122,10 +113,7 @@ public sealed class UserMailboxService(Persistence _repo, IMailboxService _mailb
         }
     }
 
-    public async Task<MailboxTestResult> TestConnectionAsync(
-        Guid userId,
-        EmailSettingsDto? draft = null,
-        CancellationToken cancellationToken = default)
+    public async Task<MailboxTestResult> TestConnectionAsync(Guid userId, EmailSettingsDto? draft = null, CancellationToken cancellationToken = default)
     {
         var config = await ResolveConnectionOptionsAsync(userId, draft, cancellationToken);
         if (config is null)
@@ -140,10 +128,9 @@ public sealed class UserMailboxService(Persistence _repo, IMailboxService _mailb
         return await _mailboxService.TestConnectionAsync(config, cancellationToken);
     }
 
-    private async Task<MailboxConnectionOptions?> ResolveConnectionOptionsAsync(
-        Guid userId,
-        EmailSettingsDto? draft = null,
-        CancellationToken cancellationToken = default)
+    #region # Private Helpers
+
+    private async Task<MailboxConnectionOptions?> ResolveConnectionOptionsAsync(Guid userId, EmailSettingsDto? draft = null, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
         var emailSettings = await _repo.GetUserEmailSettingsAsync(userId);
@@ -170,4 +157,6 @@ public sealed class UserMailboxService(Persistence _repo, IMailboxService _mailb
                 : null
         };
     }
+
+    #endregion
 }

@@ -16,9 +16,7 @@ public sealed class ChatOrchestrator(
 {
     private const int DefaultMessageLimit = 12;
 
-    public async Task<RunChatAgentResponse> RunChatAgentAsync(
-        RunChatAgentRequest request,
-        CancellationToken cancellationToken = default)
+    public async Task<RunChatAgentResponse> RunChatAgentAsync(RunChatAgentRequest request, CancellationToken cancellationToken = default)
     {
         #region # Validate
 
@@ -54,9 +52,7 @@ public sealed class ChatOrchestrator(
 
     #region # Private Helpers
 
-    private async Task<IReadOnlyList<Microsoft.Extensions.AI.ChatMessage>> LoadThreadHistoryAsync(
-        Guid chatThreadId,
-        CancellationToken cancellationToken)
+    private async Task<IReadOnlyList<Microsoft.Extensions.AI.ChatMessage>> LoadThreadHistoryAsync(Guid chatThreadId, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
