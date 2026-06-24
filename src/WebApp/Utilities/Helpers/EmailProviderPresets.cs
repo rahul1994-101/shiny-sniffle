@@ -28,15 +28,23 @@ internal static class EmailProviderPresets
             _ => null
         };
 
-    internal static string ToConnectionName(EmailProvider provider) =>
-        provider switch
+    internal static void Apply(EmailSettings settings)
+    {
+        var endpoints = GetEndpoints(settings.Provider);
+        if (endpoints is null)
         {
-            EmailProvider.Gmail => "gmail",
-            EmailProvider.Custom => "custom",
-            _ => "custom"
-        };
+            return;
+        }
 
-    internal static void ApplyToDto(EmailSettingsDto dto)
+        settings.ImapHost = endpoints.Value.ImapHost;
+        settings.ImapPort = endpoints.Value.ImapPort;
+        settings.ImapUseSsl = endpoints.Value.ImapUseSsl;
+        settings.SmtpHost = endpoints.Value.SmtpHost;
+        settings.SmtpPort = endpoints.Value.SmtpPort;
+        settings.SmtpUseSsl = endpoints.Value.SmtpUseSsl;
+    }
+
+    internal static void Apply(EmailSettingsDto dto)
     {
         var endpoints = GetEndpoints(dto.Provider);
         if (endpoints is null)
@@ -60,22 +68,6 @@ internal static class EmailProviderPresets
         dto.SmtpPort = 587;
         dto.ImapUseSsl = true;
         dto.SmtpUseSsl = true;
-    }
-
-    internal static void ApplyToEntity(EmailSettings settings)
-    {
-        var endpoints = GetEndpoints(settings.Provider);
-        if (endpoints is null)
-        {
-            return;
-        }
-
-        settings.ImapHost = endpoints.Value.ImapHost;
-        settings.ImapPort = endpoints.Value.ImapPort;
-        settings.ImapUseSsl = endpoints.Value.ImapUseSsl;
-        settings.SmtpHost = endpoints.Value.SmtpHost;
-        settings.SmtpPort = endpoints.Value.SmtpPort;
-        settings.SmtpUseSsl = endpoints.Value.SmtpUseSsl;
     }
 
     internal static bool Matches(EmailSettings settings, EmailProvider provider)

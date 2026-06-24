@@ -3,6 +3,12 @@ using WebApp.Utilities.Extensions;
 
 namespace WebApp.Utilities.Helpers;
 
+internal enum EmailSettingsBuildMode
+{
+    Save,
+    Draft
+}
+
 internal static class EmailSettingsHelpers
 {
     internal static EmailSettings? FromJson(string? json) =>
@@ -11,17 +17,7 @@ internal static class EmailSettingsHelpers
     internal static string? ToJson(EmailSettings? settings) =>
         JsonColumnHelpers.Serialize(settings);
 
-    internal static void ApplyProviderEndpoints(EmailSettingsDto dto)
-    {
-        EmailProviderPresets.ApplyToDto(dto);
-    }
-
-    internal static void ClearProviderEndpoints(EmailSettingsDto dto)
-    {
-        EmailProviderPresets.ClearDtoEndpoints(dto);
-    }
-
-    internal static EmailSettingsDto MapToDto(EmailSettings? stored)
+    internal static EmailSettingsDto ToDto(EmailSettings? stored)
     {
         if (stored is null)
         {
@@ -46,79 +42,92 @@ internal static class EmailSettingsHelpers
         };
     }
 
-    internal static string? TryBuildForSave(EmailSettingsDto email, EmailSettings? existing, out EmailSettings? settings)
+    internal static string? TryBuildFromDto(EmailSettingsDto dto, EmailSettings? existing, EmailSettingsBuildMode mode, out EmailSettings? settings)
     {
         settings = null;
 
-        if (IsEmpty(email))
+        if (mode == EmailSettingsBuildMode.Save && IsEmpty(dto))
         {
             return null;
         }
 
-        var hasStoredPassword = !string.IsNullOrWhiteSpace(existing?.Password);
+        var password = ResolvePassword(dto.Password, existing?.Password);
 
-        if (string.IsNullOrWhiteSpace(email.EmailAddress))
+        if (mode == EmailSettingsBuildMode.Save)
         {
-            return "Email address is required for mailbox settings.";
-        }
-
-        if (string.IsNullOrWhiteSpace(email.Username))
-        {
-            return "Mailbox username is required.";
-        }
-
-        if (string.IsNullOrWhiteSpace(email.Password) && !hasStoredPassword)
-        {
-            return "Mailbox password is required.";
-        }
-
-        if (email.Provider == EmailProvider.Custom)
-        {
-            if (string.IsNullOrWhiteSpace(email.ImapHost))
+            if (string.IsNullOrWhiteSpace(dto.EmailAddress))
             {
-                return "IMAP host is required for mailbox settings.";
+                return "Email address is required for mailbox settings.";
             }
 
-            if (string.IsNullOrWhiteSpace(email.SmtpHost))
+            if (string.IsNullOrWhiteSpace(dto.Username))
             {
-                return "SMTP host is required for mailbox settings.";
+                return "Mailbox username is required.";
+            }
+
+            if (string.IsNullOrWhiteSpace(password))
+            {
+                return "Mailbox password is required.";
+            }
+
+            if (dto.Provider == EmailProvider.Custom)
+            {
+                if (string.IsNullOrWhiteSpace(dto.ImapHost))
+                {
+                    return "IMAP host is required for mailbox settings.";
+                }
+
+                if (string.IsNullOrWhiteSpace(dto.SmtpHost))
+                {
+                    return "SMTP host is required for mailbox settings.";
+                }
             }
         }
-
-        settings = new EmailSettings
+        else if (string.IsNullOrWhiteSpace(password))
         {
-            Provider = email.Provider,
-            EmailAddress = email.EmailAddress.Trim(),
-            Username = email.Username.Trim(),
-            Password = ResolvePasswordForSave(email.Password, existing?.Password)
-        };
-
-        if (email.Provider == EmailProvider.Custom)
-        {
-            settings.ImapHost = email.ImapHost.Trim();
-            settings.ImapPort = email.ImapPort;
-            settings.ImapUseSsl = email.ImapUseSsl;
-            settings.SmtpHost = email.SmtpHost.Trim();
-            settings.SmtpPort = email.SmtpPort;
-            settings.SmtpUseSsl = email.SmtpUseSsl;
-        }
-        else
-        {
-            EmailProviderPresets.ApplyToEntity(settings);
+            return null;
         }
 
+        settings = CreateEntity(dto, password);
         return null;
     }
 
-    internal static MailboxConnectionOptions? ResolveConnectionOptions(EmailSettings? stored, EmailSettingsDto? draft = null)
+    internal static EmailSettings? ResolveForMail(EmailSettings? stored, EmailSettingsDto? draft)
     {
         if (draft is null)
         {
-            return stored is null ? null : ToConnectionOptions(stored);
+            return stored;
         }
 
-        var merged = MergeDraft(stored, draft);
-        return merged is null ? null : ToConnectionOptions(merged);
+        _ = TryBuildFromDto(draft, stored, EmailSettingsBuildMode.Draft, out var merged);
+        return merged;
+    }
+
+    private static EmailSettings CreateEntity(EmailSettingsDto dto, string password)
+    {
+        var settings = new EmailSettings
+        {
+            Provider = dto.Provider,
+            EmailAddress = dto.EmailAddress.Trim(),
+            Username = dto.Username.Trim(),
+            Password = password
+        };
+
+        if (dto.Provider == EmailProvider.Custom)
+        {
+            settings.ImapHost = dto.ImapHost.Trim();
+            settings.ImapPort = dto.ImapPort;
+            settings.ImapUseSsl = dto.ImapUseSsl;
+            settings.SmtpHost = dto.SmtpHost.Trim();
+            settings.SmtpPort = dto.SmtpPort;
+            settings.SmtpUseSsl = dto.SmtpUseSsl;
+        }
+        else
+        {
+            EmailProviderPresets.Apply(settings);
+        }
+
+        return settings;
     }
 
     private static EmailProvider ResolveProvider(EmailSettings stored)
@@ -134,37 +143,6 @@ internal static class EmailSettingsHelpers
         }
 
         return EmailProvider.Custom;
-    }
-
-    private static bool IsConfigured(EmailSettings stored) =>
-        !string.IsNullOrWhiteSpace(stored.EmailAddress) &&
-        !string.IsNullOrWhiteSpace(stored.ImapHost) &&
-        !string.IsNullOrWhiteSpace(stored.SmtpHost) &&
-        !string.IsNullOrWhiteSpace(stored.Username) &&
-        !string.IsNullOrWhiteSpace(stored.Password);
-
-    private static MailboxConnectionOptions? ToConnectionOptions(EmailSettings stored)
-    {
-        if (!IsConfigured(stored))
-        {
-            return null;
-        }
-
-        var provider = ResolveProvider(stored);
-
-        return new MailboxConnectionOptions
-        {
-            Provider = EmailProviderPresets.ToConnectionName(provider),
-            EmailAddress = stored.EmailAddress.Trim(),
-            Username = stored.Username.Trim(),
-            Password = stored.Password.Decrypt(),
-            ImapHost = stored.ImapHost.Trim(),
-            ImapPort = stored.ImapPort,
-            ImapUseSsl = stored.ImapUseSsl,
-            SmtpHost = stored.SmtpHost.Trim(),
-            SmtpPort = stored.SmtpPort,
-            SmtpUseSsl = stored.SmtpUseSsl
-        };
     }
 
     private static bool IsEmpty(EmailSettingsDto email)
@@ -185,7 +163,7 @@ internal static class EmailSettingsHelpers
                string.IsNullOrWhiteSpace(email.SmtpHost);
     }
 
-    private static string ResolvePasswordForSave(string plainPassword, string? existingEncryptedPassword)
+    private static string ResolvePassword(string plainPassword, string? existingEncryptedPassword)
     {
         if (!string.IsNullOrWhiteSpace(plainPassword))
         {
@@ -193,48 +171,5 @@ internal static class EmailSettingsHelpers
         }
 
         return existingEncryptedPassword ?? string.Empty;
-    }
-
-    private static EmailSettings? MergeDraft(EmailSettings? stored, EmailSettingsDto draft)
-    {
-        var password = ResolveDraftPassword(draft, stored?.Password);
-        if (string.IsNullOrWhiteSpace(password))
-        {
-            return null;
-        }
-
-        var settings = new EmailSettings
-        {
-            Provider = draft.Provider,
-            EmailAddress = draft.EmailAddress.Trim(),
-            Username = draft.Username.Trim(),
-            Password = password
-        };
-
-        if (draft.Provider == EmailProvider.Custom)
-        {
-            settings.ImapHost = draft.ImapHost.Trim();
-            settings.ImapPort = draft.ImapPort;
-            settings.ImapUseSsl = draft.ImapUseSsl;
-            settings.SmtpHost = draft.SmtpHost.Trim();
-            settings.SmtpPort = draft.SmtpPort;
-            settings.SmtpUseSsl = draft.SmtpUseSsl;
-        }
-        else
-        {
-            EmailProviderPresets.ApplyToEntity(settings);
-        }
-
-        return settings;
-    }
-
-    private static string ResolveDraftPassword(EmailSettingsDto draft, string? storedEncryptedPassword)
-    {
-        if (!string.IsNullOrWhiteSpace(draft.Password))
-        {
-            return draft.Password.Trim().Encrypt();
-        }
-
-        return storedEncryptedPassword ?? string.Empty;
     }
 }

@@ -13,7 +13,7 @@ namespace WebApp.Utilities.Services;
 
 public sealed class MailKitMailboxService : IMailboxService
 {
-    public async Task<MailboxStatusResult> GetStatusAsync(MailboxConnectionOptions config, CancellationToken cancellationToken = default)
+    public async Task<MailboxStatusResult> GetStatusAsync(EmailSettings config, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -40,7 +40,7 @@ public sealed class MailKitMailboxService : IMailboxService
         }
     }
 
-    public async Task<MailboxTestResult> TestConnectionAsync(MailboxConnectionOptions config, CancellationToken cancellationToken = default)
+    public async Task<MailboxTestResult> TestConnectionAsync(EmailSettings config, CancellationToken cancellationToken = default)
     {
         var imapOk = false;
         var smtpOk = false;
@@ -112,7 +112,7 @@ public sealed class MailKitMailboxService : IMailboxService
         };
     }
 
-    public async Task<IReadOnlyList<InboxMessageSummary>> ListInboxAsync(MailboxConnectionOptions config, InboxQuery query, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<InboxMessageSummary>> ListInboxAsync(EmailSettings config, InboxQuery query, CancellationToken cancellationToken = default)
     {
         using var imap = CreateImapClient();
         await ConnectImapAsync(imap, config, cancellationToken);
@@ -154,7 +154,7 @@ public sealed class MailKitMailboxService : IMailboxService
         return summaries;
     }
 
-    public async Task<SendMailResult> SendAsync(MailboxConnectionOptions config, OutboundMail mail, CancellationToken cancellationToken = default)
+    public async Task<SendMailResult> SendAsync(EmailSettings config, OutboundMail mail, CancellationToken cancellationToken = default)
     {
         if (!MailAddress.TryCreate(mail.To, out _))
         {
@@ -240,13 +240,13 @@ public sealed class MailKitMailboxService : IMailboxService
         return client;
     }
 
-    private static Task ConnectImapAsync(ImapClient client, MailboxConnectionOptions config, CancellationToken cancellationToken)
+    private static Task ConnectImapAsync(ImapClient client, EmailSettings config, CancellationToken cancellationToken)
     {
         var secure = GetImapSecureSocketOptions(config.ImapPort, config.ImapUseSsl);
         return client.ConnectAsync(config.ImapHost, config.ImapPort, secure, cancellationToken);
     }
 
-    private static Task ConnectSmtpAsync(SmtpClient client, MailboxConnectionOptions config, CancellationToken cancellationToken)
+    private static Task ConnectSmtpAsync(SmtpClient client, EmailSettings config, CancellationToken cancellationToken)
     {
         var secure = GetSmtpSecureSocketOptions(config.SmtpPort, config.SmtpUseSsl);
         return client.ConnectAsync(config.SmtpHost, config.SmtpPort, secure, cancellationToken);

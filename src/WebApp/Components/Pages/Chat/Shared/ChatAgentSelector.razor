@@ -43,11 +43,17 @@
             }
         </div>
     }
+
+    @if (!string.IsNullOrWhiteSpace(_error))
+    {
+        <p class="chat-agent-error" role="alert">
+            @_error
+            <NavLink href="/settings/email">Settings → Email</NavLink>
+        </p>
+    }
 </div>
 
 @code {
-    #region # Parameters
-
     [Parameter]
     public Guid ThreadId { get; set; }
 
@@ -57,14 +63,9 @@
     [Parameter]
     public EventCallback<ChatAgent> ValueChanged { get; set; }
 
-    #endregion
-
-    #region # State
-
     private bool _open;
     private bool _busy;
-
-    #endregion
+    private string? _error;
 
     #region # Select
 
@@ -98,8 +99,12 @@
         }
 
         _busy = true;
+        _error = null;
+
         try
         {
+            #region # Execute
+
             var result = await Features.UpdateChatThreadAgentAsync(new UpdateChatThreadAgentRequest
             {
                 Id = ThreadId,
@@ -107,11 +112,21 @@
                 ChatAgent = selected
             });
 
+            #endregion
+
+            #region # Handle Result
+
             if (!result.HasError && result.Payload is not null)
             {
                 Value = result.Payload.ChatAgent;
                 await ValueChanged.InvokeAsync(Value);
             }
+            else if (result.HasError)
+            {
+                _error = result.Errors.FirstOrDefault()?.Message;
+            }
+
+            #endregion
         }
         finally
         {

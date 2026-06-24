@@ -18,7 +18,7 @@ Use this for per-user settings stored as JSON in SQL (`EmailSettingsJson`, futur
 | **Entity** | `string? {Section}SettingsJson` on `UserSetting` |
 | **Typed model** | `{Section}Settings` class in `Entities.cs` (plain C# model, not an EF navigation) |
 | **Persistence** | Load/save the `*Json` string; deserialize/serialize in the repo method |
-| **Helpers** | `{Section}SettingsHelpers.FromJson` / `ToJson` via `JsonColumnHelpers` |
+| **Helpers** | `{Section}SettingsHelpers.FromJson` / `ToJson` / `ToDto` via `JsonColumnHelpers` |
 
 ### Entity example
 

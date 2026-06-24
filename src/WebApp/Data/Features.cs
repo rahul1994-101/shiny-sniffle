@@ -1,10 +1,11 @@
 ﻿using WebApp.AI;
 using WebApp.Models;
 using WebApp.Utilities.Helpers;
+using WebApp.Utilities.Services;
 
 namespace WebApp.Data;
 
-public class Features(Persistence _repo, ChatOrchestrator _chatOrchestrator)
+public class Features(Persistence _repo, ChatOrchestrator _chatOrchestrator, UserMailboxService _mailboxService)
 {
     #region # User
 
@@ -227,6 +228,15 @@ public class Features(Persistence _repo, ChatOrchestrator _chatOrchestrator)
             var hasError = result.Validate(updateChatThreadAgentRequest);
             if (hasError)
             {
+                return result;
+            }
+
+            if (updateChatThreadAgentRequest.ChatAgent == ChatAgent.Email
+                && !await _mailboxService.IsConfiguredAsync(updateChatThreadAgentRequest.UserId))
+            {
+                result.Failure(
+                    ErrorCode.BadRequest,
+                    "Connect your mailbox in Settings → Email before using the Email agent.");
                 return result;
             }
 
@@ -617,7 +627,7 @@ public class Features(Persistence _repo, ChatOrchestrator _chatOrchestrator)
 
             #region # Handle Result
 
-            result.Success(EmailSettingsHelpers.MapToDto(emailSettings));
+            result.Success(EmailSettingsHelpers.ToDto(emailSettings));
 
             #endregion
         }
@@ -653,9 +663,10 @@ public class Features(Persistence _repo, ChatOrchestrator _chatOrchestrator)
             }
 
             var existingSettings = await _repo.GetUserEmailSettingsAsync(saveEmailSettingsRequest.UserId);
-            var validationError = EmailSettingsHelpers.TryBuildForSave(
+            var validationError = EmailSettingsHelpers.TryBuildFromDto(
                 saveEmailSettingsRequest.Email,
                 existingSettings,
+                EmailSettingsBuildMode.Save,
                 out var newSettings);
 
             if (validationError is not null)
@@ -677,7 +688,48 @@ public class Features(Persistence _repo, ChatOrchestrator _chatOrchestrator)
 
             #region # Handle Result
 
-            result.Success(EmailSettingsHelpers.MapToDto(savedSettings));
+            result.Success(EmailSettingsHelpers.ToDto(savedSettings));
+
+            #endregion
+        }
+        catch (Exception ex)
+        {
+            result.Failure(ErrorCode.InternalServerError, ex.Message);
+        }
+
+        return result;
+    }
+
+    public async Task<AppResult<MailboxTestResult?>> TestEmailConnectionAsync(Guid userId, EmailSettingsDto email)
+    {
+        var result = new AppResult<MailboxTestResult?>();
+        try
+        {
+            #region # Validate
+
+            if (userId == Guid.Empty)
+            {
+                result.Failure(ErrorCode.BadRequest, "User Id is required.");
+                return result;
+            }
+
+            if (email is null)
+            {
+                result.Failure(ErrorCode.BadRequest, "Email settings are required.");
+                return result;
+            }
+
+            #endregion
+
+            #region # Execute
+
+            var testResult = await _mailboxService.TestConnectionAsync(userId, email);
+
+            #endregion
+
+            #region # Handle Result
+
+            result.Success(testResult);
 
             #endregion
         }

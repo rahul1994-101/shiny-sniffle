@@ -1,7 +1,5 @@
 @inherits BaseComponent
 
-@inject UserMailboxService MailboxService
-
 @using WebApp.Components.Pages.Settings
 @using WebApp.Utilities.Helpers
 
@@ -402,16 +400,26 @@ else
 
         #region # Execute
 
-        var result = await MailboxService.TestConnectionAsync(CurrentUser.Id, _email);
+        var result = await Features.TestEmailConnectionAsync(CurrentUser.Id, _email);
 
         #endregion
 
         #region # Handle Result
 
-        _status.Set(result.Message, isError: !result.Success);
-        _lastTestSummary = result.Success
-            ? "Last test succeeded"
-            : "Last test failed";
+        if (result.HasError || result.Payload is null)
+        {
+            _status.Set(
+                result.Errors.FirstOrDefault()?.Message ?? "Connection test failed.",
+                isError: true);
+        }
+        else
+        {
+            var testResult = result.Payload;
+            _status.Set(testResult.Message, isError: !testResult.Success);
+            _lastTestSummary = testResult.Success
+                ? "Last test succeeded"
+                : "Last test failed";
+        }
 
         #endregion
 
@@ -467,12 +475,12 @@ else
     {
         if (_email.Provider == EmailProvider.Custom)
         {
-            EmailSettingsHelpers.ClearProviderEndpoints(_email);
+            EmailProviderPresets.ClearDtoEndpoints(_email);
             _endpointsExpanded = true;
             return;
         }
 
-        EmailSettingsHelpers.ApplyProviderEndpoints(_email);
+        EmailProviderPresets.Apply(_email);
         _endpointsExpanded = false;
     }
 
