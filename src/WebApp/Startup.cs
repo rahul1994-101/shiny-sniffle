@@ -3,6 +3,8 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Localization;
 
+using Infrastructure;
+
 using WebApp;
 using WebApp.AI.Agents;
 using WebApp.AI;
@@ -92,10 +94,9 @@ public static class DependencyInject
 
     public static void InjectData(this IServiceCollection services, IConfiguration configuration)
     {
+        services.AddInfrastructure(configuration);
         services.AddScoped<CurrentUser>();
-        services.AddDbContextFactory<AppDbContext>();
         services.AddScoped<Features>();
-        services.AddScoped<Persistence>();
         services.AddScoped<IMailboxService, MailKitMailboxService>();
         services.AddScoped<UserMailboxService>();
     }

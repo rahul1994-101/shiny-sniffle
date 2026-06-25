@@ -1,18 +1,16 @@
 using System.Net.Mail;
 
-using WebApp.Data;
-using WebApp.Models;
 using WebApp.Utilities.Extensions;
 using WebApp.Utilities.Helpers;
 
 namespace WebApp.Utilities.Services;
 
-public sealed class UserMailboxService(Persistence _repo, IMailboxService _mailboxService)
+public sealed class UserMailboxService(ISettingsRepository _settings, IMailboxService _mailboxService)
 {
     public async Task<bool> IsConfiguredAsync(Guid userId, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var emailSettings = await _repo.GetUserEmailSettingsAsync(userId);
+        var emailSettings = await _settings.GetUserEmailSettingsAsync(userId);
         return emailSettings.IsMailboxConfigured();
     }
 
@@ -109,7 +107,7 @@ public sealed class UserMailboxService(Persistence _repo, IMailboxService _mailb
     private async Task<EmailSettings?> ResolveMailRuntimeAsync(Guid userId, EmailSettingsDto? draft = null, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var stored = await _repo.GetUserEmailSettingsAsync(userId);
+        var stored = await _settings.GetUserEmailSettingsAsync(userId);
         var resolved = EmailSettingsHelpers.ResolveForMail(stored, draft);
         return resolved.ToMailRuntime();
     }

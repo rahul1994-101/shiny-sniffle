@@ -1,69 +1,74 @@
 ---
-description: EF mapping and Persistence patterns for JSON columns and UserSetting rows
-globs: src/WebApp/Data/**/*.cs,src/WebApp/Models/Entities.cs,src/WebApp/Utilities/Helpers/*Helpers.cs
+description: Persistence ports, Infrastructure repositories, EF and JSON column patterns
+globs: src/Core/Abstractions/**/*.cs,src/Infrastructure/Persistence/**/*.cs,src/WebApp/Data/**/*.cs,src/WebApp/Utilities/Helpers/*Helpers.cs
 alwaysApply: false
 ---
 
 # Data conventions
 
-## JSON settings columns (`UserSetting` pattern)
+Persistence lives in **Infrastructure**; application flow in **WebApp/Data/Features.cs**.
 
-Use this for per-user settings stored as JSON in SQL (`EmailSettingsJson`, future `GeneralSettingsJson`, etc.).
+## Ports (`Core/Abstractions/Persistence.cs`)
 
-**Do not use EF `OwnsOne` + `ToJson()`** for these columns. Read/write the JSON explicitly in Persistence.
+One file, multiple interfaces — mirror entity areas:
+
+- `IUserRepository` — sign-in
+- `IChatThreadRepository` — thread CRUD
+- `IChatMessageRepository` — messages + recent history
+- `ISettingsRepository` — profile, password, email JSON settings
+
+WebApp injects these interfaces — **never** `AppDbContext` or `*Repository` concrete types outside Infrastructure.
+
+## Implementations (`Infrastructure/Persistence/`)
+
+| Type | File |
+|------|------|
+| `AppDbContext` | `AppDbContext.cs` — EF mappings, `DbSet<>` |
+| `*Repository` | `{Entity}Repository.cs` — implements matching `I*Repository` |
+| Column JSON | `EmailSettingsJson.cs` — infra-only serialize (camelCase, case-insensitive) |
+
+Register in `Infrastructure.DependencyInjection.AddInfrastructure()`.
+
+## Features (`WebApp/Data/Features.cs`)
+
+- Returns `AppResult` / `AppResult<T>` (`WebApp.Models`).
+- Inner regions: `# Validate`, `# Execute`, `# Handle Result` per public method.
+- Subregions mirror settings pages: `# UserSetting` → `# General`, `# Email`.
+
+## JSON settings columns (`UserSetting`)
+
+**Do not use EF `OwnsOne` + `ToJson()`.**
 
 | Layer | Pattern |
 |-------|---------|
-| **SQL** | One `NVARCHAR(MAX)` column per section, name `{Section}SettingsJson` (same as entity property) |
-| **Entity** | `string? {Section}SettingsJson` on `UserSetting` |
-| **Typed model** | `{Section}Settings` class in `Entities.cs` (plain C# model, not an EF navigation) |
-| **Persistence** | Load/save the `*Json` string; deserialize/serialize in the repo method |
-| **Helpers** | `{Section}SettingsHelpers.FromJson` / `ToJson` / `ToDto` via `JsonColumnHelpers` |
+| **Entity** | `EmailSettingsJson` on `UserSetting`; typed `EmailSettings` in `Core.Entities` |
+| **Infrastructure** | `EmailSettingsJson.FromJson` / `ToJson` in repository |
+| **WebApp** | `EmailSettingsHelpers` for DTO ↔ entity (`WebApp/Utilities/Helpers/`) |
 
-### Entity example
+WebApp `JsonColumnHelpers` and Infra `EmailSettingsJson` must keep the same JSON options when both exist.
 
-```csharp
-public class UserSetting : BaseAuditableEntity
-{
-    public Guid UserId { get; set; }
-    public string? EmailSettingsJson { get; set; }
-}
-
-public class EmailSettings { /* typed JSON shape */ }
-```
-
-### Persistence example
+## Repository patterns
 
 ```csharp
-// Read
-var json = await ctx.UserSettings...Select(x => x.EmailSettingsJson).FirstOrDefaultAsync();
-return EmailSettingsHelpers.FromJson(json);
+// Read — project in SQL
+.Select(x => new ChatThreadDto { Id = x.Id, ... })
 
-// Write
-existing.EmailSettingsJson = EmailSettingsHelpers.ToJson(emailSettings);
+// Write — entity in, Dto out
+public async Task<ChatMessageDto?> AddChatMessageAsync(ChatMessage entity)
+
+// Settings — entity EmailSettings in/out (not EmailSettingsDto)
+public async Task<EmailSettings?> SaveUserEmailSettingsAsync(Guid userId, EmailSettings? settings, Guid updatedBy)
 ```
 
-### JSON serialization
+## EF column mapping
 
-- Use `JsonColumnHelpers` (`Utilities/Helpers/JsonColumnHelpers.cs`)
-- **camelCase** property names in SQL JSON
-- **Case-insensitive** on deserialize (legacy rows)
+Map `User` / `UserSetting` audit columns to DB camelCase in `AppDbContext.OnModelCreating` (`firstName`, `userId`, `createdAt`, …).
 
-### Column mapping
+## Settings method naming
 
-Map `UserSetting` audit/base columns to the database camelCase names in `Database.cs` (`userId`, `isActive`, `isDeleted`, `createdBy`, `createdAt`, `updatedBy`, `updatedAt`).
+| Section | Repository | Features |
+|---------|------------|----------|
+| General | `GetUserGeneralSettingsAsync`, `UpdateUserProfileAsync`, `UpdateUserPasswordAsync` | `GetGeneralSettingsAsync`, `SaveGeneralProfileAsync`, `ChangePasswordAsync` |
+| Email | `GetUserEmailSettingsAsync`, `SaveUserEmailSettingsAsync` | `GetEmailSettingsAsync`, `SaveEmailSettingsAsync` |
 
-## Persistence method naming (settings sections)
-
-Within `#region # UserSetting`, use **subregions per settings page** (`# General`, `# Email`, …). Name persistence methods after the section they touch:
-
-- **General** (User table): `GetUserGeneralSettingsAsync`, `UpdateUserProfileAsync`, `UpdateUserPasswordAsync`
-- **Email** (JSON column): `GetUserEmailSettingsAsync`, `SaveUserEmailSettingsAsync`
-
-Features mirrors the same subregions: per-page **get** (`GetGeneralSettingsAsync`, `GetEmailSettingsAsync`) and **dedicated saves** per action.
-
-- `SaveGeneralProfileAsync(SaveGeneralProfileRequest)` → `AppResult<GeneralSettingsDto?>`
-- `ChangePasswordAsync(ChangePasswordRequest)` → `AppResult`
-- `SaveEmailSettingsAsync(SaveEmailSettingsRequest)` → `AppResult<EmailSettingsDto?>`
-
-`SettingsSection` is for tab routes only, not save routing.
+`SettingsSection` enum is for tab routes only.

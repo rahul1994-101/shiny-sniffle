@@ -1,64 +1,53 @@
 ---
-description: WebApp root folder layout — where APIs, UI, data, and AI code live
+description: WebApp folder layout — UI, Features, AI, and app-only Models
 alwaysApply: true
 ---
 
-# Project structure (WebApp)
+# Project structure
 
-Keep code in the folder that matches its role. Root: `src/WebApp/`.
+Solution layout and layer boundaries: **`architecture-conventions.mdc`**. This rule covers **WebApp** (`src/WebApp/`) only.
 
 | Folder | Purpose |
 |--------|---------|
-| **Endpoints/** | MVC controllers named `*Endpoints.cs` (e.g. `AuthEndpoints`). Register via `AddControllers` / `MapControllers` in `Startup.cs`. |
-| **Components/** | Blazor UI (pages, layout, shared). See `blazor-conventions.mdc`. |
-| **Data/** | Blazor-facing backend: `Features`, `Persistence`, `Database.cs` (`AppDbContext`). See `data-conventions.mdc` for JSON columns and EF mapping. |
-| **AI/** | App AI behavior: MAF agents, workflows, tools, memory, and orchestration (C#). See `ai-conventions.mdc`. `_Legacy_Python/` is reference only. |
-| **Models/** | DTOs, entities, constants. See `dto-conventions.mdc` for naming and layer boundaries. |
-| **Utilities/** | Cross-cutting code: `Extensions/`, `Services/`, `Helpers/`. See Utilities section below. |
+| **Endpoints/** | MVC controllers `*Endpoints.cs`. Register via `MapControllers` in `Startup.cs`. |
+| **Components/** | Blazor UI. See `blazor-conventions.mdc`. |
+| **Data/** | **`Features.cs` only** — application layer; calls `Core.Abstractions` repos, returns `AppResult`. No EF here. |
+| **AI/** | MAF agents, tools, `ChatOrchestrator`, `FoundryAgentFactory`. See `ai-conventions.mdc`. |
+| **Models/** | App/UI models (`AppResult`, feature requests, `FoundryOptions`, mail UI types). See `dto-conventions.mdc`. |
+| **Utilities/** | Extensions, Helpers, Services (MailKit still here until Mailbox → Infrastructure). |
+
+**Not in WebApp anymore:** `AppDbContext`, `Persistence`, entities (`Core/Entities/`), repository DTOs (`Core/DTOs/`).
 
 ## Endpoints
 
-- One file per area: `AuthEndpoints.cs`, `ChatEndpoints.cs`, etc. (class name matches file name, not `*Controller`)
-- Namespace: `WebApp.Endpoints`
-- Each class inherits `Controller` and uses `[Route("api/...")]`, `[HttpPost]`, `[HttpGet]`, etc.
-- Wire routing in `Startup.cs` with `MapControllers()` (no separate extension file)
-- Blazor pages use UI routes (e.g. `/auth/login`); HTTP actions live under `/api/...` (e.g. `/api/auth/login`)
+- One file per area: `AuthEndpoints.cs`, etc. Namespace `WebApp.Endpoints`.
+- HTTP under `/api/...`; Blazor routes under `/...`.
 
 Do not put HTTP routes under `Components/` or `Data/`.
 
-## Components
-
-- All Blazor UI under `Components/` — `Pages/` (routable; nested `Pages/{Area}/` when routes share a prefix like `auth/`), `Layout/` (layout roots), `Shared/` (non-routable), plus `BaseComponent.cs` at the folder root.
-- Follow `blazor-conventions.mdc` for directive order, `@code` regions, and naming.
-- Scoped styles: `Component.razor.css` beside the `.razor` file.
-
 ## Utilities
 
-Group code by **concern** into one file per concern per subfolder: `{Concern}{FolderKind}.cs` (e.g. `AuthServices.cs`, `AuthExtensions.cs`).
+| Subfolder | Purpose |
+|-----------|---------|
+| **Extensions/** | `{Concern}Extensions.cs` — class name matches file |
+| **Helpers/** | `{Concern}Helpers.cs` — static utilities |
+| **Services/** | DI types (`IMailboxService`, `UserMailboxService`, `CurrentUser`) |
 
-| Subfolder | Purpose | File vs types |
-|-----------|---------|----------------|
-| **Extensions/** | Static extension methods | One `{Concern}Extensions` class per file; **class name matches file** (e.g. `AuthExtensions.cs` → `AuthExtensions`). |
-| **Helpers/** | Static utilities (no DI) | One `{Concern}Helpers` class per file; **class name matches file** (e.g. `CryptographyHelpers.cs` → `CryptographyHelpers`, `AzureOpenAiEndpointHelpers.cs` → `AzureOpenAiEndpointHelpers`). |
-| **Services/** | DI-registered types (`AddScoped`, etc.) | File name is the concern bucket (`AuthServices.cs`). **Types inside use clear names** — they do not have to match the file. One file may hold several related service types (e.g. `CurrentUser`, and later `AuthService` if needed), not only a class called `AuthServices`. |
-
-Example: auth UI reads claims via `CurrentUser` in `Utilities/Services/AuthServices.cs`; sign-in/out stays in **Endpoints** and **Data**.
-
-- Namespaces: `WebApp.Utilities.Extensions`, `WebApp.Utilities.Services`, `WebApp.Utilities.Helpers`
-- Do not put EF `DbContext`, HTTP endpoints, or MAF agent wiring under Utilities — use **Data/**, **Endpoints/**, and **AI/** (`FoundryAgentFactory.cs`). Azure OpenAI endpoint URL normalization lives in **Utilities/Helpers/AzureOpenAiEndpointHelpers.cs**.
+Do not put EF `DbContext` or repository implementations under Utilities.
 
 ## AI boundaries
 
-- **Agents/**: LLM runners only. One class per agent role at the folder root (e.g. `AssistantAgent`, `EmailAgent`). Each agent owns its profile in a private `Create{Role}Agent` helper, a **`SupportedUserPrompts`** debug/test catalog in `#region # Supported User Prompts`, calls `FoundryAgentFactory.CreateAgent` for MAF wiring, runs the turn, and returns `RunChatAgentResponse`. No DB reads for thread history.
-- **Tools/**: Plain C# capabilities exposed to agents via MAF tools. One file per agent domain when needed (e.g. `EmailTools.cs`). Tools may call app services/DB/APIs, but must not call LLMs or route chat turns.
-- **Memory/**: Agent-specific memory helpers (summaries, mailbox context, pinned facts), parallel to **Tools/** — one file per agent domain when needed. No LLM calls. Keep `.gitkeep` until the first file is added.
-- **Workflows/**: Multi-step MAF workflows that compose agents and tools. Keep placeholder `.gitkeep` files in empty workflow folders.
-- **Orchestration/**: Turn-level coordination in `AI/ChatOrchestrator.cs` (`WebApp.AI`) — loads recent thread messages from persistence, routes by `ChatAgent`, returns the result. No LLM calls. Reintroduce an `Orchestration/` subfolder only if multiple coordinators are added.
-- **Foundry (AI root)**: Shared MAF wiring in `AI/FoundryAgentFactory.cs` — public `CreateAgent`, cached `GetOpenAiClient`, and `FoundryDeployments` constants. Endpoint URL normalization: `Utilities/Helpers/AzureOpenAiEndpointHelpers.cs`. Per-agent deployment, name, description, and instructions live in each agent's private `Create{Role}Agent` helper. Namespace `WebApp.AI`. Do not put prompts in `appsettings`. Register in `Startup.InjectAi`.
-- **Models/DTOs.cs**: Keep small AI/config request/result/intent DTOs in the `# AI` region instead of an `AI/Contracts` folder.
-- Do not add a `Skills/` folder unless a future capability layer has a clear responsibility distinct from agents and workflows.
+- **Agents/** — LLM runners; `SupportedUserPrompts` catalog per agent.
+- **Tools/** — MAF tools; no LLM routing.
+- **ChatOrchestrator.cs** — turn routing; uses `IChatMessageRepository` for history.
+- **FoundryAgentFactory.cs** — shared MAF wiring; config type `FoundryOptions` in `WebApp/Models/AI.cs`.
+- AI request/response DTOs: `WebApp/Models/AI.cs` — not under `AI/` folder.
 
 ## Foundry auth
 
-- Use key-based Azure OpenAI configuration for now: `Foundry:Enabled`, `Foundry:Endpoint`, and `Foundry:ApiKey`.
-- Put keys in user secrets or host environment variables (never commit keys).
+- `Foundry:Enabled`, `Foundry:Endpoint`, `Foundry:ApiKey` in user secrets / env — never commit keys.
+
+## Startup
+
+- `InjectData` → `AddInfrastructure(configuration)` + `Features` + mailbox services.
+- `InjectAi` → agents, tools, orchestrator.

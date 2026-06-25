@@ -10,11 +10,11 @@ Use the same **tooling habits** as the rest of the solution (`#region #`, consis
 
 ## C# data layer vs Blazor — two perspectives
 
-| | **C# (Features, Persistence, DTOs)** | **Blazor (`@code`)** |
+| | **C# (Features, Core DTOs/repos)** | **Blazor (`@code`)** |
 |---|--------------------------------------|----------------------|
 | **Organized by** | Entity, operation, technical step | User action, UI concern, screen behavior |
 | **Region names** | Entity/type: `# ChatThread`, `# User` | Activity: `# List/Select ChatThreads`, `# Rename ChatThread` |
-| **Shared state** | Constructor params (`_repo`, `_ctx`) | Preamble at top of `@code` (`_threads`) |
+| **Shared state** | Constructor params (`_chatThreads`, …) | Preamble at top of `@code` (`_threads`) |
 | **Shared logic** | Private methods in same class / layer | `# Helpers` at bottom of `@code` |
 | **Lifecycle** | N/A | Preamble only — never inside a feature region |
 | **Inner method blocks** | `# Validate`, `# Execute`, `# Handle Result` | Same — still mirror `Features` inside a handler |

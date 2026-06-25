@@ -1,99 +1,77 @@
 ---
-description: DTO naming, layer boundaries, and when to use feature types vs shared entity DTOs
-globs: src/WebApp/Models/DTOs.cs,src/WebApp/Data/**/*.cs,src/WebApp/Components/**/*.razor
+description: Core.DTOs vs WebApp.Models — naming and layer boundaries
+globs: src/Core/DTOs/**/*.cs,src/WebApp/Models/**/*.cs,src/WebApp/Data/**/*.cs,src/WebApp/Components/**/*.razor
 alwaysApply: false
 ---
 
 # DTO conventions
 
-Keep DTOs in `Models/DTOs.cs`, grouped by `#region # {Entity}` (e.g. `# ChatMessage`, `# ChatThread`, `# AI`).
+Two model homes — **do not duplicate** types across them.
 
-## Order within each entity region
+## Core (`Core/DTOs/`) — port contracts
 
-Mirror the usual data flow — **Get → GetById → Add/Update → Delete** — so types are easy to scan.
+Types referenced by **`Core/Abstractions/*.cs`** (e.g. `IChatThreadRepository` return types).
 
-| Block | Types | Notes |
-|-------|--------|--------|
-| **Get** | `{Entity}Dto` | Shared list/read projection |
-| **GetById** | *(same `{Entity}Dto`)* | No separate type when list and by-id share one shape |
-| **Add / Update** | `{Verb}{Entity}Request` (+ `{Verb}{Entity}Response` when feature-specific) | Add first, then Update requests (alphabetical within update) |
-| **Delete** | `Delete{Entity}Request` | Often no response DTO — `AppResult` only |
+| File | Types (today) |
+|------|----------------|
+| `User.cs` | `SignInRequest`, `SignInResponse` |
+| `ChatThread.cs` | `ChatThreadDto`, add/update/delete thread requests |
+| `ChatMessage.cs` | `ChatMessageDto` |
+| `General.cs` | `GeneralSettingsDto` |
 
-**Example (`# ChatThread`):** `ChatThreadDto` → `AddChatThreadRequest` → `UpdateChatThreadAgentRequest` → `UpdateChatThreadTitleRequest` → `DeleteChatThreadRequest`
+Namespace: `Core.DTOs`. Add a file when a **new repository area** needs shared shapes.
 
-**Example (`# ChatMessage`):** `ChatMessageDto` → `SendChatMessageRequest` → `SendChatMessageResponse`
+## WebApp (`WebApp/Models/`) — app / UI layer
 
-**Example (`# UserSetting`):** use subregions per settings page (`# General`, `# Email`). Within each page: shared `{Page}SettingsDto` first, then `{Verb}…Request` types in call order — e.g. `# General`: `GeneralSettingsDto` → `SaveGeneralProfileRequest` → `ChangePasswordRequest`; `# Email`: `EmailSettingsDto` → `SaveEmailSettingsRequest`.
+Types used only by **Features**, Blazor, AI, or endpoints — **not** on `I*Repository` signatures.
 
-Non-CRUD regions (e.g. `# User` sign-in, `# AI`) keep a logical pair order — request before response.
+| File | Types (today) |
+|------|----------------|
+| `_Common.cs` | `AppResult`, `AppResult<T>`, `AppError` |
+| `Enums.cs` | `ErrorCode`, `SettingsSection` |
+| `AI.cs` | `FoundryOptions`, `RunChatAgentRequest/Response` |
+| `ChatMessage.cs` | `SendChatMessageRequest/Response` |
+| `General.cs` | `SaveGeneralProfileRequest`, `ChangePasswordRequest` |
+| `Email.cs` | `EmailSettingsDto`, `SaveEmailSettingsRequest` |
+| `Mail.cs` | Inbox/mailbox types (until Mailbox port moves to Core) |
+| `Constants.cs` | `AuthConstants`, `ChatMessageRoles` |
 
-## Two DTO kinds
+Namespace: `WebApp.Models`. WebApp `GlobalUsings` imports both `Core.DTOs` and `WebApp.Models`.
 
-| Kind | Name | When |
-|------|------|------|
-| **Feature** | `{Verb}{Entity}Request` / `{Verb}{Entity}Response` | One operation entry point (UI → Features or internal capability) |
-| **Shared entity** | `{Entity}Dto` | Same data shape reused across features, layers, or reads and writes |
+## Naming (both layers)
 
-The verb belongs on the **method** (`GetChatMessagesByChatThreadIdAsync`), not on a shared type. Do not use `Get{Entity}Response` for a reusable projection.
+| Kind | Pattern | Example |
+|------|---------|---------|
+| Shared projection | `{Entity}Dto` | `ChatThreadDto` |
+| Feature entry | `{Verb}{Entity}Request` / `Response` | `SendChatMessageRequest` |
+| UI-only in component | `{Name}ViewModel` in `.razor` `# Types` | not in Models |
 
-**Examples**
+Order types in each file: **Get Dto → Add/Update requests → Delete request** (see legacy `dto` regions).
 
-- `SendChatMessageRequest` / `SendChatMessageResponse` — feature (send + AI reply)
-- `ChatMessageDto` — shared message projection (list, send result, persistence out)
-- `ChatThreadDto` — shared thread projection (list, get, add, update; delete returns `AppResult` only)
-- `RunChatAgentRequest` / `RunChatAgentResponse` — AI capability (not entity CRUD)
-
-## ViewModel vs Dto
-
-| Suffix | Location | When |
-|--------|----------|------|
-| **`Dto`** | `Models/DTOs.cs` | Flat data crossing Features, Persistence, and UI binding with no presentation logic |
-| **`ViewModel`** | Component `# Types` in `.razor` | UI-only state: formatting, flags, derived display fields (see `blazor-conventions.mdc`) |
-
-Do not suffix shared API/data shapes with `ViewModel`.
-
-## Layer boundaries
+## Layer flow
 
 | Direction | Pattern |
 |-----------|---------|
-| **UI → Features** | `{Verb}{Entity}Request` for multi-field ops; primitives (`Guid`, `int`) for simple reads |
-| **Features → Persistence (reads)** | Method params (`Guid chatThreadId`, `int limit`) — no single-property request DTOs |
-| **Features → Persistence (writes)** | Entity in (`ChatMessage`, `ChatThread`) — not feature `*Request` types |
-| **Persistence → caller** | `{Entity}Dto` via EF `.Select()` projection |
+| **UI → Features** | `WebApp.Models` `*Request` or primitives |
+| **Features → repos** | `Core.DTOs` + `Core.Entities` on writes (`ChatMessage` entity in) |
+| **Repos → caller** | `Core.DTOs` projections |
 
-Features validates and orchestrates; Persistence does not take UI-facing `*Request` DTOs.
+Features validates with `AppResult`; repositories do not take UI `*Request` types.
 
 ## Decision tree
 
-1. Used by **one feature only** and encodes that operation → `{Verb}{Entity}Request` / `{Verb}{Entity}Response`
-2. Used by **multiple features** as the same shape → `{Entity}Dto`
-3. **UI-only** display/bind extras in one component → `{Name}ViewModel` in the `.razor` file
+1. On an **`I*Repository` method signature**? → `Core/DTOs/`
+2. **`AppResult` / form / AI / Foundry / mailbox UI** only? → `WebApp/Models/`
+3. **DB entity**? → `Core/Entities/`
+4. **Single-component display state**? → ViewModel in `.razor`
 
-## Persistence pattern
-
-```csharp
-// Read — project in SQL (flat entities)
-.Select(x => new ChatMessageDto { Id = x.Id, ... })
-
-// Read — JSON settings column (UserSetting sections)
-var json = await ctx.UserSettings...Select(x => x.EmailSettingsJson).FirstOrDefaultAsync();
-return EmailSettingsHelpers.FromJson(json);
-
-// Write — entity in, Dto out
-public async Task<ChatMessageDto?> AddChatMessageAsync(ChatMessage entity)
-
-// Write — JSON settings column
-existing.EmailSettingsJson = EmailSettingsHelpers.ToJson(emailSettings);
-```
-
-For JSON settings columns on `UserSetting`, follow `data-conventions.mdc` (no EF `ToJson()`). SQL column name matches the entity property (e.g. `EmailSettingsJson`).
-
-## Feature response composing shared DTOs
+## Example
 
 ```csharp
-public class SendChatMessageResponse
+// Features — UI request in, Core DTOs from repo
+public async Task<AppResult<SendChatMessageResponse?>> SendChatMessageAsync(SendChatMessageRequest req)
 {
-    public ChatMessageDto UserMessage { get; set; } = null!;
-    public ChatMessageDto AssistantMessage { get; set; } = null!;
+    var thread = await _chatThreads.GetChatThreadByIdAsync(req.ChatThreadId);
+    var saved = await _chatMessages.AddChatMessageAsync(new ChatMessage { ... });
 }
 ```

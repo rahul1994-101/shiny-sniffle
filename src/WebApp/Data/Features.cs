@@ -5,7 +5,13 @@ using WebApp.Utilities.Services;
 
 namespace WebApp.Data;
 
-public class Features(Persistence _repo, ChatOrchestrator _chatOrchestrator, UserMailboxService _mailboxService)
+public class Features(
+    IUserRepository _users,
+    IChatThreadRepository _chatThreads,
+    IChatMessageRepository _chatMessages,
+    ISettingsRepository _settings,
+    ChatOrchestrator _chatOrchestrator,
+    UserMailboxService _mailboxService)
 {
     #region # User
 
@@ -26,7 +32,7 @@ public class Features(Persistence _repo, ChatOrchestrator _chatOrchestrator, Use
 
             #region # Execute
 
-            var user = await _repo.SignInAsync(signInRequest);
+            var user = await _users.SignInAsync(signInRequest);
 
             #endregion
 
@@ -71,7 +77,7 @@ public class Features(Persistence _repo, ChatOrchestrator _chatOrchestrator, Use
 
             #region # Execute
 
-            var chatThreads = await _repo.GetChatThreadsByUserIdAsync(userId);
+            var chatThreads = await _chatThreads.GetChatThreadsByUserIdAsync(userId);
 
             #endregion
 
@@ -112,7 +118,7 @@ public class Features(Persistence _repo, ChatOrchestrator _chatOrchestrator, Use
 
             #region # Execute
 
-            var chatThread = await _repo.GetChatThreadByIdAsync(id);
+            var chatThread = await _chatThreads.GetChatThreadByIdAsync(id);
 
             #endregion
 
@@ -153,7 +159,7 @@ public class Features(Persistence _repo, ChatOrchestrator _chatOrchestrator, Use
 
             #region # Execute
 
-            var chatThread = await _repo.AddChatThreadAsync(addChatThreadRequest);
+            var chatThread = await _chatThreads.AddChatThreadAsync(addChatThreadRequest);
 
             #endregion
 
@@ -194,7 +200,7 @@ public class Features(Persistence _repo, ChatOrchestrator _chatOrchestrator, Use
 
             #region # Execute
 
-            var chatThread = await _repo.UpdateChatThreadTitleAsync(updateChatThreadTitleRequest);
+            var chatThread = await _chatThreads.UpdateChatThreadTitleAsync(updateChatThreadTitleRequest);
 
             #endregion
 
@@ -244,7 +250,7 @@ public class Features(Persistence _repo, ChatOrchestrator _chatOrchestrator, Use
 
             #region # Execute
 
-            var chatThread = await _repo.UpdateChatThreadAgentAsync(updateChatThreadAgentRequest);
+            var chatThread = await _chatThreads.UpdateChatThreadAgentAsync(updateChatThreadAgentRequest);
 
             #endregion
 
@@ -285,7 +291,7 @@ public class Features(Persistence _repo, ChatOrchestrator _chatOrchestrator, Use
 
             #region # Execute
 
-            var deleted = await _repo.DeleteChatThreadAsync(deleteChatThreadRequest);
+            var deleted = await _chatThreads.DeleteChatThreadAsync(deleteChatThreadRequest);
 
             #endregion
 
@@ -330,7 +336,7 @@ public class Features(Persistence _repo, ChatOrchestrator _chatOrchestrator, Use
 
             #region # Execute
 
-            var chatMessages = await _repo.GetChatMessagesByChatThreadIdAsync(chatThreadId);
+            var chatMessages = await _chatMessages.GetChatMessagesByChatThreadIdAsync(chatThreadId);
 
             #endregion
 
@@ -374,7 +380,7 @@ public class Features(Persistence _repo, ChatOrchestrator _chatOrchestrator, Use
                 return result;
             }
 
-            var thread = await _repo.GetChatThreadByIdAsync(sendChatMessageRequest.ChatThreadId);
+            var thread = await _chatThreads.GetChatThreadByIdAsync(sendChatMessageRequest.ChatThreadId);
             if (thread is null || thread.UserId != sendChatMessageRequest.UserId)
             {
                 result.Failure(ErrorCode.NotFound, "Chat thread not found.");
@@ -389,7 +395,7 @@ public class Features(Persistence _repo, ChatOrchestrator _chatOrchestrator, Use
 
             #region # Execute
 
-            var userMessage = await _repo.AddChatMessageAsync(new ChatMessage
+            var userMessage = await _chatMessages.AddChatMessageAsync(new ChatMessage
             {
                 ChatThreadId = sendChatMessageRequest.ChatThreadId,
                 Role = ChatMessageRoles.User,
@@ -410,7 +416,7 @@ public class Features(Persistence _repo, ChatOrchestrator _chatOrchestrator, Use
                 ChatAgent = chatAgent
             });
 
-            var assistantMessage = await _repo.AddChatMessageAsync(new ChatMessage
+            var assistantMessage = await _chatMessages.AddChatMessageAsync(new ChatMessage
             {
                 ChatThreadId = sendChatMessageRequest.ChatThreadId,
                 Role = ChatMessageRoles.Assistant,
@@ -467,7 +473,7 @@ public class Features(Persistence _repo, ChatOrchestrator _chatOrchestrator, Use
 
             #region # Execute
 
-            var generalSettings = await _repo.GetUserGeneralSettingsAsync(userId);
+            var generalSettings = await _settings.GetUserGeneralSettingsAsync(userId);
 
             #endregion
 
@@ -508,7 +514,7 @@ public class Features(Persistence _repo, ChatOrchestrator _chatOrchestrator, Use
 
             #region # Execute
 
-            var savedProfile = await _repo.UpdateUserProfileAsync(
+            var savedProfile = await _settings.UpdateUserProfileAsync(
                 saveGeneralProfileRequest.UserId,
                 saveGeneralProfileRequest.FirstName,
                 saveGeneralProfileRequest.LastName,
@@ -558,7 +564,7 @@ public class Features(Persistence _repo, ChatOrchestrator _chatOrchestrator, Use
                 return result;
             }
 
-            var currentMatches = await _repo.UserPasswordMatchesAsync(
+            var currentMatches = await _settings.UserPasswordMatchesAsync(
                 changePasswordRequest.UserId,
                 changePasswordRequest.CurrentPassword);
 
@@ -572,7 +578,7 @@ public class Features(Persistence _repo, ChatOrchestrator _chatOrchestrator, Use
 
             #region # Execute
 
-            var updated = await _repo.UpdateUserPasswordAsync(
+            var updated = await _settings.UpdateUserPasswordAsync(
                 changePasswordRequest.UserId,
                 changePasswordRequest.NewPassword,
                 changePasswordRequest.UserId);
@@ -621,7 +627,7 @@ public class Features(Persistence _repo, ChatOrchestrator _chatOrchestrator, Use
 
             #region # Execute
 
-            var emailSettings = await _repo.GetUserEmailSettingsAsync(userId);
+            var emailSettings = await _settings.GetUserEmailSettingsAsync(userId);
 
             #endregion
 
@@ -662,7 +668,7 @@ public class Features(Persistence _repo, ChatOrchestrator _chatOrchestrator, Use
                 return result;
             }
 
-            var existingSettings = await _repo.GetUserEmailSettingsAsync(saveEmailSettingsRequest.UserId);
+            var existingSettings = await _settings.GetUserEmailSettingsAsync(saveEmailSettingsRequest.UserId);
             var validationError = EmailSettingsHelpers.TryBuildFromDto(
                 saveEmailSettingsRequest.Email,
                 existingSettings,
@@ -679,7 +685,7 @@ public class Features(Persistence _repo, ChatOrchestrator _chatOrchestrator, Use
 
             #region # Execute
 
-            var savedSettings = await _repo.SaveUserEmailSettingsAsync(
+            var savedSettings = await _settings.SaveUserEmailSettingsAsync(
                 saveEmailSettingsRequest.UserId,
                 newSettings,
                 saveEmailSettingsRequest.UserId);

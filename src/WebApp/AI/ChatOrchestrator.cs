@@ -1,8 +1,6 @@
 using Microsoft.Extensions.Options;
 
 using WebApp.AI.Agents;
-using WebApp.Data;
-using WebApp.Models;
 
 using AiChatRole = Microsoft.Extensions.AI.ChatRole;
 
@@ -10,7 +8,7 @@ namespace WebApp.AI;
 
 public sealed class ChatOrchestrator(
     IOptions<FoundryOptions> _foundryOptions,
-    Persistence _persistence,
+    IChatMessageRepository _chatMessages,
     AssistantAgent _assistantAgent,
     EmailAgent _emailAgent)
 {
@@ -56,7 +54,7 @@ public sealed class ChatOrchestrator(
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var messages = await _persistence.GetRecentChatMessagesByChatThreadIdAsync(
+        var messages = await _chatMessages.GetRecentChatMessagesByChatThreadIdAsync(
             chatThreadId,
             DefaultMessageLimit);
 

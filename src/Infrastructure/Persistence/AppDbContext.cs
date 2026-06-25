@@ -1,11 +1,12 @@
 using EntityFramework.Exceptions.SqlServer;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using System.Data;
 
-using WebApp.Models;
+using Core.Entities;
 
-namespace WebApp.Data;
+namespace Infrastructure.Persistence;
 
 public class AppDbContext : DbContext
 {

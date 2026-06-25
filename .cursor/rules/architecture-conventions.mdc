@@ -1,0 +1,85 @@
+---
+description: Solution layers — Core, Infrastructure, WebApp, and where new code belongs
+alwaysApply: true
+---
+
+# Architecture (Core + Infrastructure + WebApp)
+
+Incremental Clean Architecture. Move code out of WebApp **one concern at a time**; keep the app runnable after each step.
+
+## Solution layout
+
+```
+databases/Database/          SQL project (not under src/)
+src/
+  Core/                      Domain + ports (no EF, MailKit, Blazor, MAF)
+  Infrastructure/            Port implementations + AddInfrastructure()
+  WebApp/                    UI, Features, AI, composition root (Startup)
+```
+
+**Project references:** `Infrastructure → Core`, `WebApp → Core + Infrastructure`.
+
+## Core (`src/Core/`)
+
+| Folder | Purpose |
+|--------|---------|
+| **Entities/** | EF-mapped domain types. One entity per `.cs`; `_Common.cs` (bases), `_Enums.cs` (entity enums). Namespace `Core.Entities`. |
+| **DTOs/** | Shapes that **cross repository ports** only. One file per entity area. Namespace `Core.DTOs`. |
+| **Abstractions/** | Infrastructure ports. **One `.cs` file per infra concern** (mirrors an Infra folder). Namespace `Core.Abstractions`. |
+
+### Abstractions pattern
+
+- `Abstractions/Persistence.cs` — all persistence ports in one file: `IUserRepository`, `IChatThreadRepository`, `IChatMessageRepository`, `ISettingsRepository`.
+- Future: `Abstractions/Mailbox.cs` — `IMailboxService` (or split repos) when MailKit moves to Infra.
+
+Do **not** put SDKs, `IConfiguration`, or UI types in Core.
+
+## Infrastructure (`src/Infrastructure/`)
+
+- **One folder per `Abstractions/{Concern}.cs` file** — e.g. `Persistence/` for everything in `Persistence.cs`.
+- Register implementations in `DependencyInjection.AddInfrastructure()`; WebApp calls it from `Startup.InjectData`.
+- EF, SqlClient, MailKit, and column JSON helpers live here — not in WebApp.
+
+Example today:
+
+```
+Infrastructure/Persistence/
+  AppDbContext.cs
+  UserRepository.cs
+  ChatThreadRepository.cs
+  ChatMessageRepository.cs
+  SettingsRepository.cs
+  EmailSettingsJson.cs
+```
+
+## WebApp (`src/WebApp/`)
+
+| Folder | Purpose |
+|--------|---------|
+| **Data/** | `Features.cs` only — application orchestration (`AppResult`, validation, calls **Core abstractions**). |
+| **Models/** | **App/UI-only** types — not used by `I*Repository` signatures. See `dto-conventions.mdc`. |
+| **Components/, Endpoints/, AI/, Utilities/** | Unchanged roles; depend on `Core.Abstractions` + `WebApp.Models`. |
+
+WebApp is the **composition root** (`Startup.cs`).
+
+## Where does new code go?
+
+| Question | Place |
+|----------|--------|
+| DB table / domain field? | `Core/Entities/` |
+| Used in `I*Repository` (or future `IMailbox*`)? | `Core/DTOs/` |
+| New external system port? | `Core/Abstractions/{Concern}.cs` + `Infrastructure/{Concern}/` |
+| EF / IMAP / SMTP implementation? | `Infrastructure/{Concern}/` |
+| Blazor form, `AppResult`, AI config, feature-only request? | `WebApp/Models/` |
+| Use-case flow / validation? | `WebApp/Data/Features.cs` |
+| LLM / tools / chat turn? | `WebApp/AI/` |
+
+## Migration recipe (repeat per concern)
+
+1. Move entities → `Core/Entities/`
+2. Move port DTOs → `Core/DTOs/`; leave UI DTOs in `WebApp/Models/`
+3. Add interfaces → `Core/Abstractions/{Concern}.cs`
+4. Move implementations → `Infrastructure/{Concern}/`; register in `AddInfrastructure`
+5. WebApp injects `I*Repository` / `I*Service` — never `DbContext` or MailKit types outside Infra
+
+**Done:** Persistence. **Next:** Mailbox (`Abstractions/Mailbox.cs` + `Infrastructure/Mailbox/`).
