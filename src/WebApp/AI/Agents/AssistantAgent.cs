@@ -29,6 +29,45 @@ public sealed class AssistantAgent(FoundryAgentFactory _agentFactory)
         #endregion
     }
 
+    #region # Supported User Prompts
+
+    // Debug/test catalog — grouped by intent and capability. Not sent to the LLM.
+    // Update when tools, routing, or agent scope change.
+
+    private static readonly (string Intent, string Capability, string[] Prompts)[] SupportedUserPrompts =
+    [
+        ("Workspace overview", "Explain available agents (no tools)", [
+            "What agents are available in this app?",
+            "What can this workspace do?",
+            "Which specialist handles email?"
+        ]),
+        ("App usage", "Navigation and settings guidance (no tools)", [
+            "How do I switch agents in chat?",
+            "Where do I connect my mailbox?",
+            "How do I configure email settings?"
+        ]),
+        ("Route to specialist", "Direct user to Email agent", [
+            "I need to check my inbox.",
+            "Can you read my email?",
+            "Help me send an email.",
+            "Summarize my recent mail."
+        ]),
+        ("Clarify routing", "Ask one question when intent is ambiguous between listed specialists", [
+            "I need help with my messages.",
+            "Can you handle my account stuff?"
+        ]),
+        ("No matching specialist", "Decline — no listed agent for the task", [
+            "Book me a flight.",
+            "Review this code for bugs."
+        ]),
+        ("Off-topic", "Decline — not about this workspace", [
+            "What's the capital of France?",
+            "Tell me a joke."
+        ])
+    ];
+
+    #endregion
+
     #region # Private Helpers
 
     private AIAgent CreateAssistantAgent()

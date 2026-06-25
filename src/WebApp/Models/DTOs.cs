@@ -328,6 +328,8 @@ public class SaveEmailSettingsRequest
 
 public sealed class InboxMessageSummary
 {
+    public uint Uid { get; init; }
+
     public string From { get; init; } = string.Empty;
 
     public string Subject { get; init; } = string.Empty;
@@ -341,7 +343,56 @@ public sealed class InboxQuery
 {
     public DateTime? SinceUtc { get; init; }
 
+    /// <summary>Exclusive upper bound for IMAP DeliveredBefore; null means no upper bound.</summary>
+    public DateTime? UntilUtcExclusive { get; init; }
+
     public int Limit { get; init; } = 20;
+
+    public bool CountOnly { get; init; }
+
+    public bool UnreadOnly { get; init; }
+
+    public string? FromContains { get; init; }
+
+    public string? SubjectContains { get; init; }
+
+    /// <summary>IMAP folder: empty/inbox, sent, drafts, trash, junk, or exact name from list_mailbox_folders.</summary>
+    public string? Folder { get; init; }
+}
+
+public sealed class InboxListResult
+{
+    public IReadOnlyList<InboxMessageSummary> Messages { get; init; } = [];
+
+    public int TotalMatched { get; init; }
+}
+
+public sealed class InboxMessageDetail
+{
+    public uint Uid { get; init; }
+
+    public string From { get; init; } = string.Empty;
+
+    public string Subject { get; init; } = string.Empty;
+
+    public DateTimeOffset Date { get; init; }
+
+    public string Body { get; init; } = string.Empty;
+
+    public string Folder { get; init; } = "INBOX";
+
+    public bool BodyFromHtml { get; init; }
+
+    public IReadOnlyList<string> AttachmentNames { get; init; } = [];
+}
+
+public sealed class MailboxFolderInfo
+{
+    public string Name { get; init; } = string.Empty;
+
+    public string FullName { get; init; } = string.Empty;
+
+    public string? Role { get; init; }
 }
 
 public sealed class OutboundMail

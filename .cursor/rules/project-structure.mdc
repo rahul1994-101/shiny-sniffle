@@ -49,7 +49,7 @@ Example: auth UI reads claims via `CurrentUser` in `Utilities/Services/AuthServi
 
 ## AI boundaries
 
-- **Agents/**: LLM runners only. One class per agent role at the folder root (e.g. `AssistantAgent`, `EmailAgent`). Each agent owns its profile in a private `Create{Role}Agent` helper, calls `FoundryAgentFactory.CreateAgent` for MAF wiring, runs the turn, and returns `RunChatAgentResponse`. No DB reads for thread history.
+- **Agents/**: LLM runners only. One class per agent role at the folder root (e.g. `AssistantAgent`, `EmailAgent`). Each agent owns its profile in a private `Create{Role}Agent` helper, a **`SupportedUserPrompts`** debug/test catalog in `#region # Supported User Prompts`, calls `FoundryAgentFactory.CreateAgent` for MAF wiring, runs the turn, and returns `RunChatAgentResponse`. No DB reads for thread history.
 - **Tools/**: Plain C# capabilities exposed to agents via MAF tools. One file per agent domain when needed (e.g. `EmailTools.cs`). Tools may call app services/DB/APIs, but must not call LLMs or route chat turns.
 - **Memory/**: Agent-specific memory helpers (summaries, mailbox context, pinned facts), parallel to **Tools/** — one file per agent domain when needed. No LLM calls. Keep `.gitkeep` until the first file is added.
 - **Workflows/**: Multi-step MAF workflows that compose agents and tools. Keep placeholder `.gitkeep` files in empty workflow folders.

@@ -25,14 +25,36 @@ public sealed class UserMailboxService(Persistence _repo, IMailboxService _mailb
             {
                 IsConfigured = false,
                 IsReachable = false,
-                Message = EmailMailboxTextHelpers.NotConfiguredForAgent
+                Message = EmailReadConstants.NotConfiguredForAgent
             };
         }
 
         return await _mailboxService.GetStatusAsync(config, cancellationToken);
     }
 
-    public async Task<IReadOnlyList<InboxMessageSummary>> ListInboxAsync(Guid userId, InboxQuery query, CancellationToken cancellationToken = default)
+    public async Task<InboxListResult> ListInboxAsync(Guid userId, InboxQuery query, CancellationToken cancellationToken = default)
+    {
+        var config = await ResolveMailRuntimeAsync(userId, cancellationToken: cancellationToken);
+        if (config is null)
+        {
+            return new InboxListResult();
+        }
+
+        return await _mailboxService.ListInboxAsync(config, query, cancellationToken);
+    }
+
+    public async Task<InboxMessageDetail?> GetInboxMessageAsync(Guid userId, uint uid, string? folder = null, CancellationToken cancellationToken = default)
+    {
+        var config = await ResolveMailRuntimeAsync(userId, cancellationToken: cancellationToken);
+        if (config is null)
+        {
+            return null;
+        }
+
+        return await _mailboxService.GetInboxMessageAsync(config, uid, folder, cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<MailboxFolderInfo>> ListFoldersAsync(Guid userId, CancellationToken cancellationToken = default)
     {
         var config = await ResolveMailRuntimeAsync(userId, cancellationToken: cancellationToken);
         if (config is null)
@@ -40,7 +62,7 @@ public sealed class UserMailboxService(Persistence _repo, IMailboxService _mailb
             return [];
         }
 
-        return await _mailboxService.ListInboxAsync(config, query, cancellationToken);
+        return await _mailboxService.ListFoldersAsync(config, cancellationToken);
     }
 
     public async Task<SendMailResult> SendAsync(Guid userId, OutboundMail mail, CancellationToken cancellationToken = default)
@@ -60,7 +82,7 @@ public sealed class UserMailboxService(Persistence _repo, IMailboxService _mailb
             return new SendMailResult
             {
                 Success = false,
-                Message = EmailMailboxTextHelpers.NotConfiguredForSend
+                Message = EmailReadConstants.NotConfiguredForSend
             };
         }
 
