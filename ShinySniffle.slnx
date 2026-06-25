@@ -1,9 +1,13 @@
 <Solution>
-  <Folder Name="/src/">
-    <Project Path="src/Database/Database.sqlproj" Id="0874c45e-2681-4816-9fa1-8820713c356e">
+  <Folder Name="/databases/">
+    <Project Path="databases/Database/Database.sqlproj" Id="0874c45e-2681-4816-9fa1-8820713c356e">
       <Build />
       <Deploy />
     </Project>
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/Core/Core.csproj" Id="19b51287-2da1-45d5-9017-5246c9b89df0" />
+    <Project Path="src/Infrastructure/Infrastructure.csproj" Id="60794dad-ea9e-4a4f-a96a-34cf8012e75b" />
     <Project Path="src/WebApp/WebApp.csproj" Id="a7d2ef66-0bb7-4de2-a18d-678c05199b89" />
   </Folder>
 </Solution>
