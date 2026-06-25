@@ -170,7 +170,7 @@ public sealed class EmailAgent(FoundryAgentFactory _agentFactory, EmailTools _em
 
     private AIAgent CreateEmailAgent(IList<AITool> tools)
     {
-        var modelDeployment = FoundryDeployments.Gpt4oMini;
+        var modelDeployment = FoundryDeployments.Gpt54Mini;
         var name = "Email";
         var description = "Mailbox specialist that lists, summarizes, and sends mail through the connected account.";
         var maxGets = EmailReadConstants.MaxDeepReadsPerTurn;
