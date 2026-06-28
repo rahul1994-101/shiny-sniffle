@@ -34,12 +34,3 @@ public class EmailSettingsDto
 
     public bool HasStoredPassword { get; set; }
 }
-
-public class SaveEmailSettingsRequest
-{
-    [Required(ErrorMessage = "User Id is required.")]
-    public Guid UserId { get; set; }
-
-    [Required(ErrorMessage = "Email settings are required.")]
-    public EmailSettingsDto Email { get; set; } = null!;
-}

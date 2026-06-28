@@ -5,38 +5,33 @@ using WebApp.Utilities.Services;
 
 namespace WebApp.Features.ChatThread.Commands;
 
-public sealed record UpdateChatThreadAgentCommand(UpdateChatThreadAgentRequest Request)
-    : ICommand<AppResult<ChatThreadDto?>>;
+public sealed record UpdateChatThreadAgentRequest(Guid Id, Guid UserId, ChatAgent ChatAgent)
+    : ICommand<AppResult<UpdateChatThreadAgentResponse?>>;
 
-public sealed class UpdateChatThreadAgentCommandValidator : AbstractValidator<UpdateChatThreadAgentCommand>
+public sealed class UpdateChatThreadAgentRequestValidator : AbstractValidator<UpdateChatThreadAgentRequest>
 {
-    public UpdateChatThreadAgentCommandValidator()
+    public UpdateChatThreadAgentRequestValidator()
     {
-        RuleFor(x => x.Request)
-            .NotNull()
-            .WithMessage("Request can't be empty.");
-
-        RuleFor(x => x.Request.Id)
+        RuleFor(x => x.Id)
             .NotEmpty()
             .WithMessage("Thread Id is required.");
 
-        RuleFor(x => x.Request.UserId)
+        RuleFor(x => x.UserId)
             .NotEmpty()
             .WithMessage("User Id is required.");
     }
 }
 
-public sealed class UpdateChatThreadAgentCommandHandler(
+public sealed class UpdateChatThreadAgentRequestHandler(
     IChatThreadRepository chatThreads,
     UserMailboxService mailboxService)
-    : IFeatureHandler<UpdateChatThreadAgentCommand, AppResult<ChatThreadDto?>>
+    : IFeatureHandler<UpdateChatThreadAgentRequest, AppResult<UpdateChatThreadAgentResponse?>>
 {
-    public async Task<AppResult<ChatThreadDto?>> HandleAsync(
-        UpdateChatThreadAgentCommand command,
+    public async Task<AppResult<UpdateChatThreadAgentResponse?>> HandleAsync(
+        UpdateChatThreadAgentRequest request,
         CancellationToken cancellationToken = default)
     {
-        var result = new AppResult<ChatThreadDto?>();
-        var request = command.Request;
+        var result = new AppResult<UpdateChatThreadAgentResponse?>();
 
         if (request.ChatAgent == ChatAgent.Email
             && !await mailboxService.IsConfiguredAsync(request.UserId, cancellationToken))
@@ -49,7 +44,12 @@ public sealed class UpdateChatThreadAgentCommandHandler(
 
         #region # Execute
 
-        var chatThread = await chatThreads.UpdateChatThreadAgentAsync(request);
+        var chatThread = await chatThreads.UpdateChatThreadAgentAsync(new Core.DTOs.UpdateChatThreadAgentRequest
+        {
+            Id = request.Id,
+            UserId = request.UserId,
+            ChatAgent = request.ChatAgent
+        });
 
         #endregion
 
@@ -61,11 +61,35 @@ public sealed class UpdateChatThreadAgentCommandHandler(
         }
         else
         {
-            result.Success(chatThread);
+            result.Success(ToResponse(chatThread));
         }
 
         #endregion
 
         return result;
     }
+
+    #region # Mapping
+
+    private static UpdateChatThreadAgentResponse ToResponse(ChatThreadDto thread) => new()
+    {
+        Id = thread.Id,
+        Title = thread.Title,
+        UserId = thread.UserId,
+        ChatAgent = thread.ChatAgent,
+        CreatedAt = thread.CreatedAt,
+        UpdatedAt = thread.UpdatedAt
+    };
+
+    #endregion
+}
+
+public sealed class UpdateChatThreadAgentResponse
+{
+    public Guid Id { get; init; }
+    public string Title { get; init; } = string.Empty;
+    public Guid UserId { get; init; }
+    public ChatAgent ChatAgent { get; init; }
+    public DateTime CreatedAt { get; init; }
+    public DateTime UpdatedAt { get; init; }
 }

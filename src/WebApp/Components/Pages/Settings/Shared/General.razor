@@ -235,7 +235,7 @@ else
         _profileStatus.Clear();
         _passwordStatus.Clear();
 
-        var result = await Sender.SendAsync(new GetGeneralSettingsQuery(CurrentUser.Id));
+        var result = await Sender.SendAsync(new GetGeneralSettingsRequest(CurrentUser.Id));
 
         #region # Handle Result
 
@@ -247,7 +247,7 @@ else
         }
         else if (result.Payload is not null)
         {
-            _profile = result.Payload;
+            _profile = ToProfileDto(result.Payload);
             CaptureProfileBaseline();
         }
 
@@ -280,12 +280,10 @@ else
 
         #region # Execute
 
-        var result = await Sender.SendAsync(new SaveGeneralProfileCommand(new SaveGeneralProfileRequest
-        {
-            UserId = CurrentUser.Id,
-            FirstName = _profile.FirstName,
-            LastName = _profile.LastName
-        }));
+        var result = await Sender.SendAsync(new SaveGeneralProfileRequest(
+            CurrentUser.Id,
+            _profile.FirstName,
+            _profile.LastName));
 
         #endregion
 
@@ -299,19 +297,18 @@ else
         }
         else if (result.Payload is not null)
         {
-            _profile = result.Payload;
+            _profile = ToProfileDto(result.Payload);
             CaptureProfileBaseline();
             _profileStatus.Set("Profile saved.", isError: false, autoClear: true);
 
             var httpContext = HttpContextAccessor.HttpContext;
             if (httpContext is not null)
             {
-                await AuthCookieHelpers.SignInAsync(httpContext, new SignInResponse
-                {
-                    Id = CurrentUser.Id,
-                    Email = _profile.Email,
-                    FullName = $"{_profile.FirstName} {_profile.LastName}".Trim()
-                });
+                await AuthCookieHelpers.SignInAsync(
+                    httpContext,
+                    CurrentUser.Id,
+                    _profile.Email,
+                    $"{_profile.FirstName} {_profile.LastName}".Trim());
             }
         }
 
@@ -344,13 +341,11 @@ else
 
         #region # Execute
 
-        var result = await Sender.SendAsync(new ChangePasswordCommand(new ChangePasswordRequest
-        {
-            UserId = CurrentUser.Id,
-            CurrentPassword = _currentPassword,
-            NewPassword = _newPassword,
-            ConfirmPassword = _confirmPassword
-        }));
+        var result = await Sender.SendAsync(new ChangePasswordRequest(
+            CurrentUser.Id,
+            _currentPassword,
+            _newPassword,
+            _confirmPassword));
 
         #endregion
 
@@ -383,6 +378,20 @@ else
     #endregion
 
     #region # Helpers
+
+    private static GeneralSettingsDto ToProfileDto(GetGeneralSettingsResponse settings) => new()
+    {
+        Email = settings.Email,
+        FirstName = settings.FirstName,
+        LastName = settings.LastName
+    };
+
+    private static GeneralSettingsDto ToProfileDto(SaveGeneralProfileResponse settings) => new()
+    {
+        Email = settings.Email,
+        FirstName = settings.FirstName,
+        LastName = settings.LastName
+    };
 
     private void CaptureProfileBaseline()
     {

@@ -1,5 +1,3 @@
-using System.ComponentModel.DataAnnotations;
-
 namespace WebApp.Utilities.Helpers;
 
 public static class SettingsFormValidation
@@ -15,42 +13,64 @@ public static class SettingsFormValidation
         return ValidateLastName(lastName);
     }
 
-    public static string? ValidateFirstName(string firstName) =>
-        ValidateMember(new SaveGeneralProfileRequest
+    public static string? ValidateFirstName(string firstName)
+    {
+        if (string.IsNullOrWhiteSpace(firstName))
         {
-            UserId = Guid.Empty,
-            FirstName = firstName,
-            LastName = "ab"
-        }, nameof(SaveGeneralProfileRequest.FirstName));
+            return "First name is required.";
+        }
 
-    public static string? ValidateLastName(string lastName) =>
-        ValidateMember(new SaveGeneralProfileRequest
+        if (firstName.Length is < 2 or > 50)
         {
-            UserId = Guid.Empty,
-            FirstName = "ab",
-            LastName = lastName
-        }, nameof(SaveGeneralProfileRequest.LastName));
+            return "First name must be between 2 and 50 characters.";
+        }
+
+        return null;
+    }
+
+    public static string? ValidateLastName(string lastName)
+    {
+        if (string.IsNullOrWhiteSpace(lastName))
+        {
+            return "Last name is required.";
+        }
+
+        if (lastName.Length is < 2 or > 50)
+        {
+            return "Last name must be between 2 and 50 characters.";
+        }
+
+        return null;
+    }
 
     public static string? ValidatePasswordChange(string current, string newPassword, string confirm)
     {
+        if (string.IsNullOrWhiteSpace(current))
+        {
+            return "Current password is required.";
+        }
+
+        if (string.IsNullOrWhiteSpace(newPassword))
+        {
+            return "New password is required.";
+        }
+
+        if (newPassword.Length is < 6 or > 255)
+        {
+            return "New password must be between 6 and 255 characters.";
+        }
+
+        if (string.IsNullOrWhiteSpace(confirm))
+        {
+            return "Confirm password is required.";
+        }
+
         if (!string.Equals(newPassword, confirm, StringComparison.Ordinal))
         {
             return "New password and confirmation do not match.";
         }
 
-        var request = new ChangePasswordRequest
-        {
-            UserId = Guid.Empty,
-            CurrentPassword = current,
-            NewPassword = newPassword,
-            ConfirmPassword = confirm
-        };
-
-        return FirstValidationMessage(
-            request,
-            nameof(ChangePasswordRequest.CurrentPassword),
-            nameof(ChangePasswordRequest.NewPassword),
-            nameof(ChangePasswordRequest.ConfirmPassword));
+        return null;
     }
 
     public static bool EmailSettingsEqual(EmailSettingsDto left, EmailSettingsDto right) =>
@@ -80,44 +100,4 @@ public static class SettingsFormValidation
             HasStoredPassword = source.HasStoredPassword,
             Password = string.Empty
         };
-
-    private static string? FirstValidationMessage(object instance, params string[] memberNames)
-    {
-        var results = new List<ValidationResult>();
-        var context = new ValidationContext(instance);
-
-        if (Validator.TryValidateObject(instance, context, results, validateAllProperties: true))
-        {
-            return null;
-        }
-
-        foreach (var result in results)
-        {
-            if (result.MemberNames.Any(m => memberNames.Contains(m, StringComparer.Ordinal)))
-            {
-                return result.ErrorMessage;
-            }
-        }
-
-        return results.FirstOrDefault()?.ErrorMessage;
-    }
-
-    private static string? ValidateMember(object instance, string memberName)
-    {
-        var results = new List<ValidationResult>();
-        var context = new ValidationContext(instance) { MemberName = memberName };
-        var property = instance.GetType().GetProperty(memberName);
-        if (property is null)
-        {
-            return null;
-        }
-
-        var value = property.GetValue(instance);
-        if (Validator.TryValidateProperty(value, context, results))
-        {
-            return null;
-        }
-
-        return results.FirstOrDefault()?.ErrorMessage;
-    }
 }

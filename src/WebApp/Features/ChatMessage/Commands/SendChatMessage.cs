@@ -5,43 +5,42 @@ using WebApp.Features._Shared.Abstractions;
 
 namespace WebApp.Features.ChatMessage.Commands;
 
-public sealed record SendChatMessageCommand(SendChatMessageRequest Request)
+public sealed record SendChatMessageRequest(
+    Guid ChatThreadId,
+    Guid UserId,
+    ChatAgent ChatAgent,
+    string Message)
     : ICommand<AppResult<SendChatMessageResponse?>>;
 
-public sealed class SendChatMessageCommandValidator : AbstractValidator<SendChatMessageCommand>
+public sealed class SendChatMessageRequestValidator : AbstractValidator<SendChatMessageRequest>
 {
-    public SendChatMessageCommandValidator()
+    public SendChatMessageRequestValidator()
     {
-        RuleFor(x => x.Request)
-            .NotNull()
-            .WithMessage("Request can't be empty.");
-
-        RuleFor(x => x.Request.ChatThreadId)
+        RuleFor(x => x.ChatThreadId)
             .NotEmpty()
             .WithMessage("Chat Thread Id is required.");
 
-        RuleFor(x => x.Request.UserId)
+        RuleFor(x => x.UserId)
             .NotEmpty()
             .WithMessage("User Id is required.");
 
-        RuleFor(x => x.Request.Message)
+        RuleFor(x => x.Message)
             .Must(message => !string.IsNullOrWhiteSpace(message))
             .WithMessage("Message is required.");
     }
 }
 
-public sealed class SendChatMessageCommandHandler(
+public sealed class SendChatMessageRequestHandler(
     IChatThreadRepository chatThreads,
     IChatMessageRepository chatMessages,
     ChatOrchestrator chatOrchestrator)
-    : IFeatureHandler<SendChatMessageCommand, AppResult<SendChatMessageResponse?>>
+    : IFeatureHandler<SendChatMessageRequest, AppResult<SendChatMessageResponse?>>
 {
     public async Task<AppResult<SendChatMessageResponse?>> HandleAsync(
-        SendChatMessageCommand command,
+        SendChatMessageRequest request,
         CancellationToken cancellationToken = default)
     {
         var result = new AppResult<SendChatMessageResponse?>();
-        var request = command.Request;
         var text = request.Message.Trim();
 
         var thread = await chatThreads.GetChatThreadByIdAsync(request.ChatThreadId);
@@ -106,4 +105,10 @@ public sealed class SendChatMessageCommandHandler(
 
         return result;
     }
+}
+
+public sealed class SendChatMessageResponse
+{
+    public ChatMessageDto UserMessage { get; init; } = null!;
+    public ChatMessageDto AssistantMessage { get; init; } = null!;
 }

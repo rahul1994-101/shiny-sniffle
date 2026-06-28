@@ -4,11 +4,12 @@ using WebApp.Features._Shared.Abstractions;
 
 namespace WebApp.Features.Settings.Queries;
 
-public sealed record GetGeneralSettingsQuery(Guid UserId) : IQuery<AppResult<GeneralSettingsDto?>>;
+public sealed record GetGeneralSettingsRequest(Guid UserId)
+    : IQuery<AppResult<GetGeneralSettingsResponse?>>;
 
-public sealed class GetGeneralSettingsQueryValidator : AbstractValidator<GetGeneralSettingsQuery>
+public sealed class GetGeneralSettingsRequestValidator : AbstractValidator<GetGeneralSettingsRequest>
 {
-    public GetGeneralSettingsQueryValidator()
+    public GetGeneralSettingsRequestValidator()
     {
         RuleFor(x => x.UserId)
             .NotEmpty()
@@ -16,18 +17,18 @@ public sealed class GetGeneralSettingsQueryValidator : AbstractValidator<GetGene
     }
 }
 
-public sealed class GetGeneralSettingsQueryHandler(ISettingsRepository settings)
-    : IFeatureHandler<GetGeneralSettingsQuery, AppResult<GeneralSettingsDto?>>
+public sealed class GetGeneralSettingsRequestHandler(ISettingsRepository settings)
+    : IFeatureHandler<GetGeneralSettingsRequest, AppResult<GetGeneralSettingsResponse?>>
 {
-    public async Task<AppResult<GeneralSettingsDto?>> HandleAsync(
-        GetGeneralSettingsQuery query,
+    public async Task<AppResult<GetGeneralSettingsResponse?>> HandleAsync(
+        GetGeneralSettingsRequest request,
         CancellationToken cancellationToken = default)
     {
-        var result = new AppResult<GeneralSettingsDto?>();
+        var result = new AppResult<GetGeneralSettingsResponse?>();
 
         #region # Execute
 
-        var generalSettings = await settings.GetUserGeneralSettingsAsync(query.UserId);
+        var generalSettings = await settings.GetUserGeneralSettingsAsync(request.UserId);
 
         #endregion
 
@@ -39,11 +40,29 @@ public sealed class GetGeneralSettingsQueryHandler(ISettingsRepository settings)
         }
         else
         {
-            result.Success(generalSettings);
+            result.Success(ToResponse(generalSettings));
         }
 
         #endregion
 
         return result;
     }
+
+    #region # Mapping
+
+    private static GetGeneralSettingsResponse ToResponse(GeneralSettingsDto settings) => new()
+    {
+        Email = settings.Email,
+        FirstName = settings.FirstName,
+        LastName = settings.LastName
+    };
+
+    #endregion
+}
+
+public sealed class GetGeneralSettingsResponse
+{
+    public string Email { get; init; } = string.Empty;
+    public string FirstName { get; init; } = string.Empty;
+    public string LastName { get; init; } = string.Empty;
 }

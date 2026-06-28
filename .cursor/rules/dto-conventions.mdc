@@ -1,78 +1,111 @@
 ---
-description: Core.DTOs vs WebApp.Models — naming and layer boundaries
+description: Core.DTOs vs WebApp.Models vs feature-owned use-case types
 globs: src/Core/DTOs/**/*.cs,src/WebApp/Models/**/*.cs,src/WebApp/Features/**/*.cs,src/WebApp/Components/**/*.razor
 alwaysApply: false
 ---
 
 # DTO conventions
 
-Two model homes — **do not duplicate** types across them.
+Three model homes — **do not duplicate** types across them.
 
-## Core (`Core/DTOs/`) — port contracts
+## Features (`WebApp/Features/`) — use-case Request / Response
 
-Types referenced by **`Core/Abstractions/*.cs`** (e.g. `IChatThreadRepository` return types).
+**Canonical pattern:** colocate in the use-case file (see `User/Commands/SignIn.cs`). **Commands and queries** both use `{UseCase}Request` / `{UseCase}Response`; folder and `ICommand<>` / `IQuery<>` distinguish write vs read.
+
+| Kind | Pattern | Example |
+|------|---------|---------|
+| Message | `{UseCase}Request` | `SignInRequest`, `GetChatThreadsByUserIdRequest` |
+| Result | `{UseCase}Response` | `SignInResponse`, `GetChatThreadsByUserIdResponse` |
+| Validator | `{UseCase}RequestValidator` | `SignInRequestValidator` |
+| Handler | `{UseCase}RequestHandler` | `SignInRequestHandler` |
+
+- Flat **Request** record (primitives) — no wrapper around Core or Models types.
+- **Response** at the **bottom** of the same file when the use case owns its result shape.
+- Validator targets **Request** directly (`SignInRequestValidator` validates `EmailId`, `Password`).
+- Entity → Response mapping lives in handler `#region # Mapping`.
+
+Do **not** put migrated use-case Request/Response in `Core/DTOs/` or `WebApp/Models/`.
+
+## Core (`Core/DTOs/`) — shared port shapes (shrinking)
+
+Types referenced by **`Core/Abstractions/*.cs`** when an entity is not enough. **Prefer entities on ports**; migrate use-case DTOs to Features.
 
 | File | Types (today) |
 |------|----------------|
-| `User.cs` | `SignInRequest`, `SignInResponse` |
 | `ChatThread.cs` | `ChatThreadDto`, add/update/delete thread requests |
 | `ChatMessage.cs` | `ChatMessageDto` |
 | `General.cs` | `GeneralSettingsDto` |
 | `Mail.cs` | Inbox/mailbox types (`InboxQuery`, `MailboxStatusResult`, …) |
 | `Foundry.cs` | `FoundryOptions` (bound from `Foundry:` config section) |
 
-Namespace: `Core.DTOs`. Add a file when a **new repository area** needs shared shapes.
+Namespace: `Core.DTOs`. Add a file only when a **repository port** needs a shared shape across use cases.
 
 ## WebApp (`WebApp/Models/`) — app / UI layer
 
-Types used only by **Features**, Blazor, AI, or endpoints — **not** on `I*Repository` signatures.
+Types used only by **Features**, Blazor, AI, or endpoints — **not** on `I*Repository` signatures and **not** feature-owned use-case pairs.
 
 | File | Types (today) |
 |------|----------------|
 | `_Common.cs` | `AppResult`, `AppResult<T>`, `AppError` |
 | `Enums.cs` | `ErrorCode`, `SettingsSection` |
 | `AI.cs` | `RunChatAgentRequest/Response` |
-| `ChatMessage.cs` | `SendChatMessageRequest/Response` |
-| `General.cs` | `SaveGeneralProfileRequest`, `ChangePasswordRequest` |
-| `Email.cs` | `EmailSettingsDto`, `SaveEmailSettingsRequest` |
+| `Email.cs` | `EmailSettingsDto` |
 | `Constants.cs` | `AuthConstants`, `ChatMessageRoles` |
 
 Namespace: `WebApp.Models`. WebApp `GlobalUsings` imports both `Core.DTOs` and `WebApp.Models`.
 
-## Naming (both layers)
+## Naming (Core + Models)
 
 | Kind | Pattern | Example |
 |------|---------|---------|
 | Shared projection | `{Entity}Dto` | `ChatThreadDto` |
-| Feature entry | `{Verb}{Entity}Request` / `Response` | `SendChatMessageRequest` |
+| App/UI entry (legacy until migrated) | `{Verb}{Entity}Request` / `Response` | `RunChatAgentRequest` |
 | UI-only in component | `{Name}ViewModel` in `.razor` `# Types` | not in Models |
 
-Order types in each file: **Get Dto → Add/Update requests → Delete request** (see legacy `dto` regions).
+Order types in each Core/Models file: **Get Dto → Add/Update requests → Delete request**.
 
 ## Layer flow
 
 | Direction | Pattern |
 |-----------|---------|
-| **UI → Features** | `WebApp.Models` `*Request` or primitives |
-| **Features → repos** | `Core.DTOs` + `Core.Entities` on writes (`ChatMessage` entity in) |
-| **Repos → caller** | `Core.DTOs` projections |
+| **UI → Features** | `Sender.SendAsync(new SignInRequest(...))` or form-bound `[FromForm] SignInRequest` |
+| **Features → repos** | Primitives and **`Core.Entities`** — not feature Request/Response |
+| **Features → caller** | Feature-owned `{UseCase}Response` or legacy `Core.DTOs` / `WebApp.Models` |
+| **Repos → Features** | **`Core.Entities`** (target) or legacy `Core.DTOs` projections |
 
-Features validates with `AppResult`; repositories do not take UI `*Request` types.
+Features validates with `AppResult`; repositories do not take feature Request/Response types.
 
 ## Decision tree
 
-1. On an **`I*Repository` method signature**? → `Core/DTOs/`
-2. **`AppResult` / form / AI turn DTOs / mailbox UI** only? → `WebApp/Models/`
-3. **DB entity**? → `Core/Entities/`
-4. **Single-component display state**? → ViewModel in `.razor`
+1. **Single use-case Request/Response pair?** → `{UseCase}Request` / `{UseCase}Response` in **`WebApp/Features/`** file (commands **and** queries)
+2. On an **`I*Repository` method** and shared across use cases? → `Core/DTOs/` (or prefer **`Core/Entities/`** on the port)
+3. **`AppResult` shell / AI turn / mailbox UI / unmigrated form DTO**? → `WebApp/Models/`
+4. **DB entity**? → `Core/Entities/`
+5. **Single-component display state**? → ViewModel in `.razor`
 
-## Example
+## Example (canonical — SignIn)
 
 ```csharp
-// Features — UI request in, Core DTOs from repo
-public async Task<AppResult<SendChatMessageResponse?>> SendChatMessageAsync(SendChatMessageRequest req)
+// User/Commands/SignIn.cs — all in one file
+public sealed record SignInRequest(string EmailId, string Password)
+    : ICommand<AppResult<SignInResponse>>;
+
+public sealed class SignInRequestHandler(IUserRepository users) : ...
 {
-    var thread = await _chatThreads.GetChatThreadByIdAsync(req.ChatThreadId);
-    var saved = await _chatMessages.AddChatMessageAsync(new ChatMessage { ... });
+    var user = await users.FindActiveByEmailAndPasswordAsync(request.EmailId, request.Password, ct);
+    // ...
+    private static SignInResponse ToResponse(Core.Entities.User user) => new() { ... };
 }
+
+public sealed class SignInResponse { ... }
+```
+
+Query (same naming — implements `IQuery<>` instead of `ICommand<>`):
+
+```csharp
+// ChatThread/Queries/GetChatThreadsByUserId.cs
+public sealed record GetChatThreadsByUserIdRequest(Guid UserId)
+    : IQuery<AppResult<GetChatThreadsByUserIdResponse>>;
+
+public sealed class GetChatThreadsByUserIdResponse { ... }
 ```

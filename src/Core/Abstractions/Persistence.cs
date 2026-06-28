@@ -6,7 +6,10 @@ namespace Core.Abstractions;
 
 public interface IUserRepository
 {
-    Task<SignInResponse?> SignInAsync(SignInRequest signInRequest);
+    Task<User?> FindActiveByEmailAndPasswordAsync(
+        string emailId,
+        string password,
+        CancellationToken cancellationToken = default);
 }
 
 #endregion

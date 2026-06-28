@@ -6,16 +6,20 @@ namespace WebApp.Utilities.Helpers;
 
 internal static class AuthCookieHelpers
 {
-    internal static Task SignInAsync(HttpContext httpContext, SignInResponse user, bool isPersistent = true)
+    internal static Task SignInAsync(
+        HttpContext httpContext,
+        Guid userId,
+        string email,
+        string fullName,
+        bool isPersistent = true)
     {
         ArgumentNullException.ThrowIfNull(httpContext);
-        ArgumentNullException.ThrowIfNull(user);
 
         var claims = new List<Claim>
         {
-            new(ClaimTypes.NameIdentifier, user.Id.ToString("D")),
-            new(ClaimTypes.Email, user.Email),
-            new(ClaimTypes.Name, user.FullName)
+            new(ClaimTypes.NameIdentifier, userId.ToString("D")),
+            new(ClaimTypes.Email, email),
+            new(ClaimTypes.Name, fullName)
         };
 
         var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);

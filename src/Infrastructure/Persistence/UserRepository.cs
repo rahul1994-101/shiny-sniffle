@@ -4,28 +4,22 @@ namespace Infrastructure.Persistence;
 
 public sealed class UserRepository(IDbContextFactory<AppDbContext> _dbContextFactory) : IUserRepository
 {
-    public async Task<SignInResponse?> SignInAsync(SignInRequest signInRequest)
+    public async Task<User?> FindActiveByEmailAndPasswordAsync(
+        string emailId,
+        string password,
+        CancellationToken cancellationToken = default)
     {
-        //var encPassword = signInRequest.Password.Encrypt();
-        var encPassword = signInRequest.Password;
+        //var encPassword = password.Encrypt();
+        var encPassword = password;
 
-        await using var ctx = await _dbContextFactory.CreateDbContextAsync();
-        var user = await ctx.Users
+        await using var ctx = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        return await ctx.Users
             .AsNoTracking()
             .Where(x =>
-                x.Email.ToLower() == signInRequest.EmailId.ToLower() &&
+                x.Email.ToLower() == emailId.ToLower() &&
                 x.Password.ToLower() == encPassword.ToLower() &&
                 x.IsActive == true &&
-                x.IsDeleted == false
-            )
-            .Select(x => new SignInResponse
-            {
-                Id = x.Id,
-                Email = x.Email,
-                FullName = x.FirstName + " " + x.LastName
-            })
-            .FirstOrDefaultAsync();
-
-        return user;
+                x.IsDeleted == false)
+            .FirstOrDefaultAsync(cancellationToken);
     }
 }

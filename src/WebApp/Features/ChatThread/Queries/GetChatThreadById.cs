@@ -4,11 +4,12 @@ using WebApp.Features._Shared.Abstractions;
 
 namespace WebApp.Features.ChatThread.Queries;
 
-public sealed record GetChatThreadByIdQuery(Guid Id) : IQuery<AppResult<ChatThreadDto?>>;
+public sealed record GetChatThreadByIdRequest(Guid Id)
+    : IQuery<AppResult<GetChatThreadByIdResponse?>>;
 
-public sealed class GetChatThreadByIdQueryValidator : AbstractValidator<GetChatThreadByIdQuery>
+public sealed class GetChatThreadByIdRequestValidator : AbstractValidator<GetChatThreadByIdRequest>
 {
-    public GetChatThreadByIdQueryValidator()
+    public GetChatThreadByIdRequestValidator()
     {
         RuleFor(x => x.Id)
             .NotEmpty()
@@ -16,18 +17,18 @@ public sealed class GetChatThreadByIdQueryValidator : AbstractValidator<GetChatT
     }
 }
 
-public sealed class GetChatThreadByIdQueryHandler(IChatThreadRepository chatThreads)
-    : IFeatureHandler<GetChatThreadByIdQuery, AppResult<ChatThreadDto?>>
+public sealed class GetChatThreadByIdRequestHandler(IChatThreadRepository chatThreads)
+    : IFeatureHandler<GetChatThreadByIdRequest, AppResult<GetChatThreadByIdResponse?>>
 {
-    public async Task<AppResult<ChatThreadDto?>> HandleAsync(
-        GetChatThreadByIdQuery query,
+    public async Task<AppResult<GetChatThreadByIdResponse?>> HandleAsync(
+        GetChatThreadByIdRequest request,
         CancellationToken cancellationToken = default)
     {
-        var result = new AppResult<ChatThreadDto?>();
+        var result = new AppResult<GetChatThreadByIdResponse?>();
 
         #region # Execute
 
-        var chatThread = await chatThreads.GetChatThreadByIdAsync(query.Id);
+        var chatThread = await chatThreads.GetChatThreadByIdAsync(request.Id);
 
         #endregion
 
@@ -39,11 +40,35 @@ public sealed class GetChatThreadByIdQueryHandler(IChatThreadRepository chatThre
         }
         else
         {
-            result.Success(chatThread);
+            result.Success(ToResponse(chatThread));
         }
 
         #endregion
 
         return result;
     }
+
+    #region # Mapping
+
+    private static GetChatThreadByIdResponse ToResponse(ChatThreadDto thread) => new()
+    {
+        Id = thread.Id,
+        Title = thread.Title,
+        UserId = thread.UserId,
+        ChatAgent = thread.ChatAgent,
+        CreatedAt = thread.CreatedAt,
+        UpdatedAt = thread.UpdatedAt
+    };
+
+    #endregion
+}
+
+public sealed class GetChatThreadByIdResponse
+{
+    public Guid Id { get; init; }
+    public string Title { get; init; } = string.Empty;
+    public Guid UserId { get; init; }
+    public ChatAgent ChatAgent { get; init; }
+    public DateTime CreatedAt { get; init; }
+    public DateTime UpdatedAt { get; init; }
 }

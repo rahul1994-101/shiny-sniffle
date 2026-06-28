@@ -5,12 +5,12 @@ using WebApp.Utilities.Services;
 
 namespace WebApp.Features.Settings.Commands;
 
-public sealed record TestEmailConnectionCommand(Guid UserId, EmailSettingsDto Email)
-    : ICommand<AppResult<MailboxTestResult?>>;
+public sealed record TestEmailConnectionRequest(Guid UserId, EmailSettingsDto Email)
+    : ICommand<AppResult<TestEmailConnectionResponse?>>;
 
-public sealed class TestEmailConnectionCommandValidator : AbstractValidator<TestEmailConnectionCommand>
+public sealed class TestEmailConnectionRequestValidator : AbstractValidator<TestEmailConnectionRequest>
 {
-    public TestEmailConnectionCommandValidator()
+    public TestEmailConnectionRequestValidator()
     {
         RuleFor(x => x.UserId)
             .NotEmpty()
@@ -22,27 +22,32 @@ public sealed class TestEmailConnectionCommandValidator : AbstractValidator<Test
     }
 }
 
-public sealed class TestEmailConnectionCommandHandler(UserMailboxService mailboxService)
-    : IFeatureHandler<TestEmailConnectionCommand, AppResult<MailboxTestResult?>>
+public sealed class TestEmailConnectionRequestHandler(UserMailboxService mailboxService)
+    : IFeatureHandler<TestEmailConnectionRequest, AppResult<TestEmailConnectionResponse?>>
 {
-    public async Task<AppResult<MailboxTestResult?>> HandleAsync(
-        TestEmailConnectionCommand command,
+    public async Task<AppResult<TestEmailConnectionResponse?>> HandleAsync(
+        TestEmailConnectionRequest request,
         CancellationToken cancellationToken = default)
     {
-        var result = new AppResult<MailboxTestResult?>();
+        var result = new AppResult<TestEmailConnectionResponse?>();
 
         #region # Execute
 
-        var testResult = await mailboxService.TestConnectionAsync(command.UserId, command.Email);
+        var testResult = await mailboxService.TestConnectionAsync(request.UserId, request.Email);
 
         #endregion
 
         #region # Handle Result
 
-        result.Success(testResult);
+        result.Success(new TestEmailConnectionResponse { Result = testResult });
 
         #endregion
 
         return result;
     }
+}
+
+public sealed class TestEmailConnectionResponse
+{
+    public MailboxTestResult Result { get; init; } = null!;
 }

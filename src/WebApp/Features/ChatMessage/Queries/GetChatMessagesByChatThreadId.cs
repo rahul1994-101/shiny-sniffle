@@ -4,12 +4,12 @@ using WebApp.Features._Shared.Abstractions;
 
 namespace WebApp.Features.ChatMessage.Queries;
 
-public sealed record GetChatMessagesByChatThreadIdQuery(Guid ChatThreadId)
-    : IQuery<AppResult<List<ChatMessageDto>?>>;
+public sealed record GetChatMessagesByChatThreadIdRequest(Guid ChatThreadId)
+    : IQuery<AppResult<GetChatMessagesByChatThreadIdResponse?>>;
 
-public sealed class GetChatMessagesByChatThreadIdQueryValidator : AbstractValidator<GetChatMessagesByChatThreadIdQuery>
+public sealed class GetChatMessagesByChatThreadIdRequestValidator : AbstractValidator<GetChatMessagesByChatThreadIdRequest>
 {
-    public GetChatMessagesByChatThreadIdQueryValidator()
+    public GetChatMessagesByChatThreadIdRequestValidator()
     {
         RuleFor(x => x.ChatThreadId)
             .NotEmpty()
@@ -17,18 +17,18 @@ public sealed class GetChatMessagesByChatThreadIdQueryValidator : AbstractValida
     }
 }
 
-public sealed class GetChatMessagesByChatThreadIdQueryHandler(IChatMessageRepository chatMessages)
-    : IFeatureHandler<GetChatMessagesByChatThreadIdQuery, AppResult<List<ChatMessageDto>?>>
+public sealed class GetChatMessagesByChatThreadIdRequestHandler(IChatMessageRepository chatMessages)
+    : IFeatureHandler<GetChatMessagesByChatThreadIdRequest, AppResult<GetChatMessagesByChatThreadIdResponse?>>
 {
-    public async Task<AppResult<List<ChatMessageDto>?>> HandleAsync(
-        GetChatMessagesByChatThreadIdQuery query,
+    public async Task<AppResult<GetChatMessagesByChatThreadIdResponse?>> HandleAsync(
+        GetChatMessagesByChatThreadIdRequest request,
         CancellationToken cancellationToken = default)
     {
-        var result = new AppResult<List<ChatMessageDto>?>();
+        var result = new AppResult<GetChatMessagesByChatThreadIdResponse?>();
 
         #region # Execute
 
-        var messages = await chatMessages.GetChatMessagesByChatThreadIdAsync(query.ChatThreadId);
+        var messages = await chatMessages.GetChatMessagesByChatThreadIdAsync(request.ChatThreadId);
 
         #endregion
 
@@ -40,11 +40,16 @@ public sealed class GetChatMessagesByChatThreadIdQueryHandler(IChatMessageReposi
         }
         else
         {
-            result.Success(messages);
+            result.Success(new GetChatMessagesByChatThreadIdResponse { Messages = messages });
         }
 
         #endregion
 
         return result;
     }
+}
+
+public sealed class GetChatMessagesByChatThreadIdResponse
+{
+    public List<ChatMessageDto> Messages { get; init; } = [];
 }

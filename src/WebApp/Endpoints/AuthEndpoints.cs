@@ -14,21 +14,27 @@ namespace WebApp.Endpoints;
 public sealed class AuthEndpoints(IFeatureSender sender, IAntiforgery _antiforgery) : Controller
 {
     [HttpPost("login")]
-    public async Task<IActionResult> SignIn([FromForm] SignInRequest signInRequest, [FromForm(Name = AuthConstants.ReturnUrlQuery)] string? returnUrl)
+    public async Task<IActionResult> SignIn(
+        [FromForm] SignInRequest request,
+        [FromForm(Name = AuthConstants.ReturnUrlQuery)] string? returnUrl)
     {
         if (!await TryValidateAntiforgeryAsync())
         {
             return LocalRedirect(AuthExtensions.LoginUrl(returnUrl, "Invalid request. Please try again."));
         }
 
-        var result = await sender.SendAsync(new SignInCommand(signInRequest));
+        var result = await sender.SendAsync(request);
         if (result.HasError || result.Payload is null)
         {
             var message = result.Errors.FirstOrDefault()?.Message ?? "Invalid email or password.";
             return LocalRedirect(AuthExtensions.LoginUrl(returnUrl, message));
         }
 
-        await AuthCookieHelpers.SignInAsync(HttpContext, result.Payload);
+        await AuthCookieHelpers.SignInAsync(
+            HttpContext,
+            result.Payload.Id,
+            result.Payload.Email,
+            result.Payload.FullName);
 
         return LocalRedirect(returnUrl.NormalizeReturnUrl());
     }

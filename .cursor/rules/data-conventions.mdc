@@ -33,25 +33,58 @@ Register in `Infrastructure.DependencyInjection.AddInfrastructure()`.
 
 Vertical slices — one file per use case under `{Entity}/Commands/` or `{Entity}/Queries/` (namespaces: `WebApp.Features.*`). Settings is flat (no General/Email subfolders).
 
-Each file contains: **command/query record**, **FluentValidation validator**, **handler** (`IFeatureHandler<,>`).
+Each file contains, in order (no outer `#region` wrappers):
+
+1. **Request record** — implements `ICommand<>` or `IQuery<>`
+2. **FluentValidation validator**
+3. **Handler** (`IFeatureHandler<,>`) — inner regions only
+4. **Response type(s)** — last, when the use case owns its result shape
 
 ### Naming (one use case per file)
 
+Same **Request / Response** names for commands and queries. Folder (`Commands/` vs `Queries/`) and marker interface (`ICommand<>` vs `IQuery<>`) distinguish write vs read.
+
 | Piece | Commands | Queries |
 |-------|----------|---------|
-| Message | `{UseCase}Command` | `{UseCase}Query` |
-| Validator | `{UseCase}CommandValidator` | `{UseCase}QueryValidator` |
-| Handler | `{UseCase}CommandHandler` | `{UseCase}QueryHandler` |
+| Message | `{UseCase}Request` | `{UseCase}Request` |
+| Validator | `{UseCase}RequestValidator` | `{UseCase}RequestValidator` |
+| Handler | `{UseCase}RequestHandler` | `{UseCase}RequestHandler` |
+| Result | `{UseCase}Response` | `{UseCase}Response` |
 
-Example: `SignInCommand`, `SignInCommandValidator`, `SignInCommandHandler` in `User/Commands/SignIn.cs`.
+Reference (command): `User/Commands/SignIn.cs` — `SignInRequest`, `SignInRequestValidator`, `SignInRequestHandler`, `SignInResponse`.
 
-- Entry point: inject **`IFeatureSender`** (`Sender` on `BaseComponent`) — MediatR-style `await Sender.SendAsync(new SignInCommand(request))`; handler, FluentValidation, and pipeline run automatically.
-- No facade class — commands/queries in `{Entity}/Commands|Queries/` (namespaces `WebApp.Features.*`).
+Reference (query, when migrated): `GetChatThreadsByUserIdRequest`, `GetChatThreadsByUserIdResponse` in `ChatThread/Queries/GetChatThreadsByUserId.cs`.
+
+### Request / response (feature-owned)
+
+- **Request** — flat record with primitive fields; no wrapper around a Core or Models DTO.
+- **Response** — colocated at the **bottom** of the same file when the use case defines its own result shape.
+- **Mapping** — entity → response in handler `#region # Mapping` (`private static ToResponse(...)`). Use **`Core.Entities.{Entity}`** when the feature namespace clashes (e.g. `Core.Entities.User` in `WebApp.Features.User`).
+- **Repository ports** — take primitives or **entities**; do **not** take feature Request/Response types.
+
+### Handler layout
+
+Inner regions only (no `# Validate` — pipeline runs FluentValidation):
+
+```
+#region # Execute
+#region # Handle Result
+#region # Mapping   — when mapping entity → response
+```
+
+Returns `AppResult` / `AppResult<T>`; calls **Core abstractions** only.
+
+### Plumbing
+
+- Entry point: inject **`IFeatureSender`** (`Sender` on `BaseComponent`) — `await Sender.SendAsync(new SignInRequest(email, password))`.
+- No facade class — handlers in `{Entity}/Commands|Queries/`.
 - Shared plumbing in `_Shared/`: `Abstractions/FeatureContracts.cs`, `Dispatch/FeatureDispatch.cs`, pipeline + behaviors.
 - Pipeline: `ValidationBehavior` → `ExceptionBehavior` → handler.
-- Handlers: inner regions `# Execute`, `# Handle Result` only (no manual try/catch or `# Validate`).
-- Returns `AppResult` / `AppResult<T>`; calls **Core abstractions** only.
 - Register via `Startup.InjectFeatures()` → `AddFeatureLayer()` (startup dispatch table + handler scan).
+
+### Legacy (migrate when touched)
+
+Older features may still return repo DTOs on ports without feature Response types. When touching a use case, migrate to `{UseCase}Request` / `{UseCase}Response` + entity-centric repos.
 
 ## JSON settings columns (`UserSetting`)
 
@@ -67,14 +100,24 @@ Keep Infra `JsonColumnHelpers` and WebApp `JsonColumnHelpers` options in sync (c
 
 ## Repository patterns
 
+**Target (entity-centric ports)** — repo returns entities; Features map to Response:
+
 ```csharp
-// Read — project in SQL
+// Port — primitives in, entity out
+Task<User?> FindActiveByEmailAndPasswordAsync(string emailId, string password, CancellationToken ct);
+
+// Infra — no SQL projection to feature DTOs
+return await ctx.Users.AsNoTracking().Where(...).FirstOrDefaultAsync(ct);
+
+// Features — map in # Mapping
+private static SignInResponse ToResponse(Core.Entities.User user) => new() { ... };
+```
+
+**Legacy (migrate when touched)** — SQL projection to `Core.DTOs` or DTO in/out on port:
+
+```csharp
 .Select(x => new ChatThreadDto { Id = x.Id, ... })
-
-// Write — entity in, Dto out
 public async Task<ChatMessageDto?> AddChatMessageAsync(ChatMessage entity)
-
-// Settings — entity EmailSettings in/out (not EmailSettingsDto)
 public async Task<EmailSettings?> SaveUserEmailSettingsAsync(Guid userId, EmailSettings? settings, Guid updatedBy)
 ```
 

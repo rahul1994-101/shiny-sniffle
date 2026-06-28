@@ -5,11 +5,12 @@ using WebApp.Utilities.Helpers;
 
 namespace WebApp.Features.Settings.Queries;
 
-public sealed record GetEmailSettingsQuery(Guid UserId) : IQuery<AppResult<EmailSettingsDto?>>;
+public sealed record GetEmailSettingsRequest(Guid UserId)
+    : IQuery<AppResult<GetEmailSettingsResponse?>>;
 
-public sealed class GetEmailSettingsQueryValidator : AbstractValidator<GetEmailSettingsQuery>
+public sealed class GetEmailSettingsRequestValidator : AbstractValidator<GetEmailSettingsRequest>
 {
-    public GetEmailSettingsQueryValidator()
+    public GetEmailSettingsRequestValidator()
     {
         RuleFor(x => x.UserId)
             .NotEmpty()
@@ -17,27 +18,40 @@ public sealed class GetEmailSettingsQueryValidator : AbstractValidator<GetEmailS
     }
 }
 
-public sealed class GetEmailSettingsQueryHandler(ISettingsRepository settings)
-    : IFeatureHandler<GetEmailSettingsQuery, AppResult<EmailSettingsDto?>>
+public sealed class GetEmailSettingsRequestHandler(ISettingsRepository settings)
+    : IFeatureHandler<GetEmailSettingsRequest, AppResult<GetEmailSettingsResponse?>>
 {
-    public async Task<AppResult<EmailSettingsDto?>> HandleAsync(
-        GetEmailSettingsQuery query,
+    public async Task<AppResult<GetEmailSettingsResponse?>> HandleAsync(
+        GetEmailSettingsRequest request,
         CancellationToken cancellationToken = default)
     {
-        var result = new AppResult<EmailSettingsDto?>();
+        var result = new AppResult<GetEmailSettingsResponse?>();
 
         #region # Execute
 
-        var emailSettings = await settings.GetUserEmailSettingsAsync(query.UserId);
+        var emailSettings = await settings.GetUserEmailSettingsAsync(request.UserId);
 
         #endregion
 
         #region # Handle Result
 
-        result.Success(EmailSettingsHelpers.ToDto(emailSettings));
+        var dto = EmailSettingsHelpers.ToDto(emailSettings);
+        if (dto is null)
+        {
+            result.Failure(ErrorCode.InternalServerError, "Failed to load email settings.");
+        }
+        else
+        {
+            result.Success(new GetEmailSettingsResponse { Email = dto });
+        }
 
         #endregion
 
         return result;
     }
+}
+
+public sealed class GetEmailSettingsResponse
+{
+    public EmailSettingsDto Email { get; init; } = null!;
 }

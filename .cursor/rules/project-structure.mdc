@@ -11,9 +11,9 @@ Solution layout and layer boundaries: **`architecture-conventions.mdc`**. This r
 |--------|---------|
 | **Endpoints/** | MVC controllers `*Endpoints.cs`. Register via `MapControllers` in `Startup.cs`. |
 | **Components/** | Blazor UI. See `blazor-conventions.mdc`. |
-| **Features/** | CQRS use cases (`WebApp.Features.*`) + `IFeatureSender`. See `data-conventions.mdc`. |
+| **Features/** | CQRS use cases (`WebApp.Features.*`) + `IFeatureSender`. One file per use case: Request, validator, handler, Response. See `data-conventions.mdc`. |
 | **AI/** | MAF agents, tools, `ChatOrchestrator`. See `ai-conventions.mdc`. |
-| **Models/** | App/UI models (`AppResult`, feature requests, mail UI types). See `dto-conventions.mdc`. |
+| **Models/** | App/UI models (`AppResult`, unmigrated form DTOs, mail/AI types). Feature-owned Request/Response live in **Features/** — see `dto-conventions.mdc`. |
 | **Utilities/** | Extensions, Helpers, Services (`UserMailboxService`, `CurrentUser`). No MailKit — mailbox adapter is in Infrastructure. |
 
 **Not in WebApp anymore:** `AppDbContext`, `Persistence`, entities (`Core/Entities/`), repository DTOs (`Core/DTOs/`).

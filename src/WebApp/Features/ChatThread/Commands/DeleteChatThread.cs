@@ -4,36 +4,38 @@ using WebApp.Features._Shared.Abstractions;
 
 namespace WebApp.Features.ChatThread.Commands;
 
-public sealed record DeleteChatThreadCommand(DeleteChatThreadRequest Request) : ICommand<AppResult>;
+public sealed record DeleteChatThreadRequest(Guid Id, Guid UserId) : ICommand<AppResult>;
 
-public sealed class DeleteChatThreadCommandValidator : AbstractValidator<DeleteChatThreadCommand>
+public sealed class DeleteChatThreadRequestValidator : AbstractValidator<DeleteChatThreadRequest>
 {
-    public DeleteChatThreadCommandValidator()
+    public DeleteChatThreadRequestValidator()
     {
-        RuleFor(x => x.Request)
-            .NotNull()
-            .WithMessage("Request can't be empty.");
-
-        RuleFor(x => x.Request.Id)
+        RuleFor(x => x.Id)
             .NotEmpty()
             .WithMessage("Thread Id is required.");
 
-        RuleFor(x => x.Request.UserId)
+        RuleFor(x => x.UserId)
             .NotEmpty()
             .WithMessage("User Id is required.");
     }
 }
 
-public sealed class DeleteChatThreadCommandHandler(IChatThreadRepository chatThreads)
-    : IFeatureHandler<DeleteChatThreadCommand, AppResult>
+public sealed class DeleteChatThreadRequestHandler(IChatThreadRepository chatThreads)
+    : IFeatureHandler<DeleteChatThreadRequest, AppResult>
 {
-    public async Task<AppResult> HandleAsync(DeleteChatThreadCommand command, CancellationToken cancellationToken = default)
+    public async Task<AppResult> HandleAsync(
+        DeleteChatThreadRequest request,
+        CancellationToken cancellationToken = default)
     {
         var result = new AppResult();
 
         #region # Execute
 
-        var deleted = await chatThreads.DeleteChatThreadAsync(command.Request);
+        var deleted = await chatThreads.DeleteChatThreadAsync(new Core.DTOs.DeleteChatThreadRequest
+        {
+            Id = request.Id,
+            UserId = request.UserId
+        });
 
         #endregion
 

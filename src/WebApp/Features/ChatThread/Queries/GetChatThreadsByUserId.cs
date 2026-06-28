@@ -4,11 +4,12 @@ using WebApp.Features._Shared.Abstractions;
 
 namespace WebApp.Features.ChatThread.Queries;
 
-public sealed record GetChatThreadsByUserIdQuery(Guid UserId) : IQuery<AppResult<List<ChatThreadDto>?>>;
+public sealed record GetChatThreadsByUserIdRequest(Guid UserId)
+    : IQuery<AppResult<GetChatThreadsByUserIdResponse?>>;
 
-public sealed class GetChatThreadsByUserIdQueryValidator : AbstractValidator<GetChatThreadsByUserIdQuery>
+public sealed class GetChatThreadsByUserIdRequestValidator : AbstractValidator<GetChatThreadsByUserIdRequest>
 {
-    public GetChatThreadsByUserIdQueryValidator()
+    public GetChatThreadsByUserIdRequestValidator()
     {
         RuleFor(x => x.UserId)
             .NotEmpty()
@@ -16,18 +17,18 @@ public sealed class GetChatThreadsByUserIdQueryValidator : AbstractValidator<Get
     }
 }
 
-public sealed class GetChatThreadsByUserIdQueryHandler(IChatThreadRepository chatThreads)
-    : IFeatureHandler<GetChatThreadsByUserIdQuery, AppResult<List<ChatThreadDto>?>>
+public sealed class GetChatThreadsByUserIdRequestHandler(IChatThreadRepository chatThreads)
+    : IFeatureHandler<GetChatThreadsByUserIdRequest, AppResult<GetChatThreadsByUserIdResponse?>>
 {
-    public async Task<AppResult<List<ChatThreadDto>?>> HandleAsync(
-        GetChatThreadsByUserIdQuery query,
+    public async Task<AppResult<GetChatThreadsByUserIdResponse?>> HandleAsync(
+        GetChatThreadsByUserIdRequest request,
         CancellationToken cancellationToken = default)
     {
-        var result = new AppResult<List<ChatThreadDto>?>();
+        var result = new AppResult<GetChatThreadsByUserIdResponse?>();
 
         #region # Execute
 
-        var threads = await chatThreads.GetChatThreadsByUserIdAsync(query.UserId);
+        var threads = await chatThreads.GetChatThreadsByUserIdAsync(request.UserId);
 
         #endregion
 
@@ -39,11 +40,16 @@ public sealed class GetChatThreadsByUserIdQueryHandler(IChatThreadRepository cha
         }
         else
         {
-            result.Success(threads);
+            result.Success(new GetChatThreadsByUserIdResponse { Threads = threads });
         }
 
         #endregion
 
         return result;
     }
+}
+
+public sealed class GetChatThreadsByUserIdResponse
+{
+    public List<ChatThreadDto> Threads { get; init; } = [];
 }

@@ -4,45 +4,46 @@ using WebApp.Features._Shared.Abstractions;
 
 namespace WebApp.Features.ChatThread.Commands;
 
-public sealed record UpdateChatThreadTitleCommand(UpdateChatThreadTitleRequest Request)
-    : ICommand<AppResult<ChatThreadDto?>>;
+public sealed record UpdateChatThreadTitleRequest(Guid Id, string Title, Guid UserId)
+    : ICommand<AppResult<UpdateChatThreadTitleResponse?>>;
 
-public sealed class UpdateChatThreadTitleCommandValidator : AbstractValidator<UpdateChatThreadTitleCommand>
+public sealed class UpdateChatThreadTitleRequestValidator : AbstractValidator<UpdateChatThreadTitleRequest>
 {
-    public UpdateChatThreadTitleCommandValidator()
+    public UpdateChatThreadTitleRequestValidator()
     {
-        RuleFor(x => x.Request)
-            .NotNull()
-            .WithMessage("Request can't be empty.");
-
-        RuleFor(x => x.Request.Id)
+        RuleFor(x => x.Id)
             .NotEmpty()
             .WithMessage("Thread Id is required.");
 
-        RuleFor(x => x.Request.Title)
+        RuleFor(x => x.Title)
             .NotEmpty()
             .WithMessage("Title is required.")
             .Length(1, 200)
             .WithMessage("Title must be between 1 and 200 characters.");
 
-        RuleFor(x => x.Request.UserId)
+        RuleFor(x => x.UserId)
             .NotEmpty()
             .WithMessage("User Id is required.");
     }
 }
 
-public sealed class UpdateChatThreadTitleCommandHandler(IChatThreadRepository chatThreads)
-    : IFeatureHandler<UpdateChatThreadTitleCommand, AppResult<ChatThreadDto?>>
+public sealed class UpdateChatThreadTitleRequestHandler(IChatThreadRepository chatThreads)
+    : IFeatureHandler<UpdateChatThreadTitleRequest, AppResult<UpdateChatThreadTitleResponse?>>
 {
-    public async Task<AppResult<ChatThreadDto?>> HandleAsync(
-        UpdateChatThreadTitleCommand command,
+    public async Task<AppResult<UpdateChatThreadTitleResponse?>> HandleAsync(
+        UpdateChatThreadTitleRequest request,
         CancellationToken cancellationToken = default)
     {
-        var result = new AppResult<ChatThreadDto?>();
+        var result = new AppResult<UpdateChatThreadTitleResponse?>();
 
         #region # Execute
 
-        var chatThread = await chatThreads.UpdateChatThreadTitleAsync(command.Request);
+        var chatThread = await chatThreads.UpdateChatThreadTitleAsync(new Core.DTOs.UpdateChatThreadTitleRequest
+        {
+            Id = request.Id,
+            Title = request.Title,
+            UserId = request.UserId
+        });
 
         #endregion
 
@@ -54,11 +55,35 @@ public sealed class UpdateChatThreadTitleCommandHandler(IChatThreadRepository ch
         }
         else
         {
-            result.Success(chatThread);
+            result.Success(ToResponse(chatThread));
         }
 
         #endregion
 
         return result;
     }
+
+    #region # Mapping
+
+    private static UpdateChatThreadTitleResponse ToResponse(ChatThreadDto thread) => new()
+    {
+        Id = thread.Id,
+        Title = thread.Title,
+        UserId = thread.UserId,
+        ChatAgent = thread.ChatAgent,
+        CreatedAt = thread.CreatedAt,
+        UpdatedAt = thread.UpdatedAt
+    };
+
+    #endregion
+}
+
+public sealed class UpdateChatThreadTitleResponse
+{
+    public Guid Id { get; init; }
+    public string Title { get; init; } = string.Empty;
+    public Guid UserId { get; init; }
+    public ChatAgent ChatAgent { get; init; }
+    public DateTime CreatedAt { get; init; }
+    public DateTime UpdatedAt { get; init; }
 }

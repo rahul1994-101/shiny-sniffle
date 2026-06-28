@@ -1,5 +1,5 @@
 ---
-description: Solution layers — Core, Infrastructure, WebApp, and where new code belongs
+description: Solution layers — Core, Infrastructure, WebApp, and where new code goes
 alwaysApply: true
 ---
 
@@ -26,7 +26,7 @@ src/
 | Folder | Purpose |
 |--------|---------|
 | **Entities/** | EF-mapped domain types. One entity per `.cs`; `_Common.cs` (bases), `_Enums.cs` (entity enums). Namespace `Core.Entities`. |
-| **DTOs/** | Shapes that **cross repository ports** only. One file per entity area. Namespace `Core.DTOs`. |
+| **DTOs/** | Shared shapes on **repository ports** only (shrinking — prefer entities). One file per entity area. Namespace `Core.DTOs`. |
 | **Abstractions/** | Infrastructure ports. **One `.cs` file per infra concern** (mirrors an Infra folder). Namespace `Core.Abstractions`. |
 
 ### Abstractions pattern
@@ -89,30 +89,35 @@ WebApp `Utilities/Helpers` handles DTO ↔ entity; Infrastructure `Utilities/Hel
 
 | Folder | Purpose |
 |--------|---------|
-| **Features/** | CQRS use cases + `IFeatureSender` (`AppResult`, validation, calls **Core abstractions**). |
-| **Models/** | **App/UI-only** types — not used by `I*Repository` signatures. See `dto-conventions.mdc`. |
+| **Features/** | CQRS use cases + `IFeatureSender`. Use-case **Request/Response** colocated per file; entity mapping in handlers. See `data-conventions.mdc`. |
+| **Models/** | **App/UI-only** types — `AppResult`, unmigrated form DTOs, AI/mail shapes. Not feature-owned use-case pairs. See `dto-conventions.mdc`. |
 | **Components/, Endpoints/, AI/, Utilities/** | Unchanged roles; depend on `Core.Abstractions` + `WebApp.Models`. |
 
 WebApp is the **composition root** (`Startup.cs`).
+
+Endpoints may bind feature types directly (e.g. `[FromForm] SignInRequest`).
 
 ## Where does new code go?
 
 | Question | Place |
 |----------|--------|
 | DB table / domain field? | `Core/Entities/` |
-| Used in `I*Repository` (or future `IMailbox*`)? | `Core/DTOs/` |
+| Use-case Request/Response (command or query)? | **`WebApp/Features/{Entity}/Commands|Queries/{UseCase}.cs`** |
+| Shared shape on `I*Repository` (legacy / cross-use-case)? | `Core/DTOs/` — or prefer entity on port |
 | New external system port? | `Core/Abstractions/{Concern}.cs` + `Infrastructure/{Concern}/` |
 | EF / IMAP / SMTP implementation? | `Infrastructure/{Concern}/` |
-| Blazor form, `AppResult`, AI turn request/response, feature-only request? | `WebApp/Models/` |
-| Use-case flow / validation? | `WebApp/Features/` (CQRS handlers + `IFeatureSender`) |
+| `AppResult`, AI turn, mailbox UI, unmigrated form DTO? | `WebApp/Models/` |
+| Use-case flow / validation / mapping? | `WebApp/Features/` |
 | LLM / tools / chat turn? | `WebApp/AI/` |
 
-## Migration recipe (repeat per concern)
+## Migration recipe (repeat per use case)
 
-1. Move entities → `Core/Entities/`
-2. Move port DTOs → `Core/DTOs/`; leave UI DTOs in `WebApp/Models/`
-3. Add interfaces → `Core/Abstractions/{Concern}.cs`
-4. Move implementations → `Infrastructure/{Concern}/`; register in `AddInfrastructure`
-5. WebApp injects `I*Repository` / `I*Service` — never `DbContext` or MailKit types outside Infra
+1. Move entities → `Core/Entities/` (if not already)
+2. **Port** — entity-centric methods (primitives/entities in, entities out); drop use-case DTOs from `Core/DTOs/` when no longer on the port
+3. **Feature file** — flat `{UseCase}Request`, `{UseCase}RequestValidator`, `{UseCase}RequestHandler`, `{UseCase}Response`; map entity → response in `# Mapping` (commands and queries)
+4. **Callers** — `Sender.SendAsync(new …Request(…))` or form-bind Request directly
+5. Add/update interfaces → `Core/Abstractions/{Concern}.cs`; implementations → `Infrastructure/{Concern}/`
 
-**Done:** Persistence, Mailbox, Foundry. **WebApp keeps:** `UserMailboxService` (userId + settings → `IMailboxService`), AI agents/tools/orchestrator, settings DTO mapping. **Startup** binds `FoundryOptions` from config; `AddInfrastructure` registers `IFoundryAgentFactory`.
+**Done:** Persistence/Mailbox/Foundry infra; **SignIn** feature pattern. **Legacy:** chat/settings features still use `Core.DTOs` on ports — migrate when touched.
+
+**WebApp keeps:** `UserMailboxService`, AI agents/tools/orchestrator, settings DTO mapping where not yet migrated. **Startup** binds `FoundryOptions`; `AddInfrastructure` registers `IFoundryAgentFactory`.

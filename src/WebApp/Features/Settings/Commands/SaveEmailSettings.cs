@@ -5,36 +5,31 @@ using WebApp.Utilities.Helpers;
 
 namespace WebApp.Features.Settings.Commands;
 
-public sealed record SaveEmailSettingsCommand(SaveEmailSettingsRequest Request)
-    : ICommand<AppResult<EmailSettingsDto?>>;
+public sealed record SaveEmailSettingsRequest(Guid UserId, EmailSettingsDto Email)
+    : ICommand<AppResult<SaveEmailSettingsResponse?>>;
 
-public sealed class SaveEmailSettingsCommandValidator : AbstractValidator<SaveEmailSettingsCommand>
+public sealed class SaveEmailSettingsRequestValidator : AbstractValidator<SaveEmailSettingsRequest>
 {
-    public SaveEmailSettingsCommandValidator()
+    public SaveEmailSettingsRequestValidator()
     {
-        RuleFor(x => x.Request)
-            .NotNull()
-            .WithMessage("Request can't be empty.");
-
-        RuleFor(x => x.Request.UserId)
+        RuleFor(x => x.UserId)
             .NotEmpty()
             .WithMessage("User Id is required.");
 
-        RuleFor(x => x.Request.Email)
+        RuleFor(x => x.Email)
             .NotNull()
             .WithMessage("Email settings are required.");
     }
 }
 
-public sealed class SaveEmailSettingsCommandHandler(ISettingsRepository settings)
-    : IFeatureHandler<SaveEmailSettingsCommand, AppResult<EmailSettingsDto?>>
+public sealed class SaveEmailSettingsRequestHandler(ISettingsRepository settings)
+    : IFeatureHandler<SaveEmailSettingsRequest, AppResult<SaveEmailSettingsResponse?>>
 {
-    public async Task<AppResult<EmailSettingsDto?>> HandleAsync(
-        SaveEmailSettingsCommand command,
+    public async Task<AppResult<SaveEmailSettingsResponse?>> HandleAsync(
+        SaveEmailSettingsRequest request,
         CancellationToken cancellationToken = default)
     {
-        var result = new AppResult<EmailSettingsDto?>();
-        var request = command.Request;
+        var result = new AppResult<SaveEmailSettingsResponse?>();
 
         var existingSettings = await settings.GetUserEmailSettingsAsync(request.UserId);
         var validationError = EmailSettingsHelpers.TryBuildFromDto(
@@ -60,10 +55,23 @@ public sealed class SaveEmailSettingsCommandHandler(ISettingsRepository settings
 
         #region # Handle Result
 
-        result.Success(EmailSettingsHelpers.ToDto(savedSettings));
+        var savedDto = EmailSettingsHelpers.ToDto(savedSettings);
+        if (savedDto is null)
+        {
+            result.Failure(ErrorCode.InternalServerError, "Failed to save email settings.");
+        }
+        else
+        {
+            result.Success(new SaveEmailSettingsResponse { Email = savedDto });
+        }
 
         #endregion
 
         return result;
     }
+}
+
+public sealed class SaveEmailSettingsResponse
+{
+    public EmailSettingsDto Email { get; init; } = null!;
 }

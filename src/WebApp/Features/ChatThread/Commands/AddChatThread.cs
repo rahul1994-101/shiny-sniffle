@@ -4,40 +4,42 @@ using WebApp.Features._Shared.Abstractions;
 
 namespace WebApp.Features.ChatThread.Commands;
 
-public sealed record AddChatThreadCommand(AddChatThreadRequest Request) : ICommand<AppResult<ChatThreadDto?>>;
+public sealed record AddChatThreadRequest(string Title, Guid UserId, ChatAgent ChatAgent = default)
+    : ICommand<AppResult<AddChatThreadResponse?>>;
 
-public sealed class AddChatThreadCommandValidator : AbstractValidator<AddChatThreadCommand>
+public sealed class AddChatThreadRequestValidator : AbstractValidator<AddChatThreadRequest>
 {
-    public AddChatThreadCommandValidator()
+    public AddChatThreadRequestValidator()
     {
-        RuleFor(x => x.Request)
-            .NotNull()
-            .WithMessage("Request can't be empty.");
-
-        RuleFor(x => x.Request.Title)
+        RuleFor(x => x.Title)
             .NotEmpty()
             .WithMessage("Title is required.")
             .Length(1, 200)
             .WithMessage("Title must be between 1 and 200 characters.");
 
-        RuleFor(x => x.Request.UserId)
+        RuleFor(x => x.UserId)
             .NotEmpty()
             .WithMessage("User Id is required.");
     }
 }
 
-public sealed class AddChatThreadCommandHandler(IChatThreadRepository chatThreads)
-    : IFeatureHandler<AddChatThreadCommand, AppResult<ChatThreadDto?>>
+public sealed class AddChatThreadRequestHandler(IChatThreadRepository chatThreads)
+    : IFeatureHandler<AddChatThreadRequest, AppResult<AddChatThreadResponse?>>
 {
-    public async Task<AppResult<ChatThreadDto?>> HandleAsync(
-        AddChatThreadCommand command,
+    public async Task<AppResult<AddChatThreadResponse?>> HandleAsync(
+        AddChatThreadRequest request,
         CancellationToken cancellationToken = default)
     {
-        var result = new AppResult<ChatThreadDto?>();
+        var result = new AppResult<AddChatThreadResponse?>();
 
         #region # Execute
 
-        var chatThread = await chatThreads.AddChatThreadAsync(command.Request);
+        var chatThread = await chatThreads.AddChatThreadAsync(new Core.DTOs.AddChatThreadRequest
+        {
+            Title = request.Title,
+            UserId = request.UserId,
+            ChatAgent = request.ChatAgent
+        });
 
         #endregion
 
@@ -49,11 +51,35 @@ public sealed class AddChatThreadCommandHandler(IChatThreadRepository chatThread
         }
         else
         {
-            result.Success(chatThread);
+            result.Success(ToResponse(chatThread));
         }
 
         #endregion
 
         return result;
     }
+
+    #region # Mapping
+
+    private static AddChatThreadResponse ToResponse(ChatThreadDto thread) => new()
+    {
+        Id = thread.Id,
+        Title = thread.Title,
+        UserId = thread.UserId,
+        ChatAgent = thread.ChatAgent,
+        CreatedAt = thread.CreatedAt,
+        UpdatedAt = thread.UpdatedAt
+    };
+
+    #endregion
+}
+
+public sealed class AddChatThreadResponse
+{
+    public Guid Id { get; init; }
+    public string Title { get; init; } = string.Empty;
+    public Guid UserId { get; init; }
+    public ChatAgent ChatAgent { get; init; }
+    public DateTime CreatedAt { get; init; }
+    public DateTime UpdatedAt { get; init; }
 }

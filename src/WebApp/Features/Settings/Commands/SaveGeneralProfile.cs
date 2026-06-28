@@ -4,28 +4,24 @@ using WebApp.Features._Shared.Abstractions;
 
 namespace WebApp.Features.Settings.Commands;
 
-public sealed record SaveGeneralProfileCommand(SaveGeneralProfileRequest Request)
-    : ICommand<AppResult<GeneralSettingsDto?>>;
+public sealed record SaveGeneralProfileRequest(Guid UserId, string FirstName, string LastName)
+    : ICommand<AppResult<SaveGeneralProfileResponse?>>;
 
-public sealed class SaveGeneralProfileCommandValidator : AbstractValidator<SaveGeneralProfileCommand>
+public sealed class SaveGeneralProfileRequestValidator : AbstractValidator<SaveGeneralProfileRequest>
 {
-    public SaveGeneralProfileCommandValidator()
+    public SaveGeneralProfileRequestValidator()
     {
-        RuleFor(x => x.Request)
-            .NotNull()
-            .WithMessage("Request can't be empty.");
-
-        RuleFor(x => x.Request.UserId)
+        RuleFor(x => x.UserId)
             .NotEmpty()
             .WithMessage("User Id is required.");
 
-        RuleFor(x => x.Request.FirstName)
+        RuleFor(x => x.FirstName)
             .NotEmpty()
             .WithMessage("First name is required.")
             .Length(2, 50)
             .WithMessage("First name must be between 2 and 50 characters.");
 
-        RuleFor(x => x.Request.LastName)
+        RuleFor(x => x.LastName)
             .NotEmpty()
             .WithMessage("Last name is required.")
             .Length(2, 50)
@@ -33,15 +29,14 @@ public sealed class SaveGeneralProfileCommandValidator : AbstractValidator<SaveG
     }
 }
 
-public sealed class SaveGeneralProfileCommandHandler(ISettingsRepository settings)
-    : IFeatureHandler<SaveGeneralProfileCommand, AppResult<GeneralSettingsDto?>>
+public sealed class SaveGeneralProfileRequestHandler(ISettingsRepository settings)
+    : IFeatureHandler<SaveGeneralProfileRequest, AppResult<SaveGeneralProfileResponse?>>
 {
-    public async Task<AppResult<GeneralSettingsDto?>> HandleAsync(
-        SaveGeneralProfileCommand command,
+    public async Task<AppResult<SaveGeneralProfileResponse?>> HandleAsync(
+        SaveGeneralProfileRequest request,
         CancellationToken cancellationToken = default)
     {
-        var result = new AppResult<GeneralSettingsDto?>();
-        var request = command.Request;
+        var result = new AppResult<SaveGeneralProfileResponse?>();
 
         #region # Execute
 
@@ -61,11 +56,29 @@ public sealed class SaveGeneralProfileCommandHandler(ISettingsRepository setting
         }
         else
         {
-            result.Success(savedProfile);
+            result.Success(ToResponse(savedProfile));
         }
 
         #endregion
 
         return result;
     }
+
+    #region # Mapping
+
+    private static SaveGeneralProfileResponse ToResponse(GeneralSettingsDto settings) => new()
+    {
+        Email = settings.Email,
+        FirstName = settings.FirstName,
+        LastName = settings.LastName
+    };
+
+    #endregion
+}
+
+public sealed class SaveGeneralProfileResponse
+{
+    public string Email { get; init; } = string.Empty;
+    public string FirstName { get; init; } = string.Empty;
+    public string LastName { get; init; } = string.Empty;
 }

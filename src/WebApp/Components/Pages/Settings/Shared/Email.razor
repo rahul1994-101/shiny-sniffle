@@ -323,7 +323,7 @@ else
         _busy = TabBusy.Loading;
         _status.Clear();
 
-        var result = await Sender.SendAsync(new GetEmailSettingsQuery(CurrentUser.Id));
+        var result = await Sender.SendAsync(new GetEmailSettingsRequest(CurrentUser.Id));
 
         #region # Handle Result
 
@@ -335,7 +335,7 @@ else
         }
         else if (result.Payload is not null)
         {
-            _email = result.Payload;
+            _email = result.Payload.Email;
             _endpointsExpanded = _email.Provider == EmailProvider.Custom;
             CaptureEmailBaseline();
         }
@@ -357,11 +357,7 @@ else
 
         #region # Execute
 
-        var result = await Sender.SendAsync(new SaveEmailSettingsCommand(new SaveEmailSettingsRequest
-        {
-            UserId = CurrentUser.Id,
-            Email = _email
-        }));
+        var result = await Sender.SendAsync(new SaveEmailSettingsRequest(CurrentUser.Id, _email));
 
         #endregion
 
@@ -375,7 +371,7 @@ else
         }
         else if (result.Payload is not null)
         {
-            _email = result.Payload;
+            _email = result.Payload.Email;
             _email.Password = string.Empty;
             _showMailPassword = false;
             _endpointsExpanded = _email.Provider == EmailProvider.Custom;
@@ -400,7 +396,7 @@ else
 
         #region # Execute
 
-        var result = await Sender.SendAsync(new TestEmailConnectionCommand(CurrentUser.Id, _email));
+        var result = await Sender.SendAsync(new TestEmailConnectionRequest(CurrentUser.Id, _email));
 
         #endregion
 
@@ -414,7 +410,7 @@ else
         }
         else
         {
-            var testResult = result.Payload;
+            var testResult = result.Payload.Result;
             _status.Set(testResult.Message, isError: !testResult.Success);
             _lastTestSummary = testResult.Success
                 ? "Last test succeeded"

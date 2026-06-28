@@ -1,4 +1,5 @@
 @inherits BaseComponent
+@using ChatThreadCmd = WebApp.Features.ChatThread.Commands
 
 @attribute [Authorize]
 
@@ -133,8 +134,8 @@
 
     private async Task LoadThreadsAsync()
     {
-        var result = await Sender.SendAsync(new GetChatThreadsByUserIdQuery(CurrentUser.Id));
-        _threads = result.Payload ?? [];
+        var result = await Sender.SendAsync(new GetChatThreadsByUserIdRequest(CurrentUser.Id));
+        _threads = result.Payload?.Threads ?? [];
     }
 
     private Task SelectThreadAsync(Guid id) => NavigateToChatThreadAsync(id);
@@ -145,20 +146,21 @@
 
     private async Task StartNewChatAsync()
     {
-        var result = await Sender.SendAsync(new AddChatThreadCommand(new AddChatThreadRequest { Title = "New chat", UserId = CurrentUser.Id }));
+        var result = await Sender.SendAsync(new ChatThreadCmd.AddChatThreadRequest("New chat", CurrentUser.Id));
         if (result.HasError || result.Payload is null)
         {
             return;
         }
 
-        _threads.Insert(0, result.Payload);
+        var thread = ToThreadDto(result.Payload);
+        _threads.Insert(0, thread);
 
-        await NavigateToChatThreadAsync(result.Payload.Id);
+        await NavigateToChatThreadAsync(thread.Id);
     }
 
     private async Task DeleteThreadAsync(Guid id)
     {
-        var result = await Sender.SendAsync(new DeleteChatThreadCommand(new DeleteChatThreadRequest { Id = id, UserId = CurrentUser.Id }));
+        var result = await Sender.SendAsync(new ChatThreadCmd.DeleteChatThreadRequest(id, CurrentUser.Id));
         if (result.HasError)
         {
             return;
@@ -168,10 +170,10 @@
 
         if (_threads.Count == 0)
         {
-            var created = await Sender.SendAsync(new AddChatThreadCommand(new AddChatThreadRequest { Title = "New chat", UserId = CurrentUser.Id }));
+            var created = await Sender.SendAsync(new ChatThreadCmd.AddChatThreadRequest("New chat", CurrentUser.Id));
             if (created.Payload is not null)
             {
-                _threads.Insert(0, created.Payload);
+                _threads.Insert(0, ToThreadDto(created.Payload));
             }
         }
 
@@ -225,12 +227,10 @@
         }
 
         var threadId = _editingId.Value;
-        var result = await Sender.SendAsync(new UpdateChatThreadTitleCommand(new UpdateChatThreadTitleRequest
-        {
-            Id = threadId,
-            Title = _editTitle,
-            UserId = CurrentUser.Id
-        }));
+        var result = await Sender.SendAsync(new ChatThreadCmd.UpdateChatThreadTitleRequest(
+            threadId,
+            _editTitle,
+            CurrentUser.Id));
 
         _editingId = null;
 
@@ -239,7 +239,7 @@
             var idx = _threads.FindIndex(t => t.Id == threadId);
             if (idx >= 0)
             {
-                _threads[idx] = result.Payload;
+                _threads[idx] = ToThreadDto(result.Payload);
             }
         }
 
@@ -278,6 +278,26 @@
         var seg = rel[prefix.Length..].Trim('/');
         return !string.IsNullOrEmpty(seg) && Guid.TryParse(seg, out threadId);
     }
+
+    private static ChatThreadDto ToThreadDto(ChatThreadCmd.AddChatThreadResponse thread) => new()
+    {
+        Id = thread.Id,
+        Title = thread.Title,
+        UserId = thread.UserId,
+        ChatAgent = thread.ChatAgent,
+        CreatedAt = thread.CreatedAt,
+        UpdatedAt = thread.UpdatedAt
+    };
+
+    private static ChatThreadDto ToThreadDto(ChatThreadCmd.UpdateChatThreadTitleResponse thread) => new()
+    {
+        Id = thread.Id,
+        Title = thread.Title,
+        UserId = thread.UserId,
+        ChatAgent = thread.ChatAgent,
+        CreatedAt = thread.CreatedAt,
+        UpdatedAt = thread.UpdatedAt
+    };
 
     private async Task NavigateToChatThreadAsync(Guid threadId)
     {

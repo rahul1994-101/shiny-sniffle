@@ -4,47 +4,49 @@ using WebApp.Features._Shared.Abstractions;
 
 namespace WebApp.Features.Settings.Commands;
 
-public sealed record ChangePasswordCommand(ChangePasswordRequest Request) : ICommand<AppResult>;
+public sealed record ChangePasswordRequest(
+    Guid UserId,
+    string CurrentPassword,
+    string NewPassword,
+    string ConfirmPassword)
+    : ICommand<AppResult>;
 
-public sealed class ChangePasswordCommandValidator : AbstractValidator<ChangePasswordCommand>
+public sealed class ChangePasswordRequestValidator : AbstractValidator<ChangePasswordRequest>
 {
-    public ChangePasswordCommandValidator()
+    public ChangePasswordRequestValidator()
     {
-        RuleFor(x => x.Request)
-            .NotNull()
-            .WithMessage("Request can't be empty.");
-
-        RuleFor(x => x.Request.UserId)
+        RuleFor(x => x.UserId)
             .NotEmpty()
             .WithMessage("User Id is required.");
 
-        RuleFor(x => x.Request.CurrentPassword)
+        RuleFor(x => x.CurrentPassword)
             .NotEmpty()
             .WithMessage("Current password is required.");
 
-        RuleFor(x => x.Request.NewPassword)
+        RuleFor(x => x.NewPassword)
             .NotEmpty()
             .WithMessage("New password is required.")
             .Length(6, 255)
             .WithMessage("New password must be between 6 and 255 characters.");
 
-        RuleFor(x => x.Request.ConfirmPassword)
+        RuleFor(x => x.ConfirmPassword)
             .NotEmpty()
             .WithMessage("Confirm password is required.");
 
-        RuleFor(x => x.Request)
+        RuleFor(x => x)
             .Must(request => string.Equals(request.NewPassword, request.ConfirmPassword, StringComparison.Ordinal))
             .WithMessage("New password and confirmation do not match.");
     }
 }
 
-public sealed class ChangePasswordCommandHandler(ISettingsRepository settings)
-    : IFeatureHandler<ChangePasswordCommand, AppResult>
+public sealed class ChangePasswordRequestHandler(ISettingsRepository settings)
+    : IFeatureHandler<ChangePasswordRequest, AppResult>
 {
-    public async Task<AppResult> HandleAsync(ChangePasswordCommand command, CancellationToken cancellationToken = default)
+    public async Task<AppResult> HandleAsync(
+        ChangePasswordRequest request,
+        CancellationToken cancellationToken = default)
     {
         var result = new AppResult();
-        var request = command.Request;
 
         var currentMatches = await settings.UserPasswordMatchesAsync(request.UserId, request.CurrentPassword);
         if (!currentMatches)
