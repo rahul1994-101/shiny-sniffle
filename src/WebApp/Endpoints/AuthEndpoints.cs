@@ -3,14 +3,15 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
 
-using WebApp.Data;
+using WebApp.Features._Shared.Abstractions;
+using WebApp.Features.User.Commands;
 using WebApp.Utilities.Extensions;
 using WebApp.Utilities.Helpers;
 
 namespace WebApp.Endpoints;
 
 [Route("api/auth")]
-public sealed class AuthEndpoints(Features _features, IAntiforgery _antiforgery) : Controller
+public sealed class AuthEndpoints(IFeatureSender sender, IAntiforgery _antiforgery) : Controller
 {
     [HttpPost("login")]
     public async Task<IActionResult> SignIn([FromForm] SignInRequest signInRequest, [FromForm(Name = AuthConstants.ReturnUrlQuery)] string? returnUrl)
@@ -20,7 +21,7 @@ public sealed class AuthEndpoints(Features _features, IAntiforgery _antiforgery)
             return LocalRedirect(AuthExtensions.LoginUrl(returnUrl, "Invalid request. Please try again."));
         }
 
-        var result = await _features.SignInAsync(signInRequest);
+        var result = await sender.SendAsync(new SignInCommand(signInRequest));
         if (result.HasError || result.Payload is null)
         {
             var message = result.Errors.FirstOrDefault()?.Message ?? "Invalid email or password.";

@@ -323,7 +323,7 @@ else
         _busy = TabBusy.Loading;
         _status.Clear();
 
-        var result = await Features.GetEmailSettingsAsync(CurrentUser.Id);
+        var result = await Sender.SendAsync(new GetEmailSettingsQuery(CurrentUser.Id));
 
         #region # Handle Result
 
@@ -357,11 +357,11 @@ else
 
         #region # Execute
 
-        var result = await Features.SaveEmailSettingsAsync(new SaveEmailSettingsRequest
+        var result = await Sender.SendAsync(new SaveEmailSettingsCommand(new SaveEmailSettingsRequest
         {
             UserId = CurrentUser.Id,
             Email = _email
-        });
+        }));
 
         #endregion
 
@@ -400,7 +400,7 @@ else
 
         #region # Execute
 
-        var result = await Features.TestEmailConnectionAsync(CurrentUser.Id, _email);
+        var result = await Sender.SendAsync(new TestEmailConnectionCommand(CurrentUser.Id, _email));
 
         #endregion
 

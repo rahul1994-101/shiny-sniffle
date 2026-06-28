@@ -1,12 +1,12 @@
 ---
 description: Persistence ports, Infrastructure repositories, EF and JSON column patterns
-globs: src/Core/Abstractions/**/*.cs,src/Infrastructure/Persistence/**/*.cs,src/WebApp/Data/**/*.cs,src/WebApp/Utilities/Helpers/*Helpers.cs
+globs: src/Core/Abstractions/**/*.cs,src/Infrastructure/Persistence/**/*.cs,src/WebApp/Features/**/*.cs,src/WebApp/Utilities/Helpers/*Helpers.cs
 alwaysApply: false
 ---
 
 # Data conventions
 
-Persistence lives in **Infrastructure**; application flow in **WebApp/Data/Features.cs**.
+Persistence lives in **Infrastructure**; application flow in **`WebApp/Features/`** (CQRS).
 
 ## Ports (`Core/Abstractions/Persistence.cs`)
 
@@ -29,11 +29,29 @@ WebApp injects these interfaces — **never** `AppDbContext` or `*Repository` co
 
 Register in `Infrastructure.DependencyInjection.AddInfrastructure()`.
 
-## Features (`WebApp/Data/Features.cs`)
+## Features (`WebApp/Features/`)
 
-- Returns `AppResult` / `AppResult<T>` (`WebApp.Models`).
-- Inner regions: `# Validate`, `# Execute`, `# Handle Result` per public method.
-- Subregions mirror settings pages: `# UserSetting` → `# General`, `# Email`.
+Vertical slices — one file per use case under `{Entity}/Commands/` or `{Entity}/Queries/` (namespaces: `WebApp.Features.*`). Settings is flat (no General/Email subfolders).
+
+Each file contains: **command/query record**, **FluentValidation validator**, **handler** (`IFeatureHandler<,>`).
+
+### Naming (one use case per file)
+
+| Piece | Commands | Queries |
+|-------|----------|---------|
+| Message | `{UseCase}Command` | `{UseCase}Query` |
+| Validator | `{UseCase}CommandValidator` | `{UseCase}QueryValidator` |
+| Handler | `{UseCase}CommandHandler` | `{UseCase}QueryHandler` |
+
+Example: `SignInCommand`, `SignInCommandValidator`, `SignInCommandHandler` in `User/Commands/SignIn.cs`.
+
+- Entry point: inject **`IFeatureSender`** (`Sender` on `BaseComponent`) — MediatR-style `await Sender.SendAsync(new SignInCommand(request))`; handler, FluentValidation, and pipeline run automatically.
+- No facade class — commands/queries in `{Entity}/Commands|Queries/` (namespaces `WebApp.Features.*`).
+- Shared plumbing in `_Shared/`: `Abstractions/FeatureContracts.cs`, `Dispatch/FeatureDispatch.cs`, pipeline + behaviors.
+- Pipeline: `ValidationBehavior` → `ExceptionBehavior` → handler.
+- Handlers: inner regions `# Execute`, `# Handle Result` only (no manual try/catch or `# Validate`).
+- Returns `AppResult` / `AppResult<T>`; calls **Core abstractions** only.
+- Register via `Startup.InjectFeatures()` → `AddFeatureLayer()` (startup dispatch table + handler scan).
 
 ## JSON settings columns (`UserSetting`)
 

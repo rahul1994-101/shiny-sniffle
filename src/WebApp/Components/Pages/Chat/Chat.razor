@@ -90,7 +90,7 @@
 
     private async Task LoadThreadContextAsync(Guid threadId)
     {
-        var result = await Features.GetChatThreadByIdAsync(threadId);
+        var result = await Sender.SendAsync(new GetChatThreadByIdQuery(threadId));
 
         // Missing, deleted, or another user's thread — send home.
         if (result.HasError
@@ -134,7 +134,7 @@
 
     private async Task LoadMessagesAsync()
     {
-        var result = await Features.GetChatMessagesByChatThreadIdAsync(_activeThreadId);
+        var result = await Sender.SendAsync(new GetChatMessagesByChatThreadIdQuery(_activeThreadId));
         _messages = result.Payload ?? [];
     }
 
@@ -149,13 +149,13 @@
         _draft = string.Empty;
         _resizeComposerAfterRender = true;
 
-        var sendResult = await Features.SendChatMessageAsync(new SendChatMessageRequest
+        var sendResult = await Sender.SendAsync(new SendChatMessageCommand(new SendChatMessageRequest
         {
             ChatThreadId = _activeThreadId,
             UserId = CurrentUser.Id,
             ChatAgent = _chatAgent,
             Message = text
-        });
+        }));
         if (!sendResult.HasError && sendResult.Payload is not null)
         {
             _messages.Add(sendResult.Payload.UserMessage);

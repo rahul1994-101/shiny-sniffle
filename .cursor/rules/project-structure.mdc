@@ -11,7 +11,7 @@ Solution layout and layer boundaries: **`architecture-conventions.mdc`**. This r
 |--------|---------|
 | **Endpoints/** | MVC controllers `*Endpoints.cs`. Register via `MapControllers` in `Startup.cs`. |
 | **Components/** | Blazor UI. See `blazor-conventions.mdc`. |
-| **Data/** | **`Features.cs` only** — application layer; calls `Core.Abstractions` repos, returns `AppResult`. No EF here. |
+| **Features/** | CQRS use cases (`WebApp.Features.*`) + `IFeatureSender`. See `data-conventions.mdc`. |
 | **AI/** | MAF agents, tools, `ChatOrchestrator`. See `ai-conventions.mdc`. |
 | **Models/** | App/UI models (`AppResult`, feature requests, mail UI types). See `dto-conventions.mdc`. |
 | **Utilities/** | Extensions, Helpers, Services (`UserMailboxService`, `CurrentUser`). No MailKit — mailbox adapter is in Infrastructure. |
@@ -23,7 +23,7 @@ Solution layout and layer boundaries: **`architecture-conventions.mdc`**. This r
 - One file per area: `AuthEndpoints.cs`, etc. Namespace `WebApp.Endpoints`.
 - HTTP under `/api/...`; Blazor routes under `/...`.
 
-Do not put HTTP routes under `Components/` or `Data/`.
+Do not put HTTP routes under `Components/` or `Features/` handlers.
 
 ## Utilities
 
@@ -49,5 +49,6 @@ Do not put EF `DbContext` or repository implementations under Utilities.
 
 ## Startup
 
-- `InjectData` → `AddInfrastructure(configuration)` (repos, `IMailboxService`, `IFoundryAgentFactory`) + `Features` + `UserMailboxService` + `Configure<FoundryOptions>`.
-- `InjectAi` → agents, tools, orchestrator.
+- `InjectData` → `AddInfrastructure(configuration)` + `UserMailboxService`.
+- `InjectFeatures` → `AddFeatureLayer()` + `IFeatureSender`.
+- `InjectAi` → agents, tools, orchestrator + `Configure<FoundryOptions>`.

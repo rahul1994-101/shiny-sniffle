@@ -235,7 +235,7 @@ else
         _profileStatus.Clear();
         _passwordStatus.Clear();
 
-        var result = await Features.GetGeneralSettingsAsync(CurrentUser.Id);
+        var result = await Sender.SendAsync(new GetGeneralSettingsQuery(CurrentUser.Id));
 
         #region # Handle Result
 
@@ -280,12 +280,12 @@ else
 
         #region # Execute
 
-        var result = await Features.SaveGeneralProfileAsync(new SaveGeneralProfileRequest
+        var result = await Sender.SendAsync(new SaveGeneralProfileCommand(new SaveGeneralProfileRequest
         {
             UserId = CurrentUser.Id,
             FirstName = _profile.FirstName,
             LastName = _profile.LastName
-        });
+        }));
 
         #endregion
 
@@ -344,13 +344,13 @@ else
 
         #region # Execute
 
-        var result = await Features.ChangePasswordAsync(new ChangePasswordRequest
+        var result = await Sender.SendAsync(new ChangePasswordCommand(new ChangePasswordRequest
         {
             UserId = CurrentUser.Id,
             CurrentPassword = _currentPassword,
             NewPassword = _newPassword,
             ConfirmPassword = _confirmPassword
-        });
+        }));
 
         #endregion
 

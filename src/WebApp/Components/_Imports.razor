@@ -1,4 +1,4 @@
-﻿@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Components.Forms
@@ -11,9 +11,16 @@
 @using WebApp.Components
 @using WebApp.Components.Layout
 @using WebApp.Components.Shared
-@using Core.Entities
+@using WebApp.Features._Shared.Abstractions
+@using WebApp.Features.User.Commands
+@using WebApp.Features.ChatThread.Commands
+@using WebApp.Features.ChatThread.Queries
+@using WebApp.Features.ChatMessage.Commands
+@using WebApp.Features.ChatMessage.Queries
+@using WebApp.Features.Settings.Commands
+@using WebApp.Features.Settings.Queries
 @using Core.DTOs
-@using WebApp.Data
+@using Core.Entities
 @using WebApp.Models
 @using WebApp.Utilities.Extensions
 @using WebApp.Utilities.Helpers

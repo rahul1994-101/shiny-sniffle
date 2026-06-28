@@ -89,7 +89,7 @@ WebApp `Utilities/Helpers` handles DTO ↔ entity; Infrastructure `Utilities/Hel
 
 | Folder | Purpose |
 |--------|---------|
-| **Data/** | `Features.cs` only — application orchestration (`AppResult`, validation, calls **Core abstractions**). |
+| **Features/** | CQRS use cases + `IFeatureSender` (`AppResult`, validation, calls **Core abstractions**). |
 | **Models/** | **App/UI-only** types — not used by `I*Repository` signatures. See `dto-conventions.mdc`. |
 | **Components/, Endpoints/, AI/, Utilities/** | Unchanged roles; depend on `Core.Abstractions` + `WebApp.Models`. |
 
@@ -104,7 +104,7 @@ WebApp is the **composition root** (`Startup.cs`).
 | New external system port? | `Core/Abstractions/{Concern}.cs` + `Infrastructure/{Concern}/` |
 | EF / IMAP / SMTP implementation? | `Infrastructure/{Concern}/` |
 | Blazor form, `AppResult`, AI turn request/response, feature-only request? | `WebApp/Models/` |
-| Use-case flow / validation? | `WebApp/Data/Features.cs` |
+| Use-case flow / validation? | `WebApp/Features/` (CQRS handlers + `IFeatureSender`) |
 | LLM / tools / chat turn? | `WebApp/AI/` |
 
 ## Migration recipe (repeat per concern)

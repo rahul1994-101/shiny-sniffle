@@ -2,12 +2,13 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Localization;
 using System.Globalization;
+using System.Reflection;
 using WebApp;
 using WebApp.AI;
 using WebApp.AI.Agents;
 using WebApp.AI.Tools;
 using WebApp.Components;
-using WebApp.Data;
+using WebApp.Features._Shared.DependencyInjection;
 using WebApp.Utilities.Services;
 
 namespace WebApp;
@@ -23,6 +24,7 @@ public static class DependencyInject
         builder.Services.InjectAuth();
 
         builder.Services.InjectData(builder.Configuration);
+        builder.Services.InjectFeatures();
         builder.Services.InjectAi(builder.Configuration);
     }
 
@@ -92,8 +94,12 @@ public static class DependencyInject
     {
         services.AddInfrastructure(configuration);
         services.AddScoped<CurrentUser>();
-        services.AddScoped<Features>();
         services.AddScoped<UserMailboxService>();
+    }
+
+    public static void InjectFeatures(this IServiceCollection services)
+    {
+        services.AddFeatureLayer(Assembly.GetExecutingAssembly());
     }
 
     public static void InjectAi(this IServiceCollection services, IConfiguration configuration)

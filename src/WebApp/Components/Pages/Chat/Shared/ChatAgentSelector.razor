@@ -105,12 +105,12 @@
         {
             #region # Execute
 
-            var result = await Features.UpdateChatThreadAgentAsync(new UpdateChatThreadAgentRequest
+            var result = await Sender.SendAsync(new UpdateChatThreadAgentCommand(new UpdateChatThreadAgentRequest
             {
                 Id = ThreadId,
                 UserId = CurrentUser.Id,
                 ChatAgent = selected
-            });
+            }));
 
             #endregion
 

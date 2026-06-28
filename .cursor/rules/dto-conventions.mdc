@@ -1,6 +1,6 @@
 ---
 description: Core.DTOs vs WebApp.Models — naming and layer boundaries
-globs: src/Core/DTOs/**/*.cs,src/WebApp/Models/**/*.cs,src/WebApp/Data/**/*.cs,src/WebApp/Components/**/*.razor
+globs: src/Core/DTOs/**/*.cs,src/WebApp/Models/**/*.cs,src/WebApp/Features/**/*.cs,src/WebApp/Components/**/*.razor
 alwaysApply: false
 ---
 
