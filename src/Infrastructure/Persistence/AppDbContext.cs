@@ -4,8 +4,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using System.Data;
 
-using Core.Entities;
-
 namespace Infrastructure.Persistence;
 
 public class AppDbContext : DbContext

@@ -1,11 +1,11 @@
-namespace WebApp.Utilities.Helpers;
+namespace Infrastructure.Utilities.Helpers;
 
 /// <summary>
 /// Normalizes Azure OpenAI / Foundry endpoint URLs from config (resource base URL, trailing slash).
 /// </summary>
-public static class AzureOpenAiEndpointHelpers
+internal static class AzureOpenAiEndpointHelpers
 {
-    public static Uri ToAzureOpenAiBaseUri(string endpoint)
+    internal static Uri ToAzureOpenAiBaseUri(string endpoint)
     {
         if (string.IsNullOrWhiteSpace(endpoint))
         {

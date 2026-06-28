@@ -1,9 +1,6 @@
 using System.Globalization;
 using System.Text;
 
-using WebApp.Models;
-using WebApp.Utilities.Helpers;
-
 namespace WebApp.Utilities.Helpers;
 
 internal static class EmailMailboxTextHelpers
@@ -12,7 +9,7 @@ internal static class EmailMailboxTextHelpers
     {
         var parts = new List<string>();
 
-        if (!MailboxFolderResolver.IsInboxAlias(query.Folder))
+        if (!IsInboxAlias(query.Folder))
         {
             parts.Add($"folder '{query.Folder!.Trim()}'");
         }
@@ -133,4 +130,7 @@ internal static class EmailMailboxTextHelpers
 
         return builder.ToString().TrimEnd();
     }
+
+    private static bool IsInboxAlias(string? folder) =>
+        string.IsNullOrWhiteSpace(folder) || folder.Trim().Equals("inbox", StringComparison.OrdinalIgnoreCase);
 }

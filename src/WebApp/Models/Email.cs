@@ -1,7 +1,5 @@
 using System.ComponentModel.DataAnnotations;
 
-using Core.Entities;
-
 namespace WebApp.Models;
 
 public class EmailSettingsDto

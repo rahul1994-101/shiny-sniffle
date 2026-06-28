@@ -1,4 +1,4 @@
-namespace WebApp.Models;
+namespace Core.DTOs;
 
 public sealed class InboxMessageSummary
 {

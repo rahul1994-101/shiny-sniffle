@@ -1,17 +1,13 @@
-﻿using System.Globalization;
-
+﻿using Infrastructure;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Localization;
-
-using Infrastructure;
-
+using System.Globalization;
 using WebApp;
-using WebApp.AI.Agents;
 using WebApp.AI;
+using WebApp.AI.Agents;
 using WebApp.AI.Tools;
 using WebApp.Components;
 using WebApp.Data;
-using WebApp.Models;
 using WebApp.Utilities.Services;
 
 namespace WebApp;
@@ -97,14 +93,12 @@ public static class DependencyInject
         services.AddInfrastructure(configuration);
         services.AddScoped<CurrentUser>();
         services.AddScoped<Features>();
-        services.AddScoped<IMailboxService, MailKitMailboxService>();
         services.AddScoped<UserMailboxService>();
     }
 
     public static void InjectAi(this IServiceCollection services, IConfiguration configuration)
     {
         services.Configure<FoundryOptions>(configuration.GetSection(FoundryOptions.SectionName));
-        services.AddSingleton<FoundryAgentFactory>();
 
         services.AddScoped<EmailTools>();
         services.AddScoped<AssistantAgent>();

@@ -1,5 +1,3 @@
-using WebApp.Models;
-
 namespace WebApp.Utilities.Helpers;
 
 internal readonly record struct EmailProviderEndpoints(

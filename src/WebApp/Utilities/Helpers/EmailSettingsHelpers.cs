@@ -1,4 +1,3 @@
-using WebApp.Models;
 using WebApp.Utilities.Extensions;
 
 namespace WebApp.Utilities.Helpers;

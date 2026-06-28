@@ -25,7 +25,7 @@ WebApp injects these interfaces — **never** `AppDbContext` or `*Repository` co
 |------|------|
 | `AppDbContext` | `AppDbContext.cs` — EF mappings, `DbSet<>` |
 | `*Repository` | `{Entity}Repository.cs` — implements matching `I*Repository` |
-| Column JSON | `EmailSettingsJson.cs` — infra-only serialize (camelCase, case-insensitive) |
+| Column JSON | `Utilities/Helpers/EmailSettingsJsonHelpers.cs` — uses `JsonColumnHelpers` |
 
 Register in `Infrastructure.DependencyInjection.AddInfrastructure()`.
 
@@ -42,10 +42,10 @@ Register in `Infrastructure.DependencyInjection.AddInfrastructure()`.
 | Layer | Pattern |
 |-------|---------|
 | **Entity** | `EmailSettingsJson` on `UserSetting`; typed `EmailSettings` in `Core.Entities` |
-| **Infrastructure** | `EmailSettingsJson.FromJson` / `ToJson` in repository |
+| **Infrastructure** | `EmailSettingsJsonHelpers.FromJson` / `ToJson` via `JsonColumnHelpers` in `Infrastructure/Utilities/Helpers/` |
 | **WebApp** | `EmailSettingsHelpers` for DTO ↔ entity (`WebApp/Utilities/Helpers/`) |
 
-WebApp `JsonColumnHelpers` and Infra `EmailSettingsJson` must keep the same JSON options when both exist.
+Keep Infra `JsonColumnHelpers` and WebApp `JsonColumnHelpers` options in sync (camelCase, case-insensitive, enum converter).
 
 ## Repository patterns
 

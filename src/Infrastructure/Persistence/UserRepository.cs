@@ -1,7 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 
-using Core.DTOs;
-
 namespace Infrastructure.Persistence;
 
 public sealed class UserRepository(IDbContextFactory<AppDbContext> _dbContextFactory) : IUserRepository

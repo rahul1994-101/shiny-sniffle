@@ -1,8 +1,5 @@
 using System.ComponentModel.DataAnnotations;
 
-using Core.DTOs;
-using Core.Entities;
-
 namespace WebApp.Models;
 
 public class SendChatMessageRequest

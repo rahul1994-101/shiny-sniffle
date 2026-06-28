@@ -1,9 +1,6 @@
-using System.ComponentModel;
-
 using Microsoft.Extensions.AI;
+using System.ComponentModel;
 using System.Net.Mail;
-
-using WebApp.Models;
 using WebApp.Utilities.Helpers;
 using WebApp.Utilities.Services;
 

@@ -1,8 +1,8 @@
-using Microsoft.EntityFrameworkCore;
+using Infrastructure.Foundry;
+using Infrastructure.Mailbox;
+using Infrastructure.Persistence;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-
-using Infrastructure.Persistence;
 
 namespace Infrastructure;
 
@@ -18,6 +18,8 @@ public static class DependencyInjection
         services.AddScoped<IChatThreadRepository, ChatThreadRepository>();
         services.AddScoped<IChatMessageRepository, ChatMessageRepository>();
         services.AddScoped<ISettingsRepository, SettingsRepository>();
+        services.AddScoped<IMailboxService, MailKitMailboxService>();
+        services.AddSingleton<IFoundryAgentFactory, FoundryAgentFactory>();
 
         return services;
     }

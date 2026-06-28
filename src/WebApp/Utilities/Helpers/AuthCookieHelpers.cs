@@ -1,10 +1,6 @@
-using System.Security.Claims;
-
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Http;
-
-using WebApp.Models;
+using System.Security.Claims;
 
 namespace WebApp.Utilities.Helpers;
 

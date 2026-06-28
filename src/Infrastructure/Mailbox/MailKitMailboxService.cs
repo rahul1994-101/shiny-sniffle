@@ -1,16 +1,14 @@
+using Infrastructure.Utilities.Helpers;
 using MailKit;
 using MailKit.Net.Imap;
 using MailKit.Net.Smtp;
 using MailKit.Search;
 using MailKit.Security;
-
 using MimeKit;
 using System.Net.Mail;
-using WebApp.Models;
-using WebApp.Utilities.Helpers;
 using SmtpClient = MailKit.Net.Smtp.SmtpClient;
 
-namespace WebApp.Utilities.Services;
+namespace Infrastructure.Mailbox;
 
 public sealed class MailKitMailboxService : IMailboxService
 {
@@ -119,7 +117,7 @@ public sealed class MailKitMailboxService : IMailboxService
         await ConnectImapAsync(imap, config, cancellationToken);
         await imap.AuthenticateAsync(config.Username, config.Password, cancellationToken);
 
-        var folder = await MailboxFolderResolver.GetFolderAsync(imap, query.Folder, cancellationToken);
+        var folder = await MailboxFolderResolverHelpers.GetFolderAsync(imap, query.Folder, cancellationToken);
         await folder.OpenAsync(FolderAccess.ReadOnly, cancellationToken);
 
         var search = BuildInboxSearchQuery(query);
@@ -132,7 +130,7 @@ public sealed class MailKitMailboxService : IMailboxService
             return new InboxListResult { TotalMatched = totalMatched };
         }
 
-        var limit = EmailReadConstants.ClampListLimit(query.Limit);
+        var limit = MailboxReadLimitsHelpers.ClampListLimit(query.Limit);
         var selected = ids.TakeLast(limit).Reverse().ToList();
         var summaries = new List<InboxMessageSummary>(selected.Count);
 
@@ -163,7 +161,7 @@ public sealed class MailKitMailboxService : IMailboxService
         await ConnectImapAsync(imap, config, cancellationToken);
         await imap.AuthenticateAsync(config.Username, config.Password, cancellationToken);
 
-        var mailFolder = await MailboxFolderResolver.GetFolderAsync(imap, folder, cancellationToken);
+        var mailFolder = await MailboxFolderResolverHelpers.GetFolderAsync(imap, folder, cancellationToken);
         await mailFolder.OpenAsync(FolderAccess.ReadOnly, cancellationToken);
 
         var uniqueId = new UniqueId(uid);
@@ -355,7 +353,7 @@ public sealed class MailKitMailboxService : IMailboxService
         {
             Name = folder.Name,
             FullName = folder.FullName,
-            Role = MailboxFolderResolver.DescribeRole(folder)
+            Role = MailboxFolderResolverHelpers.DescribeRole(folder)
         };
 
     private static Task ConnectImapAsync(ImapClient client, EmailSettings config, CancellationToken cancellationToken)
@@ -388,15 +386,15 @@ public sealed class MailKitMailboxService : IMailboxService
         }
 
         text = text.Replace('\r', ' ').Replace('\n', ' ').Trim();
-        return text.Length <= EmailReadConstants.SnippetMaxLength
+        return text.Length <= MailboxReadLimitsHelpers.SnippetMaxLength
             ? text
-            : text[..EmailReadConstants.SnippetMaxLength] + "…";
+            : text[..MailboxReadLimitsHelpers.SnippetMaxLength] + "…";
     }
 
     private static string FriendlyError(Exception ex) =>
         ex switch
         {
-            MailKit.Security.AuthenticationException => "Authentication failed. Check username and password.",
+            AuthenticationException => "Authentication failed. Check username and password.",
             SslHandshakeException => "TLS/SSL connection failed. Check ports and SSL settings.",
             ServiceNotConnectedException => "Could not connect to the mail server.",
             SmtpCommandException smtp when smtp.Message.Contains("STARTTLS", StringComparison.OrdinalIgnoreCase) =>

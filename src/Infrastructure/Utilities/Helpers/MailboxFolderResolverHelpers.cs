@@ -1,9 +1,9 @@
 using MailKit;
 using MailKit.Net.Imap;
 
-namespace WebApp.Utilities.Helpers;
+namespace Infrastructure.Utilities.Helpers;
 
-internal static class MailboxFolderResolver
+internal static class MailboxFolderResolverHelpers
 {
     internal static bool IsInboxAlias(string? folder)
     {

@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
 
 using WebApp.Data;
-using WebApp.Models;
 using WebApp.Utilities.Extensions;
 using WebApp.Utilities.Helpers;
 

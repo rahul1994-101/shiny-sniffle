@@ -1,10 +1,9 @@
+using MimeKit;
+using MimeKit.Utils;
 using System.Net;
 using System.Text.RegularExpressions;
 
-using MimeKit;
-using MimeKit.Utils;
-
-namespace WebApp.Utilities.Helpers;
+namespace Infrastructure.Utilities.Helpers;
 
 internal static partial class EmailMessageBodyHelpers
 {
@@ -92,8 +91,8 @@ internal static partial class EmailMessageBodyHelpers
     private static string TruncateBody(string text)
     {
         text = text.Trim();
-        return text.Length <= EmailReadConstants.MaxMessageBodyLength
+        return text.Length <= MailboxReadLimitsHelpers.MaxMessageBodyLength
             ? text
-            : text[..EmailReadConstants.MaxMessageBodyLength] + "… (truncated)";
+            : text[..MailboxReadLimitsHelpers.MaxMessageBodyLength] + "… (truncated)";
     }
 }

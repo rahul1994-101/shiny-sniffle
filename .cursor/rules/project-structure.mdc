@@ -12,9 +12,9 @@ Solution layout and layer boundaries: **`architecture-conventions.mdc`**. This r
 | **Endpoints/** | MVC controllers `*Endpoints.cs`. Register via `MapControllers` in `Startup.cs`. |
 | **Components/** | Blazor UI. See `blazor-conventions.mdc`. |
 | **Data/** | **`Features.cs` only** — application layer; calls `Core.Abstractions` repos, returns `AppResult`. No EF here. |
-| **AI/** | MAF agents, tools, `ChatOrchestrator`, `FoundryAgentFactory`. See `ai-conventions.mdc`. |
-| **Models/** | App/UI models (`AppResult`, feature requests, `FoundryOptions`, mail UI types). See `dto-conventions.mdc`. |
-| **Utilities/** | Extensions, Helpers, Services (MailKit still here until Mailbox → Infrastructure). |
+| **AI/** | MAF agents, tools, `ChatOrchestrator`. See `ai-conventions.mdc`. |
+| **Models/** | App/UI models (`AppResult`, feature requests, mail UI types). See `dto-conventions.mdc`. |
+| **Utilities/** | Extensions, Helpers, Services (`UserMailboxService`, `CurrentUser`). No MailKit — mailbox adapter is in Infrastructure. |
 
 **Not in WebApp anymore:** `AppDbContext`, `Persistence`, entities (`Core/Entities/`), repository DTOs (`Core/DTOs/`).
 
@@ -40,7 +40,7 @@ Do not put EF `DbContext` or repository implementations under Utilities.
 - **Agents/** — LLM runners; `SupportedUserPrompts` catalog per agent.
 - **Tools/** — MAF tools; no LLM routing.
 - **ChatOrchestrator.cs** — turn routing; uses `IChatMessageRepository` for history.
-- **FoundryAgentFactory.cs** — shared MAF wiring; config type `FoundryOptions` in `WebApp/Models/AI.cs`.
+- Agents inject **`IFoundryAgentFactory`** (`Infrastructure/Foundry/FoundryAgentFactory.cs`); config type **`FoundryOptions`** in `Core/DTOs/Foundry.cs`.
 - AI request/response DTOs: `WebApp/Models/AI.cs` — not under `AI/` folder.
 
 ## Foundry auth
@@ -49,5 +49,5 @@ Do not put EF `DbContext` or repository implementations under Utilities.
 
 ## Startup
 
-- `InjectData` → `AddInfrastructure(configuration)` + `Features` + mailbox services.
+- `InjectData` → `AddInfrastructure(configuration)` (repos, `IMailboxService`, `IFoundryAgentFactory`) + `Features` + `UserMailboxService` + `Configure<FoundryOptions>`.
 - `InjectAi` → agents, tools, orchestrator.

@@ -1,7 +1,5 @@
 using System.ComponentModel.DataAnnotations;
 
-using WebApp.Models;
-
 namespace WebApp.Utilities.Helpers;
 
 public static class SettingsFormValidation

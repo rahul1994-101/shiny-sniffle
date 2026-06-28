@@ -1,14 +1,11 @@
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
-
-using WebApp.AI;
 using WebApp.AI.Tools;
-using WebApp.Models;
 using WebApp.Utilities.Helpers;
 
 namespace WebApp.AI.Agents;
 
-public sealed class EmailAgent(FoundryAgentFactory _agentFactory, EmailTools _emailTools)
+public sealed class EmailAgent(IFoundryAgentFactory _agentFactory, EmailTools _emailTools)
 {
     public async Task<RunChatAgentResponse> RunAsync(RunChatAgentRequest request, IReadOnlyList<Microsoft.Extensions.AI.ChatMessage> history, CancellationToken cancellationToken = default)
     {

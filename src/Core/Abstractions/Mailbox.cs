@@ -1,6 +1,6 @@
-using WebApp.Models;
+using Core.DTOs;
 
-namespace WebApp.Utilities.Services;
+namespace Core.Abstractions;
 
 public interface IMailboxService
 {

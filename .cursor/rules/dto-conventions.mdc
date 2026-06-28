@@ -18,6 +18,8 @@ Types referenced by **`Core/Abstractions/*.cs`** (e.g. `IChatThreadRepository` r
 | `ChatThread.cs` | `ChatThreadDto`, add/update/delete thread requests |
 | `ChatMessage.cs` | `ChatMessageDto` |
 | `General.cs` | `GeneralSettingsDto` |
+| `Mail.cs` | Inbox/mailbox types (`InboxQuery`, `MailboxStatusResult`, …) |
+| `Foundry.cs` | `FoundryOptions` (bound from `Foundry:` config section) |
 
 Namespace: `Core.DTOs`. Add a file when a **new repository area** needs shared shapes.
 
@@ -29,11 +31,10 @@ Types used only by **Features**, Blazor, AI, or endpoints — **not** on `I*Repo
 |------|----------------|
 | `_Common.cs` | `AppResult`, `AppResult<T>`, `AppError` |
 | `Enums.cs` | `ErrorCode`, `SettingsSection` |
-| `AI.cs` | `FoundryOptions`, `RunChatAgentRequest/Response` |
+| `AI.cs` | `RunChatAgentRequest/Response` |
 | `ChatMessage.cs` | `SendChatMessageRequest/Response` |
 | `General.cs` | `SaveGeneralProfileRequest`, `ChangePasswordRequest` |
 | `Email.cs` | `EmailSettingsDto`, `SaveEmailSettingsRequest` |
-| `Mail.cs` | Inbox/mailbox types (until Mailbox port moves to Core) |
 | `Constants.cs` | `AuthConstants`, `ChatMessageRoles` |
 
 Namespace: `WebApp.Models`. WebApp `GlobalUsings` imports both `Core.DTOs` and `WebApp.Models`.
@@ -61,7 +62,7 @@ Features validates with `AppResult`; repositories do not take UI `*Request` type
 ## Decision tree
 
 1. On an **`I*Repository` method signature**? → `Core/DTOs/`
-2. **`AppResult` / form / AI / Foundry / mailbox UI** only? → `WebApp/Models/`
+2. **`AppResult` / form / AI turn DTOs / mailbox UI** only? → `WebApp/Models/`
 3. **DB entity**? → `Core/Entities/`
 4. **Single-component display state**? → ViewModel in `.razor`
 

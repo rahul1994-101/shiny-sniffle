@@ -1,8 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 
-using Core.DTOs;
-using Core.Entities;
-
 namespace Infrastructure.Persistence;
 
 public sealed class ChatThreadRepository(IDbContextFactory<AppDbContext> _dbContextFactory) : IChatThreadRepository

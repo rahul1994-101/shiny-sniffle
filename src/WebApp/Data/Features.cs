@@ -1,5 +1,4 @@
 ﻿using WebApp.AI;
-using WebApp.Models;
 using WebApp.Utilities.Helpers;
 using WebApp.Utilities.Services;
 

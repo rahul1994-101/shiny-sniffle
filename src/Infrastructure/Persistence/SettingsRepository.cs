@@ -1,7 +1,5 @@
+using Infrastructure.Utilities.Helpers;
 using Microsoft.EntityFrameworkCore;
-
-using Core.DTOs;
-using Core.Entities;
 
 namespace Infrastructure.Persistence;
 
@@ -100,7 +98,7 @@ public sealed class SettingsRepository(IDbContextFactory<AppDbContext> _dbContex
             .Select(x => x.EmailSettingsJson)
             .FirstOrDefaultAsync();
 
-        return EmailSettingsJson.FromJson(emailSettingsJson);
+        return EmailSettingsJsonHelpers.FromJson(emailSettingsJson);
     }
 
     public async Task<EmailSettings?> SaveUserEmailSettingsAsync(Guid userId, EmailSettings? emailSettings, Guid updatedBy)
@@ -114,7 +112,7 @@ public sealed class SettingsRepository(IDbContextFactory<AppDbContext> _dbContex
             .FirstOrDefaultAsync();
 
         var now = DateTime.UtcNow;
-        var emailSettingsJson = EmailSettingsJson.ToJson(emailSettings);
+        var emailSettingsJson = EmailSettingsJsonHelpers.ToJson(emailSettings);
 
         if (existing is null)
         {
@@ -130,7 +128,7 @@ public sealed class SettingsRepository(IDbContextFactory<AppDbContext> _dbContex
 
             await ctx.UserSettings.AddAsync(entity);
             await ctx.SaveChangesAsync();
-            return EmailSettingsJson.FromJson(entity.EmailSettingsJson);
+            return EmailSettingsJsonHelpers.FromJson(entity.EmailSettingsJson);
         }
 
         existing.EmailSettingsJson = emailSettingsJson;
@@ -138,6 +136,6 @@ public sealed class SettingsRepository(IDbContextFactory<AppDbContext> _dbContex
         existing.UpdatedAt = now;
 
         await ctx.SaveChangesAsync();
-        return EmailSettingsJson.FromJson(existing.EmailSettingsJson);
+        return EmailSettingsJsonHelpers.FromJson(existing.EmailSettingsJson);
     }
 }

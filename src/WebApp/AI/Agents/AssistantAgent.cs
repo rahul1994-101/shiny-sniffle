@@ -1,13 +1,9 @@
-using System.Text;
-
 using Microsoft.Agents.AI;
-
-using WebApp.AI;
-using WebApp.Models;
+using System.Text;
 
 namespace WebApp.AI.Agents;
 
-public sealed class AssistantAgent(FoundryAgentFactory _agentFactory)
+public sealed class AssistantAgent(IFoundryAgentFactory _agentFactory)
 {
     public async Task<RunChatAgentResponse> RunAsync(RunChatAgentRequest request, IReadOnlyList<Microsoft.Extensions.AI.ChatMessage> history, CancellationToken cancellationToken = default)
     {

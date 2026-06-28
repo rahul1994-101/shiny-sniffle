@@ -17,7 +17,9 @@ src/
   WebApp/                    UI, Features, AI, composition root (Startup)
 ```
 
-**Project references:** `Infrastructure → Core`, `WebApp → Core + Infrastructure`.
+**Project references:** `Infrastructure → Core`, `WebApp → Infrastructure` (Core types via transitive reference).
+
+**NuGet packages:** declare each package in the **lowest layer that needs it**. Do not repeat a package already referenced in Core (or Infrastructure) on outer projects — transitive project references flow compile-time package assets inward → outward.
 
 ## Core (`src/Core/`)
 
@@ -30,7 +32,8 @@ src/
 ### Abstractions pattern
 
 - `Abstractions/Persistence.cs` — all persistence ports in one file: `IUserRepository`, `IChatThreadRepository`, `IChatMessageRepository`, `ISettingsRepository`.
-- Future: `Abstractions/Mailbox.cs` — `IMailboxService` (or split repos) when MailKit moves to Infra.
+- `Abstractions/Mailbox.cs` — `IMailboxService` (IMAP/SMTP read/send).
+- `Abstractions/Foundry.cs` — `IFoundryAgentFactory`, `FoundryDeployments` constants.
 
 Do **not** put SDKs, `IConfiguration`, or UI types in Core.
 
@@ -38,19 +41,49 @@ Do **not** put SDKs, `IConfiguration`, or UI types in Core.
 
 - **One folder per `Abstractions/{Concern}.cs` file** — e.g. `Persistence/` for everything in `Persistence.cs`.
 - Register implementations in `DependencyInjection.AddInfrastructure()`; WebApp calls it from `Startup.InjectData`.
-- EF, SqlClient, MailKit, and column JSON helpers live here — not in WebApp.
+- EF, SqlClient, MailKit live under concern folders — not in WebApp.
 
-Example today:
+### Utilities (Infrastructure)
+
+Mirror WebApp’s helper pattern — **Helpers only** for now (add Extensions when needed; no Services folder).
+
+| Subfolder | Purpose | Namespace |
+|-----------|---------|-----------|
+| **Utilities/Helpers/** | Static infra helpers (JSON columns, mapping) | `Infrastructure.Utilities.Helpers` |
+
+Naming: `{Concern}Helpers.cs` (e.g. `EmailSettingsJsonHelpers.cs`, `MailboxFolderResolverHelpers.cs`).
+
+- Shared JSON options for SQL columns → `JsonColumnHelpers.cs`
+- Entity ↔ column JSON → `{Section}JsonHelpers.cs` in Helpers (not beside repositories)
+- MailKit/IMAP helpers (folder resolve, body plain-text, read limits) → `Utilities/Helpers/` (not under `Mailbox/`)
+- Azure OpenAI endpoint normalization → `AzureOpenAiEndpointHelpers.cs`
+- Do **not** put repositories, `AppDbContext`, mailbox adapters, or DI types under Utilities
+
+### Concern folders
 
 ```
-Infrastructure/Persistence/
-  AppDbContext.cs
-  UserRepository.cs
-  ChatThreadRepository.cs
-  ChatMessageRepository.cs
-  SettingsRepository.cs
-  EmailSettingsJson.cs
+Infrastructure/
+  DependencyInjection.cs
+  Utilities/Helpers/
+    JsonColumnHelpers.cs
+    EmailSettingsJsonHelpers.cs
+    MailboxFolderResolverHelpers.cs
+    EmailMessageBodyHelpers.cs
+    MailboxReadLimitsHelpers.cs
+    AzureOpenAiEndpointHelpers.cs
+  Persistence/
+    AppDbContext.cs
+    UserRepository.cs
+    ChatThreadRepository.cs
+    ChatMessageRepository.cs
+    SettingsRepository.cs
+  Mailbox/
+    MailKitMailboxService.cs
+  Foundry/
+    FoundryAgentFactory.cs
 ```
+
+WebApp `Utilities/Helpers` handles DTO ↔ entity; Infrastructure `Utilities/Helpers` handles entity ↔ SQL JSON — keep JSON options aligned between both.
 
 ## WebApp (`src/WebApp/`)
 
@@ -70,7 +103,7 @@ WebApp is the **composition root** (`Startup.cs`).
 | Used in `I*Repository` (or future `IMailbox*`)? | `Core/DTOs/` |
 | New external system port? | `Core/Abstractions/{Concern}.cs` + `Infrastructure/{Concern}/` |
 | EF / IMAP / SMTP implementation? | `Infrastructure/{Concern}/` |
-| Blazor form, `AppResult`, AI config, feature-only request? | `WebApp/Models/` |
+| Blazor form, `AppResult`, AI turn request/response, feature-only request? | `WebApp/Models/` |
 | Use-case flow / validation? | `WebApp/Data/Features.cs` |
 | LLM / tools / chat turn? | `WebApp/AI/` |
 
@@ -82,4 +115,4 @@ WebApp is the **composition root** (`Startup.cs`).
 4. Move implementations → `Infrastructure/{Concern}/`; register in `AddInfrastructure`
 5. WebApp injects `I*Repository` / `I*Service` — never `DbContext` or MailKit types outside Infra
 
-**Done:** Persistence. **Next:** Mailbox (`Abstractions/Mailbox.cs` + `Infrastructure/Mailbox/`).
+**Done:** Persistence, Mailbox, Foundry. **WebApp keeps:** `UserMailboxService` (userId + settings → `IMailboxService`), AI agents/tools/orchestrator, settings DTO mapping. **Startup** binds `FoundryOptions` from config; `AddInfrastructure` registers `IFoundryAgentFactory`.

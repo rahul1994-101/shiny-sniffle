@@ -1,5 +1,3 @@
-using WebApp.Models;
-
 namespace WebApp.Utilities.Extensions;
 
 internal static class EmailSettingsExtensions
