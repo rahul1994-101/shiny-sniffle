@@ -2,7 +2,6 @@ using FluentValidation;
 
 using WebApp.AI;
 using WebApp.Features._Shared.Abstractions;
-using WebApp.Features.ChatMessage;
 
 namespace WebApp.Features.ChatMessage.Commands;
 

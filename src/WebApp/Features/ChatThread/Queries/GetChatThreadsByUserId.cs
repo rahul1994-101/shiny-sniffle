@@ -1,7 +1,6 @@
 using FluentValidation;
 
 using WebApp.Features._Shared.Abstractions;
-using WebApp.Features.ChatThread;
 
 namespace WebApp.Features.ChatThread.Queries;
 

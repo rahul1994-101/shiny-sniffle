@@ -1,4 +1,5 @@
 namespace Core.DTOs;
+
 public sealed class FoundryOptions
 {
     public const string SectionName = "Foundry";

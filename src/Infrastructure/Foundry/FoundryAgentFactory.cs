@@ -1,15 +1,9 @@
 using Azure;
 using Azure.AI.OpenAI;
-
+using Infrastructure.Utilities.Helpers;
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
-
-using Core.Abstractions;
-using Core.DTOs;
-
-using Infrastructure.Utilities.Helpers;
 
 namespace Infrastructure.Foundry;
 

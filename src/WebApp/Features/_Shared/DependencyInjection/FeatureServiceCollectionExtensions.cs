@@ -1,7 +1,5 @@
-using System.Reflection;
-
 using FluentValidation;
-
+using System.Reflection;
 using WebApp.Features._Shared.Abstractions;
 using WebApp.Features._Shared.Behaviors;
 using WebApp.Features._Shared.Dispatch;
