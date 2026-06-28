@@ -2,6 +2,7 @@ using FluentValidation;
 
 using WebApp.AI;
 using WebApp.Features._Shared.Abstractions;
+using WebApp.Features.ChatMessage;
 
 namespace WebApp.Features.ChatMessage.Commands;
 
@@ -43,7 +44,7 @@ public sealed class SendChatMessageRequestHandler(
         var result = new AppResult<SendChatMessageResponse?>();
         var text = request.Message.Trim();
 
-        var thread = await chatThreads.GetChatThreadByIdAsync(request.ChatThreadId);
+        var thread = await chatThreads.GetActiveByIdAsync(request.ChatThreadId, cancellationToken);
         if (thread is null || thread.UserId != request.UserId)
         {
             result.Failure(ErrorCode.NotFound, "Chat thread not found.");
@@ -56,14 +57,14 @@ public sealed class SendChatMessageRequestHandler(
 
         #region # Execute
 
-        var userMessage = await chatMessages.AddChatMessageAsync(new Core.Entities.ChatMessage
+        var userMessage = await chatMessages.AddAsync(new Core.Entities.ChatMessage
         {
             ChatThreadId = request.ChatThreadId,
             Role = ChatMessageRoles.User,
             Content = text,
             CreatedBy = request.UserId,
             UpdatedBy = request.UserId
-        });
+        }, cancellationToken);
         if (userMessage is null)
         {
             result.Failure(ErrorCode.InternalServerError, "Failed to create chat message.");
@@ -77,14 +78,14 @@ public sealed class SendChatMessageRequestHandler(
             ChatAgent = chatAgent
         });
 
-        var assistantMessage = await chatMessages.AddChatMessageAsync(new Core.Entities.ChatMessage
+        var assistantMessage = await chatMessages.AddAsync(new Core.Entities.ChatMessage
         {
             ChatThreadId = request.ChatThreadId,
             Role = ChatMessageRoles.Assistant,
             Content = agentRun.AssistantContent,
             CreatedBy = request.UserId,
             UpdatedBy = request.UserId
-        });
+        }, cancellationToken);
         if (assistantMessage is null)
         {
             result.Failure(ErrorCode.InternalServerError, "Failed to create chat message.");
@@ -97,8 +98,8 @@ public sealed class SendChatMessageRequestHandler(
 
         result.Success(new SendChatMessageResponse
         {
-            UserMessage = userMessage,
-            AssistantMessage = assistantMessage
+            UserMessage = ChatMessageResponse.FromEntity(userMessage),
+            AssistantMessage = ChatMessageResponse.FromEntity(assistantMessage)
         });
 
         #endregion
@@ -109,6 +110,6 @@ public sealed class SendChatMessageRequestHandler(
 
 public sealed class SendChatMessageResponse
 {
-    public ChatMessageDto UserMessage { get; init; } = null!;
-    public ChatMessageDto AssistantMessage { get; init; } = null!;
+    public ChatMessageResponse UserMessage { get; init; } = null!;
+    public ChatMessageResponse AssistantMessage { get; init; } = null!;
 }

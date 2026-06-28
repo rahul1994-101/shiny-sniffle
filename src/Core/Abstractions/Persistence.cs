@@ -1,5 +1,3 @@
-using Core.DTOs;
-
 namespace Core.Abstractions;
 
 #region # User
@@ -18,17 +16,27 @@ public interface IUserRepository
 
 public interface IChatThreadRepository
 {
-    Task<List<ChatThreadDto>?> GetChatThreadsByUserIdAsync(Guid userId);
+    Task<List<ChatThread>> GetActiveByUserIdAsync(Guid userId, CancellationToken cancellationToken = default);
 
-    Task<ChatThreadDto?> GetChatThreadByIdAsync(Guid id);
+    Task<ChatThread?> GetActiveByIdAsync(Guid id, CancellationToken cancellationToken = default);
 
-    Task<ChatThreadDto?> AddChatThreadAsync(AddChatThreadRequest addChatThreadRequest);
+    Task<ChatThread?> AddAsync(ChatThread entity, CancellationToken cancellationToken = default);
 
-    Task<ChatThreadDto?> UpdateChatThreadAgentAsync(UpdateChatThreadAgentRequest updateChatThreadAgentRequest);
+    Task<ChatThread?> UpdateAgentAsync(
+        Guid id,
+        Guid userId,
+        ChatAgent chatAgent,
+        Guid updatedBy,
+        CancellationToken cancellationToken = default);
 
-    Task<ChatThreadDto?> UpdateChatThreadTitleAsync(UpdateChatThreadTitleRequest updateChatThreadTitleRequest);
+    Task<ChatThread?> UpdateTitleAsync(
+        Guid id,
+        Guid userId,
+        string title,
+        Guid updatedBy,
+        CancellationToken cancellationToken = default);
 
-    Task<bool> DeleteChatThreadAsync(DeleteChatThreadRequest deleteChatThreadRequest);
+    Task<bool> DeleteAsync(Guid id, Guid userId, Guid updatedBy, CancellationToken cancellationToken = default);
 }
 
 #endregion
@@ -37,11 +45,14 @@ public interface IChatThreadRepository
 
 public interface IChatMessageRepository
 {
-    Task<List<ChatMessageDto>?> GetChatMessagesByChatThreadIdAsync(Guid chatThreadId);
+    Task<List<ChatMessage>> GetByChatThreadIdAsync(Guid chatThreadId, CancellationToken cancellationToken = default);
 
-    Task<List<ChatMessageDto>?> GetRecentChatMessagesByChatThreadIdAsync(Guid chatThreadId, int limit);
+    Task<List<ChatMessage>> GetRecentByChatThreadIdAsync(
+        Guid chatThreadId,
+        int limit,
+        CancellationToken cancellationToken = default);
 
-    Task<ChatMessageDto?> AddChatMessageAsync(ChatMessage entity);
+    Task<ChatMessage?> AddAsync(ChatMessage entity, CancellationToken cancellationToken = default);
 }
 
 #endregion
@@ -50,17 +61,26 @@ public interface IChatMessageRepository
 
 public interface ISettingsRepository
 {
-    Task<GeneralSettingsDto?> GetUserGeneralSettingsAsync(Guid userId);
+    Task<User?> GetActiveUserAsync(Guid userId, CancellationToken cancellationToken = default);
 
-    Task<GeneralSettingsDto?> UpdateUserProfileAsync(Guid userId, string firstName, string lastName, Guid updatedBy);
+    Task<User?> UpdateUserProfileAsync(
+        Guid userId,
+        string firstName,
+        string lastName,
+        Guid updatedBy,
+        CancellationToken cancellationToken = default);
 
-    Task<bool> UserPasswordMatchesAsync(Guid userId, string password);
+    Task<bool> UserPasswordMatchesAsync(Guid userId, string password, CancellationToken cancellationToken = default);
 
-    Task<bool> UpdateUserPasswordAsync(Guid userId, string newPassword, Guid updatedBy);
+    Task<bool> UpdateUserPasswordAsync(Guid userId, string newPassword, Guid updatedBy, CancellationToken cancellationToken = default);
 
-    Task<EmailSettings?> GetUserEmailSettingsAsync(Guid userId);
+    Task<EmailSettings?> GetUserEmailSettingsAsync(Guid userId, CancellationToken cancellationToken = default);
 
-    Task<EmailSettings?> SaveUserEmailSettingsAsync(Guid userId, EmailSettings? emailSettings, Guid updatedBy);
+    Task<EmailSettings?> SaveUserEmailSettingsAsync(
+        Guid userId,
+        EmailSettings? emailSettings,
+        Guid updatedBy,
+        CancellationToken cancellationToken = default);
 }
 
 #endregion

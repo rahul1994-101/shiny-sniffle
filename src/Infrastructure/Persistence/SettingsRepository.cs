@@ -5,33 +5,27 @@ namespace Infrastructure.Persistence;
 
 public sealed class SettingsRepository(IDbContextFactory<AppDbContext> _dbContextFactory) : ISettingsRepository
 {
-    public async Task<GeneralSettingsDto?> GetUserGeneralSettingsAsync(Guid userId)
+    public async Task<User?> GetActiveUserAsync(Guid userId, CancellationToken cancellationToken = default)
     {
-        await using var ctx = await _dbContextFactory.CreateDbContextAsync();
+        await using var ctx = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
         return await ctx.Users
             .AsNoTracking()
             .Where(x =>
                 x.Id == userId &&
-                x.IsActive == true &&
-                x.IsDeleted == false)
-            .Select(x => new GeneralSettingsDto
-            {
-                FirstName = x.FirstName,
-                LastName = x.LastName,
-                Email = x.Email
-            })
-            .FirstOrDefaultAsync();
+                x.IsActive &&
+                !x.IsDeleted)
+            .FirstOrDefaultAsync(cancellationToken);
     }
 
-    public async Task<GeneralSettingsDto?> UpdateUserProfileAsync(Guid userId, string firstName, string lastName, Guid updatedBy)
+    public async Task<User?> UpdateUserProfileAsync(
+        Guid userId,
+        string firstName,
+        string lastName,
+        Guid updatedBy,
+        CancellationToken cancellationToken = default)
     {
-        await using var ctx = await _dbContextFactory.CreateDbContextAsync();
-        var user = await ctx.Users
-            .FirstOrDefaultAsync(x =>
-                x.Id == userId &&
-                x.IsActive == true &&
-                x.IsDeleted == false);
-
+        await using var ctx = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var user = await FindActiveTrackedUserAsync(ctx, userId, cancellationToken);
         if (user is null)
         {
             return null;
@@ -41,38 +35,34 @@ public sealed class SettingsRepository(IDbContextFactory<AppDbContext> _dbContex
         user.LastName = lastName.Trim();
         user.UpdatedBy = updatedBy;
         user.UpdatedAt = DateTime.UtcNow;
-
-        await ctx.SaveChangesAsync();
-
-        return new GeneralSettingsDto
-        {
-            FirstName = user.FirstName,
-            LastName = user.LastName,
-            Email = user.Email
-        };
+        await ctx.SaveChangesAsync(cancellationToken);
+        return user;
     }
 
-    public async Task<bool> UserPasswordMatchesAsync(Guid userId, string password)
+    public async Task<bool> UserPasswordMatchesAsync(
+        Guid userId,
+        string password,
+        CancellationToken cancellationToken = default)
     {
-        await using var ctx = await _dbContextFactory.CreateDbContextAsync();
+        await using var ctx = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
         return await ctx.Users
             .AsNoTracking()
             .AnyAsync(x =>
                 x.Id == userId &&
-                x.IsActive == true &&
-                x.IsDeleted == false &&
-                x.Password.ToLower() == password.ToLower());
+                x.IsActive &&
+                !x.IsDeleted &&
+                x.Password.ToLower() == password.ToLower(),
+                cancellationToken);
     }
 
-    public async Task<bool> UpdateUserPasswordAsync(Guid userId, string newPassword, Guid updatedBy)
+    public async Task<bool> UpdateUserPasswordAsync(
+        Guid userId,
+        string newPassword,
+        Guid updatedBy,
+        CancellationToken cancellationToken = default)
     {
-        await using var ctx = await _dbContextFactory.CreateDbContextAsync();
-        var user = await ctx.Users
-            .FirstOrDefaultAsync(x =>
-                x.Id == userId &&
-                x.IsActive == true &&
-                x.IsDeleted == false);
-
+        await using var ctx = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var user = await FindActiveTrackedUserAsync(ctx, userId, cancellationToken);
         if (user is null)
         {
             return false;
@@ -81,35 +71,40 @@ public sealed class SettingsRepository(IDbContextFactory<AppDbContext> _dbContex
         user.Password = newPassword;
         user.UpdatedBy = updatedBy;
         user.UpdatedAt = DateTime.UtcNow;
-
-        await ctx.SaveChangesAsync();
+        await ctx.SaveChangesAsync(cancellationToken);
         return true;
     }
 
-    public async Task<EmailSettings?> GetUserEmailSettingsAsync(Guid userId)
+    public async Task<EmailSettings?> GetUserEmailSettingsAsync(
+        Guid userId,
+        CancellationToken cancellationToken = default)
     {
-        await using var ctx = await _dbContextFactory.CreateDbContextAsync();
+        await using var ctx = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
         var emailSettingsJson = await ctx.UserSettings
             .AsNoTracking()
             .Where(x =>
                 x.UserId == userId &&
-                x.IsActive == true &&
-                x.IsDeleted == false)
+                x.IsActive &&
+                !x.IsDeleted)
             .Select(x => x.EmailSettingsJson)
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(cancellationToken);
 
         return EmailSettingsJsonHelpers.FromJson(emailSettingsJson);
     }
 
-    public async Task<EmailSettings?> SaveUserEmailSettingsAsync(Guid userId, EmailSettings? emailSettings, Guid updatedBy)
+    public async Task<EmailSettings?> SaveUserEmailSettingsAsync(
+        Guid userId,
+        EmailSettings? emailSettings,
+        Guid updatedBy,
+        CancellationToken cancellationToken = default)
     {
-        await using var ctx = await _dbContextFactory.CreateDbContextAsync();
+        await using var ctx = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
         var existing = await ctx.UserSettings
             .Where(x =>
                 x.UserId == userId &&
-                x.IsActive == true &&
-                x.IsDeleted == false)
-            .FirstOrDefaultAsync();
+                x.IsActive &&
+                !x.IsDeleted)
+            .FirstOrDefaultAsync(cancellationToken);
 
         var now = DateTime.UtcNow;
         var emailSettingsJson = EmailSettingsJsonHelpers.ToJson(emailSettings);
@@ -126,16 +121,26 @@ public sealed class SettingsRepository(IDbContextFactory<AppDbContext> _dbContex
                 UpdatedAt = now
             };
 
-            await ctx.UserSettings.AddAsync(entity);
-            await ctx.SaveChangesAsync();
+            await ctx.UserSettings.AddAsync(entity, cancellationToken);
+            await ctx.SaveChangesAsync(cancellationToken);
             return EmailSettingsJsonHelpers.FromJson(entity.EmailSettingsJson);
         }
 
         existing.EmailSettingsJson = emailSettingsJson;
         existing.UpdatedBy = updatedBy;
         existing.UpdatedAt = now;
-
-        await ctx.SaveChangesAsync();
+        await ctx.SaveChangesAsync(cancellationToken);
         return EmailSettingsJsonHelpers.FromJson(existing.EmailSettingsJson);
     }
+
+    private static Task<User?> FindActiveTrackedUserAsync(
+        AppDbContext ctx,
+        Guid userId,
+        CancellationToken cancellationToken) =>
+        ctx.Users
+            .Where(x =>
+                x.Id == userId &&
+                x.IsActive &&
+                !x.IsDeleted)
+            .FirstOrDefaultAsync(cancellationToken);
 }

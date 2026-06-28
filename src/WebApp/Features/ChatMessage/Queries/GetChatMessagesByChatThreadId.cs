@@ -1,6 +1,7 @@
 using FluentValidation;
 
 using WebApp.Features._Shared.Abstractions;
+using WebApp.Features.ChatMessage;
 
 namespace WebApp.Features.ChatMessage.Queries;
 
@@ -28,20 +29,16 @@ public sealed class GetChatMessagesByChatThreadIdRequestHandler(IChatMessageRepo
 
         #region # Execute
 
-        var messages = await chatMessages.GetChatMessagesByChatThreadIdAsync(request.ChatThreadId);
+        var messages = await chatMessages.GetByChatThreadIdAsync(request.ChatThreadId, cancellationToken);
 
         #endregion
 
         #region # Handle Result
 
-        if (messages is null)
+        result.Success(new GetChatMessagesByChatThreadIdResponse
         {
-            result.Failure(ErrorCode.InternalServerError, "Failed to fetch chat messages.");
-        }
-        else
-        {
-            result.Success(new GetChatMessagesByChatThreadIdResponse { Messages = messages });
-        }
+            Messages = ChatMessageResponse.FromEntities(messages)
+        });
 
         #endregion
 
@@ -51,5 +48,5 @@ public sealed class GetChatMessagesByChatThreadIdRequestHandler(IChatMessageRepo
 
 public sealed class GetChatMessagesByChatThreadIdResponse
 {
-    public List<ChatMessageDto> Messages { get; init; } = [];
+    public List<ChatMessageResponse> Messages { get; init; } = [];
 }

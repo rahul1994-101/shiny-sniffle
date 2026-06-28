@@ -1,6 +1,7 @@
 using FluentValidation;
 
 using WebApp.Features._Shared.Abstractions;
+using WebApp.Features.ChatThread;
 
 namespace WebApp.Features.ChatThread.Queries;
 
@@ -28,20 +29,16 @@ public sealed class GetChatThreadsByUserIdRequestHandler(IChatThreadRepository c
 
         #region # Execute
 
-        var threads = await chatThreads.GetChatThreadsByUserIdAsync(request.UserId);
+        var threads = await chatThreads.GetActiveByUserIdAsync(request.UserId, cancellationToken);
 
         #endregion
 
         #region # Handle Result
 
-        if (threads is null)
+        result.Success(new GetChatThreadsByUserIdResponse
         {
-            result.Failure(ErrorCode.InternalServerError, "Failed to fetch chat threads.");
-        }
-        else
-        {
-            result.Success(new GetChatThreadsByUserIdResponse { Threads = threads });
-        }
+            Threads = ChatThreadResponse.FromEntities(threads)
+        });
 
         #endregion
 
@@ -51,5 +48,5 @@ public sealed class GetChatThreadsByUserIdRequestHandler(IChatThreadRepository c
 
 public sealed class GetChatThreadsByUserIdResponse
 {
-    public List<ChatThreadDto> Threads { get; init; } = [];
+    public List<ChatThreadResponse> Threads { get; init; } = [];
 }

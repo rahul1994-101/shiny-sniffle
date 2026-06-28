@@ -1,12 +1,13 @@
 using FluentValidation;
 
 using WebApp.Features._Shared.Abstractions;
+using WebApp.Features.ChatThread;
 using WebApp.Utilities.Services;
 
 namespace WebApp.Features.ChatThread.Commands;
 
 public sealed record UpdateChatThreadAgentRequest(Guid Id, Guid UserId, ChatAgent ChatAgent)
-    : ICommand<AppResult<UpdateChatThreadAgentResponse?>>;
+    : ICommand<AppResult<ChatThreadResponse?>>;
 
 public sealed class UpdateChatThreadAgentRequestValidator : AbstractValidator<UpdateChatThreadAgentRequest>
 {
@@ -25,13 +26,13 @@ public sealed class UpdateChatThreadAgentRequestValidator : AbstractValidator<Up
 public sealed class UpdateChatThreadAgentRequestHandler(
     IChatThreadRepository chatThreads,
     UserMailboxService mailboxService)
-    : IFeatureHandler<UpdateChatThreadAgentRequest, AppResult<UpdateChatThreadAgentResponse?>>
+    : IFeatureHandler<UpdateChatThreadAgentRequest, AppResult<ChatThreadResponse?>>
 {
-    public async Task<AppResult<UpdateChatThreadAgentResponse?>> HandleAsync(
+    public async Task<AppResult<ChatThreadResponse?>> HandleAsync(
         UpdateChatThreadAgentRequest request,
         CancellationToken cancellationToken = default)
     {
-        var result = new AppResult<UpdateChatThreadAgentResponse?>();
+        var result = new AppResult<ChatThreadResponse?>();
 
         if (request.ChatAgent == ChatAgent.Email
             && !await mailboxService.IsConfiguredAsync(request.UserId, cancellationToken))
@@ -44,12 +45,12 @@ public sealed class UpdateChatThreadAgentRequestHandler(
 
         #region # Execute
 
-        var chatThread = await chatThreads.UpdateChatThreadAgentAsync(new Core.DTOs.UpdateChatThreadAgentRequest
-        {
-            Id = request.Id,
-            UserId = request.UserId,
-            ChatAgent = request.ChatAgent
-        });
+        var chatThread = await chatThreads.UpdateAgentAsync(
+            request.Id,
+            request.UserId,
+            request.ChatAgent,
+            request.UserId,
+            cancellationToken);
 
         #endregion
 
@@ -61,35 +62,11 @@ public sealed class UpdateChatThreadAgentRequestHandler(
         }
         else
         {
-            result.Success(ToResponse(chatThread));
+            result.Success(ChatThreadResponse.FromEntity(chatThread));
         }
 
         #endregion
 
         return result;
     }
-
-    #region # Mapping
-
-    private static UpdateChatThreadAgentResponse ToResponse(ChatThreadDto thread) => new()
-    {
-        Id = thread.Id,
-        Title = thread.Title,
-        UserId = thread.UserId,
-        ChatAgent = thread.ChatAgent,
-        CreatedAt = thread.CreatedAt,
-        UpdatedAt = thread.UpdatedAt
-    };
-
-    #endregion
-}
-
-public sealed class UpdateChatThreadAgentResponse
-{
-    public Guid Id { get; init; }
-    public string Title { get; init; } = string.Empty;
-    public Guid UserId { get; init; }
-    public ChatAgent ChatAgent { get; init; }
-    public DateTime CreatedAt { get; init; }
-    public DateTime UpdatedAt { get; init; }
 }

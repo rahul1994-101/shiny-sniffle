@@ -251,8 +251,8 @@ else
     [CascadingParameter]
     public SettingsPageContext PageContext { get; set; } = null!;
 
-    private EmailSettingsDto _email = new();
-    private EmailSettingsDto _emailBaseline = new();
+    private EmailSettingsResponse _email = new();
+    private EmailSettingsResponse _emailBaseline = new();
     private TabBusy _busy = TabBusy.Loading;
     private bool _saving;
     private bool _testing;
@@ -270,7 +270,7 @@ else
         _email.Provider == EmailProvider.Custom || _endpointsExpanded;
 
     private bool IsEmailDirty =>
-        !SettingsFormValidation.EmailSettingsEqual(_email, _emailBaseline)
+        !_email.ContentEquals(_emailBaseline)
         || !string.IsNullOrEmpty(_email.Password);
 
     private bool CanSaveEmail => IsEmailDirty && !IsFormBusy;
@@ -335,7 +335,7 @@ else
         }
         else if (result.Payload is not null)
         {
-            _email = result.Payload.Email;
+            _email = result.Payload;
             _endpointsExpanded = _email.Provider == EmailProvider.Custom;
             CaptureEmailBaseline();
         }
@@ -371,7 +371,7 @@ else
         }
         else if (result.Payload is not null)
         {
-            _email = result.Payload.Email;
+            _email = result.Payload;
             _email.Password = string.Empty;
             _showMailPassword = false;
             _endpointsExpanded = _email.Provider == EmailProvider.Custom;
@@ -430,7 +430,7 @@ else
 
     private void CaptureEmailBaseline()
     {
-        _emailBaseline = SettingsFormValidation.CloneEmailSettings(_email);
+        _emailBaseline = _email.CloneForBaseline();
     }
 
     private void SyncDirtyState() => PageContext.SetEmailDirty(IsEmailDirty);
@@ -471,7 +471,7 @@ else
     {
         if (_email.Provider == EmailProvider.Custom)
         {
-            EmailProviderPresets.ClearDtoEndpoints(_email);
+            EmailProviderPresets.ClearEndpoints(_email);
             _endpointsExpanded = true;
             return;
         }

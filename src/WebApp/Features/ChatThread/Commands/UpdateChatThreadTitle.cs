@@ -1,11 +1,12 @@
 using FluentValidation;
 
 using WebApp.Features._Shared.Abstractions;
+using WebApp.Features.ChatThread;
 
 namespace WebApp.Features.ChatThread.Commands;
 
 public sealed record UpdateChatThreadTitleRequest(Guid Id, string Title, Guid UserId)
-    : ICommand<AppResult<UpdateChatThreadTitleResponse?>>;
+    : ICommand<AppResult<ChatThreadResponse?>>;
 
 public sealed class UpdateChatThreadTitleRequestValidator : AbstractValidator<UpdateChatThreadTitleRequest>
 {
@@ -28,22 +29,22 @@ public sealed class UpdateChatThreadTitleRequestValidator : AbstractValidator<Up
 }
 
 public sealed class UpdateChatThreadTitleRequestHandler(IChatThreadRepository chatThreads)
-    : IFeatureHandler<UpdateChatThreadTitleRequest, AppResult<UpdateChatThreadTitleResponse?>>
+    : IFeatureHandler<UpdateChatThreadTitleRequest, AppResult<ChatThreadResponse?>>
 {
-    public async Task<AppResult<UpdateChatThreadTitleResponse?>> HandleAsync(
+    public async Task<AppResult<ChatThreadResponse?>> HandleAsync(
         UpdateChatThreadTitleRequest request,
         CancellationToken cancellationToken = default)
     {
-        var result = new AppResult<UpdateChatThreadTitleResponse?>();
+        var result = new AppResult<ChatThreadResponse?>();
 
         #region # Execute
 
-        var chatThread = await chatThreads.UpdateChatThreadTitleAsync(new Core.DTOs.UpdateChatThreadTitleRequest
-        {
-            Id = request.Id,
-            Title = request.Title,
-            UserId = request.UserId
-        });
+        var chatThread = await chatThreads.UpdateTitleAsync(
+            request.Id,
+            request.UserId,
+            request.Title,
+            request.UserId,
+            cancellationToken);
 
         #endregion
 
@@ -55,35 +56,11 @@ public sealed class UpdateChatThreadTitleRequestHandler(IChatThreadRepository ch
         }
         else
         {
-            result.Success(ToResponse(chatThread));
+            result.Success(ChatThreadResponse.FromEntity(chatThread));
         }
 
         #endregion
 
         return result;
     }
-
-    #region # Mapping
-
-    private static UpdateChatThreadTitleResponse ToResponse(ChatThreadDto thread) => new()
-    {
-        Id = thread.Id,
-        Title = thread.Title,
-        UserId = thread.UserId,
-        ChatAgent = thread.ChatAgent,
-        CreatedAt = thread.CreatedAt,
-        UpdatedAt = thread.UpdatedAt
-    };
-
-    #endregion
-}
-
-public sealed class UpdateChatThreadTitleResponse
-{
-    public Guid Id { get; init; }
-    public string Title { get; init; } = string.Empty;
-    public Guid UserId { get; init; }
-    public ChatAgent ChatAgent { get; init; }
-    public DateTime CreatedAt { get; init; }
-    public DateTime UpdatedAt { get; init; }
 }

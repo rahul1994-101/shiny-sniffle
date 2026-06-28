@@ -1,12 +1,12 @@
 using FluentValidation;
 
 using WebApp.Features._Shared.Abstractions;
-using WebApp.Utilities.Helpers;
+using WebApp.Features.Settings;
 
 namespace WebApp.Features.Settings.Commands;
 
-public sealed record SaveEmailSettingsRequest(Guid UserId, EmailSettingsDto Email)
-    : ICommand<AppResult<SaveEmailSettingsResponse?>>;
+public sealed record SaveEmailSettingsRequest(Guid UserId, EmailSettingsResponse Email)
+    : ICommand<AppResult<EmailSettingsResponse?>>;
 
 public sealed class SaveEmailSettingsRequestValidator : AbstractValidator<SaveEmailSettingsRequest>
 {
@@ -23,16 +23,16 @@ public sealed class SaveEmailSettingsRequestValidator : AbstractValidator<SaveEm
 }
 
 public sealed class SaveEmailSettingsRequestHandler(ISettingsRepository settings)
-    : IFeatureHandler<SaveEmailSettingsRequest, AppResult<SaveEmailSettingsResponse?>>
+    : IFeatureHandler<SaveEmailSettingsRequest, AppResult<EmailSettingsResponse?>>
 {
-    public async Task<AppResult<SaveEmailSettingsResponse?>> HandleAsync(
+    public async Task<AppResult<EmailSettingsResponse?>> HandleAsync(
         SaveEmailSettingsRequest request,
         CancellationToken cancellationToken = default)
     {
-        var result = new AppResult<SaveEmailSettingsResponse?>();
+        var result = new AppResult<EmailSettingsResponse?>();
 
-        var existingSettings = await settings.GetUserEmailSettingsAsync(request.UserId);
-        var validationError = EmailSettingsHelpers.TryBuildFromDto(
+        var existingSettings = await settings.GetUserEmailSettingsAsync(request.UserId, cancellationToken);
+        var validationError = EmailSettingsMapping.TryBuildEntity(
             request.Email,
             existingSettings,
             EmailSettingsBuildMode.Save,
@@ -49,29 +49,17 @@ public sealed class SaveEmailSettingsRequestHandler(ISettingsRepository settings
         var savedSettings = await settings.SaveUserEmailSettingsAsync(
             request.UserId,
             newSettings,
-            request.UserId);
+            request.UserId,
+            cancellationToken);
 
         #endregion
 
         #region # Handle Result
 
-        var savedDto = EmailSettingsHelpers.ToDto(savedSettings);
-        if (savedDto is null)
-        {
-            result.Failure(ErrorCode.InternalServerError, "Failed to save email settings.");
-        }
-        else
-        {
-            result.Success(new SaveEmailSettingsResponse { Email = savedDto });
-        }
+        result.Success(EmailSettingsMapping.FromEntity(savedSettings));
 
         #endregion
 
         return result;
     }
-}
-
-public sealed class SaveEmailSettingsResponse
-{
-    public EmailSettingsDto Email { get; init; } = null!;
 }

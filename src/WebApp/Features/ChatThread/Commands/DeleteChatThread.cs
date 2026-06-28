@@ -31,11 +31,11 @@ public sealed class DeleteChatThreadRequestHandler(IChatThreadRepository chatThr
 
         #region # Execute
 
-        var deleted = await chatThreads.DeleteChatThreadAsync(new Core.DTOs.DeleteChatThreadRequest
-        {
-            Id = request.Id,
-            UserId = request.UserId
-        });
+        var deleted = await chatThreads.DeleteAsync(
+            request.Id,
+            request.UserId,
+            request.UserId,
+            cancellationToken);
 
         #endregion
 

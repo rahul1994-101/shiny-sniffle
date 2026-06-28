@@ -1,6 +1,6 @@
 using System.Net.Mail;
 
-using WebApp.Utilities.Extensions;
+using WebApp.Features.Settings;
 using WebApp.Utilities.Helpers;
 
 namespace WebApp.Utilities.Services;
@@ -10,8 +10,8 @@ public sealed class UserMailboxService(ISettingsRepository _settings, IMailboxSe
     public async Task<bool> IsConfiguredAsync(Guid userId, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var emailSettings = await _settings.GetUserEmailSettingsAsync(userId);
-        return emailSettings.IsMailboxConfigured();
+        var emailSettings = await _settings.GetUserEmailSettingsAsync(userId, cancellationToken);
+        return EmailSettingsMapping.IsMailboxConfigured(emailSettings);
     }
 
     public async Task<MailboxStatusResult> GetStatusAsync(Guid userId, CancellationToken cancellationToken = default)
@@ -87,7 +87,10 @@ public sealed class UserMailboxService(ISettingsRepository _settings, IMailboxSe
         return await _mailboxService.SendAsync(config, mail, cancellationToken);
     }
 
-    public async Task<MailboxTestResult> TestConnectionAsync(Guid userId, EmailSettingsDto? draft = null, CancellationToken cancellationToken = default)
+    public async Task<MailboxTestResult> TestConnectionAsync(
+        Guid userId,
+        EmailSettingsResponse? draft = null,
+        CancellationToken cancellationToken = default)
     {
         var config = await ResolveMailRuntimeAsync(userId, draft, cancellationToken);
         if (config is null)
@@ -104,12 +107,15 @@ public sealed class UserMailboxService(ISettingsRepository _settings, IMailboxSe
 
     #region # Private Helpers
 
-    private async Task<EmailSettings?> ResolveMailRuntimeAsync(Guid userId, EmailSettingsDto? draft = null, CancellationToken cancellationToken = default)
+    private async Task<EmailSettings?> ResolveMailRuntimeAsync(
+        Guid userId,
+        EmailSettingsResponse? draft = null,
+        CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var stored = await _settings.GetUserEmailSettingsAsync(userId);
-        var resolved = EmailSettingsHelpers.ResolveForMail(stored, draft);
-        return resolved.ToMailRuntime();
+        var stored = await _settings.GetUserEmailSettingsAsync(userId, cancellationToken);
+        var resolved = EmailSettingsMapping.ResolveForMail(stored, draft);
+        return EmailSettingsMapping.ToMailRuntime(resolved);
     }
 
     #endregion

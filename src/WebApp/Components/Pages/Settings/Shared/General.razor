@@ -194,7 +194,7 @@ else
     [CascadingParameter]
     public SettingsPageContext PageContext { get; set; } = null!;
 
-    private GeneralSettingsDto _profile = new();
+    private GeneralSettingsResponse _profile = new();
     private TabBusy _busy = TabBusy.Loading;
     private bool _profileSaving;
     private bool _passwordSaving;
@@ -247,7 +247,7 @@ else
         }
         else if (result.Payload is not null)
         {
-            _profile = ToProfileDto(result.Payload);
+            _profile = result.Payload;
             CaptureProfileBaseline();
         }
 
@@ -297,7 +297,7 @@ else
         }
         else if (result.Payload is not null)
         {
-            _profile = ToProfileDto(result.Payload);
+            _profile = result.Payload;
             CaptureProfileBaseline();
             _profileStatus.Set("Profile saved.", isError: false, autoClear: true);
 
@@ -378,20 +378,6 @@ else
     #endregion
 
     #region # Helpers
-
-    private static GeneralSettingsDto ToProfileDto(GetGeneralSettingsResponse settings) => new()
-    {
-        Email = settings.Email,
-        FirstName = settings.FirstName,
-        LastName = settings.LastName
-    };
-
-    private static GeneralSettingsDto ToProfileDto(SaveGeneralProfileResponse settings) => new()
-    {
-        Email = settings.Email,
-        FirstName = settings.FirstName,
-        LastName = settings.LastName
-    };
 
     private void CaptureProfileBaseline()
     {

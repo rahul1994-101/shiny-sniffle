@@ -28,37 +28,31 @@ Do **not** put migrated use-case Request/Response in `Core/DTOs/` or `WebApp/Mod
 
 ## Core (`Core/DTOs/`) — shared port shapes (shrinking)
 
-Types referenced by **`Core/Abstractions/*.cs`** when an entity is not enough. **Prefer entities on ports**; migrate use-case DTOs to Features.
+Types referenced by **`Core/Abstractions/*.cs`** when an entity is not enough. **Prefer entities on ports**; use-case types live in **`WebApp/Features/`**.
 
 | File | Types (today) |
 |------|----------------|
-| `ChatThread.cs` | `ChatThreadDto`, add/update/delete thread requests |
-| `ChatMessage.cs` | `ChatMessageDto` |
-| `General.cs` | `GeneralSettingsDto` |
 | `Mail.cs` | Inbox/mailbox types (`InboxQuery`, `MailboxStatusResult`, …) |
 | `Foundry.cs` | `FoundryOptions` (bound from `Foundry:` config section) |
 
-Namespace: `Core.DTOs`. Add a file only when a **repository port** needs a shared shape across use cases.
+Namespace: `Core.DTOs`. Add a file only when a **repository or mailbox port** needs a shared shape.
 
-## WebApp (`WebApp/Models/`) — app / UI layer
-
-Types used only by **Features**, Blazor, AI, or endpoints — **not** on `I*Repository` signatures and **not** feature-owned use-case pairs.
+## WebApp (`WebApp/Models/`) — app shell only
 
 | File | Types (today) |
 |------|----------------|
 | `_Common.cs` | `AppResult`, `AppResult<T>`, `AppError` |
 | `Enums.cs` | `ErrorCode`, `SettingsSection` |
 | `AI.cs` | `RunChatAgentRequest/Response` |
-| `Email.cs` | `EmailSettingsDto` |
 | `Constants.cs` | `AuthConstants`, `ChatMessageRoles` |
 
-Namespace: `WebApp.Models`. WebApp `GlobalUsings` imports both `Core.DTOs` and `WebApp.Models`.
+Namespace: `WebApp.Models`. Use-case Request/Response live in **`WebApp/Features/`** (e.g. `ChatThreadResponse`, `EmailSettingsResponse` in `Features/Settings/`).
 
 ## Naming (Core + Models)
 
 | Kind | Pattern | Example |
 |------|---------|---------|
-| Shared projection | `{Entity}Dto` | `ChatThreadDto` |
+| Shared projection (legacy) | `{Entity}Dto` | removed for chat/settings — use `{Entity}Response` in Features |
 | App/UI entry (legacy until migrated) | `{Verb}{Entity}Request` / `Response` | `RunChatAgentRequest` |
 | UI-only in component | `{Name}ViewModel` in `.razor` `# Types` | not in Models |
 

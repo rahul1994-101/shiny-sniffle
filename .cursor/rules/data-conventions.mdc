@@ -84,7 +84,7 @@ Returns `AppResult` / `AppResult<T>`; calls **Core abstractions** only.
 
 ### Legacy (migrate when touched)
 
-Older features may still return repo DTOs on ports without feature Response types. When touching a use case, migrate to `{UseCase}Request` / `{UseCase}Response` + entity-centric repos.
+None for chat/settings — all use entity ports + feature Response types.
 
 ## JSON settings columns (`UserSetting`)
 
@@ -103,23 +103,14 @@ Keep Infra `JsonColumnHelpers` and WebApp `JsonColumnHelpers` options in sync (c
 **Target (entity-centric ports)** — repo returns entities; Features map to Response:
 
 ```csharp
-// Port — primitives in, entity out
-Task<User?> FindActiveByEmailAndPasswordAsync(string emailId, string password, CancellationToken ct);
+Task<List<ChatThread>> GetActiveByUserIdAsync(Guid userId, CancellationToken ct);
+Task<ChatThread?> AddAsync(ChatThread entity, CancellationToken ct);
 
-// Infra — no SQL projection to feature DTOs
-return await ctx.Users.AsNoTracking().Where(...).FirstOrDefaultAsync(ct);
-
-// Features — map in # Mapping
-private static SignInResponse ToResponse(Core.Entities.User user) => new() { ... };
+// Features — map once
+ChatThreadResponse.FromEntity(thread);
 ```
 
-**Legacy (migrate when touched)** — SQL projection to `Core.DTOs` or DTO in/out on port:
-
-```csharp
-.Select(x => new ChatThreadDto { Id = x.Id, ... })
-public async Task<ChatMessageDto?> AddChatMessageAsync(ChatMessage entity)
-public async Task<EmailSettings?> SaveUserEmailSettingsAsync(Guid userId, EmailSettings? settings, Guid updatedBy)
-```
+**Settings email** — entity `EmailSettings` on port; `EmailSettingsMapping` in `Features/Settings/` for UI Response ↔ entity.
 
 ## EF column mapping
 

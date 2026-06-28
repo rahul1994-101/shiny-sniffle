@@ -1,11 +1,12 @@
 using FluentValidation;
 
 using WebApp.Features._Shared.Abstractions;
+using WebApp.Features.Settings;
 
 namespace WebApp.Features.Settings.Queries;
 
 public sealed record GetGeneralSettingsRequest(Guid UserId)
-    : IQuery<AppResult<GetGeneralSettingsResponse?>>;
+    : IQuery<AppResult<GeneralSettingsResponse?>>;
 
 public sealed class GetGeneralSettingsRequestValidator : AbstractValidator<GetGeneralSettingsRequest>
 {
@@ -18,51 +19,33 @@ public sealed class GetGeneralSettingsRequestValidator : AbstractValidator<GetGe
 }
 
 public sealed class GetGeneralSettingsRequestHandler(ISettingsRepository settings)
-    : IFeatureHandler<GetGeneralSettingsRequest, AppResult<GetGeneralSettingsResponse?>>
+    : IFeatureHandler<GetGeneralSettingsRequest, AppResult<GeneralSettingsResponse?>>
 {
-    public async Task<AppResult<GetGeneralSettingsResponse?>> HandleAsync(
+    public async Task<AppResult<GeneralSettingsResponse?>> HandleAsync(
         GetGeneralSettingsRequest request,
         CancellationToken cancellationToken = default)
     {
-        var result = new AppResult<GetGeneralSettingsResponse?>();
+        var result = new AppResult<GeneralSettingsResponse?>();
 
         #region # Execute
 
-        var generalSettings = await settings.GetUserGeneralSettingsAsync(request.UserId);
+        var user = await settings.GetActiveUserAsync(request.UserId, cancellationToken);
 
         #endregion
 
         #region # Handle Result
 
-        if (generalSettings is null)
+        if (user is null)
         {
             result.Failure(ErrorCode.NotFound, "User not found.");
         }
         else
         {
-            result.Success(ToResponse(generalSettings));
+            result.Success(GeneralSettingsResponse.FromEntity(user));
         }
 
         #endregion
 
         return result;
     }
-
-    #region # Mapping
-
-    private static GetGeneralSettingsResponse ToResponse(GeneralSettingsDto settings) => new()
-    {
-        Email = settings.Email,
-        FirstName = settings.FirstName,
-        LastName = settings.LastName
-    };
-
-    #endregion
-}
-
-public sealed class GetGeneralSettingsResponse
-{
-    public string Email { get; init; } = string.Empty;
-    public string FirstName { get; init; } = string.Empty;
-    public string LastName { get; init; } = string.Empty;
 }

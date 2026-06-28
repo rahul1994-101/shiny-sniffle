@@ -4,75 +4,46 @@ namespace Infrastructure.Persistence;
 
 public sealed class ChatMessageRepository(IDbContextFactory<AppDbContext> _dbContextFactory) : IChatMessageRepository
 {
-    public async Task<List<ChatMessageDto>?> GetChatMessagesByChatThreadIdAsync(Guid chatThreadId)
+    public async Task<List<ChatMessage>> GetByChatThreadIdAsync(
+        Guid chatThreadId,
+        CancellationToken cancellationToken = default)
     {
-        await using var ctx = await _dbContextFactory.CreateDbContextAsync();
-        var chatMessages = await ctx.ChatMessages
+        await using var ctx = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        return await ctx.ChatMessages
             .AsNoTracking()
             .Where(x =>
                 x.ChatThreadId == chatThreadId &&
-                x.IsActive == true &&
-                x.IsDeleted == false
-            )
+                x.IsActive &&
+                !x.IsDeleted)
             .OrderBy(x => x.CreatedAt)
-            .Select(x => new ChatMessageDto
-            {
-                Id = x.Id,
-                ChatThreadId = x.ChatThreadId,
-                Role = x.Role,
-                Content = x.Content,
-                CreatedAt = x.CreatedAt
-            })
-            .ToListAsync();
-
-        return chatMessages;
+            .ToListAsync(cancellationToken);
     }
 
-    public async Task<List<ChatMessageDto>?> GetRecentChatMessagesByChatThreadIdAsync(Guid chatThreadId, int limit)
+    public async Task<List<ChatMessage>> GetRecentByChatThreadIdAsync(
+        Guid chatThreadId,
+        int limit,
+        CancellationToken cancellationToken = default)
     {
         var take = Math.Clamp(limit, 1, 100);
 
-        await using var ctx = await _dbContextFactory.CreateDbContextAsync();
-        var chatMessages = await ctx.ChatMessages
+        await using var ctx = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        return await ctx.ChatMessages
             .AsNoTracking()
             .Where(x =>
                 x.ChatThreadId == chatThreadId &&
-                x.IsActive == true &&
-                x.IsDeleted == false
-            )
+                x.IsActive &&
+                !x.IsDeleted)
             .OrderByDescending(x => x.CreatedAt)
             .Take(take)
             .OrderBy(x => x.CreatedAt)
-            .Select(x => new ChatMessageDto
-            {
-                Id = x.Id,
-                ChatThreadId = x.ChatThreadId,
-                Role = x.Role,
-                Content = x.Content,
-                CreatedAt = x.CreatedAt
-            })
-            .ToListAsync();
-
-        return chatMessages;
+            .ToListAsync(cancellationToken);
     }
 
-    public async Task<ChatMessageDto?> AddChatMessageAsync(ChatMessage entity)
+    public async Task<ChatMessage?> AddAsync(ChatMessage entity, CancellationToken cancellationToken = default)
     {
-        await using var ctx = await _dbContextFactory.CreateDbContextAsync();
-
-        await ctx.ChatMessages.AddAsync(entity);
-        await ctx.SaveChangesAsync();
-
-        return ToChatMessageDto(entity);
+        await using var ctx = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        await ctx.ChatMessages.AddAsync(entity, cancellationToken);
+        await ctx.SaveChangesAsync(cancellationToken);
+        return entity;
     }
-
-    private static ChatMessageDto ToChatMessageDto(ChatMessage entity) =>
-        new()
-        {
-            Id = entity.Id,
-            ChatThreadId = entity.ChatThreadId,
-            Role = entity.Role,
-            Content = entity.Content,
-            CreatedAt = entity.CreatedAt
-        };
 }

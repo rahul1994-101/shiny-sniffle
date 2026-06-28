@@ -1,4 +1,4 @@
-namespace WebApp.Utilities.Helpers;
+namespace WebApp.Features.Settings;
 
 internal readonly record struct EmailProviderEndpoints(
     string ImapHost,
@@ -42,30 +42,30 @@ internal static class EmailProviderPresets
         settings.SmtpUseSsl = endpoints.Value.SmtpUseSsl;
     }
 
-    internal static void Apply(EmailSettingsDto dto)
+    internal static void Apply(EmailSettingsResponse response)
     {
-        var endpoints = GetEndpoints(dto.Provider);
+        var endpoints = GetEndpoints(response.Provider);
         if (endpoints is null)
         {
             return;
         }
 
-        dto.ImapHost = endpoints.Value.ImapHost;
-        dto.ImapPort = endpoints.Value.ImapPort;
-        dto.ImapUseSsl = endpoints.Value.ImapUseSsl;
-        dto.SmtpHost = endpoints.Value.SmtpHost;
-        dto.SmtpPort = endpoints.Value.SmtpPort;
-        dto.SmtpUseSsl = endpoints.Value.SmtpUseSsl;
+        response.ImapHost = endpoints.Value.ImapHost;
+        response.ImapPort = endpoints.Value.ImapPort;
+        response.ImapUseSsl = endpoints.Value.ImapUseSsl;
+        response.SmtpHost = endpoints.Value.SmtpHost;
+        response.SmtpPort = endpoints.Value.SmtpPort;
+        response.SmtpUseSsl = endpoints.Value.SmtpUseSsl;
     }
 
-    internal static void ClearDtoEndpoints(EmailSettingsDto dto)
+    internal static void ClearEndpoints(EmailSettingsResponse response)
     {
-        dto.ImapHost = string.Empty;
-        dto.SmtpHost = string.Empty;
-        dto.ImapPort = 993;
-        dto.SmtpPort = 587;
-        dto.ImapUseSsl = true;
-        dto.SmtpUseSsl = true;
+        response.ImapHost = string.Empty;
+        response.SmtpHost = string.Empty;
+        response.ImapPort = 993;
+        response.SmtpPort = 587;
+        response.ImapUseSsl = true;
+        response.SmtpUseSsl = true;
     }
 
     internal static bool Matches(EmailSettings settings, EmailProvider provider)

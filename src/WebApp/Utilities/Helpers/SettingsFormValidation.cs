@@ -72,32 +72,4 @@ public static class SettingsFormValidation
 
         return null;
     }
-
-    public static bool EmailSettingsEqual(EmailSettingsDto left, EmailSettingsDto right) =>
-        left.Provider == right.Provider
-        && string.Equals(left.EmailAddress, right.EmailAddress, StringComparison.Ordinal)
-        && string.Equals(left.Username, right.Username, StringComparison.Ordinal)
-        && string.Equals(left.ImapHost, right.ImapHost, StringComparison.Ordinal)
-        && left.ImapPort == right.ImapPort
-        && left.ImapUseSsl == right.ImapUseSsl
-        && string.Equals(left.SmtpHost, right.SmtpHost, StringComparison.Ordinal)
-        && left.SmtpPort == right.SmtpPort
-        && left.SmtpUseSsl == right.SmtpUseSsl
-        && left.HasStoredPassword == right.HasStoredPassword;
-
-    public static EmailSettingsDto CloneEmailSettings(EmailSettingsDto source) =>
-        new()
-        {
-            Provider = source.Provider,
-            EmailAddress = source.EmailAddress,
-            Username = source.Username,
-            ImapHost = source.ImapHost,
-            ImapPort = source.ImapPort,
-            ImapUseSsl = source.ImapUseSsl,
-            SmtpHost = source.SmtpHost,
-            SmtpPort = source.SmtpPort,
-            SmtpUseSsl = source.SmtpUseSsl,
-            HasStoredPassword = source.HasStoredPassword,
-            Password = string.Empty
-        };
 }

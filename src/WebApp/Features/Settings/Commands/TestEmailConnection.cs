@@ -1,11 +1,12 @@
 using FluentValidation;
 
 using WebApp.Features._Shared.Abstractions;
+using WebApp.Features.Settings;
 using WebApp.Utilities.Services;
 
 namespace WebApp.Features.Settings.Commands;
 
-public sealed record TestEmailConnectionRequest(Guid UserId, EmailSettingsDto Email)
+public sealed record TestEmailConnectionRequest(Guid UserId, EmailSettingsResponse Email)
     : ICommand<AppResult<TestEmailConnectionResponse?>>;
 
 public sealed class TestEmailConnectionRequestValidator : AbstractValidator<TestEmailConnectionRequest>
@@ -33,7 +34,7 @@ public sealed class TestEmailConnectionRequestHandler(UserMailboxService mailbox
 
         #region # Execute
 
-        var testResult = await mailboxService.TestConnectionAsync(request.UserId, request.Email);
+        var testResult = await mailboxService.TestConnectionAsync(request.UserId, request.Email, cancellationToken);
 
         #endregion
 

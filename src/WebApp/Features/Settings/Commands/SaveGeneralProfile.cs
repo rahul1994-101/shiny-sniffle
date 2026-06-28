@@ -1,11 +1,12 @@
 using FluentValidation;
 
 using WebApp.Features._Shared.Abstractions;
+using WebApp.Features.Settings;
 
 namespace WebApp.Features.Settings.Commands;
 
 public sealed record SaveGeneralProfileRequest(Guid UserId, string FirstName, string LastName)
-    : ICommand<AppResult<SaveGeneralProfileResponse?>>;
+    : ICommand<AppResult<GeneralSettingsResponse?>>;
 
 public sealed class SaveGeneralProfileRequestValidator : AbstractValidator<SaveGeneralProfileRequest>
 {
@@ -30,55 +31,38 @@ public sealed class SaveGeneralProfileRequestValidator : AbstractValidator<SaveG
 }
 
 public sealed class SaveGeneralProfileRequestHandler(ISettingsRepository settings)
-    : IFeatureHandler<SaveGeneralProfileRequest, AppResult<SaveGeneralProfileResponse?>>
+    : IFeatureHandler<SaveGeneralProfileRequest, AppResult<GeneralSettingsResponse?>>
 {
-    public async Task<AppResult<SaveGeneralProfileResponse?>> HandleAsync(
+    public async Task<AppResult<GeneralSettingsResponse?>> HandleAsync(
         SaveGeneralProfileRequest request,
         CancellationToken cancellationToken = default)
     {
-        var result = new AppResult<SaveGeneralProfileResponse?>();
+        var result = new AppResult<GeneralSettingsResponse?>();
 
         #region # Execute
 
-        var savedProfile = await settings.UpdateUserProfileAsync(
+        var user = await settings.UpdateUserProfileAsync(
             request.UserId,
             request.FirstName,
             request.LastName,
-            request.UserId);
+            request.UserId,
+            cancellationToken);
 
         #endregion
 
         #region # Handle Result
 
-        if (savedProfile is null)
+        if (user is null)
         {
             result.Failure(ErrorCode.NotFound, "User not found.");
         }
         else
         {
-            result.Success(ToResponse(savedProfile));
+            result.Success(GeneralSettingsResponse.FromEntity(user));
         }
 
         #endregion
 
         return result;
     }
-
-    #region # Mapping
-
-    private static SaveGeneralProfileResponse ToResponse(GeneralSettingsDto settings) => new()
-    {
-        Email = settings.Email,
-        FirstName = settings.FirstName,
-        LastName = settings.LastName
-    };
-
-    #endregion
-}
-
-public sealed class SaveGeneralProfileResponse
-{
-    public string Email { get; init; } = string.Empty;
-    public string FirstName { get; init; } = string.Empty;
-    public string LastName { get; init; } = string.Empty;
 }

@@ -1,5 +1,7 @@
 @inherits BaseComponent
 @using ChatThreadCmd = WebApp.Features.ChatThread.Commands
+@using WebApp.Features.ChatThread
+@using WebApp.Features.ChatThread.Queries
 
 @attribute [Authorize]
 
@@ -107,7 +109,7 @@
 </aside>
 
 @code {
-    private List<ChatThreadDto> _threads = [];
+    private List<ChatThreadResponse> _threads = [];
 
     protected override async Task OnInitializedAsync()
     {
@@ -152,7 +154,7 @@
             return;
         }
 
-        var thread = ToThreadDto(result.Payload);
+        var thread = result.Payload;
         _threads.Insert(0, thread);
 
         await NavigateToChatThreadAsync(thread.Id);
@@ -173,7 +175,7 @@
             var created = await Sender.SendAsync(new ChatThreadCmd.AddChatThreadRequest("New chat", CurrentUser.Id));
             if (created.Payload is not null)
             {
-                _threads.Insert(0, ToThreadDto(created.Payload));
+                _threads.Insert(0, created.Payload);
             }
         }
 
@@ -192,7 +194,7 @@
     private ElementReference _renameInput;
     private bool _focusRenameInput;
 
-    private void BeginRename(ChatThreadDto t)
+    private void BeginRename(ChatThreadResponse t)
     {
         _editingId = t.Id;
         _editTitle = t.Title;
@@ -239,7 +241,7 @@
             var idx = _threads.FindIndex(t => t.Id == threadId);
             if (idx >= 0)
             {
-                _threads[idx] = ToThreadDto(result.Payload);
+                _threads[idx] = result.Payload;
             }
         }
 
@@ -278,26 +280,6 @@
         var seg = rel[prefix.Length..].Trim('/');
         return !string.IsNullOrEmpty(seg) && Guid.TryParse(seg, out threadId);
     }
-
-    private static ChatThreadDto ToThreadDto(ChatThreadCmd.AddChatThreadResponse thread) => new()
-    {
-        Id = thread.Id,
-        Title = thread.Title,
-        UserId = thread.UserId,
-        ChatAgent = thread.ChatAgent,
-        CreatedAt = thread.CreatedAt,
-        UpdatedAt = thread.UpdatedAt
-    };
-
-    private static ChatThreadDto ToThreadDto(ChatThreadCmd.UpdateChatThreadTitleResponse thread) => new()
-    {
-        Id = thread.Id,
-        Title = thread.Title,
-        UserId = thread.UserId,
-        ChatAgent = thread.ChatAgent,
-        CreatedAt = thread.CreatedAt,
-        UpdatedAt = thread.UpdatedAt
-    };
 
     private async Task NavigateToChatThreadAsync(Guid threadId)
     {

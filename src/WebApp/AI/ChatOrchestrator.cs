@@ -54,9 +54,10 @@ public sealed class ChatOrchestrator(
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var messages = await _chatMessages.GetRecentChatMessagesByChatThreadIdAsync(
+        var messages = await _chatMessages.GetRecentByChatThreadIdAsync(
             chatThreadId,
-            DefaultMessageLimit);
+            DefaultMessageLimit,
+            cancellationToken);
 
         return (messages ?? [])
             .Select(m => new Microsoft.Extensions.AI.ChatMessage(new AiChatRole(m.Role), m.Content))

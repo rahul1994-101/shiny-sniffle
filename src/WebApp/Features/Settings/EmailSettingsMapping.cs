@@ -1,6 +1,6 @@
 using WebApp.Utilities.Extensions;
 
-namespace WebApp.Utilities.Helpers;
+namespace WebApp.Features.Settings;
 
 internal enum EmailSettingsBuildMode
 {
@@ -8,24 +8,18 @@ internal enum EmailSettingsBuildMode
     Draft
 }
 
-internal static class EmailSettingsHelpers
+internal static class EmailSettingsMapping
 {
-    internal static EmailSettings? FromJson(string? json) =>
-        JsonColumnHelpers.Deserialize<EmailSettings>(json);
-
-    internal static string? ToJson(EmailSettings? settings) =>
-        JsonColumnHelpers.Serialize(settings);
-
-    internal static EmailSettingsDto ToDto(EmailSettings? stored)
+    internal static EmailSettingsResponse FromEntity(EmailSettings? stored)
     {
         if (stored is null)
         {
-            return new EmailSettingsDto();
+            return new EmailSettingsResponse();
         }
 
         var provider = ResolveProvider(stored);
 
-        return new EmailSettingsDto
+        return new EmailSettingsResponse
         {
             Provider = provider,
             EmailAddress = stored.EmailAddress,
@@ -41,25 +35,29 @@ internal static class EmailSettingsHelpers
         };
     }
 
-    internal static string? TryBuildFromDto(EmailSettingsDto dto, EmailSettings? existing, EmailSettingsBuildMode mode, out EmailSettings? settings)
+    internal static string? TryBuildEntity(
+        EmailSettingsResponse response,
+        EmailSettings? existing,
+        EmailSettingsBuildMode mode,
+        out EmailSettings? settings)
     {
         settings = null;
 
-        if (mode == EmailSettingsBuildMode.Save && IsEmpty(dto))
+        if (mode == EmailSettingsBuildMode.Save && IsEmpty(response))
         {
             return null;
         }
 
-        var password = ResolvePassword(dto.Password, existing?.Password);
+        var password = ResolvePassword(response.Password, existing?.Password);
 
         if (mode == EmailSettingsBuildMode.Save)
         {
-            if (string.IsNullOrWhiteSpace(dto.EmailAddress))
+            if (string.IsNullOrWhiteSpace(response.EmailAddress))
             {
                 return "Email address is required for mailbox settings.";
             }
 
-            if (string.IsNullOrWhiteSpace(dto.Username))
+            if (string.IsNullOrWhiteSpace(response.Username))
             {
                 return "Mailbox username is required.";
             }
@@ -69,14 +67,14 @@ internal static class EmailSettingsHelpers
                 return "Mailbox password is required.";
             }
 
-            if (dto.Provider == EmailProvider.Custom)
+            if (response.Provider == EmailProvider.Custom)
             {
-                if (string.IsNullOrWhiteSpace(dto.ImapHost))
+                if (string.IsNullOrWhiteSpace(response.ImapHost))
                 {
                     return "IMAP host is required for mailbox settings.";
                 }
 
-                if (string.IsNullOrWhiteSpace(dto.SmtpHost))
+                if (string.IsNullOrWhiteSpace(response.SmtpHost))
                 {
                     return "SMTP host is required for mailbox settings.";
                 }
@@ -87,39 +85,69 @@ internal static class EmailSettingsHelpers
             return null;
         }
 
-        settings = CreateEntity(dto, password);
+        settings = CreateEntity(response, password);
         return null;
     }
 
-    internal static EmailSettings? ResolveForMail(EmailSettings? stored, EmailSettingsDto? draft)
+    internal static EmailSettings? ResolveForMail(EmailSettings? stored, EmailSettingsResponse? draft)
     {
         if (draft is null)
         {
             return stored;
         }
 
-        _ = TryBuildFromDto(draft, stored, EmailSettingsBuildMode.Draft, out var merged);
+        _ = TryBuildEntity(draft, stored, EmailSettingsBuildMode.Draft, out var merged);
         return merged;
     }
 
-    private static EmailSettings CreateEntity(EmailSettingsDto dto, string password)
+    internal static bool IsMailboxConfigured(EmailSettings? settings) =>
+        settings is not null &&
+        !string.IsNullOrWhiteSpace(settings.EmailAddress) &&
+        !string.IsNullOrWhiteSpace(settings.ImapHost) &&
+        !string.IsNullOrWhiteSpace(settings.SmtpHost) &&
+        !string.IsNullOrWhiteSpace(settings.Username) &&
+        !string.IsNullOrWhiteSpace(settings.Password);
+
+    internal static EmailSettings? ToMailRuntime(EmailSettings? settings)
+    {
+        if (settings is null || !IsMailboxConfigured(settings))
+        {
+            return null;
+        }
+
+        return new EmailSettings
+        {
+            Provider = settings.Provider,
+            EmailAddress = settings.EmailAddress.Trim(),
+            Username = settings.Username.Trim(),
+            Password = settings.Password.Decrypt(),
+            ImapHost = settings.ImapHost.Trim(),
+            ImapPort = settings.ImapPort,
+            ImapUseSsl = settings.ImapUseSsl,
+            SmtpHost = settings.SmtpHost.Trim(),
+            SmtpPort = settings.SmtpPort,
+            SmtpUseSsl = settings.SmtpUseSsl
+        };
+    }
+
+    private static EmailSettings CreateEntity(EmailSettingsResponse response, string password)
     {
         var settings = new EmailSettings
         {
-            Provider = dto.Provider,
-            EmailAddress = dto.EmailAddress.Trim(),
-            Username = dto.Username.Trim(),
+            Provider = response.Provider,
+            EmailAddress = response.EmailAddress.Trim(),
+            Username = response.Username.Trim(),
             Password = password
         };
 
-        if (dto.Provider == EmailProvider.Custom)
+        if (response.Provider == EmailProvider.Custom)
         {
-            settings.ImapHost = dto.ImapHost.Trim();
-            settings.ImapPort = dto.ImapPort;
-            settings.ImapUseSsl = dto.ImapUseSsl;
-            settings.SmtpHost = dto.SmtpHost.Trim();
-            settings.SmtpPort = dto.SmtpPort;
-            settings.SmtpUseSsl = dto.SmtpUseSsl;
+            settings.ImapHost = response.ImapHost.Trim();
+            settings.ImapPort = response.ImapPort;
+            settings.ImapUseSsl = response.ImapUseSsl;
+            settings.SmtpHost = response.SmtpHost.Trim();
+            settings.SmtpPort = response.SmtpPort;
+            settings.SmtpUseSsl = response.SmtpUseSsl;
         }
         else
         {
@@ -144,7 +172,7 @@ internal static class EmailSettingsHelpers
         return EmailProvider.Custom;
     }
 
-    private static bool IsEmpty(EmailSettingsDto email)
+    private static bool IsEmpty(EmailSettingsResponse email)
     {
         if (!string.IsNullOrWhiteSpace(email.EmailAddress) ||
             !string.IsNullOrWhiteSpace(email.Username) ||

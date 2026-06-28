@@ -1,12 +1,12 @@
 using FluentValidation;
 
 using WebApp.Features._Shared.Abstractions;
-using WebApp.Utilities.Helpers;
+using WebApp.Features.Settings;
 
 namespace WebApp.Features.Settings.Queries;
 
 public sealed record GetEmailSettingsRequest(Guid UserId)
-    : IQuery<AppResult<GetEmailSettingsResponse?>>;
+    : IQuery<AppResult<EmailSettingsResponse?>>;
 
 public sealed class GetEmailSettingsRequestValidator : AbstractValidator<GetEmailSettingsRequest>
 {
@@ -19,39 +19,26 @@ public sealed class GetEmailSettingsRequestValidator : AbstractValidator<GetEmai
 }
 
 public sealed class GetEmailSettingsRequestHandler(ISettingsRepository settings)
-    : IFeatureHandler<GetEmailSettingsRequest, AppResult<GetEmailSettingsResponse?>>
+    : IFeatureHandler<GetEmailSettingsRequest, AppResult<EmailSettingsResponse?>>
 {
-    public async Task<AppResult<GetEmailSettingsResponse?>> HandleAsync(
+    public async Task<AppResult<EmailSettingsResponse?>> HandleAsync(
         GetEmailSettingsRequest request,
         CancellationToken cancellationToken = default)
     {
-        var result = new AppResult<GetEmailSettingsResponse?>();
+        var result = new AppResult<EmailSettingsResponse?>();
 
         #region # Execute
 
-        var emailSettings = await settings.GetUserEmailSettingsAsync(request.UserId);
+        var emailSettings = await settings.GetUserEmailSettingsAsync(request.UserId, cancellationToken);
 
         #endregion
 
         #region # Handle Result
 
-        var dto = EmailSettingsHelpers.ToDto(emailSettings);
-        if (dto is null)
-        {
-            result.Failure(ErrorCode.InternalServerError, "Failed to load email settings.");
-        }
-        else
-        {
-            result.Success(new GetEmailSettingsResponse { Email = dto });
-        }
+        result.Success(EmailSettingsMapping.FromEntity(emailSettings));
 
         #endregion
 
         return result;
     }
-}
-
-public sealed class GetEmailSettingsResponse
-{
-    public EmailSettingsDto Email { get; init; } = null!;
 }
