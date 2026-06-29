@@ -1,90 +1,108 @@
 ---
-description: Persistence ports, Infrastructure repositories, EF and JSON column patterns
-globs: src/Core/Abstractions/**/*.cs,src/Infrastructure/Persistence/**/*.cs,src/WebApp/Features/**/*.cs,src/WebApp/Utilities/Helpers/*Helpers.cs
+description: Feature repositories, EF, JSON column patterns
+globs: src/Infrastructure/Persistence/**/*.cs,src/WebApp/Features/**/*.cs,src/WebApp/Utilities/Helpers/*Helpers.cs
 alwaysApply: false
 ---
 
 # Data conventions
 
-Persistence lives in **Infrastructure**; application flow in **`WebApp/Features/`** (CQRS).
+**EF** lives in **Infrastructure** (`AppDbContext`). **Data access** lives in **WebApp/Features/{Slice}/Repository.cs**. Application flow in **Features** handlers (CQRS).
 
-## Ports (`Core/Abstractions/Persistence.cs`)
+Vertical-slice layout and handler wiring: **`feature-slice-conventions.mdc`**.
 
-One file, multiple interfaces — mirror entity areas:
+## Repositories (`WebApp/Features/{Slice}/Repository.cs`)
 
-- `IUserRepository` — sign-in
-- `IChatThreadRepository` — thread CRUD
-- `IChatMessageRepository` — messages + recent history
-- `ISettingsRepository` — profile, password, email JSON settings
+| Slice | Class | Responsibility |
+|-------|-------|----------------|
+| Users | `UserRepository` | Sign-in session lookup |
+| ChatThreads | `ChatThreadRepository` | Thread CRUD |
+| ChatMessages | `ChatMessageRepository` | Messages + recent history |
+| UserSettings | `UserSettingsRepository` | Profile, password, email JSON |
+| Shared | `SharedRepository` | Cross-slice data access (when needed) |
 
-WebApp injects these interfaces — **never** `AppDbContext` or `*Repository` concrete types outside Infrastructure.
+- File name is always **`Repository.cs`**; class name is **`{Entity}Repository`**.
+- Inject `IDbContextFactory<AppDbContext> _dbContextFactory` — each repo owns its own factory; **no inheritance** from `SharedRepository`.
+- **Reads** return slice **DTOs** (`SessionDto`, `ChatThreadDto`, …) via `FromEntity` / `FromEntities` on slice DTOs.
+- **Writes** accept **entities** (`Core.Entities.*`); return DTOs on success.
+- Register concrete repository types in `AddFeatureRepositories()` — no `I*Repository` ports in Core.
 
-## Implementations (`Infrastructure/Persistence/`)
+Handlers and UI inject **`{Entity}Repository`** and **`SharedRepository`** — not `AppDbContext`.
 
-| Type | File |
-|------|------|
-| `AppDbContext` | `AppDbContext.cs` — EF mappings, `DbSet<>` |
-| `*Repository` | `{Entity}Repository.cs` — implements matching `I*Repository` |
-| Column JSON | `Utilities/Helpers/EmailSettingsJsonHelpers.cs` — uses `JsonColumnHelpers` |
+## DTOs (`WebApp/Features/{Slice}/DTOs.cs`)
 
-Register in `Infrastructure.DependencyInjection.AddInfrastructure()`.
+Shared read shapes **within one slice**. Use-case **Response** types may inherit DTOs:
+
+```csharp
+public class SessionDto { ... public static SessionDto FromEntity(User u) => ...; public T AsResponse<T>() where T : SessionDto, new() => ...; }
+public sealed class SignInResponse : SessionDto { }
+```
+
+List queries may return `List<ChatThreadDto>` directly in the response wrapper.
 
 ## Features (`WebApp/Features/`)
 
-Vertical slices — one file per use case under `{Entity}/Commands/` or `{Entity}/Queries/` (namespaces: `WebApp.Features.*`). Settings is flat (no General/Email subfolders).
+One file per use case under `{Slice}/Commands/` or `{Slice}/Queries/`.
 
-Each file contains, in order (no outer `#region` wrappers):
+Each file contains, in order:
 
-1. **Request record** — implements `ICommand<>` or `IQuery<>`
-2. **FluentValidation validator**
-3. **Handler** (`IFeatureHandler<,>`) — inner regions only
-4. **Response type(s)** — last, when the use case owns its result shape
+1. **Request record** — `ICommand<>` or `IQuery<>`
+2. **Response type(s)** — when the use case defines a result shape (skip for `AppResult`-only commands)
+3. **FluentValidation validator**
+4. **Handler** (`IFeatureHandler<,>`)
 
-### Naming (one use case per file)
+Reference: `Users/Commands/SignIn.cs`.
 
-Same **Request / Response** names for commands and queries. Folder (`Commands/` vs `Queries/`) and marker interface (`ICommand<>` vs `IQuery<>`) distinguish write vs read.
+### Handler dependencies
 
-| Piece | Commands | Queries |
-|-------|----------|---------|
-| Message | `{UseCase}Request` | `{UseCase}Request` |
-| Validator | `{UseCase}RequestValidator` | `{UseCase}RequestValidator` |
-| Handler | `{UseCase}RequestHandler` | `{UseCase}RequestHandler` |
-| Result | `{UseCase}Response` | `{UseCase}Response` |
+Every handler injects the **local slice repo** and **`SharedRepository`**:
 
-Reference (command): `User/Commands/SignIn.cs` — `SignInRequest`, `SignInRequestValidator`, `SignInRequestHandler`, `SignInResponse`.
+| Repository | Parameter | Field (when not used yet) |
+|------------|-----------|-------------------------|
+| `UserRepository` | `userRepo` | — |
+| `UserSettingsRepository` | `userSettingsRepo` | — |
+| `ChatThreadRepository` | `chatThreadRepo` | — |
+| `ChatMessageRepository` | `chatMessageRepo` | — |
+| `SharedRepository` | `sharedRepo` | `private readonly SharedRepository _sharedRepo = sharedRepo;` |
 
-Reference (query, when migrated): `GetChatThreadsByUserIdRequest`, `GetChatThreadsByUserIdResponse` in `ChatThread/Queries/GetChatThreadsByUserId.cs`.
+```csharp
+public sealed class SignInRequestHandler(UserRepository userRepo, SharedRepository sharedRepo) ...
+```
 
-### Request / response (feature-owned)
+Use `_sharedRepo` when a use case needs cross-slice data; keep injection even when not called yet.
 
-- **Request** — flat record with primitive fields; no wrapper around a Core or Models DTO.
-- **Response** — colocated at the **bottom** of the same file when the use case defines its own result shape.
-- **Mapping** — entity → response in handler `#region # Mapping` (`private static ToResponse(...)`). Use **`Core.Entities.{Entity}`** when the feature namespace clashes (e.g. `Core.Entities.User` in `WebApp.Features.User`).
-- **Repository ports** — take primitives or **entities**; do **not** take feature Request/Response types.
+### Formatting
+
+- **Request records** — parameters on one line when they fit.
+- **`HandleAsync`** — signature on one line: `HandleAsync({UseCase}Request request, CancellationToken cancellationToken = default)`.
+- **Repository / service calls** — arguments on one line when they fit.
+- **Handler constructor** — dependencies on one line when they fit: `(UserRepository userRepo, SharedRepository sharedRepo)`.
+- **Repository methods** — signature on one line when parameters fit.
+
+### Naming
+
+| Piece | Pattern |
+|-------|---------|
+| Message | `{UseCase}Request` |
+| Validator | `{UseCase}RequestValidator` |
+| Handler | `{UseCase}RequestHandler` |
+| Result | `{UseCase}Response` (may extend slice DTO) |
+
+Reference: `Users/Commands/SignIn.cs`, `ChatThreads/Commands/AddChatThread.cs`.
 
 ### Handler layout
-
-Inner regions only (no `# Validate` — pipeline runs FluentValidation):
 
 ```
 #region # Execute
 #region # Handle Result
-#region # Mapping   — when mapping entity → response
 ```
 
-Returns `AppResult` / `AppResult<T>`; calls **Core abstractions** only.
+Returns `AppResult` / `AppResult<T>`; inject local **`{entity}Repo`** plus **`sharedRepo`** (see table above).
 
 ### Plumbing
 
-- Entry point: inject **`IFeatureSender`** (`Sender` on `BaseComponent`) — `await Sender.SendAsync(new SignInRequest(email, password))`.
-- No facade class — handlers in `{Entity}/Commands|Queries/`.
-- Shared plumbing in `_Shared/`: `Abstractions/FeatureContracts.cs`, `Dispatch/FeatureDispatch.cs`, pipeline + behaviors.
+- Entry: `IFeatureSender` / `Sender.SendAsync(new SignInRequest(...))`.
 - Pipeline: `ValidationBehavior` → `ExceptionBehavior` → handler.
-- Register via `Startup.InjectFeatures()` → `AddFeatureLayer()` (startup dispatch table + handler scan).
-
-### Legacy (migrate when touched)
-
-None for chat/settings — all use entity ports + feature Response types.
+- `Startup.InjectFeatures()` → `AddFeatureRepositories()` + `AddFeatureLayer()`.
 
 ## JSON settings columns (`UserSetting`)
 
@@ -93,34 +111,18 @@ None for chat/settings — all use entity ports + feature Response types.
 | Layer | Pattern |
 |-------|---------|
 | **Entity** | `EmailSettingsJson` on `UserSetting`; typed `EmailSettings` in `Core.Entities` |
-| **Infrastructure** | `EmailSettingsJsonHelpers.FromJson` / `ToJson` via `JsonColumnHelpers` in `Infrastructure/Utilities/Helpers/` |
-| **WebApp** | `EmailSettingsHelpers` for DTO ↔ entity (`WebApp/Utilities/Helpers/`) |
-
-Keep Infra `JsonColumnHelpers` and WebApp `JsonColumnHelpers` options in sync (camelCase, case-insensitive, enum converter).
-
-## Repository patterns
-
-**Target (entity-centric ports)** — repo returns entities; Features map to Response:
-
-```csharp
-Task<List<ChatThread>> GetActiveByUserIdAsync(Guid userId, CancellationToken ct);
-Task<ChatThread?> AddAsync(ChatThread entity, CancellationToken ct);
-
-// Features — map once
-ChatThreadResponse.FromEntity(thread);
-```
-
-**Settings email** — entity `EmailSettings` on port; `EmailSettingsMapping` in `Features/Settings/` for UI Response ↔ entity.
+| **Infrastructure** | `EmailSettingsJsonHelpers.FromJson` / `ToJson` via `JsonColumnHelpers` |
+| **WebApp** | `EmailSettingsMapping` in `Features/UserSettings/` for DTO ↔ entity |
 
 ## EF column mapping
 
-Map `User` / `UserSetting` audit columns to DB camelCase in `AppDbContext.OnModelCreating` (`firstName`, `userId`, `createdAt`, …).
+Map `User` / `UserSetting` audit columns to DB camelCase in `AppDbContext.OnModelCreating`.
 
 ## Settings method naming
 
 | Section | Repository | Features |
 |---------|------------|----------|
-| General | `GetUserGeneralSettingsAsync`, `UpdateUserProfileAsync`, `UpdateUserPasswordAsync` | `GetGeneralSettingsAsync`, `SaveGeneralProfileAsync`, `ChangePasswordAsync` |
-| Email | `GetUserEmailSettingsAsync`, `SaveUserEmailSettingsAsync` | `GetEmailSettingsAsync`, `SaveEmailSettingsAsync` |
+| General | `GetGeneralSettingsAsync`, `UpdateUserProfileAsync`, `UpdateUserPasswordAsync` | `GetGeneralSettings`, `SaveGeneralProfile`, `ChangePassword` |
+| Email | `GetUserEmailSettingsAsync`, `SaveUserEmailSettingsAsync` | `GetEmailSettings`, `SaveEmailSettings` |
 
 `SettingsSection` enum is for tab routes only.

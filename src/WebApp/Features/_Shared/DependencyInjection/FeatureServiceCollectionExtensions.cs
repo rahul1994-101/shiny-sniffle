@@ -29,6 +29,17 @@ public static class FeatureServiceCollectionExtensions
         return services;
     }
 
+    public static IServiceCollection AddFeatureRepositories(this IServiceCollection services)
+    {
+        services.AddScoped<WebApp.Features.Shared.SharedRepository>();
+        services.AddScoped<WebApp.Features.Users.UserRepository>();
+        services.AddScoped<WebApp.Features.ChatThreads.ChatThreadRepository>();
+        services.AddScoped<WebApp.Features.ChatMessages.ChatMessageRepository>();
+        services.AddScoped<WebApp.Features.UserSettings.UserSettingsRepository>();
+
+        return services;
+    }
+
     private static FeatureDispatchTable BuildDispatchTable(Assembly assembly)
     {
         var table = new FeatureDispatchTable();

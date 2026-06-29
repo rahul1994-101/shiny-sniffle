@@ -99,6 +99,7 @@ public static class DependencyInject
 
     public static void InjectFeatures(this IServiceCollection services)
     {
+        services.AddFeatureRepositories();
         services.AddFeatureLayer(Assembly.GetExecutingAssembly());
     }
 

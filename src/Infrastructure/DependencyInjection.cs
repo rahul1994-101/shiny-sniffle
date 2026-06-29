@@ -14,10 +14,6 @@ public static class DependencyInjection
         ArgumentNullException.ThrowIfNull(configuration);
 
         services.AddDbContextFactory<AppDbContext>();
-        services.AddScoped<IUserRepository, UserRepository>();
-        services.AddScoped<IChatThreadRepository, ChatThreadRepository>();
-        services.AddScoped<IChatMessageRepository, ChatMessageRepository>();
-        services.AddScoped<ISettingsRepository, SettingsRepository>();
         services.AddScoped<IMailboxService, MailKitMailboxService>();
         services.AddSingleton<IFoundryAgentFactory, FoundryAgentFactory>();
 

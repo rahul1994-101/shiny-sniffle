@@ -1,11 +1,11 @@
 using System.Net.Mail;
 
-using WebApp.Features.Settings;
+using WebApp.Features.UserSettings;
 using WebApp.Utilities.Helpers;
 
 namespace WebApp.Utilities.Services;
 
-public sealed class UserMailboxService(ISettingsRepository _settings, IMailboxService _mailboxService)
+public sealed class UserMailboxService(UserSettingsRepository _settings, IMailboxService _mailboxService)
 {
     public async Task<bool> IsConfiguredAsync(Guid userId, CancellationToken cancellationToken = default)
     {
@@ -89,7 +89,7 @@ public sealed class UserMailboxService(ISettingsRepository _settings, IMailboxSe
 
     public async Task<MailboxTestResult> TestConnectionAsync(
         Guid userId,
-        EmailSettingsResponse? draft = null,
+        EmailSettingsDto? draft = null,
         CancellationToken cancellationToken = default)
     {
         var config = await ResolveMailRuntimeAsync(userId, draft, cancellationToken);
@@ -109,7 +109,7 @@ public sealed class UserMailboxService(ISettingsRepository _settings, IMailboxSe
 
     private async Task<EmailSettings?> ResolveMailRuntimeAsync(
         Guid userId,
-        EmailSettingsResponse? draft = null,
+        EmailSettingsDto? draft = null,
         CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();

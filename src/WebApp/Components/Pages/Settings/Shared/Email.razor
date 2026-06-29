@@ -251,8 +251,8 @@ else
     [CascadingParameter]
     public SettingsPageContext PageContext { get; set; } = null!;
 
-    private EmailSettingsResponse _email = new();
-    private EmailSettingsResponse _emailBaseline = new();
+    private EmailSettingsDto _email = new();
+    private EmailSettingsDto _emailBaseline = new();
     private TabBusy _busy = TabBusy.Loading;
     private bool _saving;
     private bool _testing;

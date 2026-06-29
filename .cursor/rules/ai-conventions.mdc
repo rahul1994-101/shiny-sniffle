@@ -14,7 +14,7 @@ Use the same **tooling habits** as **Data** and **Models**: `#region #`, undersc
 |---|-----------------------------------|----------------------------------------|
 | **Organized by** | Entity / operation | Pipeline role (orchestrate, run agent, tool, Foundry) |
 | **Region names** | `# ChatThread`, `# User` | `# ProcessTurn`, `# Run`, `# CreateTools` — or `# Private Helpers` |
-| **Shared state** | `_users`, `_chatThreads`, … | `_chatMessages`, `_agentFactory`, `_foundryOptions` |
+| **Shared state** | `userRepo`, `chatThreadRepo`, `sharedRepo`, … | `_chatMessages`, `_agentFactory`, `_foundryOptions` |
 | **Inner method blocks** | `# Validate`, `# Execute`, `# Handle Result` | Same for non-trivial public methods |
 | **DTOs / config** | `Core/DTOs/Foundry.cs`, `WebApp/Models/AI.cs` | `FoundryOptions` in Core; `RunChatAgentRequest/Response` in WebApp.Models |
 
@@ -40,7 +40,7 @@ Match **Data** — primary constructor parameters use **underscore prefix**:
 ```csharp
 public sealed class ChatOrchestrator(
     IOptions<FoundryOptions> _foundryOptions,
-    IChatMessageRepository _chatMessages,
+    ChatMessageRepository _chatMessages,
     AssistantAgent _assistantAgent,
     EmailAgent _emailAgent)
 ```
@@ -141,7 +141,7 @@ private static readonly (string Intent, string Capability, string[] Prompts)[] S
 ## Boundaries (do not blur)
 
 - **Agents** — LLM runners only; no DB reads for thread history (orchestration passes history).
-- **Orchestration** — coordinates turn; may read `IChatMessageRepository` for thread history.
+- **Orchestration** — coordinates turn; may read `ChatMessageRepository` for thread history.
 - **Tools / Memory** — capabilities and context; may call repos/services; no LLM, no routing.
 - **Foundry** — `IFoundryAgentFactory.CreateAgent` only (Infrastructure). Per-agent profiles live in `Agents/` private `Create{Role}Agent` helpers.
 - **Features** — `SendChatMessageAsync` saves messages, calls `ChatOrchestrator.RunChatAgentAsync`, saves reply; does not shape LLM context.

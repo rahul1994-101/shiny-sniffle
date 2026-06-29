@@ -194,7 +194,7 @@ else
     [CascadingParameter]
     public SettingsPageContext PageContext { get; set; } = null!;
 
-    private GeneralSettingsResponse _profile = new();
+    private GeneralSettingsDto _profile = new();
     private TabBusy _busy = TabBusy.Loading;
     private bool _profileSaving;
     private bool _passwordSaving;

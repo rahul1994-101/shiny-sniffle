@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Options;
 
 using WebApp.AI.Agents;
+using WebApp.Features.ChatMessages;
 
 using AiChatRole = Microsoft.Extensions.AI.ChatRole;
 
@@ -8,7 +9,7 @@ namespace WebApp.AI;
 
 public sealed class ChatOrchestrator(
     IOptions<FoundryOptions> _foundryOptions,
-    IChatMessageRepository _chatMessages,
+    ChatMessageRepository _chatMessages,
     AssistantAgent _assistantAgent,
     EmailAgent _emailAgent)
 {

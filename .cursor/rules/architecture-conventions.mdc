@@ -5,61 +5,36 @@ alwaysApply: true
 
 # Architecture (Core + Infrastructure + WebApp)
 
-Incremental Clean Architecture. Move code out of WebApp **one concern at a time**; keep the app runnable after each step.
+Vertical slices in WebApp. **Core** = entities + integration ports. **Infrastructure** = EF, MailKit, Foundry plumbing. **WebApp/Features** = use cases + repositories.
 
 ## Solution layout
 
 ```
 databases/Database/          SQL project (not under src/)
 src/
-  Core/                      Domain + ports (no EF, MailKit, Blazor, MAF)
-  Infrastructure/            Port implementations + AddInfrastructure()
-  WebApp/                    UI, Features, AI, composition root (Startup)
+  Core/                      Entities + integration ports (no EF, MailKit, Blazor, MAF)
+  Infrastructure/            AppDbContext, MailKit, Foundry + AddInfrastructure()
+  WebApp/                    UI, Features (handlers + repos), AI, composition root (Startup)
 ```
 
-**Project references:** `Infrastructure → Core`, `WebApp → Infrastructure` (Core types via transitive reference).
-
-**NuGet packages:** declare each package in the **lowest layer that needs it**. Do not repeat a package already referenced in Core (or Infrastructure) on outer projects — transitive project references flow compile-time package assets inward → outward.
+**Project references:** `Infrastructure → Core`, `WebApp → Infrastructure`.
 
 ## Core (`src/Core/`)
 
 | Folder | Purpose |
 |--------|---------|
-| **Entities/** | EF-mapped domain types. One entity per `.cs`; `_Common.cs` (bases), `_Enums.cs` (entity enums). Namespace `Core.Entities`. |
-| **DTOs/** | Shared shapes on **repository ports** only (shrinking — prefer entities). One file per entity area. Namespace `Core.DTOs`. |
-| **Abstractions/** | Infrastructure ports. **One `.cs` file per infra concern** (mirrors an Infra folder). Namespace `Core.Abstractions`. |
+| **Entities/** | EF-mapped domain types. One entity per `.cs`; `_Common.cs`, `_Enums.cs`. Namespace `Core.Entities`. |
+| **DTOs/** | Integration shapes only (`Mail.cs`, `Foundry.cs`). Namespace `Core.DTOs`. |
+| **Abstractions/** | **Integration ports only** — `Mailbox.cs`, `Foundry.cs`. Namespace `Core.Abstractions`. |
 
-### Abstractions pattern
-
-- `Abstractions/Persistence.cs` — all persistence ports in one file: `IUserRepository`, `IChatThreadRepository`, `IChatMessageRepository`, `ISettingsRepository`.
-- `Abstractions/Mailbox.cs` — `IMailboxService` (IMAP/SMTP read/send).
-- `Abstractions/Foundry.cs` — `IFoundryAgentFactory`, `FoundryDeployments` constants.
-
-Do **not** put SDKs, `IConfiguration`, or UI types in Core.
+Do **not** put repository ports, SDKs, `IConfiguration`, or UI types in Core.
 
 ## Infrastructure (`src/Infrastructure/`)
 
-- **One folder per `Abstractions/{Concern}.cs` file** — e.g. `Persistence/` for everything in `Persistence.cs`.
-- Register implementations in `DependencyInjection.AddInfrastructure()`; WebApp calls it from `Startup.InjectData`.
-- EF, SqlClient, MailKit live under concern folders — not in WebApp.
-
-### Utilities (Infrastructure)
-
-Mirror WebApp’s helper pattern — **Helpers only** for now (add Extensions when needed; no Services folder).
-
-| Subfolder | Purpose | Namespace |
-|-----------|---------|-----------|
-| **Utilities/Helpers/** | Static infra helpers (JSON columns, mapping) | `Infrastructure.Utilities.Helpers` |
-
-Naming: `{Concern}Helpers.cs` (e.g. `EmailSettingsJsonHelpers.cs`, `MailboxFolderResolverHelpers.cs`).
-
-- Shared JSON options for SQL columns → `JsonColumnHelpers.cs`
-- Entity ↔ column JSON → `{Section}JsonHelpers.cs` in Helpers (not beside repositories)
-- MailKit/IMAP helpers (folder resolve, body plain-text, read limits) → `Utilities/Helpers/` (not under `Mailbox/`)
-- Azure OpenAI endpoint normalization → `AzureOpenAiEndpointHelpers.cs`
-- Do **not** put repositories, `AppDbContext`, mailbox adapters, or DI types under Utilities
-
-### Concern folders
+- **`Persistence/`** — `AppDbContext` only (no repositories).
+- **`Mailbox/`**, **`Foundry/`** — port implementations.
+- **`Utilities/Helpers/`** — JSON columns, MailKit helpers, Azure endpoint helpers.
+- Register in `DependencyInjection.AddInfrastructure()`; WebApp calls it from `Startup.InjectData`.
 
 ```
 Infrastructure/
@@ -67,57 +42,75 @@ Infrastructure/
   Utilities/Helpers/
     JsonColumnHelpers.cs
     EmailSettingsJsonHelpers.cs
-    MailboxFolderResolverHelpers.cs
-    EmailMessageBodyHelpers.cs
-    MailboxReadLimitsHelpers.cs
-    AzureOpenAiEndpointHelpers.cs
+    ...
   Persistence/
     AppDbContext.cs
-    UserRepository.cs
-    ChatThreadRepository.cs
-    ChatMessageRepository.cs
-    SettingsRepository.cs
   Mailbox/
     MailKitMailboxService.cs
   Foundry/
     FoundryAgentFactory.cs
 ```
 
-WebApp `Utilities/Helpers` handles DTO ↔ entity; Infrastructure `Utilities/Helpers` handles entity ↔ SQL JSON — keep JSON options aligned between both.
-
 ## WebApp (`src/WebApp/`)
 
 | Folder | Purpose |
 |--------|---------|
-| **Features/** | CQRS use cases + `IFeatureSender`. Use-case **Request/Response** colocated per file; entity mapping in handlers. See `data-conventions.mdc`. |
-| **Models/** | **App/UI-only** types — `AppResult`, unmigrated form DTOs, AI/mail shapes. Not feature-owned use-case pairs. See `dto-conventions.mdc`. |
-| **Components/, Endpoints/, AI/, Utilities/** | Unchanged roles; depend on `Core.Abstractions` + `WebApp.Models`. |
+| **Features/{Slice}/** | Independent vertical slice: `DTOs.cs`, `Repository.cs`, `Commands/`, `Queries/`. See `feature-slice-conventions.mdc`. |
+| **Features/Shared/** | Cross-slice DTOs + `SharedRepository` (not a business slice). |
+| **Features/_Shared/** | CQRS plumbing: `IFeatureSender`, pipeline, `AddFeatureLayer()` + `AddFeatureRepositories()`. |
+| **Models/** | App/UI-only — `AppResult`, AI turn shapes, constants. |
+| **Components/, Endpoints/, AI/, Utilities/** | UI and orchestration; depend on Features + `Core.Abstractions`. |
 
 WebApp is the **composition root** (`Startup.cs`).
 
-Endpoints may bind feature types directly (e.g. `[FromForm] SignInRequest`).
+- `Startup.InjectFeatures()` → `AddFeatureRepositories()` + `AddFeatureLayer()`.
+- Repositories are **concrete classes** in `Features/{Entity}/`, registered in `AddFeatureRepositories()`.
 
 ## Where does new code go?
 
 | Question | Place |
 |----------|--------|
 | DB table / domain field? | `Core/Entities/` |
-| Use-case Request/Response (command or query)? | **`WebApp/Features/{Entity}/Commands|Queries/{UseCase}.cs`** |
-| Shared shape on `I*Repository` (legacy / cross-use-case)? | `Core/DTOs/` — or prefer entity on port |
+| Use-case Request/Response? | `WebApp/Features/{Slice}/Commands|Queries/{UseCase}.cs` |
+| Shared read shape within a slice? | `WebApp/Features/{Slice}/DTOs.cs` |
+| Shared read shape across slices? | `WebApp/Features/Shared/DTOs.cs` |
+| Data access for a slice? | `WebApp/Features/{Slice}/Repository.cs` (`{Entity}Repository`) |
+| Cross-slice data access? | `WebApp/Features/Shared/Repository.cs` (`SharedRepository`) |
 | New external system port? | `Core/Abstractions/{Concern}.cs` + `Infrastructure/{Concern}/` |
 | EF / IMAP / SMTP implementation? | `Infrastructure/{Concern}/` |
-| `AppResult`, AI turn, mailbox UI, unmigrated form DTO? | `WebApp/Models/` |
-| Use-case flow / validation / mapping? | `WebApp/Features/` |
+| `AppResult`, AI turn, mailbox UI? | `WebApp/Models/` |
 | LLM / tools / chat turn? | `WebApp/AI/` |
 
-## Migration recipe (repeat per use case)
+## Feature slices
 
-1. Move entities → `Core/Entities/` (if not already)
-2. **Port** — entity-centric methods (primitives/entities in, entities out); drop use-case DTOs from `Core/DTOs/` when no longer on the port
-3. **Feature file** — flat `{UseCase}Request`, `{UseCase}RequestValidator`, `{UseCase}RequestHandler`, `{UseCase}Response`; map entity → response in `# Mapping` (commands and queries)
-4. **Callers** — `Sender.SendAsync(new …Request(…))` or form-bind Request directly
-5. Add/update interfaces → `Core/Abstractions/{Concern}.cs`; implementations → `Infrastructure/{Concern}/`
+Full vertical-slice rules: **`feature-slice-conventions.mdc`**.
 
-**Done:** Persistence/Mailbox/Foundry infra; **SignIn** feature pattern. **Legacy:** chat/settings features still use `Core.DTOs` on ports — migrate when touched.
+Each folder under `Features/` (except `_Shared` and `Shared`) is an **independent vertical slice** — own DTOs, repository, and use cases.
 
-**WebApp keeps:** `UserMailboxService`, AI agents/tools/orchestrator, settings DTO mapping where not yet migrated. **Startup** binds `FoundryOptions`; `AddInfrastructure` registers `IFoundryAgentFactory`.
+```
+Features/Users/
+  DTOs.cs           SessionDto + FromEntity
+  Repository.cs     UserRepository
+  Commands/SignIn.cs
+
+Features/ChatThreads/
+  DTOs.cs
+  Repository.cs     ChatThreadRepository
+  Commands/ ...
+  Queries/ ...
+
+Features/Shared/          ← cross-slice (multiple slices need it)
+  DTOs.cs
+  Repository.cs     SharedRepository
+
+Features/_Shared/         ← CQRS plumbing (not a business slice)
+  Abstractions/, Pipeline/, DependencyInjection/, ...
+```
+
+**Slice folders are plural/descriptive** (`Users`, `ChatThreads`, `ChatMessages`, `UserSettings`) so namespaces do not clash with `Core.Entities` (`User`, `ChatThread`, `ChatMessage`).
+
+**Repository:** file `Repository.cs`, class `{Entity}Repository`. Each repo owns `IDbContextFactory<AppDbContext>`; slice repos do **not** inherit `SharedRepository`.
+
+**Response may inherit slice DTO:** `public sealed class SignInResponse : SessionDto { }`
+
+**Handlers** inject local `{Entity}Repository` as `{entity}Repo` plus `SharedRepository` as `sharedRepo` (composition, not inheritance). Example: `SignInRequestHandler(UserRepository userRepo, SharedRepository sharedRepo)`.
