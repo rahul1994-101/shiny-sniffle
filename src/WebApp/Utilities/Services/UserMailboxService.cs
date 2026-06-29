@@ -5,12 +5,12 @@ using WebApp.Utilities.Helpers;
 
 namespace WebApp.Utilities.Services;
 
-public sealed class UserMailboxService(UserSettingsRepository _settings, IMailboxService _mailboxService)
+public sealed class UserMailboxService(UserSettingsRepository userSettingsRepo, IMailboxService mailboxService)
 {
     public async Task<bool> IsConfiguredAsync(Guid userId, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var emailSettings = await _settings.GetUserEmailSettingsAsync(userId, cancellationToken);
+        var emailSettings = await userSettingsRepo.GetUserEmailSettingsAsync(userId, cancellationToken);
         return EmailSettingsMapping.IsMailboxConfigured(emailSettings);
     }
 
@@ -27,7 +27,7 @@ public sealed class UserMailboxService(UserSettingsRepository _settings, IMailbo
             };
         }
 
-        return await _mailboxService.GetStatusAsync(config, cancellationToken);
+        return await mailboxService.GetStatusAsync(config, cancellationToken);
     }
 
     public async Task<InboxListResult> ListInboxAsync(Guid userId, InboxQuery query, CancellationToken cancellationToken = default)
@@ -38,7 +38,7 @@ public sealed class UserMailboxService(UserSettingsRepository _settings, IMailbo
             return new InboxListResult();
         }
 
-        return await _mailboxService.ListInboxAsync(config, query, cancellationToken);
+        return await mailboxService.ListInboxAsync(config, query, cancellationToken);
     }
 
     public async Task<InboxMessageDetail?> GetInboxMessageAsync(Guid userId, uint uid, string? folder = null, CancellationToken cancellationToken = default)
@@ -49,7 +49,7 @@ public sealed class UserMailboxService(UserSettingsRepository _settings, IMailbo
             return null;
         }
 
-        return await _mailboxService.GetInboxMessageAsync(config, uid, folder, cancellationToken);
+        return await mailboxService.GetInboxMessageAsync(config, uid, folder, cancellationToken);
     }
 
     public async Task<IReadOnlyList<MailboxFolderInfo>> ListFoldersAsync(Guid userId, CancellationToken cancellationToken = default)
@@ -60,7 +60,7 @@ public sealed class UserMailboxService(UserSettingsRepository _settings, IMailbo
             return [];
         }
 
-        return await _mailboxService.ListFoldersAsync(config, cancellationToken);
+        return await mailboxService.ListFoldersAsync(config, cancellationToken);
     }
 
     public async Task<SendMailResult> SendAsync(Guid userId, OutboundMail mail, CancellationToken cancellationToken = default)
@@ -84,7 +84,7 @@ public sealed class UserMailboxService(UserSettingsRepository _settings, IMailbo
             };
         }
 
-        return await _mailboxService.SendAsync(config, mail, cancellationToken);
+        return await mailboxService.SendAsync(config, mail, cancellationToken);
     }
 
     public async Task<MailboxTestResult> TestConnectionAsync(
@@ -102,7 +102,7 @@ public sealed class UserMailboxService(UserSettingsRepository _settings, IMailbo
             };
         }
 
-        return await _mailboxService.TestConnectionAsync(config, cancellationToken);
+        return await mailboxService.TestConnectionAsync(config, cancellationToken);
     }
 
     #region # Private Helpers
@@ -113,7 +113,7 @@ public sealed class UserMailboxService(UserSettingsRepository _settings, IMailbo
         CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var stored = await _settings.GetUserEmailSettingsAsync(userId, cancellationToken);
+        var stored = await userSettingsRepo.GetUserEmailSettingsAsync(userId, cancellationToken);
         var resolved = EmailSettingsMapping.ResolveForMail(stored, draft);
         return EmailSettingsMapping.ToMailRuntime(resolved);
     }

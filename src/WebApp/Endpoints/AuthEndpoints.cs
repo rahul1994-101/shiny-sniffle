@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
 
-using WebApp.Features._Shared.Abstractions;
+using WebApp.Features.Shared.Cqrs.Abstractions;
 using WebApp.Features.Users.Commands;
 using WebApp.Utilities.Extensions;
 using WebApp.Utilities.Helpers;

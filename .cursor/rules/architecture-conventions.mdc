@@ -57,7 +57,7 @@ Infrastructure/
 |--------|---------|
 | **Features/{Slice}/** | Independent vertical slice: `DTOs.cs`, `Repository.cs`, `Commands/`, `Queries/`. See `feature-slice-conventions.mdc`. |
 | **Features/Shared/** | Cross-slice DTOs + `SharedRepository` (not a business slice). |
-| **Features/_Shared/** | CQRS plumbing: `IFeatureSender`, pipeline, `AddFeatureLayer()` + `AddFeatureRepositories()`. |
+| **Features/Shared/Cqrs/** | CQRS plumbing: `IFeatureSender`, pipeline, `AddFeatureLayer()` + `AddFeatureRepositories()`. |
 | **Models/** | App/UI-only — `AppResult`, AI turn shapes, constants. |
 | **Components/, Endpoints/, AI/, Utilities/** | UI and orchestration; depend on Features + `Core.Abstractions`. |
 
@@ -85,7 +85,7 @@ WebApp is the **composition root** (`Startup.cs`).
 
 Full vertical-slice rules: **`feature-slice-conventions.mdc`**.
 
-Each folder under `Features/` (except `_Shared` and `Shared`) is an **independent vertical slice** — own DTOs, repository, and use cases.
+Each **business slice** folder under `Features/` (`Users`, `ChatThreads`, …) is independent — own DTOs, repository, and use cases. `Features/Shared/` holds cross-slice data (`DTOs.cs`, `Repository.cs`) and CQRS plumbing (`Cqrs/`).
 
 ```
 Features/Users/
@@ -103,7 +103,7 @@ Features/Shared/          ← cross-slice (multiple slices need it)
   DTOs.cs
   Repository.cs     SharedRepository
 
-Features/_Shared/         ← CQRS plumbing (not a business slice)
+Features/Shared/Cqrs/         ← CQRS plumbing (not a business slice)
   Abstractions/, Pipeline/, DependencyInjection/, ...
 ```
 

@@ -1,9 +1,9 @@
 using FluentValidation;
 
-using WebApp.Features._Shared.Abstractions;
-using WebApp.Features._Shared.Validation;
+using WebApp.Features.Shared.Cqrs.Abstractions;
+using WebApp.Features.Shared.Cqrs.Validation;
 
-namespace WebApp.Features._Shared.Behaviors;
+namespace WebApp.Features.Shared.Cqrs.Behaviors;
 
 public sealed class ValidationBehavior<TRequest, TResult>(IEnumerable<IValidator<TRequest>> validators)
     : IFeaturePipelineBehavior<TRequest, TResult>

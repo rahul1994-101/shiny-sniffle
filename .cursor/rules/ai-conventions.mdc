@@ -14,7 +14,7 @@ Use the same **tooling habits** as **Data** and **Models**: `#region #`, undersc
 |---|-----------------------------------|----------------------------------------|
 | **Organized by** | Entity / operation | Pipeline role (orchestrate, run agent, tool, Foundry) |
 | **Region names** | `# ChatThread`, `# User` | `# ProcessTurn`, `# Run`, `# CreateTools` — or `# Private Helpers` |
-| **Shared state** | `userRepo`, `chatThreadRepo`, `sharedRepo`, … | `_chatMessages`, `_agentFactory`, `_foundryOptions` |
+| **Shared state** | `userRepo`, `chatThreadRepo`, `sharedRepo`, … | `chatMessageRepo`, `foundryOptions`, `assistantAgent` |
 | **Inner method blocks** | `# Validate`, `# Execute`, `# Handle Result` | Same for non-trivial public methods |
 | **DTOs / config** | `Core/DTOs/Foundry.cs`, `WebApp/Models/AI.cs` | `FoundryOptions` in Core; `RunChatAgentRequest/Response` in WebApp.Models |
 
@@ -39,10 +39,10 @@ Match **Data** — primary constructor parameters use **underscore prefix**:
 
 ```csharp
 public sealed class ChatOrchestrator(
-    IOptions<FoundryOptions> _foundryOptions,
-    ChatMessageRepository _chatMessages,
-    AssistantAgent _assistantAgent,
-    EmailAgent _emailAgent)
+    IOptions<FoundryOptions> foundryOptions,
+    ChatMessageRepository chatMessageRepo,
+    AssistantAgent assistantAgent,
+    EmailAgent emailAgent)
 ```
 
 Register AI types in `Startup.InjectAi` only — not scattered across the app.
@@ -126,7 +126,8 @@ private static readonly (string Intent, string Capability, string[] Prompts)[] S
 
 | Kind | Convention | Example |
 |------|------------|---------|
-| Injected services | `_camelCase` | `_chatMessages`, `_emailTools` |
+| Injected slice repos | `{entity}Repo` | `chatMessageRepo` |
+| Injected services | `camelCase` | `mailboxService`, `emailAgent` |
 | Agent classes | `{Role}Agent` | `AssistantAgent`, `EmailAgent` |
 | Tool classes | `{Domain}Tools` | `EmailTools` |
 | Orchestrator | `{Area}Orchestrator` | `ChatOrchestrator` |

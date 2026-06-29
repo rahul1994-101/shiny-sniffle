@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 
-using WebApp.Features._Shared.Abstractions;
+using WebApp.Features.Shared.Cqrs.Abstractions;
 using WebApp.Utilities.Services;
 
 namespace WebApp.Components;

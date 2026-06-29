@@ -1,7 +1,7 @@
 using FluentValidation;
 
 using WebApp.AI;
-using WebApp.Features._Shared.Abstractions;
+using WebApp.Features.Shared.Cqrs.Abstractions;
 using WebApp.Features.ChatMessages;
 using WebApp.Features.ChatThreads;
 

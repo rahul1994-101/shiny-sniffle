@@ -13,10 +13,10 @@ alwaysApply: true
 | Folder | Kind | Purpose |
 |--------|------|---------|
 | `Users/`, `ChatThreads/`, `ChatMessages/`, `UserSettings/` | **Business slice** | One bounded area: DTOs, repository, commands, queries |
-| `Features/_Shared/` | **Plumbing** | `IFeatureSender`, pipeline, validation behaviors, `AddFeatureLayer()` — not a business slice |
-| `Features/Shared/` | **Cross-slice** | Functionality needed by **multiple** slices: shared DTOs, `SharedRepository` methods, future shared code |
+| `Features/Shared/` | **Cross-slice** | Shared DTOs, `SharedRepository`, plus `Cqrs/` subfolder for plumbing |
+| `Features/Shared/Cqrs/` | **Plumbing** | `IFeatureSender`, pipeline, validation behaviors, `AddFeatureLayer()` |
 
-Do **not** confuse `Features/_Shared/` (underscore — infrastructure) with `Features/Shared/` (cross-slice data).
+`Shared/Cqrs/` is machinery; `Shared/DTOs.cs` and `Shared/Repository.cs` are cross-slice data.
 
 ## Business slice layout
 
@@ -34,8 +34,13 @@ Features/ChatThreads/
   Queries/ ...
 
 Features/Shared/
-  DTOs.cs              cross-slice read shapes (when needed)
-  Repository.cs        class SharedRepository
+  DTOs.cs
+  Repository.cs     SharedRepository
+  Cqrs/
+    Abstractions/
+    Pipeline/
+    DependencyInjection/
+    ...
 ```
 
 ### Slice folder naming
@@ -163,7 +168,7 @@ Other services (`UserMailboxService`, `ChatOrchestrator`) keep descriptive names
 | Query spanning entities / slices | `Features/Shared/Repository.cs` (`SharedRepository`) |
 | Use-case Request/Response | `Features/{Slice}/Commands\|Queries/{UseCase}.cs` |
 | Slice-only data access | `Features/{Slice}/Repository.cs` |
-| CQRS pipeline, sender, DI | `Features/_Shared/` |
+| CQRS pipeline, sender, DI | `Features/Shared/Cqrs/` |
 
 Handlers call `_sharedRepo` only when a use case needs cross-slice data; until then, injection + `_sharedRepo` field wires DI for future use.
 

@@ -1,4 +1,4 @@
-﻿using Infrastructure;
+using Infrastructure;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Localization;
 using System.Globalization;
@@ -8,7 +8,7 @@ using WebApp.AI;
 using WebApp.AI.Agents;
 using WebApp.AI.Tools;
 using WebApp.Components;
-using WebApp.Features._Shared.DependencyInjection;
+using WebApp.Features.Shared.Cqrs.DependencyInjection;
 using WebApp.Utilities.Services;
 
 namespace WebApp;

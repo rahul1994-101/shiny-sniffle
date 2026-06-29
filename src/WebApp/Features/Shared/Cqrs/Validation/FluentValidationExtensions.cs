@@ -1,6 +1,6 @@
 using FluentValidation.Results;
 
-namespace WebApp.Features._Shared.Validation;
+namespace WebApp.Features.Shared.Cqrs.Validation;
 
 internal static class FluentValidationExtensions
 {

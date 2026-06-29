@@ -1,4 +1,4 @@
-namespace WebApp.Features._Shared.Abstractions;
+namespace WebApp.Features.Shared.Cqrs.Abstractions;
 
 public interface IFeatureRequest<TResult> where TResult : AppResult, new() { }
 

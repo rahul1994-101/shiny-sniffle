@@ -1,6 +1,6 @@
-using WebApp.Features._Shared.Abstractions;
+using WebApp.Features.Shared.Cqrs.Abstractions;
 
-namespace WebApp.Features._Shared.Pipeline;
+namespace WebApp.Features.Shared.Cqrs.Pipeline;
 
 public sealed class FeaturePipeline<TRequest, TResult>(IEnumerable<IFeaturePipelineBehavior<TRequest, TResult>> behaviors)
     where TRequest : IFeatureRequest<TResult>

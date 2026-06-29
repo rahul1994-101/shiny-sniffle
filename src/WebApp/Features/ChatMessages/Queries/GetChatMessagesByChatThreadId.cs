@@ -1,6 +1,6 @@
 using FluentValidation;
 
-using WebApp.Features._Shared.Abstractions;
+using WebApp.Features.Shared.Cqrs.Abstractions;
 
 namespace WebApp.Features.ChatMessages.Queries;
 

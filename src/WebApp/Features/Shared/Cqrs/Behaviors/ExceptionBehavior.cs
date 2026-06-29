@@ -1,6 +1,6 @@
-using WebApp.Features._Shared.Abstractions;
+using WebApp.Features.Shared.Cqrs.Abstractions;
 
-namespace WebApp.Features._Shared.Behaviors;
+namespace WebApp.Features.Shared.Cqrs.Behaviors;
 
 public sealed class ExceptionBehavior<TRequest, TResult> : IFeaturePipelineBehavior<TRequest, TResult>
     where TRequest : IFeatureRequest<TResult>

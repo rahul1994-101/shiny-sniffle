@@ -8,10 +8,10 @@ using AiChatRole = Microsoft.Extensions.AI.ChatRole;
 namespace WebApp.AI;
 
 public sealed class ChatOrchestrator(
-    IOptions<FoundryOptions> _foundryOptions,
-    ChatMessageRepository _chatMessages,
-    AssistantAgent _assistantAgent,
-    EmailAgent _emailAgent)
+    IOptions<FoundryOptions> foundryOptions,
+    ChatMessageRepository chatMessageRepo,
+    AssistantAgent assistantAgent,
+    EmailAgent emailAgent)
 {
     private const int DefaultMessageLimit = 12;
 
@@ -19,7 +19,7 @@ public sealed class ChatOrchestrator(
     {
         #region # Validate
 
-        if (!_foundryOptions.Value.IsConfigured)
+        if (!foundryOptions.Value.IsConfigured)
         {
             return new RunChatAgentResponse
             {
@@ -36,8 +36,8 @@ public sealed class ChatOrchestrator(
         var history = await LoadThreadHistoryAsync(request.ChatThreadId, cancellationToken);
         var response = request.ChatAgent switch
         {
-            ChatAgent.Email => await _emailAgent.RunAsync(request, history, cancellationToken),
-            _ => await _assistantAgent.RunAsync(request, history, cancellationToken)
+            ChatAgent.Email => await emailAgent.RunAsync(request, history, cancellationToken),
+            _ => await assistantAgent.RunAsync(request, history, cancellationToken)
         };
 
         #endregion
@@ -55,7 +55,7 @@ public sealed class ChatOrchestrator(
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var messages = await _chatMessages.GetRecentByChatThreadIdAsync(
+        var messages = await chatMessageRepo.GetRecentByChatThreadIdAsync(
             chatThreadId,
             DefaultMessageLimit,
             cancellationToken);

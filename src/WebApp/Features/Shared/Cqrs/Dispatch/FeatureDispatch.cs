@@ -1,7 +1,7 @@
-using WebApp.Features._Shared.Abstractions;
-using WebApp.Features._Shared.Pipeline;
+using WebApp.Features.Shared.Cqrs.Abstractions;
+using WebApp.Features.Shared.Cqrs.Pipeline;
 
-namespace WebApp.Features._Shared.Dispatch;
+namespace WebApp.Features.Shared.Cqrs.Dispatch;
 
 internal interface IFeatureRequestInvoker
 {

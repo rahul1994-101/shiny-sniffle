@@ -1,11 +1,11 @@
 using FluentValidation;
 using System.Reflection;
-using WebApp.Features._Shared.Abstractions;
-using WebApp.Features._Shared.Behaviors;
-using WebApp.Features._Shared.Dispatch;
-using WebApp.Features._Shared.Pipeline;
+using WebApp.Features.Shared.Cqrs.Abstractions;
+using WebApp.Features.Shared.Cqrs.Behaviors;
+using WebApp.Features.Shared.Cqrs.Dispatch;
+using WebApp.Features.Shared.Cqrs.Pipeline;
 
-namespace WebApp.Features._Shared.DependencyInjection;
+namespace WebApp.Features.Shared.Cqrs.DependencyInjection;
 
 public static class FeatureServiceCollectionExtensions
 {
