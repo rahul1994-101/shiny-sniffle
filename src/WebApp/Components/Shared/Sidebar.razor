@@ -136,7 +136,7 @@
 
     private async Task LoadThreadsAsync()
     {
-        var result = await Sender.SendAsync(new GetChatThreadsByUserIdRequest(CurrentUser.Id));
+        var result = await Mediator.SendAsync(new GetChatThreadsByUserIdRequest(CurrentUser.Id));
         _threads = result.Payload?.Threads ?? [];
     }
 
@@ -148,7 +148,7 @@
 
     private async Task StartNewChatAsync()
     {
-        var result = await Sender.SendAsync(new ChatThreadCmd.AddChatThreadRequest("New chat", CurrentUser.Id));
+        var result = await Mediator.SendAsync(new ChatThreadCmd.AddChatThreadRequest("New chat", CurrentUser.Id));
         if (result.HasError || result.Payload is null)
         {
             return;
@@ -162,7 +162,7 @@
 
     private async Task DeleteThreadAsync(Guid id)
     {
-        var result = await Sender.SendAsync(new ChatThreadCmd.DeleteChatThreadRequest(id, CurrentUser.Id));
+        var result = await Mediator.SendAsync(new ChatThreadCmd.DeleteChatThreadRequest(id, CurrentUser.Id));
         if (result.HasError)
         {
             return;
@@ -172,7 +172,7 @@
 
         if (_threads.Count == 0)
         {
-            var created = await Sender.SendAsync(new ChatThreadCmd.AddChatThreadRequest("New chat", CurrentUser.Id));
+            var created = await Mediator.SendAsync(new ChatThreadCmd.AddChatThreadRequest("New chat", CurrentUser.Id));
             if (created.Payload is not null)
             {
                 _threads.Insert(0, created.Payload);
@@ -229,7 +229,7 @@
         }
 
         var threadId = _editingId.Value;
-        var result = await Sender.SendAsync(new ChatThreadCmd.UpdateChatThreadTitleRequest(
+        var result = await Mediator.SendAsync(new ChatThreadCmd.UpdateChatThreadTitleRequest(
             threadId,
             _editTitle,
             CurrentUser.Id));

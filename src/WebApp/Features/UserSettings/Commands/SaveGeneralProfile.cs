@@ -1,11 +1,10 @@
 using FluentValidation;
 
-using WebApp.Features.Shared.Cqrs.Abstractions;
 
 namespace WebApp.Features.UserSettings.Commands;
 
 public sealed record SaveGeneralProfileRequest(Guid UserId, string FirstName, string LastName)
-    : ICommand<AppResult<SaveGeneralProfileResponse?>>;
+    : ICommand<SaveGeneralProfileResponse?>;
 
 public sealed class SaveGeneralProfileResponse : GeneralSettingsDto
 {
@@ -34,14 +33,14 @@ public sealed class SaveGeneralProfileRequestValidator : AbstractValidator<SaveG
 }
 
 public sealed class SaveGeneralProfileRequestHandler(UserSettingsRepository userSettingsRepo, SharedRepository sharedRepo)
-    : IFeatureHandler<SaveGeneralProfileRequest, AppResult<SaveGeneralProfileResponse?>>
+    : IRequestHandler<SaveGeneralProfileRequest, Result<SaveGeneralProfileResponse?>>
 {
     private readonly SharedRepository _sharedRepo = sharedRepo;
 
 
-    public async Task<AppResult<SaveGeneralProfileResponse?>> HandleAsync(SaveGeneralProfileRequest request, CancellationToken cancellationToken = default)
+    public async ValueTask<Result<SaveGeneralProfileResponse?>> HandleAsync(SaveGeneralProfileRequest request, CancellationToken cancellationToken = default)
     {
-        var result = new AppResult<SaveGeneralProfileResponse?>();
+        var result = new Result<SaveGeneralProfileResponse?>();
 
         #region # Execute
 

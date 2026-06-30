@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 
-using WebApp.Features.Shared.Cqrs.Abstractions;
+using MediatR.Abstractions;
 using WebApp.Utilities.Services;
 
 namespace WebApp.Components;
@@ -15,7 +15,7 @@ public abstract class BaseComponent : ComponentBase
     #region # Init
 
     [Inject]
-    protected IFeatureSender Sender { get; set; } = null!;
+    protected IMediator Mediator { get; set; } = null!;
 
     [Inject]
     protected NavigationManager NavigationManager { get; set; } = null!;

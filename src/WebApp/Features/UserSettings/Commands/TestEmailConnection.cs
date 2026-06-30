@@ -1,12 +1,11 @@
 using FluentValidation;
 
-using WebApp.Features.Shared.Cqrs.Abstractions;
 using WebApp.Utilities.Services;
 
 namespace WebApp.Features.UserSettings.Commands;
 
 public sealed record TestEmailConnectionRequest(Guid UserId, EmailSettingsDto Email)
-    : ICommand<AppResult<TestEmailConnectionResponse?>>;
+    : ICommand<TestEmailConnectionResponse?>;
 
 public sealed class TestEmailConnectionResponse
 {
@@ -28,14 +27,14 @@ public sealed class TestEmailConnectionRequestValidator : AbstractValidator<Test
 }
 
 public sealed class TestEmailConnectionRequestHandler(UserMailboxService mailboxService, SharedRepository sharedRepo)
-    : IFeatureHandler<TestEmailConnectionRequest, AppResult<TestEmailConnectionResponse?>>
+    : IRequestHandler<TestEmailConnectionRequest, Result<TestEmailConnectionResponse?>>
 {
     private readonly SharedRepository _sharedRepo = sharedRepo;
 
 
-    public async Task<AppResult<TestEmailConnectionResponse?>> HandleAsync(TestEmailConnectionRequest request, CancellationToken cancellationToken = default)
+    public async ValueTask<Result<TestEmailConnectionResponse?>> HandleAsync(TestEmailConnectionRequest request, CancellationToken cancellationToken = default)
     {
-        var result = new AppResult<TestEmailConnectionResponse?>();
+        var result = new Result<TestEmailConnectionResponse?>();
 
         #region # Execute
 

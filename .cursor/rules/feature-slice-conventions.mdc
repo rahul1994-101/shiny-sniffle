@@ -108,13 +108,13 @@ Capture `sharedRepo` when the handler does not call it yet (avoids unused-parame
 
 ```csharp
 public sealed class SignInRequestHandler(UserRepository userRepo, SharedRepository sharedRepo)
-    : IFeatureHandler<SignInRequest, AppResult<SignInResponse>>
+    : IFeatureHandler<SignInRequest, Result<SignInResponse>>
 {
     private readonly SharedRepository _sharedRepo = sharedRepo;
 
-    public async Task<AppResult<SignInResponse>> HandleAsync(SignInRequest request, CancellationToken cancellationToken = default)
+    public async Task<Result<SignInResponse>> HandleAsync(SignInRequest request, CancellationToken cancellationToken = default)
     {
-        var result = new AppResult<SignInResponse>();
+        var result = new Result<SignInResponse>();
 
         #region # Execute
 
@@ -181,6 +181,6 @@ Handlers call `_sharedRepo` only when a use case needs cross-slice data; until t
 | `Infrastructure/Persistence/` | `AppDbContext` only |
 | `WebApp/Features/{Slice}/` | Use cases + slice repositories |
 | `WebApp/Features/Shared/` | Cross-slice DTOs + `SharedRepository` |
-| `WebApp/Models/` | `AppResult`, app constants, AI turn shapes |
+| `WebApp/Models/` | `Result`, app constants, AI turn shapes |
 
 No `AppDbContext` or repository ports in handlers beyond concrete `{Entity}Repository` + `SharedRepository`.

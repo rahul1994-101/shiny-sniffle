@@ -1,11 +1,10 @@
 using FluentValidation;
 
-using WebApp.Features.Shared.Cqrs.Abstractions;
 
 namespace WebApp.Features.UserSettings.Queries;
 
 public sealed record GetEmailSettingsRequest(Guid UserId)
-    : IQuery<AppResult<GetEmailSettingsResponse?>>;
+    : IQuery<GetEmailSettingsResponse?>;
 
 public sealed class GetEmailSettingsResponse : EmailSettingsDto
 {
@@ -22,14 +21,14 @@ public sealed class GetEmailSettingsRequestValidator : AbstractValidator<GetEmai
 }
 
 public sealed class GetEmailSettingsRequestHandler(UserSettingsRepository userSettingsRepo, SharedRepository sharedRepo)
-    : IFeatureHandler<GetEmailSettingsRequest, AppResult<GetEmailSettingsResponse?>>
+    : IRequestHandler<GetEmailSettingsRequest, Result<GetEmailSettingsResponse?>>
 {
     private readonly SharedRepository _sharedRepo = sharedRepo;
 
 
-    public async Task<AppResult<GetEmailSettingsResponse?>> HandleAsync(GetEmailSettingsRequest request, CancellationToken cancellationToken = default)
+    public async ValueTask<Result<GetEmailSettingsResponse?>> HandleAsync(GetEmailSettingsRequest request, CancellationToken cancellationToken = default)
     {
-        var result = new AppResult<GetEmailSettingsResponse?>();
+        var result = new Result<GetEmailSettingsResponse?>();
 
         #region # Execute
 

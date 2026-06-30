@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
 
-using WebApp.Features.Shared.Cqrs.Abstractions;
+using MediatR.Abstractions;
 using WebApp.Features.Users.Commands;
 using WebApp.Utilities.Extensions;
 using WebApp.Utilities.Helpers;
@@ -11,7 +11,7 @@ using WebApp.Utilities.Helpers;
 namespace WebApp.Endpoints;
 
 [Route("api/auth")]
-public sealed class AuthEndpoints(IFeatureSender sender, IAntiforgery _antiforgery) : Controller
+public sealed class AuthEndpoints(IMediator mediator, IAntiforgery _antiforgery) : Controller
 {
     [HttpPost("login")]
     public async Task<IActionResult> SignIn(
@@ -23,7 +23,7 @@ public sealed class AuthEndpoints(IFeatureSender sender, IAntiforgery _antiforge
             return LocalRedirect(AuthExtensions.LoginUrl(returnUrl, "Invalid request. Please try again."));
         }
 
-        var result = await sender.SendAsync(request);
+        var result = await mediator.SendAsync(request);
         if (result.HasError || result.Payload is null)
         {
             var message = result.Errors.FirstOrDefault()?.Message ?? "Invalid email or password.";

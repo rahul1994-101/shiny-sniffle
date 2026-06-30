@@ -90,7 +90,7 @@
 
     private async Task LoadThreadContextAsync(Guid threadId)
     {
-        var result = await Sender.SendAsync(new GetChatThreadByIdRequest(threadId));
+        var result = await Mediator.SendAsync(new GetChatThreadByIdRequest(threadId));
 
         // Missing, deleted, or another user's thread — send home.
         if (result.HasError
@@ -134,7 +134,7 @@
 
     private async Task LoadMessagesAsync()
     {
-        var result = await Sender.SendAsync(new GetChatMessagesByChatThreadIdRequest(_activeThreadId));
+        var result = await Mediator.SendAsync(new GetChatMessagesByChatThreadIdRequest(_activeThreadId));
         _messages = result.Payload?.Messages ?? [];
     }
 
@@ -149,7 +149,7 @@
         _draft = string.Empty;
         _resizeComposerAfterRender = true;
 
-        var sendResult = await Sender.SendAsync(new SendChatMessageRequest(
+        var sendResult = await Mediator.SendAsync(new SendChatMessageRequest(
             _activeThreadId,
             CurrentUser.Id,
             _chatAgent,

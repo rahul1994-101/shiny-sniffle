@@ -1,11 +1,12 @@
 using FluentValidation.Results;
+using MediatR.Results;
 
-namespace WebApp.Features.Shared.Cqrs.Validation;
+namespace MediatR.Validation;
 
 internal static class FluentValidationExtensions
 {
     internal static TResult ToFailedResult<TResult>(ValidationResult validationResult)
-        where TResult : AppResult, new()
+        where TResult : Result, new()
     {
         var result = new TResult();
         foreach (var error in validationResult.Errors)

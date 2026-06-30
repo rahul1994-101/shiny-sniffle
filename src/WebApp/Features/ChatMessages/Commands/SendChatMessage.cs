@@ -1,14 +1,13 @@
 using FluentValidation;
 
 using WebApp.AI;
-using WebApp.Features.Shared.Cqrs.Abstractions;
 using WebApp.Features.ChatMessages;
 using WebApp.Features.ChatThreads;
 
 namespace WebApp.Features.ChatMessages.Commands;
 
 public sealed record SendChatMessageRequest(Guid ChatThreadId, Guid UserId, ChatAgent ChatAgent, string Message)
-    : ICommand<AppResult<SendChatMessageResponse?>>;
+    : ICommand<SendChatMessageResponse?>;
 
 public sealed class SendChatMessageResponse
 {
@@ -35,14 +34,14 @@ public sealed class SendChatMessageRequestValidator : AbstractValidator<SendChat
 }
 
 public sealed class SendChatMessageRequestHandler(ChatThreadRepository chatThreadRepo, ChatMessageRepository chatMessageRepo, SharedRepository sharedRepo, ChatOrchestrator chatOrchestrator)
-    : IFeatureHandler<SendChatMessageRequest, AppResult<SendChatMessageResponse?>>
+    : IRequestHandler<SendChatMessageRequest, Result<SendChatMessageResponse?>>
 {
     private readonly SharedRepository _sharedRepo = sharedRepo;
 
 
-    public async Task<AppResult<SendChatMessageResponse?>> HandleAsync(SendChatMessageRequest request, CancellationToken cancellationToken = default)
+    public async ValueTask<Result<SendChatMessageResponse?>> HandleAsync(SendChatMessageRequest request, CancellationToken cancellationToken = default)
     {
-        var result = new AppResult<SendChatMessageResponse?>();
+        var result = new Result<SendChatMessageResponse?>();
         var text = request.Message.Trim();
 
         var thread = await chatThreadRepo.GetActiveByIdAsync(request.ChatThreadId, cancellationToken);

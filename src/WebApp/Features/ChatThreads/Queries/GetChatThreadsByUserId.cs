@@ -1,11 +1,10 @@
 using FluentValidation;
 
-using WebApp.Features.Shared.Cqrs.Abstractions;
 
 namespace WebApp.Features.ChatThreads.Queries;
 
 public sealed record GetChatThreadsByUserIdRequest(Guid UserId)
-    : IQuery<AppResult<GetChatThreadsByUserIdResponse?>>;
+    : IQuery<GetChatThreadsByUserIdResponse?>;
 
 public sealed class GetChatThreadsByUserIdResponse
 {
@@ -23,14 +22,14 @@ public sealed class GetChatThreadsByUserIdRequestValidator : AbstractValidator<G
 }
 
 public sealed class GetChatThreadsByUserIdRequestHandler(ChatThreadRepository chatThreadRepo, SharedRepository sharedRepo)
-    : IFeatureHandler<GetChatThreadsByUserIdRequest, AppResult<GetChatThreadsByUserIdResponse?>>
+    : IRequestHandler<GetChatThreadsByUserIdRequest, Result<GetChatThreadsByUserIdResponse?>>
 {
     private readonly SharedRepository _sharedRepo = sharedRepo;
 
 
-    public async Task<AppResult<GetChatThreadsByUserIdResponse?>> HandleAsync(GetChatThreadsByUserIdRequest request, CancellationToken cancellationToken = default)
+    public async ValueTask<Result<GetChatThreadsByUserIdResponse?>> HandleAsync(GetChatThreadsByUserIdRequest request, CancellationToken cancellationToken = default)
     {
-        var result = new AppResult<GetChatThreadsByUserIdResponse?>();
+        var result = new Result<GetChatThreadsByUserIdResponse?>();
 
         #region # Execute
 

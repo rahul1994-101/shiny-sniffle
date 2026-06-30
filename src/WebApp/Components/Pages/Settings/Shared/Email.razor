@@ -323,7 +323,7 @@ else
         _busy = TabBusy.Loading;
         _status.Clear();
 
-        var result = await Sender.SendAsync(new GetEmailSettingsRequest(CurrentUser.Id));
+        var result = await Mediator.SendAsync(new GetEmailSettingsRequest(CurrentUser.Id));
 
         #region # Handle Result
 
@@ -357,7 +357,7 @@ else
 
         #region # Execute
 
-        var result = await Sender.SendAsync(new SaveEmailSettingsRequest(CurrentUser.Id, _email));
+        var result = await Mediator.SendAsync(new SaveEmailSettingsRequest(CurrentUser.Id, _email));
 
         #endregion
 
@@ -396,7 +396,7 @@ else
 
         #region # Execute
 
-        var result = await Sender.SendAsync(new TestEmailConnectionRequest(CurrentUser.Id, _email));
+        var result = await Mediator.SendAsync(new TestEmailConnectionRequest(CurrentUser.Id, _email));
 
         #endregion
 

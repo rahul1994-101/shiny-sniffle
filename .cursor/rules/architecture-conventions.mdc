@@ -58,7 +58,7 @@ Infrastructure/
 | **Features/{Slice}/** | Independent vertical slice: `DTOs.cs`, `Repository.cs`, `Commands/`, `Queries/`. See `feature-slice-conventions.mdc`. |
 | **Features/Shared/** | Cross-slice DTOs + `SharedRepository` (not a business slice). |
 | **Features/Shared/Cqrs/** | CQRS plumbing: `IFeatureSender`, pipeline, `AddFeatureLayer()` + `AddFeatureRepositories()`. |
-| **Models/** | App/UI-only — `AppResult`, AI turn shapes, constants. |
+| **Models/** | App/UI-only — `Result`, AI turn shapes, constants. |
 | **Components/, Endpoints/, AI/, Utilities/** | UI and orchestration; depend on Features + `Core.Abstractions`. |
 
 WebApp is the **composition root** (`Startup.cs`).
@@ -78,7 +78,7 @@ WebApp is the **composition root** (`Startup.cs`).
 | Cross-slice data access? | `WebApp/Features/Shared/Repository.cs` (`SharedRepository`) |
 | New external system port? | `Core/Abstractions/{Concern}.cs` + `Infrastructure/{Concern}/` |
 | EF / IMAP / SMTP implementation? | `Infrastructure/{Concern}/` |
-| `AppResult`, AI turn, mailbox UI? | `WebApp/Models/` |
+| `Result`, AI turn, mailbox UI? | `WebApp/Models/` |
 | LLM / tools / chat turn? | `WebApp/AI/` |
 
 ## Feature slices

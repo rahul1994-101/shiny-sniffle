@@ -1,11 +1,10 @@
 using FluentValidation;
 
-using WebApp.Features.Shared.Cqrs.Abstractions;
 
 namespace WebApp.Features.UserSettings.Queries;
 
 public sealed record GetGeneralSettingsRequest(Guid UserId)
-    : IQuery<AppResult<GetGeneralSettingsResponse?>>;
+    : IQuery<GetGeneralSettingsResponse?>;
 
 public sealed class GetGeneralSettingsResponse : GeneralSettingsDto
 {
@@ -22,14 +21,14 @@ public sealed class GetGeneralSettingsRequestValidator : AbstractValidator<GetGe
 }
 
 public sealed class GetGeneralSettingsRequestHandler(UserSettingsRepository userSettingsRepo, SharedRepository sharedRepo)
-    : IFeatureHandler<GetGeneralSettingsRequest, AppResult<GetGeneralSettingsResponse?>>
+    : IRequestHandler<GetGeneralSettingsRequest, Result<GetGeneralSettingsResponse?>>
 {
     private readonly SharedRepository _sharedRepo = sharedRepo;
 
 
-    public async Task<AppResult<GetGeneralSettingsResponse?>> HandleAsync(GetGeneralSettingsRequest request, CancellationToken cancellationToken = default)
+    public async ValueTask<Result<GetGeneralSettingsResponse?>> HandleAsync(GetGeneralSettingsRequest request, CancellationToken cancellationToken = default)
     {
-        var result = new AppResult<GetGeneralSettingsResponse?>();
+        var result = new Result<GetGeneralSettingsResponse?>();
 
         #region # Execute
 

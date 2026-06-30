@@ -13,7 +13,7 @@ Solution layout and layer boundaries: **`architecture-conventions.mdc`**. This r
 | **Components/** | Blazor UI. See `blazor-conventions.mdc`. |
 | **Features/** | Independent vertical slices + `Features/Shared/` (cross-slice data + `Shared/Cqrs/` plumbing). See `feature-slice-conventions.mdc` and `data-conventions.mdc`. |
 | **AI/** | MAF agents, tools, `ChatOrchestrator`. See `ai-conventions.mdc`. |
-| **Models/** | App/UI models (`AppResult`, unmigrated form DTOs, mail/AI types). Feature-owned Request/Response live in **Features/** — see `dto-conventions.mdc`. |
+| **Models/** | App/UI models (AI turn, constants). `Result` types → **`MediatR.Results`**. |
 | **Utilities/** | Extensions, Helpers, Services (`UserMailboxService`, `CurrentUser`). No MailKit — mailbox adapter is in Infrastructure. |
 
 **Not in WebApp anymore:** `AppDbContext`, `Persistence`, entities (`Core/Entities/`), repository DTOs (`Core/DTOs/`).

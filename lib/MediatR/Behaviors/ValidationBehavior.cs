@@ -1,18 +1,18 @@
 using FluentValidation;
+using MediatR.Abstractions;
+using MediatR.Results;
+using MediatR.Validation;
 
-using WebApp.Features.Shared.Cqrs.Abstractions;
-using WebApp.Features.Shared.Cqrs.Validation;
-
-namespace WebApp.Features.Shared.Cqrs.Behaviors;
+namespace MediatR.Behaviors;
 
 public sealed class ValidationBehavior<TRequest, TResult>(IEnumerable<IValidator<TRequest>> validators)
-    : IFeaturePipelineBehavior<TRequest, TResult>
-    where TRequest : IFeatureRequest<TResult>
-    where TResult : AppResult, new()
+    : IPipelineBehavior<TRequest, TResult>
+    where TRequest : IRequest<TResult>
+    where TResult : Result, new()
 {
-    public async Task<TResult> HandleAsync(
+    public async ValueTask<TResult> HandleAsync(
         TRequest request,
-        FeatureHandlerDelegate<TRequest, TResult> next,
+        RequestHandlerDelegate<TRequest, TResult> next,
         CancellationToken cancellationToken)
     {
         foreach (var validator in validators)

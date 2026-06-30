@@ -46,7 +46,7 @@ One file per use case under `{Slice}/Commands/` or `{Slice}/Queries/`.
 Each file contains, in order:
 
 1. **Request record** — `ICommand<>` or `IQuery<>`
-2. **Response type(s)** — when the use case defines a result shape (skip for `AppResult`-only commands)
+2. **Response type(s)** — when the use case defines a result shape (skip for `Result`-only commands)
 3. **FluentValidation validator**
 4. **Handler** (`IFeatureHandler<,>`)
 
@@ -96,7 +96,7 @@ Reference: `Users/Commands/SignIn.cs`, `ChatThreads/Commands/AddChatThread.cs`.
 #region # Handle Result
 ```
 
-Returns `AppResult` / `AppResult<T>`; inject local **`{entity}Repo`** plus **`sharedRepo`** (see table above).
+Returns `Result` / `Result<T>`; inject local **`{entity}Repo`** plus **`sharedRepo`** (see table above).
 
 ### Plumbing
 

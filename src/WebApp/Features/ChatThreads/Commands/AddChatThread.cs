@@ -1,11 +1,10 @@
 using FluentValidation;
 
-using WebApp.Features.Shared.Cqrs.Abstractions;
 
 namespace WebApp.Features.ChatThreads.Commands;
 
 public sealed record AddChatThreadRequest(string Title, Guid UserId, ChatAgent ChatAgent = default)
-    : ICommand<AppResult<AddChatThreadResponse?>>;
+    : ICommand<AddChatThreadResponse?>;
 
 public sealed class AddChatThreadResponse : ChatThreadDto
 {
@@ -28,14 +27,14 @@ public sealed class AddChatThreadRequestValidator : AbstractValidator<AddChatThr
 }
 
 public sealed class AddChatThreadRequestHandler(ChatThreadRepository chatThreadRepo, SharedRepository sharedRepo)
-    : IFeatureHandler<AddChatThreadRequest, AppResult<AddChatThreadResponse?>>
+    : IRequestHandler<AddChatThreadRequest, Result<AddChatThreadResponse?>>
 {
     private readonly SharedRepository _sharedRepo = sharedRepo;
 
 
-    public async Task<AppResult<AddChatThreadResponse?>> HandleAsync(AddChatThreadRequest request, CancellationToken cancellationToken = default)
+    public async ValueTask<Result<AddChatThreadResponse?>> HandleAsync(AddChatThreadRequest request, CancellationToken cancellationToken = default)
     {
-        var result = new AppResult<AddChatThreadResponse?>();
+        var result = new Result<AddChatThreadResponse?>();
 
         #region # Execute
 

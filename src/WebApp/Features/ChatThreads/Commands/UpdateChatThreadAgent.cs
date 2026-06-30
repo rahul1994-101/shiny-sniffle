@@ -1,12 +1,11 @@
 using FluentValidation;
 
-using WebApp.Features.Shared.Cqrs.Abstractions;
 using WebApp.Utilities.Services;
 
 namespace WebApp.Features.ChatThreads.Commands;
 
 public sealed record UpdateChatThreadAgentRequest(Guid Id, Guid UserId, ChatAgent ChatAgent)
-    : ICommand<AppResult<UpdateChatThreadAgentResponse?>>;
+    : ICommand<UpdateChatThreadAgentResponse?>;
 
 public sealed class UpdateChatThreadAgentResponse : ChatThreadDto
 {
@@ -27,14 +26,14 @@ public sealed class UpdateChatThreadAgentRequestValidator : AbstractValidator<Up
 }
 
 public sealed class UpdateChatThreadAgentRequestHandler(ChatThreadRepository chatThreadRepo, SharedRepository sharedRepo, UserMailboxService mailboxService)
-    : IFeatureHandler<UpdateChatThreadAgentRequest, AppResult<UpdateChatThreadAgentResponse?>>
+    : IRequestHandler<UpdateChatThreadAgentRequest, Result<UpdateChatThreadAgentResponse?>>
 {
     private readonly SharedRepository _sharedRepo = sharedRepo;
 
 
-    public async Task<AppResult<UpdateChatThreadAgentResponse?>> HandleAsync(UpdateChatThreadAgentRequest request, CancellationToken cancellationToken = default)
+    public async ValueTask<Result<UpdateChatThreadAgentResponse?>> HandleAsync(UpdateChatThreadAgentRequest request, CancellationToken cancellationToken = default)
     {
-        var result = new AppResult<UpdateChatThreadAgentResponse?>();
+        var result = new Result<UpdateChatThreadAgentResponse?>();
 
         if (request.ChatAgent == ChatAgent.Email && !await mailboxService.IsConfiguredAsync(request.UserId, cancellationToken))
         {

@@ -5,6 +5,9 @@
       <Deploy />
     </Project>
   </Folder>
+  <Folder Name="/lib/">
+    <Project Path="lib/MediatR/MediatR.csproj" Id="154612a0-3ff1-48fd-8ea1-1b713775a5be" />
+  </Folder>
   <Folder Name="/src/">
     <Project Path="src/Core/Core.csproj" Id="19b51287-2da1-45d5-9017-5246c9b89df0" />
     <Project Path="src/Infrastructure/Infrastructure.csproj" Id="60794dad-ea9e-4a4f-a96a-34cf8012e75b" />

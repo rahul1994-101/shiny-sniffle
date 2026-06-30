@@ -55,7 +55,7 @@ Namespace: `Core.DTOs`. No repository or feature DTOs here.
 
 | File | Types |
 |------|-------|
-| `_Common.cs` | `AppResult`, `AppResult<T>`, `AppError` |
+| `_Common.cs` | *(removed)* — `Result` types → `MediatR.Results` |
 | `Enums.cs` | `ErrorCode`, `SettingsSection` |
 | `AI.cs` | `RunChatAgentRequest/Response` |
 | `Constants.cs` | `AuthConstants`, `ChatMessageRoles` |
@@ -77,7 +77,7 @@ Namespace: `WebApp.Models`.
 2. **Shared read shape within one slice?** → `Features/{Slice}/DTOs.cs`; Response may inherit
 3. **Shared read shape across slices?** → `Features/Shared/DTOs.cs`
 4. **Mailbox / Foundry port shape?** → `Core/DTOs/`
-5. **`AppResult` / AI turn?** → `WebApp/Models/`
+5. **`Result` / AI turn?** → `WebApp/Models/`
 6. **DB entity?** → `Core/Entities/`
 
 ## Example

@@ -235,7 +235,7 @@ else
         _profileStatus.Clear();
         _passwordStatus.Clear();
 
-        var result = await Sender.SendAsync(new GetGeneralSettingsRequest(CurrentUser.Id));
+        var result = await Mediator.SendAsync(new GetGeneralSettingsRequest(CurrentUser.Id));
 
         #region # Handle Result
 
@@ -280,7 +280,7 @@ else
 
         #region # Execute
 
-        var result = await Sender.SendAsync(new SaveGeneralProfileRequest(
+        var result = await Mediator.SendAsync(new SaveGeneralProfileRequest(
             CurrentUser.Id,
             _profile.FirstName,
             _profile.LastName));
@@ -341,7 +341,7 @@ else
 
         #region # Execute
 
-        var result = await Sender.SendAsync(new ChangePasswordRequest(
+        var result = await Mediator.SendAsync(new ChangePasswordRequest(
             CurrentUser.Id,
             _currentPassword,
             _newPassword,

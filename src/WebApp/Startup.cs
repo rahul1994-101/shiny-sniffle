@@ -8,7 +8,8 @@ using WebApp.AI;
 using WebApp.AI.Agents;
 using WebApp.AI.Tools;
 using WebApp.Components;
-using WebApp.Features.Shared.Cqrs.DependencyInjection;
+using MediatR.DependencyInjection;
+using WebApp.Features.Shared;
 using WebApp.Utilities.Services;
 
 namespace WebApp;
@@ -100,7 +101,7 @@ public static class DependencyInject
     public static void InjectFeatures(this IServiceCollection services)
     {
         services.AddFeatureRepositories();
-        services.AddFeatureLayer(Assembly.GetExecutingAssembly());
+        services.AddMediatR(Assembly.GetExecutingAssembly());
     }
 
     public static void InjectAi(this IServiceCollection services, IConfiguration configuration)

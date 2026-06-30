@@ -1,11 +1,10 @@
 using FluentValidation;
 
-using WebApp.Features.Shared.Cqrs.Abstractions;
 
 namespace WebApp.Features.UserSettings.Commands;
 
 public sealed record ChangePasswordRequest(Guid UserId, string CurrentPassword, string NewPassword, string ConfirmPassword)
-    : ICommand<AppResult>;
+    : ICommand;
 
 public sealed class ChangePasswordRequestValidator : AbstractValidator<ChangePasswordRequest>
 {
@@ -36,14 +35,14 @@ public sealed class ChangePasswordRequestValidator : AbstractValidator<ChangePas
 }
 
 public sealed class ChangePasswordRequestHandler(UserSettingsRepository userSettingsRepo, SharedRepository sharedRepo)
-    : IFeatureHandler<ChangePasswordRequest, AppResult>
+    : IRequestHandler<ChangePasswordRequest, Result>
 {
     private readonly SharedRepository _sharedRepo = sharedRepo;
 
 
-    public async Task<AppResult> HandleAsync(ChangePasswordRequest request, CancellationToken cancellationToken = default)
+    public async ValueTask<Result> HandleAsync(ChangePasswordRequest request, CancellationToken cancellationToken = default)
     {
-        var result = new AppResult();
+        var result = new Result();
 
         var currentMatches = await userSettingsRepo.UserPasswordMatchesAsync(request.UserId, request.CurrentPassword);
         if (!currentMatches)

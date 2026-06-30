@@ -106,7 +106,7 @@
         {
             #region # Execute
 
-            var result = await Sender.SendAsync(new ChatThreadCmd.UpdateChatThreadAgentRequest(
+            var result = await Mediator.SendAsync(new ChatThreadCmd.UpdateChatThreadAgentRequest(
                 ThreadId,
                 CurrentUser.Id,
                 selected));

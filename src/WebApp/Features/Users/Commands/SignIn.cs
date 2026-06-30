@@ -1,11 +1,10 @@
 using FluentValidation;
 
-using WebApp.Features.Shared.Cqrs.Abstractions;
 
 namespace WebApp.Features.Users.Commands;
 
 public sealed record SignInRequest(string EmailId, string Password)
-    : ICommand<AppResult<SignInResponse>>;
+    : ICommand<SignInResponse>;
 
 public sealed class SignInResponse : SessionDto
 {
@@ -28,13 +27,13 @@ public sealed class SignInRequestValidator : AbstractValidator<SignInRequest>
 }
 
 public sealed class SignInRequestHandler(UserRepository userRepo, SharedRepository sharedRepo)
-    : IFeatureHandler<SignInRequest, AppResult<SignInResponse>>
+    : IRequestHandler<SignInRequest, Result<SignInResponse>>
 {
     private readonly SharedRepository _sharedRepo = sharedRepo;
 
-    public async Task<AppResult<SignInResponse>> HandleAsync(SignInRequest request, CancellationToken cancellationToken = default)
+    public async ValueTask<Result<SignInResponse>> HandleAsync(SignInRequest request, CancellationToken cancellationToken = default)
     {
-        var result = new AppResult<SignInResponse>();
+        var result = new Result<SignInResponse>();
 
         #region # Execute
 
