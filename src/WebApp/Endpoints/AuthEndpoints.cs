@@ -24,7 +24,7 @@ public sealed class AuthEndpoints(IMediator mediator, IAntiforgery _antiforgery)
         }
 
         var result = await mediator.SendAsync(request);
-        if (result.HasError || result.Payload is null)
+        if (result.HasError)
         {
             var message = result.Errors.FirstOrDefault()?.Message ?? "Invalid email or password.";
             return LocalRedirect(AuthExtensions.LoginUrl(returnUrl, message));
@@ -32,7 +32,7 @@ public sealed class AuthEndpoints(IMediator mediator, IAntiforgery _antiforgery)
 
         await AuthCookieHelpers.SignInAsync(
             HttpContext,
-            result.Payload.Id,
+            result.Payload!.Id,
             result.Payload.Email,
             result.Payload.FullName);
 

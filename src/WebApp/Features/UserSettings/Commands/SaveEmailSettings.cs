@@ -4,7 +4,7 @@ using FluentValidation;
 namespace WebApp.Features.UserSettings.Commands;
 
 public sealed record SaveEmailSettingsRequest(Guid UserId, EmailSettingsDto Email)
-    : ICommand<SaveEmailSettingsResponse?>;
+    : ICommand<SaveEmailSettingsResponse>;
 
 public sealed class SaveEmailSettingsResponse : EmailSettingsDto
 {
@@ -25,14 +25,14 @@ public sealed class SaveEmailSettingsRequestValidator : AbstractValidator<SaveEm
 }
 
 public sealed class SaveEmailSettingsRequestHandler(UserSettingsRepository userSettingsRepo, SharedRepository sharedRepo)
-    : IRequestHandler<SaveEmailSettingsRequest, Result<SaveEmailSettingsResponse?>>
+    : IRequestHandler<SaveEmailSettingsRequest, SaveEmailSettingsResponse>
 {
     private readonly SharedRepository _sharedRepo = sharedRepo;
 
 
-    public async ValueTask<Result<SaveEmailSettingsResponse?>> HandleAsync(SaveEmailSettingsRequest request, CancellationToken cancellationToken = default)
+    public async ValueTask<Result<SaveEmailSettingsResponse>> HandleAsync(SaveEmailSettingsRequest request, CancellationToken cancellationToken = default)
     {
-        var result = new Result<SaveEmailSettingsResponse?>();
+        var result = new Result<SaveEmailSettingsResponse>();
 
         var existingSettings = await userSettingsRepo.GetUserEmailSettingsAsync(request.UserId, cancellationToken);
         var validationError = EmailSettingsMapping.TryBuildEntity(request.Email, existingSettings, EmailSettingsBuildMode.Save, out var newSettings);

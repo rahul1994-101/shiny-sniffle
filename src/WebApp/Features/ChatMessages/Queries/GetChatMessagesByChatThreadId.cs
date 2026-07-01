@@ -4,7 +4,7 @@ using FluentValidation;
 namespace WebApp.Features.ChatMessages.Queries;
 
 public sealed record GetChatMessagesByChatThreadIdRequest(Guid ChatThreadId)
-    : IQuery<GetChatMessagesByChatThreadIdResponse?>;
+    : IQuery<GetChatMessagesByChatThreadIdResponse>;
 
 public sealed class GetChatMessagesByChatThreadIdResponse
 {
@@ -22,14 +22,14 @@ public sealed class GetChatMessagesByChatThreadIdRequestValidator : AbstractVali
 }
 
 public sealed class GetChatMessagesByChatThreadIdRequestHandler(ChatMessageRepository chatMessageRepo, SharedRepository sharedRepo)
-    : IRequestHandler<GetChatMessagesByChatThreadIdRequest, Result<GetChatMessagesByChatThreadIdResponse?>>
+    : IRequestHandler<GetChatMessagesByChatThreadIdRequest, GetChatMessagesByChatThreadIdResponse>
 {
     private readonly SharedRepository _sharedRepo = sharedRepo;
 
 
-    public async ValueTask<Result<GetChatMessagesByChatThreadIdResponse?>> HandleAsync(GetChatMessagesByChatThreadIdRequest request, CancellationToken cancellationToken = default)
+    public async ValueTask<Result<GetChatMessagesByChatThreadIdResponse>> HandleAsync(GetChatMessagesByChatThreadIdRequest request, CancellationToken cancellationToken = default)
     {
-        var result = new Result<GetChatMessagesByChatThreadIdResponse?>();
+        var result = new Result<GetChatMessagesByChatThreadIdResponse>();
 
         #region # Execute
 

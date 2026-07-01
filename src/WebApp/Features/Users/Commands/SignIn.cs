@@ -27,7 +27,7 @@ public sealed class SignInRequestValidator : AbstractValidator<SignInRequest>
 }
 
 public sealed class SignInRequestHandler(UserRepository userRepo, SharedRepository sharedRepo)
-    : IRequestHandler<SignInRequest, Result<SignInResponse>>
+    : IRequestHandler<SignInRequest, SignInResponse>
 {
     private readonly SharedRepository _sharedRepo = sharedRepo;
 

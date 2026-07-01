@@ -40,7 +40,7 @@ MediatR.DependencyInjection   AddMediatR(assembly)
 
 Supporting types: `Error`, `ErrorCode`.
 
-**Future:** static helpers on `Result` (e.g. `Result.Success(payload)`, `Result.Failure(code, message)`).
+Handlers and pipeline use **instance-only** `Success()` / `Failure()` on `new Result` / `new Result<T>`. Declare `var result = new Result<T>();` as the first statement in `HandleAsync` (supports multi-step flows and early returns).
 
 ---
 
@@ -56,20 +56,23 @@ public sealed record UserSignedIn(Guid UserId) : INotification;
 Handlers:
 
 ```csharp
-IRequestHandler<SignInRequest, Result<SignInResponse>>
-IRequestHandler<DeleteRequest, Result>
-INotificationHandler<UserSignedIn>   // PublishAsync — no Result
+IRequestHandler<SignInRequest, SignInResponse>
+IRequestHandler<DeleteRequest>                    // ICommand, no payload
+INotificationHandler<UserSignedIn>
 ```
 
 ---
 
 ## Registration
 
+**WebApp** (composition root):
+
 ```csharp
+services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
 services.AddMediatR(Assembly.GetExecutingAssembly());
 ```
 
-Registers request handlers, notification handlers, validators, pipeline behaviors, and `IMediator`.
+`AddMediatR` registers request/notification handlers, pipeline behaviors, and `IMediator`. FluentValidation registration stays in the host so validators are optional and assembly choice is explicit.
 
 ---
 
@@ -91,7 +94,12 @@ Registers request handlers, notification handlers, validators, pipeline behavior
 - [x] Payload-only `ICommand<T>` / `IQuery<T>`
 - [x] WebApp handlers, Blazor, `AuthEndpoints` on `IMediator`
 - [x] Deleted `WebApp/Features/Shared/Cqrs/`
+- [x] Validator registration split to WebApp (`AddValidatorsFromAssembly` + `AddMediatR`)
+- [x] Duplicate-handler guard at startup
+- [x] Non-nullable `TResponse` on commands/queries
 - [x] Build passes
+
+**Notifications:** `PublishAsync` and `INotificationHandler` are registered by `AddMediatR`, but WebApp has no notifications yet. First real usage is **Phase 4**.
 
 ### Phase 2 — Performance
 
@@ -101,6 +109,25 @@ Registers request handlers, notification handlers, validators, pipeline behavior
 ### Phase 3 — Source generator (optional)
 
 - [ ] Compile-time handler registry + DI
+
+### Phase 4 — Notifications (adoption)
+
+- [ ] First `INotification` + `INotificationHandler` in WebApp
+- [ ] Call `IMediator.PublishAsync` from a use case (e.g. side effects after sign-in or thread create)
+- [ ] Confirm 1:N dispatch when multiple handlers exist for one notification
+
+### Phase 5 — FluentValidation decoupling
+
+Validator **registration** is already in WebApp (`AddValidatorsFromAssembly`). `ValidationBehavior` still lives in `lib/MediatR` and requires the FluentValidation package.
+
+- [ ] Decide approach: keep as-is, extract to `MediatR.FluentValidation`, or move behavior to WebApp
+- [ ] Implement chosen split so core `MediatR` does not hard-depend on FV (if extracting)
+- [ ] Update `Startup` / package references accordingly
+
+### Phase 6 — Tests (after migration complete)
+
+- [ ] Lib unit tests — dispatch table, pipeline behaviors, duplicate-handler guard
+- [ ] Optional handler integration / smoke tests in WebApp
 
 ---
 

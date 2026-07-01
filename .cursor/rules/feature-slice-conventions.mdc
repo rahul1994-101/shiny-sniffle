@@ -13,10 +13,7 @@ alwaysApply: true
 | Folder | Kind | Purpose |
 |--------|------|---------|
 | `Users/`, `ChatThreads/`, `ChatMessages/`, `UserSettings/` | **Business slice** | One bounded area: DTOs, repository, commands, queries |
-| `Features/Shared/` | **Cross-slice** | Shared DTOs, `SharedRepository`, plus `Cqrs/` subfolder for plumbing |
-| `Features/Shared/Cqrs/` | **Plumbing** | `IFeatureSender`, pipeline, validation behaviors, `AddFeatureLayer()` |
-
-`Shared/Cqrs/` is machinery; `Shared/DTOs.cs` and `Shared/Repository.cs` are cross-slice data.
+| `Features/Shared/` | **Cross-slice** | Shared DTOs, `SharedRepository`, `FeatureServiceCollectionExtensions` |
 
 ## Business slice layout
 
@@ -36,11 +33,7 @@ Features/ChatThreads/
 Features/Shared/
   DTOs.cs
   Repository.cs     SharedRepository
-  Cqrs/
-    Abstractions/
-    Pipeline/
-    DependencyInjection/
-    ...
+  FeatureServiceCollectionExtensions.cs
 ```
 
 ### Slice folder naming
@@ -97,6 +90,13 @@ One file per use case. **Order:**
 
 Reference: `Users/Commands/SignIn.cs`.
 
+### Handler result pattern
+
+1. First line in `HandleAsync`: `var result = new Result<T>();` (or `new Result()` for `ICommand`).
+2. Use `result.Success(...)` / `result.Failure(...)` — instance only, no static factories.
+3. Early failures: `result.Failure(...); return result;`
+4. End with `return result;`
+
 ### Handler dependencies (every handler)
 
 Every handler injects:
@@ -108,11 +108,11 @@ Capture `sharedRepo` when the handler does not call it yet (avoids unused-parame
 
 ```csharp
 public sealed class SignInRequestHandler(UserRepository userRepo, SharedRepository sharedRepo)
-    : IFeatureHandler<SignInRequest, Result<SignInResponse>>
+    : IRequestHandler<SignInRequest, SignInResponse>
 {
     private readonly SharedRepository _sharedRepo = sharedRepo;
 
-    public async Task<Result<SignInResponse>> HandleAsync(SignInRequest request, CancellationToken cancellationToken = default)
+    public async ValueTask<Result<SignInResponse>> HandleAsync(SignInRequest request, CancellationToken cancellationToken = default)
     {
         var result = new Result<SignInResponse>();
 
@@ -168,7 +168,7 @@ Other services (`UserMailboxService`, `ChatOrchestrator`) keep descriptive names
 | Query spanning entities / slices | `Features/Shared/Repository.cs` (`SharedRepository`) |
 | Use-case Request/Response | `Features/{Slice}/Commands\|Queries/{UseCase}.cs` |
 | Slice-only data access | `Features/{Slice}/Repository.cs` |
-| CQRS pipeline, sender, DI | `Features/Shared/Cqrs/` |
+| CQRS pipeline, mediator, DI | `lib/MediatR/` (`AddMediatR`, `IMediator`) |
 
 Handlers call `_sharedRepo` only when a use case needs cross-slice data; until then, injection + `_sharedRepo` field wires DI for future use.
 
@@ -181,6 +181,7 @@ Handlers call `_sharedRepo` only when a use case needs cross-slice data; until t
 | `Infrastructure/Persistence/` | `AppDbContext` only |
 | `WebApp/Features/{Slice}/` | Use cases + slice repositories |
 | `WebApp/Features/Shared/` | Cross-slice DTOs + `SharedRepository` |
-| `WebApp/Models/` | `Result`, app constants, AI turn shapes |
+| `lib/MediatR/` | `Result`, `IMediator`, pipeline, handler abstractions |
+| `WebApp/Models/` | App constants, AI turn shapes |
 
 No `AppDbContext` or repository ports in handlers beyond concrete `{Entity}Repository` + `SharedRepository`.

@@ -20,7 +20,7 @@ public sealed class DeleteChatThreadRequestValidator : AbstractValidator<DeleteC
 }
 
 public sealed class DeleteChatThreadRequestHandler(ChatThreadRepository chatThreadRepo, SharedRepository sharedRepo)
-    : IRequestHandler<DeleteChatThreadRequest, Result>
+    : IRequestHandler<DeleteChatThreadRequest>
 {
     private readonly SharedRepository _sharedRepo = sharedRepo;
 

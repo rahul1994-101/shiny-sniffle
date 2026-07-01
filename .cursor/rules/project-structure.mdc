@@ -11,7 +11,7 @@ Solution layout and layer boundaries: **`architecture-conventions.mdc`**. This r
 |--------|---------|
 | **Endpoints/** | MVC controllers `*Endpoints.cs`. Register via `MapControllers` in `Startup.cs`. |
 | **Components/** | Blazor UI. See `blazor-conventions.mdc`. |
-| **Features/** | Independent vertical slices + `Features/Shared/` (cross-slice data + `Shared/Cqrs/` plumbing). See `feature-slice-conventions.mdc` and `data-conventions.mdc`. |
+| **Features/** | Independent vertical slices + `Features/Shared/` (cross-slice data + `AddFeatureRepositories()`). CQRS in **`lib/MediatR/`**. See `feature-slice-conventions.mdc` and `data-conventions.mdc`. |
 | **AI/** | MAF agents, tools, `ChatOrchestrator`. See `ai-conventions.mdc`. |
 | **Models/** | App/UI models (AI turn, constants). `Result` types → **`MediatR.Results`**. |
 | **Utilities/** | Extensions, Helpers, Services (`UserMailboxService`, `CurrentUser`). No MailKit — mailbox adapter is in Infrastructure. |
@@ -50,5 +50,5 @@ Do not put EF `DbContext` or repository implementations under Utilities.
 ## Startup
 
 - `InjectData` → `AddInfrastructure(configuration)` + `UserMailboxService`.
-- `InjectFeatures` → `AddFeatureRepositories()` + `AddFeatureLayer()` + `IFeatureSender`.
+- `InjectFeatures` → `AddFeatureRepositories()` + `AddValidatorsFromAssembly(...)` + `AddMediatR(...)`.
 - `InjectAi` → agents, tools, orchestrator + `Configure<FoundryOptions>`.

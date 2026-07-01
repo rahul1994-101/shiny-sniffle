@@ -7,7 +7,7 @@ using WebApp.Features.ChatThreads;
 namespace WebApp.Features.ChatMessages.Commands;
 
 public sealed record SendChatMessageRequest(Guid ChatThreadId, Guid UserId, ChatAgent ChatAgent, string Message)
-    : ICommand<SendChatMessageResponse?>;
+    : ICommand<SendChatMessageResponse>;
 
 public sealed class SendChatMessageResponse
 {
@@ -34,67 +34,71 @@ public sealed class SendChatMessageRequestValidator : AbstractValidator<SendChat
 }
 
 public sealed class SendChatMessageRequestHandler(ChatThreadRepository chatThreadRepo, ChatMessageRepository chatMessageRepo, SharedRepository sharedRepo, ChatOrchestrator chatOrchestrator)
-    : IRequestHandler<SendChatMessageRequest, Result<SendChatMessageResponse?>>
+    : IRequestHandler<SendChatMessageRequest, SendChatMessageResponse>
 {
     private readonly SharedRepository _sharedRepo = sharedRepo;
 
 
-    public async ValueTask<Result<SendChatMessageResponse?>> HandleAsync(SendChatMessageRequest request, CancellationToken cancellationToken = default)
+    public async ValueTask<Result<SendChatMessageResponse>> HandleAsync(SendChatMessageRequest request, CancellationToken cancellationToken = default)
     {
-        var result = new Result<SendChatMessageResponse?>();
+        var result = new Result<SendChatMessageResponse>();
         var text = request.Message.Trim();
-
-        var thread = await chatThreadRepo.GetActiveByIdAsync(request.ChatThreadId, cancellationToken);
-        if (thread is null || thread.UserId != request.UserId)
-        {
-            result.Failure(ErrorCode.NotFound, "Chat thread not found.");
-            return result;
-        }
-
-        var chatAgent = request.ChatAgent == thread.ChatAgent ? request.ChatAgent : thread.ChatAgent;
 
         #region # Execute
 
-        var userMessage = await chatMessageRepo.AddAsync(new ChatMessage
-        {
-            ChatThreadId = request.ChatThreadId,
-            Role = ChatMessageRoles.User,
-            Content = text,
-            CreatedBy = request.UserId,
-            UpdatedBy = request.UserId
-        }, cancellationToken);
-        if (userMessage is null)
-        {
-            result.Failure(ErrorCode.InternalServerError, "Failed to create chat message.");
-            return result;
-        }
+        var thread = await chatThreadRepo.GetActiveByIdAsync(request.ChatThreadId, cancellationToken);
+        ChatMessageDto? userMessage = null;
+        ChatMessageDto? assistantMessage = null;
 
-        var agentRun = await chatOrchestrator.RunChatAgentAsync(new RunChatAgentRequest
+        if (thread is not null && thread.UserId == request.UserId)
         {
-            ChatThreadId = request.ChatThreadId,
-            UserId = request.UserId,
-            ChatAgent = chatAgent
-        });
+            var chatAgent = request.ChatAgent == thread.ChatAgent ? request.ChatAgent : thread.ChatAgent;
 
-        var assistantMessage = await chatMessageRepo.AddAsync(new ChatMessage
-        {
-            ChatThreadId = request.ChatThreadId,
-            Role = ChatMessageRoles.Assistant,
-            Content = agentRun.AssistantContent,
-            CreatedBy = request.UserId,
-            UpdatedBy = request.UserId
-        }, cancellationToken);
-        if (assistantMessage is null)
-        {
-            result.Failure(ErrorCode.InternalServerError, "Failed to create chat message.");
-            return result;
+            userMessage = await chatMessageRepo.AddAsync(new ChatMessage
+            {
+                ChatThreadId = request.ChatThreadId,
+                Role = ChatMessageRoles.User,
+                Content = text,
+                CreatedBy = request.UserId,
+                UpdatedBy = request.UserId
+            }, cancellationToken);
+
+            if (userMessage is not null)
+            {
+                var agentRun = await chatOrchestrator.RunChatAgentAsync(new RunChatAgentRequest
+                {
+                    ChatThreadId = request.ChatThreadId,
+                    UserId = request.UserId,
+                    ChatAgent = chatAgent
+                });
+
+                assistantMessage = await chatMessageRepo.AddAsync(new ChatMessage
+                {
+                    ChatThreadId = request.ChatThreadId,
+                    Role = ChatMessageRoles.Assistant,
+                    Content = agentRun.AssistantContent,
+                    CreatedBy = request.UserId,
+                    UpdatedBy = request.UserId
+                }, cancellationToken);
+            }
         }
 
         #endregion
 
         #region # Handle Result
 
-        result.Success(new SendChatMessageResponse { UserMessage = userMessage, AssistantMessage = assistantMessage });
+        if (thread is null || thread.UserId != request.UserId)
+        {
+            result.Failure(ErrorCode.NotFound, "Chat thread not found.");
+        }
+        else if (userMessage is null || assistantMessage is null)
+        {
+            result.Failure(ErrorCode.InternalServerError, "Failed to create chat message.");
+        }
+        else
+        {
+            result.Success(new SendChatMessageResponse { UserMessage = userMessage, AssistantMessage = assistantMessage });
+        }
 
         #endregion
 

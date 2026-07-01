@@ -1,3 +1,4 @@
+using FluentValidation;
 using Infrastructure;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Localization;
@@ -101,6 +102,7 @@ public static class DependencyInject
     public static void InjectFeatures(this IServiceCollection services)
     {
         services.AddFeatureRepositories();
+        services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
         services.AddMediatR(Assembly.GetExecutingAssembly());
     }
 

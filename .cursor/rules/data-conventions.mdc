@@ -48,7 +48,7 @@ Each file contains, in order:
 1. **Request record** — `ICommand<>` or `IQuery<>`
 2. **Response type(s)** — when the use case defines a result shape (skip for `Result`-only commands)
 3. **FluentValidation validator**
-4. **Handler** (`IFeatureHandler<,>`)
+4. **Handler** (`IRequestHandler<,>`)
 
 Reference: `Users/Commands/SignIn.cs`.
 
@@ -100,9 +100,9 @@ Returns `Result` / `Result<T>`; inject local **`{entity}Repo`** plus **`sharedRe
 
 ### Plumbing
 
-- Entry: `IFeatureSender` / `Sender.SendAsync(new SignInRequest(...))`.
-- Pipeline: `ValidationBehavior` → `ExceptionBehavior` → handler.
-- `Startup.InjectFeatures()` → `AddFeatureRepositories()` + `AddFeatureLayer()`.
+- Entry: `IMediator` / `mediator.SendAsync(new SignInRequest(...))`.
+- Pipeline: `ValidationBehavior` → `ExceptionBehavior` → handler (registered via `AddMediatR`).
+- `Startup.InjectFeatures()` → `AddFeatureRepositories()` + `AddValidatorsFromAssembly(...)` + `AddMediatR(...)`.
 
 ## JSON settings columns (`UserSetting`)
 

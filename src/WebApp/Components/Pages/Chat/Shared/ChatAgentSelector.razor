@@ -115,12 +115,12 @@
 
             #region # Handle Result
 
-            if (!result.HasError && result.Payload is not null)
+            if (!result.HasError)
             {
-                Value = result.Payload.ChatAgent;
+                Value = result.Payload!.ChatAgent;
                 await ValueChanged.InvokeAsync(Value);
             }
-            else if (result.HasError)
+            else
             {
                 _error = result.Errors.FirstOrDefault()?.Message;
             }

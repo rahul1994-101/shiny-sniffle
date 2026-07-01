@@ -35,7 +35,7 @@ public sealed class ChangePasswordRequestValidator : AbstractValidator<ChangePas
 }
 
 public sealed class ChangePasswordRequestHandler(UserSettingsRepository userSettingsRepo, SharedRepository sharedRepo)
-    : IRequestHandler<ChangePasswordRequest, Result>
+    : IRequestHandler<ChangePasswordRequest>
 {
     private readonly SharedRepository _sharedRepo = sharedRepo;
 

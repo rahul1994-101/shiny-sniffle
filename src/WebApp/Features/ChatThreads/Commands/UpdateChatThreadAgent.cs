@@ -5,7 +5,7 @@ using WebApp.Utilities.Services;
 namespace WebApp.Features.ChatThreads.Commands;
 
 public sealed record UpdateChatThreadAgentRequest(Guid Id, Guid UserId, ChatAgent ChatAgent)
-    : ICommand<UpdateChatThreadAgentResponse?>;
+    : ICommand<UpdateChatThreadAgentResponse>;
 
 public sealed class UpdateChatThreadAgentResponse : ChatThreadDto
 {
@@ -26,14 +26,14 @@ public sealed class UpdateChatThreadAgentRequestValidator : AbstractValidator<Up
 }
 
 public sealed class UpdateChatThreadAgentRequestHandler(ChatThreadRepository chatThreadRepo, SharedRepository sharedRepo, UserMailboxService mailboxService)
-    : IRequestHandler<UpdateChatThreadAgentRequest, Result<UpdateChatThreadAgentResponse?>>
+    : IRequestHandler<UpdateChatThreadAgentRequest, UpdateChatThreadAgentResponse>
 {
     private readonly SharedRepository _sharedRepo = sharedRepo;
 
 
-    public async ValueTask<Result<UpdateChatThreadAgentResponse?>> HandleAsync(UpdateChatThreadAgentRequest request, CancellationToken cancellationToken = default)
+    public async ValueTask<Result<UpdateChatThreadAgentResponse>> HandleAsync(UpdateChatThreadAgentRequest request, CancellationToken cancellationToken = default)
     {
-        var result = new Result<UpdateChatThreadAgentResponse?>();
+        var result = new Result<UpdateChatThreadAgentResponse>();
 
         if (request.ChatAgent == ChatAgent.Email && !await mailboxService.IsConfiguredAsync(request.UserId, cancellationToken))
         {

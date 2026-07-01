@@ -245,7 +245,7 @@ else
                 result.Errors.FirstOrDefault()?.Message ?? "Failed to load account settings.",
                 isError: true);
         }
-        else if (result.Payload is not null)
+        else
         {
             _profile = result.Payload;
             CaptureProfileBaseline();
@@ -295,7 +295,7 @@ else
                 result.Errors.FirstOrDefault()?.Message ?? "Failed to save profile.",
                 isError: true);
         }
-        else if (result.Payload is not null)
+        else
         {
             _profile = result.Payload;
             CaptureProfileBaseline();

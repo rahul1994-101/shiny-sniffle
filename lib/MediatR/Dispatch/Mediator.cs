@@ -32,8 +32,16 @@ internal sealed class RequestDispatchTable
 {
     private readonly Dictionary<Type, IRequestInvoker> _invokers = new();
 
-    internal void Register(IRequestInvoker invoker) =>
+    internal void Register(IRequestInvoker invoker)
+    {
+        if (_invokers.ContainsKey(invoker.RequestType))
+        {
+            throw new InvalidOperationException(
+                $"Duplicate mediator handler registered for request type '{invoker.RequestType.FullName}'.");
+        }
+
         _invokers[invoker.RequestType] = invoker;
+    }
 
     internal IRequestInvoker GetRequired(Type requestType) =>
         _invokers.TryGetValue(requestType, out var invoker)
@@ -47,7 +55,7 @@ internal sealed class RequestDispatcherCore(IServiceProvider services)
         where TRequest : IRequest<TResult>
         where TResult : Result, new()
     {
-        var handler = services.GetRequiredService<IRequestHandler<TRequest, TResult>>();
+        var handler = services.GetRequiredService<IRequestExecutor<TRequest, TResult>>();
         var pipeline = services.GetRequiredService<RequestPipeline<TRequest, TResult>>();
         return pipeline.ExecuteAsync(request, handler, cancellationToken);
     }

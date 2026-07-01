@@ -4,7 +4,7 @@ using FluentValidation;
 namespace WebApp.Features.ChatThreads.Commands;
 
 public sealed record AddChatThreadRequest(string Title, Guid UserId, ChatAgent ChatAgent = default)
-    : ICommand<AddChatThreadResponse?>;
+    : ICommand<AddChatThreadResponse>;
 
 public sealed class AddChatThreadResponse : ChatThreadDto
 {
@@ -27,14 +27,14 @@ public sealed class AddChatThreadRequestValidator : AbstractValidator<AddChatThr
 }
 
 public sealed class AddChatThreadRequestHandler(ChatThreadRepository chatThreadRepo, SharedRepository sharedRepo)
-    : IRequestHandler<AddChatThreadRequest, Result<AddChatThreadResponse?>>
+    : IRequestHandler<AddChatThreadRequest, AddChatThreadResponse>
 {
     private readonly SharedRepository _sharedRepo = sharedRepo;
 
 
-    public async ValueTask<Result<AddChatThreadResponse?>> HandleAsync(AddChatThreadRequest request, CancellationToken cancellationToken = default)
+    public async ValueTask<Result<AddChatThreadResponse>> HandleAsync(AddChatThreadRequest request, CancellationToken cancellationToken = default)
     {
-        var result = new Result<AddChatThreadResponse?>();
+        var result = new Result<AddChatThreadResponse>();
 
         #region # Execute
 

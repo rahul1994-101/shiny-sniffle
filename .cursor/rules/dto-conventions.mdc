@@ -36,6 +36,7 @@ Shared read shapes **within one vertical slice**. One `DTOs.cs` per slice folder
 
 - Flat **Request** record (primitives or slice DTOs for complex input, e.g. `EmailSettingsDto`).
 - **Response** immediately after **Request** when present; inherit slice DTO when the shape matches.
+- Use **non-nullable** `{UseCase}Response` on `ICommand<T>` / `IQuery<T>` — failures use `HasError`, not a null payload.
 - Validator targets **Request** directly.
 
 Do **not** put use-case Request/Response in `Core/DTOs/` or `WebApp/Models/`.
@@ -55,8 +56,7 @@ Namespace: `Core.DTOs`. No repository or feature DTOs here.
 
 | File | Types |
 |------|-------|
-| `_Common.cs` | *(removed)* — `Result` types → `MediatR.Results` |
-| `Enums.cs` | `ErrorCode`, `SettingsSection` |
+| `Enums.cs` | `SettingsSection` |
 | `AI.cs` | `RunChatAgentRequest/Response` |
 | `Constants.cs` | `AuthConstants`, `ChatMessageRoles` |
 
@@ -66,7 +66,7 @@ Namespace: `WebApp.Models`.
 
 | Direction | Pattern |
 |-----------|---------|
-| **UI → Features** | `Sender.SendAsync(new SignInRequest(...))` |
+| **UI → Features** | `Mediator.SendAsync(new SignInRequest(...))` |
 | **Handlers → repos** | Local `{entity}Repo` + `sharedRepo`; primitives + entities on write |
 | **Repos → handlers** | Slice DTOs (`ChatThreadDto`, …) |
 | **UI lists** | May bind slice DTOs directly (`ChatThreadDto`, `ChatMessageDto`) |
@@ -77,8 +77,9 @@ Namespace: `WebApp.Models`.
 2. **Shared read shape within one slice?** → `Features/{Slice}/DTOs.cs`; Response may inherit
 3. **Shared read shape across slices?** → `Features/Shared/DTOs.cs`
 4. **Mailbox / Foundry port shape?** → `Core/DTOs/`
-5. **`Result` / AI turn?** → `WebApp/Models/`
-6. **DB entity?** → `Core/Entities/`
+5. **`Result` / `ErrorCode`?** → `MediatR.Results` (`lib/MediatR/`)
+6. **AI turn shapes?** → `WebApp/Models/AI.cs`
+7. **DB entity?** → `Core/Entities/`
 
 ## Example
 

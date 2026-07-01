@@ -5,7 +5,7 @@ using WebApp.Utilities.Services;
 namespace WebApp.Features.UserSettings.Commands;
 
 public sealed record TestEmailConnectionRequest(Guid UserId, EmailSettingsDto Email)
-    : ICommand<TestEmailConnectionResponse?>;
+    : ICommand<TestEmailConnectionResponse>;
 
 public sealed class TestEmailConnectionResponse
 {
@@ -27,14 +27,14 @@ public sealed class TestEmailConnectionRequestValidator : AbstractValidator<Test
 }
 
 public sealed class TestEmailConnectionRequestHandler(UserMailboxService mailboxService, SharedRepository sharedRepo)
-    : IRequestHandler<TestEmailConnectionRequest, Result<TestEmailConnectionResponse?>>
+    : IRequestHandler<TestEmailConnectionRequest, TestEmailConnectionResponse>
 {
     private readonly SharedRepository _sharedRepo = sharedRepo;
 
 
-    public async ValueTask<Result<TestEmailConnectionResponse?>> HandleAsync(TestEmailConnectionRequest request, CancellationToken cancellationToken = default)
+    public async ValueTask<Result<TestEmailConnectionResponse>> HandleAsync(TestEmailConnectionRequest request, CancellationToken cancellationToken = default)
     {
-        var result = new Result<TestEmailConnectionResponse?>();
+        var result = new Result<TestEmailConnectionResponse>();
 
         #region # Execute
 

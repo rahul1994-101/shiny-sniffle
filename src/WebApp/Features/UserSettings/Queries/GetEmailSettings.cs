@@ -4,7 +4,7 @@ using FluentValidation;
 namespace WebApp.Features.UserSettings.Queries;
 
 public sealed record GetEmailSettingsRequest(Guid UserId)
-    : IQuery<GetEmailSettingsResponse?>;
+    : IQuery<GetEmailSettingsResponse>;
 
 public sealed class GetEmailSettingsResponse : EmailSettingsDto
 {
@@ -21,14 +21,14 @@ public sealed class GetEmailSettingsRequestValidator : AbstractValidator<GetEmai
 }
 
 public sealed class GetEmailSettingsRequestHandler(UserSettingsRepository userSettingsRepo, SharedRepository sharedRepo)
-    : IRequestHandler<GetEmailSettingsRequest, Result<GetEmailSettingsResponse?>>
+    : IRequestHandler<GetEmailSettingsRequest, GetEmailSettingsResponse>
 {
     private readonly SharedRepository _sharedRepo = sharedRepo;
 
 
-    public async ValueTask<Result<GetEmailSettingsResponse?>> HandleAsync(GetEmailSettingsRequest request, CancellationToken cancellationToken = default)
+    public async ValueTask<Result<GetEmailSettingsResponse>> HandleAsync(GetEmailSettingsRequest request, CancellationToken cancellationToken = default)
     {
-        var result = new Result<GetEmailSettingsResponse?>();
+        var result = new Result<GetEmailSettingsResponse>();
 
         #region # Execute
 

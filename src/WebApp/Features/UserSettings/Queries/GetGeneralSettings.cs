@@ -4,7 +4,7 @@ using FluentValidation;
 namespace WebApp.Features.UserSettings.Queries;
 
 public sealed record GetGeneralSettingsRequest(Guid UserId)
-    : IQuery<GetGeneralSettingsResponse?>;
+    : IQuery<GetGeneralSettingsResponse>;
 
 public sealed class GetGeneralSettingsResponse : GeneralSettingsDto
 {
@@ -21,14 +21,14 @@ public sealed class GetGeneralSettingsRequestValidator : AbstractValidator<GetGe
 }
 
 public sealed class GetGeneralSettingsRequestHandler(UserSettingsRepository userSettingsRepo, SharedRepository sharedRepo)
-    : IRequestHandler<GetGeneralSettingsRequest, Result<GetGeneralSettingsResponse?>>
+    : IRequestHandler<GetGeneralSettingsRequest, GetGeneralSettingsResponse>
 {
     private readonly SharedRepository _sharedRepo = sharedRepo;
 
 
-    public async ValueTask<Result<GetGeneralSettingsResponse?>> HandleAsync(GetGeneralSettingsRequest request, CancellationToken cancellationToken = default)
+    public async ValueTask<Result<GetGeneralSettingsResponse>> HandleAsync(GetGeneralSettingsRequest request, CancellationToken cancellationToken = default)
     {
-        var result = new Result<GetGeneralSettingsResponse?>();
+        var result = new Result<GetGeneralSettingsResponse>();
 
         #region # Execute
 

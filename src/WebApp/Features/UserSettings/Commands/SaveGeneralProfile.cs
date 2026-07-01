@@ -4,7 +4,7 @@ using FluentValidation;
 namespace WebApp.Features.UserSettings.Commands;
 
 public sealed record SaveGeneralProfileRequest(Guid UserId, string FirstName, string LastName)
-    : ICommand<SaveGeneralProfileResponse?>;
+    : ICommand<SaveGeneralProfileResponse>;
 
 public sealed class SaveGeneralProfileResponse : GeneralSettingsDto
 {
@@ -33,14 +33,14 @@ public sealed class SaveGeneralProfileRequestValidator : AbstractValidator<SaveG
 }
 
 public sealed class SaveGeneralProfileRequestHandler(UserSettingsRepository userSettingsRepo, SharedRepository sharedRepo)
-    : IRequestHandler<SaveGeneralProfileRequest, Result<SaveGeneralProfileResponse?>>
+    : IRequestHandler<SaveGeneralProfileRequest, SaveGeneralProfileResponse>
 {
     private readonly SharedRepository _sharedRepo = sharedRepo;
 
 
-    public async ValueTask<Result<SaveGeneralProfileResponse?>> HandleAsync(SaveGeneralProfileRequest request, CancellationToken cancellationToken = default)
+    public async ValueTask<Result<SaveGeneralProfileResponse>> HandleAsync(SaveGeneralProfileRequest request, CancellationToken cancellationToken = default)
     {
-        var result = new Result<SaveGeneralProfileResponse?>();
+        var result = new Result<SaveGeneralProfileResponse>();
 
         #region # Execute
 

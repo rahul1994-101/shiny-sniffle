@@ -333,7 +333,7 @@ else
                 result.Errors.FirstOrDefault()?.Message ?? "Failed to load email settings.",
                 isError: true);
         }
-        else if (result.Payload is not null)
+        else
         {
             _email = result.Payload;
             _endpointsExpanded = _email.Provider == EmailProvider.Custom;
@@ -369,7 +369,7 @@ else
                 result.Errors.FirstOrDefault()?.Message ?? "Failed to save email settings.",
                 isError: true);
         }
-        else if (result.Payload is not null)
+        else
         {
             _email = result.Payload;
             _email.Password = string.Empty;
@@ -402,7 +402,7 @@ else
 
         #region # Handle Result
 
-        if (result.HasError || result.Payload is null)
+        if (result.HasError)
         {
             _status.Set(
                 result.Errors.FirstOrDefault()?.Message ?? "Connection test failed.",

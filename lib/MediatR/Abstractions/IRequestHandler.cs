@@ -2,9 +2,14 @@ using MediatR.Results;
 
 namespace MediatR.Abstractions;
 
-public interface IRequestHandler<in TRequest, TResult>
-    where TRequest : IRequest<TResult>
-    where TResult : Result, new()
+public interface IRequestHandler<in TRequest, TResponse>
+    where TRequest : IRequest<Result<TResponse>>
 {
-    ValueTask<TResult> HandleAsync(TRequest request, CancellationToken cancellationToken = default);
+    ValueTask<Result<TResponse>> HandleAsync(TRequest request, CancellationToken cancellationToken = default);
+}
+
+public interface IRequestHandler<in TRequest>
+    where TRequest : ICommand
+{
+    ValueTask<Result> HandleAsync(TRequest request, CancellationToken cancellationToken = default);
 }
