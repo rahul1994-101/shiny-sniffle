@@ -1,5 +1,7 @@
 # Email read — implementation plan
 
+> Index: [docs/README.md](README.md) · Memory layers: [ai-memory.md](ai-memory.md)
+
 Roadmap for mailbox **read** capabilities: Email agent + `UserMailboxService` / `MailKitMailboxService` / `EmailTools`.
 
 **Current baseline:** `list_inbox_messages` (folder + filters, Uid per row), `get_inbox_message` (HTML→text, attachments), `list_mailbox_folders`, `get_mailbox_status`.

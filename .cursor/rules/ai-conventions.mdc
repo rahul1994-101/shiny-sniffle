@@ -1,25 +1,14 @@
 ---
-description: AI layer file layout, regions, naming, and method patterns (Agents, Orchestration, Tools, Foundry, Memory)
+description: AI layer layout — orchestrator, agents, tools, memory
 globs: src/WebApp/AI/**/*.cs
 alwaysApply: false
 ---
 
 # AI conventions
 
-Use the same **tooling habits** as **Data** and **Models**: `#region #`, underscore-prefixed constructor injection, and predictable file layout. AI code answers: “Which layer of the turn pipeline is this?”
+`#region #`, underscore-prefixed constructor injection, predictable file layout. AI code answers: **which step in the chat turn pipeline is this?**
 
-## C# data layer vs AI — two perspectives
-
-| | **Data (Features, Core repos)** | **AI (`Agents`, `Orchestration`, …)** |
-|---|-----------------------------------|----------------------------------------|
-| **Organized by** | Entity / operation | Pipeline role (orchestrate, run agent, tool, Foundry) |
-| **Region names** | `# ChatThread`, `# User` | `# ProcessTurn`, `# Run`, `# CreateTools` — or `# Private Helpers` |
-| **Shared state** | `userRepo`, `chatThreadRepo`, `sharedRepo`, … | `chatMessageRepo`, `foundryOptions`, `assistantAgent` |
-| **Inner method blocks** | `# Validate`, `# Execute`, `# Handle Result` | Same for non-trivial public methods |
-| **DTOs / config** | `Core/DTOs/Foundry.cs`, `WebApp/Models/AI.cs` | `FoundryOptions` in Core; `RunChatAgentRequest/Response` in WebApp.Models |
-
-**Data asks:** “Which entity or API operation is this?”  
-**AI asks:** “What step in the chat turn pipeline is this?”
+Roadmap: `docs/ai-memory.md`, `docs/email-read-implementation-plan.md`.
 
 ## File layout (top to bottom)
 
@@ -54,8 +43,8 @@ Register AI types in `Startup.InjectAi` only — not scattered across the app.
 | **AI/ (root)** | coordinator | `RunChatAgentAsync` | `ChatOrchestrator.cs` — turn routing only. |
 | **Agents/** | agent role | `RunAsync` | `FoundryDeployments` in `Core/Abstractions/Foundry.cs`; per-agent name, description, instructions, and routing catalog in each file's private `Create{Role}Agent`; **`#region # Supported User Prompts`** catalog for debug/test; call `IFoundryAgentFactory.CreateAgent`. Return `RunChatAgentResponse`. |
 | **Tools/** | agent domain | `CreateTools` | MAF `AITool` list; mock/real impls in `# Private Helpers`. No LLM calls. |
-| **Memory/** | agent domain | `LoadAsync` / enrich | Agent-specific context only (parallel to Tools). No LLM calls. |
-| **Workflows/** | workflow | `RunAsync` | Multi-step; compose agents and tools. Reintroduce **Orchestration/** if multiple coordinators are added. |
+| **Memory/** | memory layer | `LoadAsync` / `RefreshAsync` | `ThreadMemoryService`, etc. No LLM calls. See `docs/ai-memory.md`. |
+| **Workflows/** | workflow | `RunAsync` | Multi-step; compose agents and tools. |
 
 Endpoint URL normalization for Foundry config: `Infrastructure/Utilities/Helpers/AzureOpenAiEndpointHelpers.cs` (not under `AI/` or WebApp).
 
@@ -63,7 +52,7 @@ Shared MAF wiring: `Infrastructure/Foundry/FoundryAgentFactory.cs` implements `I
 
 ## Method body pattern (non-trivial public methods)
 
-Mirror `Features.cs` with inner regions where they add clarity:
+Mirror feature handlers with inner regions where they add clarity:
 
 ```csharp
 #region # Validate
@@ -97,7 +86,7 @@ Each `{Role}Agent.cs` keeps a **static debug/test catalog** of example user prom
 - **Capability** — what satisfies it: MAF tool name, routing behavior, or `(no tools)` for receptionist-only answers.
 - **Prompts** — 2–5 realistic chat utterances per row; include edge/boundary examples where useful.
 - **Not runtime** — do not inject into `instructions` or pass to the LLM. Comments only unless you add a dedicated test harness later.
-- **Keep in sync** — update when shipping tools, new specialists, or changing agent boundaries (e.g. email read layers in `docs/email-read-implementation-plan.md`).
+- **Keep in sync** — update when shipping tools or changing agent boundaries (`docs/email-read-implementation-plan.md`).
 
 **Example shape:**
 
@@ -225,44 +214,4 @@ public sealed class AssistantAgent(IFoundryAgentFactory _agentFactory)
 }
 ```
 
-## Reference: FoundryAgentFactory shape (Infrastructure)
-
-```csharp
-namespace Infrastructure.Foundry;
-
-public sealed class FoundryAgentFactory(IOptions<FoundryOptions> _options, IServiceProvider _services)
-    : IFoundryAgentFactory
-{
-    public AIAgent CreateAgent(
-        string modelDeployment,
-        string name,
-        string description,
-        string instructions,
-        IList<AITool>? tools = null)
-    {
-        // IsConfigured guard, GetOpenAiClient, ChatClientAgent
-    }
-
-    #region # Private Helpers
-    // GetOpenAiClient (uses AzureOpenAiEndpointHelpers.ToAzureOpenAiBaseUri)
-    #endregion
-}
-```
-
-## Reference: EmailTools shape
-
-```csharp
-using Microsoft.Extensions.AI;
-using System.ComponentModel;
-
-public sealed class EmailTools
-{
-    public IList<AITool> CreateTools(Guid userId, Guid chatThreadId) => [...];
-
-    #region # Private Helpers
-    // ListInboxMessages, SendEmail, GetMailboxStatus
-    #endregion
-}
-```
-
-**Tools usings:** MAF-first is fine — `Microsoft.Extensions.AI` before `System.*` when the file is tool-only.
+**Tools:** `CreateTools` returns MAF `AITool` list; implementations in `# Private Helpers`. **Foundry:** `IFoundryAgentFactory` in `Infrastructure/Foundry/` — agents call `CreateAgent` from private `Create{Role}Agent` helpers.

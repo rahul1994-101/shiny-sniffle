@@ -19,6 +19,10 @@ CREATE TABLE [dbo].[ChatThread] (
     [title]                                 NVARCHAR(200) NOT NULL,                    -- Human-readable thread title
     [chatAgent]                             INT NOT NULL DEFAULT 0,                    -- ChatAgent enum: 0=Assistant, 1=Email, ...
 
+    -- Thread memory (summary of messages beyond the short-term window)
+    [memorySummary]                         NVARCHAR(MAX) NULL,
+    [memorySummaryThroughMessageId]         UNIQUEIDENTIFIER NULL,
+
     -- Status and lifecycle management
     [isActive]                               BIT DEFAULT 1,                            -- Whether the chat thread is active
     [isDeleted]                              BIT DEFAULT 0,                            -- Soft delete flag for data retention

@@ -5,7 +5,7 @@
 -- 
 -- Business Rules:
 -- - Each user has a unique email address
--- - Password is stored as hashed value
+-- - Password is stored AES-encrypted (Base64), same as mailbox password in UserSetting JSON
 -- - All records include audit fields for tracking changes
 -- =====================================================
 GO
@@ -19,7 +19,7 @@ CREATE TABLE [dbo].[User] (
     [lastName]                              NVARCHAR(50) NOT NULL,                     -- User's lastname
     [email]                                 NVARCHAR(255) NOT NULL,                    -- User email (must be unique)
     [mobile]                                NVARCHAR(20) NULL,                         -- User mobile number (optional)
-    [password]                              NVARCHAR(255) NOT NULL,                    -- Hashed password for authentication
+    [password]                              NVARCHAR(512) NOT NULL,                    -- AES-encrypted login password (Base64)
 
     -- Status and lifecycle management
     [isActive]                               BIT DEFAULT 1,                            -- Whether the user account is active

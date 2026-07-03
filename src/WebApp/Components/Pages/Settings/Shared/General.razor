@@ -93,15 +93,19 @@ else
             <h2 id="password-heading" class="settings-section-title">Password</h2>
             <p class="settings-section-lead">Choose a new sign-in password. No reset email is sent.</p>
 
+            <form autocomplete="off" @onsubmit:preventDefault>
             <div class="settings-field @(string.IsNullOrWhiteSpace(_currentPasswordError) ? null : "settings-field-invalid")">
-                <label class="settings-label" for="password-current">Current password</label>
+                <label class="settings-label" for="settings-pw-current">Current password</label>
                 <div class="settings-password-wrap">
-                    <input id="password-current"
+                    <input id="settings-pw-current"
+                           name="settings-pw-current"
                            type="@(_showCurrentPassword ? "text" : "password")"
                            class="settings-input"
                            @bind="_currentPassword"
                            @bind:after="OnPasswordEdited"
-                           autocomplete="current-password"
+                           autocomplete="off"
+                           readonly="@_blockPasswordAutofill"
+                           @onfocus="OnPasswordFieldFocus"
                            disabled="@IsPasswordSaving" />
                     <button type="button"
                             class="settings-password-toggle"
@@ -119,14 +123,17 @@ else
             </div>
 
             <div class="settings-field @(string.IsNullOrWhiteSpace(_newPasswordError) ? null : "settings-field-invalid")">
-                <label class="settings-label" for="password-new">New password</label>
+                <label class="settings-label" for="settings-pw-new">New password</label>
                 <div class="settings-password-wrap">
-                    <input id="password-new"
+                    <input id="settings-pw-new"
+                           name="settings-pw-new"
                            type="@(_showNewPassword ? "text" : "password")"
                            class="settings-input"
                            @bind="_newPassword"
                            @bind:after="OnPasswordEdited"
-                           autocomplete="new-password"
+                           autocomplete="off"
+                           readonly="@_blockPasswordAutofill"
+                           @onfocus="OnPasswordFieldFocus"
                            disabled="@IsPasswordSaving" />
                     <button type="button"
                             class="settings-password-toggle"
@@ -145,14 +152,17 @@ else
             </div>
 
             <div class="settings-field @(string.IsNullOrWhiteSpace(_confirmPasswordError) ? null : "settings-field-invalid")">
-                <label class="settings-label" for="password-confirm">Confirm new password</label>
+                <label class="settings-label" for="settings-pw-confirm">Confirm new password</label>
                 <div class="settings-password-wrap">
-                    <input id="password-confirm"
+                    <input id="settings-pw-confirm"
+                           name="settings-pw-confirm"
                            type="@(_showConfirmPassword ? "text" : "password")"
                            class="settings-input"
                            @bind="_confirmPassword"
                            @bind:after="OnPasswordEdited"
-                           autocomplete="new-password"
+                           autocomplete="off"
+                           readonly="@_blockPasswordAutofill"
+                           @onfocus="OnPasswordFieldFocus"
                            disabled="@IsPasswordSaving" />
                     <button type="button"
                             class="settings-password-toggle"
@@ -177,6 +187,7 @@ else
                     @(_passwordSaving ? "Updating…" : "Update password")
                 </button>
             </div>
+            </form>
 
             @if (_passwordStatus.Current is not null)
             {
@@ -213,6 +224,7 @@ else
     private bool _showCurrentPassword;
     private bool _showNewPassword;
     private bool _showConfirmPassword;
+    private bool _blockPasswordAutofill = true;
 
     protected override async Task OnInitializedAsync()
     {
@@ -322,6 +334,14 @@ else
 
     #region # Password
 
+    private void OnPasswordFieldFocus()
+    {
+        if (_blockPasswordAutofill)
+        {
+            _blockPasswordAutofill = false;
+        }
+    }
+
     private void OnPasswordEdited()
     {
         ValidatePasswordFields();
@@ -365,6 +385,7 @@ else
             _showCurrentPassword = false;
             _showNewPassword = false;
             _showConfirmPassword = false;
+            _blockPasswordAutofill = true;
             ClearPasswordFieldErrors();
             _passwordStatus.Set("Password updated.", isError: false, autoClear: true);
         }

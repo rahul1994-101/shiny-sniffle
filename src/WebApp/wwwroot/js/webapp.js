@@ -3,6 +3,8 @@ window.webAppShell = (function () {
   var shellId = "app-shell";
   var delegationReady = false;
   var viewportListenerReady = false;
+  /** @type {boolean | null} null = use viewport default on first init */
+  var sidebarCollapsedPreference = null;
 
   function getShell() {
     return document.getElementById(shellId);
@@ -43,13 +45,18 @@ window.webAppShell = (function () {
     document.body.classList.toggle("shell-sidebar-drawer-open", mobile && !collapsed);
   }
 
-  function setSidebarCollapsed(collapsed) {
+  function applySidebarState(collapsed) {
+    sidebarCollapsedPreference = collapsed;
     setSidebarClass(getShell(), collapsed);
     syncShellUi();
   }
 
+  function setSidebarCollapsed(collapsed) {
+    applySidebarState(collapsed);
+  }
+
   function collapseSidebar() {
-    setSidebarCollapsed(true);
+    applySidebarState(true);
   }
 
   function collapseSidebarIfMobile() {
@@ -61,11 +68,18 @@ window.webAppShell = (function () {
   function applyViewportDefault() {
     var shell = getShell();
     if (!shell) return;
-    if (mq && mq.matches) {
-      setSidebarClass(shell, true);
-    } else {
-      setSidebarClass(shell, false);
+
+    if (sidebarCollapsedPreference === null) {
+      sidebarCollapsedPreference = !!(mq && mq.matches);
     }
+
+    setSidebarClass(shell, sidebarCollapsedPreference);
+    syncShellUi();
+  }
+
+  function restoreSidebarState() {
+    if (sidebarCollapsedPreference === null) return;
+    setSidebarClass(getShell(), sidebarCollapsedPreference);
     syncShellUi();
   }
 
@@ -94,8 +108,7 @@ window.webAppShell = (function () {
         var toggleEl = el.closest("[data-shell-toggle]");
         if (toggleEl && shell.contains(toggleEl)) {
           e.preventDefault();
-          setSidebarClass(shell, !isCollapsed(shell));
-          syncShellUi();
+          applySidebarState(!isCollapsed(shell));
         }
       },
       true
@@ -115,6 +128,7 @@ window.webAppShell = (function () {
     viewportListenerReady = true;
 
     var onMedia = function () {
+      sidebarCollapsedPreference = !!(mq && mq.matches);
       applyViewportDefault();
     };
 
@@ -134,6 +148,7 @@ window.webAppShell = (function () {
   return {
     setSidebarCollapsed: setSidebarCollapsed,
     syncShellUi: syncShellUi,
+    restoreSidebarState: restoreSidebarState,
     initShell: initShell,
     collapseSidebar: collapseSidebar,
     collapseSidebarIfMobile: collapseSidebarIfMobile
@@ -141,9 +156,16 @@ window.webAppShell = (function () {
 })();
 
 (function () {
+  var shellReady = false;
+
   function tryInit() {
     if (!document.getElementById("app-shell")) return;
-    window.webAppShell.initShell();
+    if (!shellReady) {
+      window.webAppShell.initShell();
+      shellReady = true;
+      return;
+    }
+    window.webAppShell.restoreSidebarState();
   }
 
   if (document.readyState === "loading") {

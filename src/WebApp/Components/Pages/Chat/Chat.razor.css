@@ -331,6 +331,34 @@
 
 
 
+.chat-composer-error {
+
+    margin: 0 0 0.5rem;
+
+    padding: 0.45rem 0.65rem;
+
+    border-radius: 0.5rem;
+
+    background: color-mix(in srgb, #c44 18%, var(--app-surface-elevated));
+
+    color: var(--app-fg);
+
+    font-size: 0.8125rem;
+
+    line-height: 1.4;
+
+}
+
+
+
+.chat-composer-busy .chat-input {
+
+    opacity: 0.65;
+
+}
+
+
+
 .chat-session-hint {
 
     opacity: 0.9;

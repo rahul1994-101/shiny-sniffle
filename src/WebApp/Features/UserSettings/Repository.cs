@@ -1,6 +1,7 @@
 using Infrastructure.Persistence;
 using Infrastructure.Utilities.Helpers;
 using Microsoft.EntityFrameworkCore;
+using WebApp.Utilities.Extensions;
 
 namespace WebApp.Features.UserSettings;
 
@@ -40,14 +41,16 @@ public sealed class UserSettingsRepository(IDbContextFactory<AppDbContext> _dbCo
     public async Task<bool> UserPasswordMatchesAsync(Guid userId, string password, CancellationToken cancellationToken = default)
     {
         await using var ctx = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
-        return await ctx.Users
+        var storedPassword = await ctx.Users
             .AsNoTracking()
-            .AnyAsync(x =>
+            .Where(x =>
                 x.Id == userId &&
                 x.IsActive &&
-                !x.IsDeleted &&
-                x.Password.ToLower() == password.ToLower(),
-                cancellationToken);
+                !x.IsDeleted)
+            .Select(x => x.Password)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        return storedPassword is not null && storedPassword.MatchesStoredPassword(password);
     }
 
     public async Task<bool> UpdateUserPasswordAsync(Guid userId, string newPassword, Guid updatedBy, CancellationToken cancellationToken = default)
@@ -59,7 +62,7 @@ public sealed class UserSettingsRepository(IDbContextFactory<AppDbContext> _dbCo
             return false;
         }
 
-        user.Password = newPassword;
+        user.Password = newPassword.Trim().Encrypt();
         user.UpdatedBy = updatedBy;
         user.UpdatedAt = DateTime.UtcNow;
         await ctx.SaveChangesAsync(cancellationToken);

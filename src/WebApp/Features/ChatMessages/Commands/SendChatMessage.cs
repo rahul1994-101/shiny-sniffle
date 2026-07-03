@@ -1,6 +1,7 @@
 using FluentValidation;
 
 using WebApp.AI;
+using WebApp.AI.Memory;
 using WebApp.Features.ChatMessages;
 using WebApp.Features.ChatThreads;
 
@@ -33,7 +34,12 @@ public sealed class SendChatMessageRequestValidator : AbstractValidator<SendChat
     }
 }
 
-public sealed class SendChatMessageRequestHandler(ChatThreadRepository chatThreadRepo, ChatMessageRepository chatMessageRepo, SharedRepository sharedRepo, ChatOrchestrator chatOrchestrator)
+public sealed class SendChatMessageRequestHandler(
+    ChatThreadRepository chatThreadRepo,
+    ChatMessageRepository chatMessageRepo,
+    SharedRepository sharedRepo,
+    ChatOrchestrator chatOrchestrator,
+    ThreadMemoryService threadMemory)
     : IRequestHandler<SendChatMessageRequest, SendChatMessageResponse>
 {
     private readonly SharedRepository _sharedRepo = sharedRepo;
@@ -80,6 +86,11 @@ public sealed class SendChatMessageRequestHandler(ChatThreadRepository chatThrea
                     CreatedBy = request.UserId,
                     UpdatedBy = request.UserId
                 }, cancellationToken);
+
+                if (assistantMessage is not null)
+                {
+                    await threadMemory.RefreshAsync(request.ChatThreadId, request.UserId, cancellationToken);
+                }
             }
         }
 

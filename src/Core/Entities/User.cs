@@ -4,8 +4,6 @@ namespace Core.Entities;
 
 public class User : BaseAuditableEntity
 {
-    //private string _password;
-
     [Required(ErrorMessage = "First name is required.")]
     [StringLength(50, MinimumLength = 2, ErrorMessage = "First name must be between 2 and 50 characters.")]
     public string FirstName { get; set; } = string.Empty;
@@ -22,11 +20,5 @@ public class User : BaseAuditableEntity
     public string? Mobile { get; set; } = string.Empty;
 
     [Required(ErrorMessage = "Password is required.")]
-    [StringLength(255, MinimumLength = 6, ErrorMessage = "Password must be between 6 and 255 characters.")]
     public string Password { get; set; } = string.Empty;
-    //public string Password
-    //{
-    //    get => _password.Decrypt();
-    //    set => _password = value.Encrypt();
-    //}
 }

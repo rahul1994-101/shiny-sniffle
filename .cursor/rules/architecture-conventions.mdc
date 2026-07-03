@@ -1,134 +1,71 @@
 ---
-description: Solution layers — Core, Infrastructure, WebApp, and where new code goes
+description: Solution layers, WebApp layout, and where new code goes
 alwaysApply: true
 ---
 
-# Architecture (Core + Infrastructure + WebApp + MediatR)
+# Architecture
 
-Vertical slices in WebApp. **Core** = entities + integration ports. **Infrastructure** = EF, MailKit, Foundry plumbing. **WebApp/Features** = use cases + repositories. **MediatR** (`lib/MediatR`) = CQRS dispatch, `Result`, pipeline.
+Vertical slices in WebApp. **Core** = entities + integration ports. **Infrastructure** = EF, MailKit, Foundry. **WebApp/Features** = use cases + repositories. **MediatR** (`lib/MediatR`) = CQRS — not the Jimmy Bogard NuGet package.
 
 ## Solution layout
 
-```
-databases/Database/          SQL project (not under src/)
-lib/
-  MediatR/                   CQRS lib: IMediator, ICommand/IQuery, Result, pipeline, AddMediatR()
-src/
-  Core/                      Entities + integration ports (no EF, MailKit, Blazor, MAF)
-  Infrastructure/            AppDbContext, MailKit, Foundry + AddInfrastructure()
-  WebApp/                    UI, Features (handlers + repos), AI, composition root (Startup)
+```text
+databases/Database/     SQL Server project (not under src/)
+lib/MediatR/            CQRS dispatcher — see lib/MediatR/README.md
+src/Core/               Entities, Core.DTOs (Mail/Foundry), Abstractions (ports)
+src/Infrastructure/     AppDbContext, MailKit, Foundry + AddInfrastructure()
+src/WebApp/             UI, Features, AI, composition root (Startup)
 ```
 
-**Project references:** `Infrastructure → Core`, `MediatR` (standalone), `WebApp → Infrastructure` + `WebApp → MediatR`.
+**References:** `Infrastructure → Core` · `MediatR` standalone · `WebApp → Infrastructure` + `MediatR`
 
-## Core (`src/Core/`)
-
-| Folder | Purpose |
-|--------|---------|
-| **Entities/** | EF-mapped domain types. One entity per `.cs`; `_Common.cs`, `_Enums.cs`. Namespace `Core.Entities`. |
-| **DTOs/** | Integration shapes only (`Mail.cs`, `Foundry.cs`). Namespace `Core.DTOs`. |
-| **Abstractions/** | **Integration ports only** — `Mailbox.cs`, `Foundry.cs`. Namespace `Core.Abstractions`. |
-
-Do **not** put repository ports, SDKs, `IConfiguration`, or UI types in Core.
-
-## Infrastructure (`src/Infrastructure/`)
-
-- **`Persistence/`** — `AppDbContext` only (no repositories).
-- **`Mailbox/`**, **`Foundry/`** — port implementations.
-- **`Utilities/Helpers/`** — JSON columns, MailKit helpers, Azure endpoint helpers.
-- Register in `DependencyInjection.AddInfrastructure()`; WebApp calls it from `Startup.InjectData`.
-
-```
-Infrastructure/
-  DependencyInjection.cs
-  Utilities/Helpers/
-    JsonColumnHelpers.cs
-    EmailSettingsJsonHelpers.cs
-    ...
-  Persistence/
-    AppDbContext.cs
-  Mailbox/
-    MailKitMailboxService.cs
-  Foundry/
-    FoundryAgentFactory.cs
-```
-
-## MediatR (`lib/MediatR/`)
-
-Custom CQRS dispatcher (not the Jimmy Bogard NuGet package). May be published as a NuGet package later.
-
-| Namespace | Purpose |
-|-----------|---------|
-| **MediatR.Abstractions** | `IMediator`, `ICommand`, `IQuery`, `INotification`, `IRequestHandler`, `INotificationHandler` |
-| **MediatR.Results** | `Result`, `Result<T>`, `Error`, `ErrorCode` |
-| **MediatR.Behaviors** | `ValidationBehavior`, `ExceptionBehavior` |
-| **MediatR.Pipeline** | `RequestPipeline` (internal) |
-| **MediatR.Dispatch** | `Mediator`, dispatch tables (internal) |
-| **MediatR.DependencyInjection** | `AddMediatR(assembly)` |
-
-- **Send:** `IMediator.SendAsync` — commands and queries (1 handler → `Result` / `Result<T>`).
-- **Publish:** `IMediator.PublishAsync` — notifications (0..N handlers, no `Result`).
-- Register from WebApp: `AddValidatorsFromAssembly` + `AddMediatR(Assembly.GetExecutingAssembly())`.
-
-See `lib/MediatR/README.md` for flows and migration phases.
-
-## WebApp (`src/WebApp/`)
-
-| Folder | Purpose |
-|--------|---------|
-| **Features/{Slice}/** | Independent vertical slice: `DTOs.cs`, `Repository.cs`, `Commands/`, `Queries/`. See `feature-slice-conventions.mdc`. |
-| **Features/Shared/** | Cross-slice DTOs, `SharedRepository`, `FeatureServiceCollectionExtensions.AddFeatureRepositories()`. |
-| **Models/** | App/UI-only — AI turn shapes, constants. `Result` types live in **`MediatR.Results`**. |
-| **Components/, Endpoints/, AI/, Utilities/** | UI and orchestration; depend on Features + `Core.Abstractions`. |
-
-WebApp is the **composition root** (`Startup.cs`).
-
-- `Startup.InjectFeatures()` → `AddFeatureRepositories()` + `AddValidatorsFromAssembly(...)` + `AddMediatR(...)`.
-- Repositories are **concrete classes** in `Features/{Entity}/`, registered in `AddFeatureRepositories()`.
-
-## Where does new code go?
+## Where new code goes
 
 | Question | Place |
 |----------|--------|
-| DB table / domain field? | `Core/Entities/` |
-| Use-case Request/Response? | `WebApp/Features/{Slice}/Commands|Queries/{UseCase}.cs` |
-| Shared read shape within a slice? | `WebApp/Features/{Slice}/DTOs.cs` |
-| Shared read shape across slices? | `WebApp/Features/Shared/DTOs.cs` |
-| Data access for a slice? | `WebApp/Features/{Slice}/Repository.cs` (`{Entity}Repository`) |
-| Cross-slice data access? | `WebApp/Features/Shared/Repository.cs` (`SharedRepository`) |
-| New external system port? | `Core/Abstractions/{Concern}.cs` + `Infrastructure/{Concern}/` |
-| EF / IMAP / SMTP implementation? | `Infrastructure/{Concern}/` |
-| `Result`, AI turn, mailbox UI? | `MediatR.Results` (lib) / `WebApp/Models/` (AI turn) |
-| LLM / tools / chat turn? | `WebApp/AI/` |
+| DB table / domain field | `Core/Entities/` |
+| Mailbox / Foundry port shape | `Core/DTOs/` + `Core/Abstractions/` |
+| Port implementation | `Infrastructure/{Concern}/` |
+| Use case (Request/Handler) | `WebApp/Features/{Slice}/Commands\|Queries/{UseCase}.cs` |
+| Slice read shape | `WebApp/Features/{Slice}/DTOs.cs` |
+| Cross-slice read shape | `WebApp/Features/Shared/DTOs.cs` |
+| Slice data access | `WebApp/Features/{Slice}/Repository.cs` |
+| Cross-slice data access | `WebApp/Features/Shared/Repository.cs` |
+| `Result`, pipeline, `IMediator` | `lib/MediatR/` |
+| AI turn shapes, app constants | `WebApp/Models/` |
+| LLM, tools, orchestration, memory | `WebApp/AI/` |
+| Blazor UI | `WebApp/Components/` |
+| HTTP API | `WebApp/Endpoints/*Endpoints.cs` |
 
-## Feature slices
+**Not in WebApp:** `AppDbContext`, entities, `Core/DTOs` repository shapes.
 
-Full vertical-slice rules: **`feature-slice-conventions.mdc`**.
+## WebApp folders
 
-Each **business slice** folder under `Features/` (`Users`, `ChatThreads`, …) is independent — own DTOs, repository, and use cases. `Features/Shared/` holds cross-slice data (`DTOs.cs`, `Repository.cs`, `AddFeatureRepositories()`). CQRS plumbing is in **`lib/MediatR/`**.
+| Folder | Purpose |
+|--------|---------|
+| **Features/** | Vertical slices + `Shared/` — see `feature-slice-conventions.mdc` |
+| **Components/** | Blazor — see `blazor-conventions.mdc` |
+| **AI/** | Agents, tools, `ChatOrchestrator`, `Memory/` — see `ai-conventions.mdc` |
+| **Models/** | `AI.cs`, `Constants.cs`, `Enums.cs` — see `dto-conventions.mdc` |
+| **Endpoints/** | MVC `*Endpoints.cs`; `/api/...` only |
+| **Utilities/** | Extensions, Helpers, Services (`UserMailboxService`, `CurrentUser`) — no EF/MailKit impl |
 
-```
-Features/Users/
-  DTOs.cs           SessionDto + FromEntity
-  Repository.cs     UserRepository
-  Commands/SignIn.cs
+## Startup (`Startup.cs`)
 
-Features/ChatThreads/
-  DTOs.cs
-  Repository.cs     ChatThreadRepository
-  Commands/ ...
-  Queries/ ...
+- `InjectData` → `AddInfrastructure(configuration)` + `UserMailboxService`
+- `InjectFeatures` → `AddFeatureRepositories()` + `AddMediatR(Assembly.GetExecutingAssembly())`
+- `InjectAi` → agents, tools, orchestrator, memory services + `Configure<FoundryOptions>`
 
-Features/Shared/          ← cross-slice (multiple slices need it)
-  DTOs.cs
-  Repository.cs     SharedRepository
-  FeatureServiceCollectionExtensions.cs   AddFeatureRepositories()
-```
+## Foundry
 
-**Slice folders are plural/descriptive** (`Users`, `ChatThreads`, `ChatMessages`, `UserSettings`) so namespaces do not clash with `Core.Entities` (`User`, `ChatThread`, `ChatMessage`).
+`Foundry:Enabled`, `Foundry:Endpoint`, `Foundry:ApiKey` in user secrets / env — never commit keys.
 
-**Repository:** file `Repository.cs`, class `{Entity}Repository`. Each repo owns `IDbContextFactory<AppDbContext>`; slice repos do **not** inherit `SharedRepository`.
+## Other rules
 
-**Response may inherit slice DTO:** `public sealed class SignInResponse : SessionDto { }`
-
-**Handlers** inject local `{Entity}Repository` as `{entity}Repo` plus `SharedRepository` as `sharedRepo` (composition, not inheritance). Example: `SignInRequestHandler(UserRepository userRepo, SharedRepository sharedRepo)`.
+| Topic | Rule file |
+|-------|-----------|
+| Feature slices, handlers, repos, EF patterns | `feature-slice-conventions.mdc` |
+| DTO / model placement | `dto-conventions.mdc` |
+| AI pipeline layout | `ai-conventions.mdc` |
+| Blazor `@code` layout | `blazor-conventions.mdc` |
+| Roadmaps (memory, email read) | `docs/` |

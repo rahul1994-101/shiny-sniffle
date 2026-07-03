@@ -1,4 +1,3 @@
-using FluentValidation;
 using Infrastructure;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Localization;
@@ -7,6 +6,7 @@ using System.Reflection;
 using WebApp;
 using WebApp.AI;
 using WebApp.AI.Agents;
+using WebApp.AI.Memory;
 using WebApp.AI.Tools;
 using WebApp.Components;
 using MediatR.DependencyInjection;
@@ -102,7 +102,6 @@ public static class DependencyInject
     public static void InjectFeatures(this IServiceCollection services)
     {
         services.AddFeatureRepositories();
-        services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
         services.AddMediatR(Assembly.GetExecutingAssembly());
     }
 
@@ -111,6 +110,7 @@ public static class DependencyInject
         services.Configure<FoundryOptions>(configuration.GetSection(FoundryOptions.SectionName));
 
         services.AddScoped<EmailTools>();
+        services.AddScoped<ThreadMemoryService>();
         services.AddScoped<AssistantAgent>();
         services.AddScoped<EmailAgent>();
         services.AddScoped<ChatOrchestrator>();

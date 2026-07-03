@@ -1,3 +1,4 @@
+using System.Collections.Frozen;
 using MediatR.Abstractions;
 using MediatR.Pipeline;
 using MediatR.Results;
@@ -30,18 +31,10 @@ internal sealed class RequestInvoker<TRequest, TResult> : IRequestInvoker
 
 internal sealed class RequestDispatchTable
 {
-    private readonly Dictionary<Type, IRequestInvoker> _invokers = new();
+    private readonly FrozenDictionary<Type, IRequestInvoker> _invokers;
 
-    internal void Register(IRequestInvoker invoker)
-    {
-        if (_invokers.ContainsKey(invoker.RequestType))
-        {
-            throw new InvalidOperationException(
-                $"Duplicate mediator handler registered for request type '{invoker.RequestType.FullName}'.");
-        }
-
-        _invokers[invoker.RequestType] = invoker;
-    }
+    internal RequestDispatchTable(FrozenDictionary<Type, IRequestInvoker> invokers) =>
+        _invokers = invokers;
 
     internal IRequestInvoker GetRequired(Type requestType) =>
         _invokers.TryGetValue(requestType, out var invoker)
@@ -88,10 +81,10 @@ internal sealed class NotificationHandlerInvoker<TNotification> : INotificationH
 
 internal sealed class NotificationDispatchTable
 {
-    private readonly Dictionary<Type, INotificationHandlerInvoker> _invokers = new();
+    private readonly FrozenDictionary<Type, INotificationHandlerInvoker> _invokers;
 
-    internal void Register(INotificationHandlerInvoker invoker) =>
-        _invokers[invoker.NotificationType] = invoker;
+    internal NotificationDispatchTable(FrozenDictionary<Type, INotificationHandlerInvoker> invokers) =>
+        _invokers = invokers;
 
     internal INotificationHandlerInvoker? Find(Type notificationType) =>
         _invokers.GetValueOrDefault(notificationType);
@@ -99,9 +92,20 @@ internal sealed class NotificationDispatchTable
 
 internal sealed class Mediator(
     IServiceProvider services,
+    RequestDispatcherCore dispatcher,
     RequestDispatchTable requestTable,
     NotificationDispatchTable notificationTable) : IMediator
 {
+    public ValueTask<TResult> SendAsync<TRequest, TResult>(
+        TRequest request,
+        CancellationToken cancellationToken = default)
+        where TRequest : IRequest<TResult>
+        where TResult : Result, new()
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        return dispatcher.SendAsync<TRequest, TResult>(request, cancellationToken);
+    }
+
     public async ValueTask<TResult> SendAsync<TResult>(
         IRequest<TResult> request,
         CancellationToken cancellationToken = default)

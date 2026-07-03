@@ -1,90 +1,74 @@
 ---
-description: Vertical slice layout — Features folders, Shared slice, handlers, repos
-globs: src/WebApp/Features/**/*.cs
-alwaysApply: true
+description: Vertical slices — repos, handlers, CQRS, EF/JSON data patterns
+globs: src/WebApp/Features/**/*.cs,src/Infrastructure/Persistence/**/*.cs
+alwaysApply: false
 ---
 
 # Feature vertical slices
 
-`WebApp/Features/` is **vertically sliced**. Each top-level folder (except plumbing) is an **independent slice** that owns its use cases end-to-end.
+`WebApp/Features/` is **vertically sliced**. Each top-level folder (except plumbing) owns its use cases end-to-end.
 
-## Slice vs plumbing vs cross-slice
+## Slice vs plumbing
 
 | Folder | Kind | Purpose |
 |--------|------|---------|
-| `Users/`, `ChatThreads/`, `ChatMessages/`, `UserSettings/` | **Business slice** | One bounded area: DTOs, repository, commands, queries |
-| `Features/Shared/` | **Cross-slice** | Shared DTOs, `SharedRepository`, `FeatureServiceCollectionExtensions` |
-
-## Business slice layout
-
-```
-Features/Users/
-  DTOs.cs              slice read shapes (SessionDto, FromEntity, AsResponse)
-  Repository.cs        class UserRepository
-  Commands/SignIn.cs   Request → Response → Validator → Handler
-  Queries/             (when needed)
-
-Features/ChatThreads/
-  DTOs.cs
-  Repository.cs        class ChatThreadRepository
-  Commands/ ...
-  Queries/ ...
-
-Features/Shared/
-  DTOs.cs
-  Repository.cs     SharedRepository
-  FeatureServiceCollectionExtensions.cs
-```
+| `Users/`, `ChatThreads/`, `ChatMessages/`, `UserSettings/` | **Business slice** | DTOs, repository, commands, queries |
+| `Features/Shared/` | **Cross-slice** | Shared DTOs, `SharedRepository`, `AddFeatureRepositories()` |
 
 ### Slice folder naming
 
-Use **plural / descriptive** folder names so namespaces do not clash with `Core.Entities` types:
+Plural/descriptive names so namespaces do not clash with `Core.Entities`:
 
-| Folder | Repository class | Entity (Core) |
-|--------|------------------|---------------|
+| Folder | Repository | Entity |
+|--------|------------|--------|
 | `Users/` | `UserRepository` | `User` |
 | `ChatThreads/` | `ChatThreadRepository` | `ChatThread` |
 | `ChatMessages/` | `ChatMessageRepository` | `ChatMessage` |
 | `UserSettings/` | `UserSettingsRepository` | `UserSetting` |
 
-Inside a slice folder, entity types from `Core.Entities` may be used **unqualified** (e.g. `new ChatThread { }` in `ChatThreads/`).
+### Layout per slice
 
-### Repository file and class
-
-| Rule | Example |
-|------|---------|
-| File name | `Repository.cs` (not `UserRepository.cs`) |
-| Class name | `{Entity}Repository` |
-| DB access | `IDbContextFactory<AppDbContext> _dbContextFactory` per repo |
-| Registration | Concrete types in `AddFeatureRepositories()` — no `I*Repository` ports in Core |
-
-Slice repositories are **standalone** — they do **not** inherit `SharedRepository`.
-
-```csharp
-public sealed class UserRepository(IDbContextFactory<AppDbContext> _dbContextFactory)
-{
-    public async Task<SessionDto?> FindSessionByEmailAndPasswordAsync(...)
-    {
-        await using var ctx = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
-        ...
-    }
-}
+```text
+Features/Users/
+  DTOs.cs              SessionDto, FromEntity, AsResponse
+  Repository.cs        class UserRepository
+  Commands/SignIn.cs   Request → Response → Validator → Handler
+  Queries/             (when needed)
 ```
 
-### SharedRepository
+| Rule | Value |
+|------|-------|
+| Repo file | `Repository.cs` (not `UserRepository.cs`) |
+| Repo class | `{Entity}Repository` |
+| DB access | `IDbContextFactory<AppDbContext> _dbContextFactory` per repo |
+| Registration | Concrete types in `AddFeatureRepositories()` — no `I*Repository` in Core |
+| Inheritance | Slice repos do **not** inherit `SharedRepository` |
 
-`Features/Shared/Repository.cs` — cross-slice queries that do not belong in a single slice repo.
+Inside a slice folder, `Core.Entities` types may be used **unqualified**.
 
-- Same structure as slice repos (`_dbContextFactory`, async methods, returns DTOs).
-- Registered in `AddFeatureRepositories()` alongside slice repos.
-- **Not** a base class for slice repositories.
+## Repositories
+
+- **Reads** return slice DTOs via `FromEntity` / `FromEntities`.
+- **Writes** accept `Core.Entities.*`; return DTOs on success.
+- Handlers inject `{Entity}Repository` + `SharedRepository` — not `AppDbContext`.
+
+`SharedRepository` (`Features/Shared/Repository.cs`) — cross-slice queries only; same factory pattern; not a base class.
+
+### Settings method naming
+
+| Section | Repository | Features |
+|---------|------------|----------|
+| General | `GetGeneralSettingsAsync`, `UpdateUserProfileAsync`, `UpdateUserPasswordAsync` | `GetGeneralSettings`, `SaveGeneralProfile`, `ChangePassword` |
+| Email | `GetUserEmailSettingsAsync`, `SaveUserEmailSettingsAsync` | `GetEmailSettings`, `SaveEmailSettings` |
+
+`SettingsSection` enum is for tab routes only.
 
 ## Use-case file (`Commands/` or `Queries/`)
 
 One file per use case. **Order:**
 
 1. `{UseCase}Request` — `ICommand<>` or `IQuery<>`
-2. `{UseCase}Response` — when present; may inherit slice DTO (`SignInResponse : SessionDto`)
+2. `{UseCase}Response` — when present; may inherit slice DTO
 3. `{UseCase}RequestValidator`
 4. `{UseCase}RequestHandler`
 
@@ -92,96 +76,57 @@ Reference: `Users/Commands/SignIn.cs`.
 
 ### Handler result pattern
 
-1. First line in `HandleAsync`: `var result = new Result<T>();` (or `new Result()` for `ICommand`).
-2. Use `result.Success(...)` / `result.Failure(...)` — instance only, no static factories.
+1. First line: `var result = new Result<T>();` (or `new Result()` for `ICommand`).
+2. `result.Success(...)` / `result.Failure(...)` — instance only.
 3. Early failures: `result.Failure(...); return result;`
-4. End with `return result;`
+4. End: `return result;`
 
-### Handler dependencies (every handler)
+### Handler dependencies
 
-Every handler injects:
+Every handler injects local slice repo + `SharedRepository`:
 
-1. **Local slice repo** — `{Entity}Repository {entity}Repo`
-2. **`SharedRepository sharedRepo`** — for cross-slice data access (composition, not inheritance)
-
-Capture `sharedRepo` when the handler does not call it yet (avoids unused-parameter warnings):
-
-```csharp
-public sealed class SignInRequestHandler(UserRepository userRepo, SharedRepository sharedRepo)
-    : IRequestHandler<SignInRequest, SignInResponse>
-{
-    private readonly SharedRepository _sharedRepo = sharedRepo;
-
-    public async ValueTask<Result<SignInResponse>> HandleAsync(SignInRequest request, CancellationToken cancellationToken = default)
-    {
-        var result = new Result<SignInResponse>();
-
-        #region # Execute
-
-        var session = await userRepo.FindSessionByEmailAndPasswordAsync(
-            request.EmailId, request.Password, cancellationToken);
-
-        #endregion
-
-        #region # Handle Result
-
-        if (session is null)
-            result.Failure(ErrorCode.NotFound, "Invalid Credentials");
-        else
-            result.Success(session.AsResponse<SignInResponse>());
-
-        #endregion
-
-        return result;
-    }
-}
-```
-
-### Handler parameter naming
-
-| Dependency | Constructor parameter | Field (when captured) |
-|------------|----------------------|------------------------|
-| `UserRepository` | `userRepo` | — (use param directly) |
+| Repository | Parameter | Field (when unused) |
+|------------|-----------|---------------------|
+| `UserRepository` | `userRepo` | — |
 | `UserSettingsRepository` | `userSettingsRepo` | — |
 | `ChatThreadRepository` | `chatThreadRepo` | — |
 | `ChatMessageRepository` | `chatMessageRepo` | — |
 | `SharedRepository` | `sharedRepo` | `_sharedRepo` |
 
-Handlers with **multiple slice repos** (e.g. `SendChatMessage`) name each repo: `chatThreadRepo`, `chatMessageRepo`, plus `sharedRepo`.
-
-Other services (`UserMailboxService`, `ChatOrchestrator`) keep descriptive names; only repos use the `{entity}Repo` suffix.
+Multi-repo handlers name each: `chatThreadRepo`, `chatMessageRepo`, plus `sharedRepo`. Other services (`ChatOrchestrator`, …) keep descriptive names.
 
 ### Handler formatting
 
-- Request record parameters on one line when they fit.
-- `HandleAsync` signature on one line.
-- Handler constructor dependencies on one line when they fit.
-- Repository / service call arguments on one line when they fit.
+- Request, `HandleAsync`, constructor deps, repo calls — one line when they fit.
 - `#region # Execute` and `#region # Handle Result` in every handler.
 
-## Where does cross-slice code go?
+### Plumbing
+
+- Entry: `mediator.SendAsync(new SignInRequest(...))`
+- Pipeline: `ValidationBehavior` → `ExceptionBehavior` → handler (`AddMediatR`)
+
+## EF and JSON
+
+**`AppDbContext`** lives in `Infrastructure/Persistence/` only.
+
+Map `User` / `UserSetting` audit columns to DB camelCase in `OnModelCreating`.
+
+**JSON settings columns** — do not use EF `OwnsOne` + `ToJson()`:
+
+| Layer | Pattern |
+|-------|---------|
+| Entity | `EmailSettingsJson` on `UserSetting`; typed `EmailSettings` in `Core.Entities` |
+| Infrastructure | `EmailSettingsJsonHelpers` via `JsonColumnHelpers` |
+| WebApp | `EmailSettingsMapping` in `Features/UserSettings/` |
+
+## Cross-slice placement
 
 | Need | Place |
 |------|-------|
-| Read shape used in one slice | `Features/{Slice}/DTOs.cs` |
-| Read shape used across slices | `Features/Shared/DTOs.cs` |
-| Query spanning entities / slices | `Features/Shared/Repository.cs` (`SharedRepository`) |
-| Use-case Request/Response | `Features/{Slice}/Commands\|Queries/{UseCase}.cs` |
-| Slice-only data access | `Features/{Slice}/Repository.cs` |
-| CQRS pipeline, mediator, DI | `lib/MediatR/` (`AddMediatR`, `IMediator`) |
+| Read shape in one slice | `Features/{Slice}/DTOs.cs` |
+| Read shape across slices | `Features/Shared/DTOs.cs` |
+| Query spanning slices | `SharedRepository` |
+| Use-case types | `Features/{Slice}/Commands\|Queries/{UseCase}.cs` |
+| CQRS plumbing | `lib/MediatR/` |
 
-Handlers call `_sharedRepo` only when a use case needs cross-slice data; until then, injection + `_sharedRepo` field wires DI for future use.
-
-## Layer boundaries (reminder)
-
-| Layer | Owns |
-|-------|------|
-| `Core/Entities/` | DB entities |
-| `Core/DTOs/` | Integration shapes only (Mail, Foundry) |
-| `Infrastructure/Persistence/` | `AppDbContext` only |
-| `WebApp/Features/{Slice}/` | Use cases + slice repositories |
-| `WebApp/Features/Shared/` | Cross-slice DTOs + `SharedRepository` |
-| `lib/MediatR/` | `Result`, `IMediator`, pipeline, handler abstractions |
-| `WebApp/Models/` | App constants, AI turn shapes |
-
-No `AppDbContext` or repository ports in handlers beyond concrete `{Entity}Repository` + `SharedRepository`.
+DTO placement details: **`dto-conventions.mdc`**.

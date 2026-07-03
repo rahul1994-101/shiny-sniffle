@@ -61,7 +61,7 @@ public class AppDbContext : DbContext
             entity.Property(e => e.LastName).HasColumnName("lastName");
             entity.Property(e => e.Email).HasColumnName("email");
             entity.Property(e => e.Mobile).HasColumnName("mobile");
-            entity.Property(e => e.Password).HasColumnName("password");
+            entity.Property(e => e.Password).HasColumnName("password").HasMaxLength(512);
             entity.Property(e => e.IsActive).HasColumnName("isActive");
             entity.Property(e => e.IsDeleted).HasColumnName("isDeleted");
             entity.Property(e => e.CreatedBy).HasColumnName("createdBy");
@@ -73,6 +73,8 @@ public class AppDbContext : DbContext
         {
             entity.ToTable("ChatThread", "dbo");
             entity.Property(e => e.ChatAgent).HasColumnName("chatAgent");
+            entity.Property(e => e.MemorySummary).HasColumnName("memorySummary");
+            entity.Property(e => e.MemorySummaryThroughMessageId).HasColumnName("memorySummaryThroughMessageId");
         });
         modelBuilder.Entity<ChatMessage>(entity =>
         {

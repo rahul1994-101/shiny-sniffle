@@ -1,138 +1,78 @@
 # MediatR (internal library)
 
-Custom CQRS dispatcher for ShinySniffle. Inspired by [martinothamar/Mediator](https://github.com/martinothamar/Mediator) and MediatR-style pipelines.
+Custom CQRS dispatcher for ShinySniffle. **Not** the Jimmy Bogard NuGet package. Folder stays `lib/MediatR` until a future NuGet publish.
 
-May be published as a standalone NuGet package later. Lives in `lib/MediatR`, referenced by `WebApp` only.
+**Status:** v1.0.0 shipped — WebApp on `IMediator`; **parked** while app features take priority.
 
----
-
-## Three flows
+## Flows
 
 | Flow | API | Handlers | Returns |
 |------|-----|----------|---------|
-| **Commands** | `IMediator.SendAsync` | `IRequestHandler<TRequest, TResult>` (1:1) | `Result` or `Result<T>` |
-| **Queries** | `IMediator.SendAsync` | `IRequestHandler<TRequest, TResult>` (1:1) | `Result<T>` |
-| **Notifications** | `IMediator.PublishAsync` | `INotificationHandler<TNotification>` (1:N) | nothing |
+| Commands / queries | `IMediator.SendAsync` | `IRequestHandler<TRequest, TResult>` (1:1) | `Result` / `Result<T>` |
+| Notifications | `IMediator.PublishAsync` | `INotificationHandler<TNotification>` (1:N) | nothing |
 
-Commands and queries share the same Send pipeline and behaviors. Notifications are a separate dispatch path with no `Result` envelope.
+Pipeline: `ValidationBehavior` → `ExceptionBehavior` → handler. FluentValidation bundled in `AddMediatR`.
 
----
+## Registration
+
+```csharp
+services.AddMediatR(Assembly.GetExecutingAssembly());
+```
+
+Registers validators, handlers, behaviors, and `IMediator` from one assembly.
+
+## Handler pattern (consumer apps)
+
+```csharp
+public sealed record SignInRequest(...) : ICommand<SignInResponse>;
+
+public sealed class SignInRequestHandler(UserRepository userRepo, SharedRepository sharedRepo)
+    : IRequestHandler<SignInRequest, SignInResponse>
+{
+    public async ValueTask<Result<SignInResponse>> HandleAsync(SignInRequest request, CancellationToken ct = default)
+    {
+        var result = new Result<SignInResponse>();
+        // result.Success(...) or result.Failure(...)
+        return result;
+    }
+}
+```
+
+Use-case conventions: `.cursor/rules/feature-slice-conventions.mdc`.
 
 ## Namespaces
 
 ```text
-MediatR.Abstractions       IRequest, ICommand, IQuery, INotification, IMediator, handlers
+MediatR.Abstractions       IRequest, ICommand, IQuery, INotification, IMediator
 MediatR.Results            Result, Result<T>, Error, ErrorCode
-MediatR.Pipeline           RequestPipeline
 MediatR.Behaviors          ValidationBehavior, ExceptionBehavior
-MediatR.Dispatch           Mediator (internal), dispatch tables
-MediatR.DependencyInjection   AddMediatR(assembly)
+MediatR.DependencyInjection   AddMediatR
 ```
 
----
+## Version roadmap
 
-## Fixed return types (`MediatR.Results`)
+| Version | Focus |
+|---------|--------|
+| **v1.0** ✅ | Send pipeline, `Result`, `AddMediatR`, FluentValidation, `FrozenDictionary` dispatch |
+| **v1.1** | Notifications in WebApp (prove Publish path) |
+| **v1.2** | Exception hardening — safe client messages |
+| **v1.3** | `AddMediatR` options (extra behaviors, assemblies) |
+| **v2.0** | Source generator — compile-time registration |
+| **v2.1** | Unit/integration tests |
+| **v3.0** | NuGet publish (`ShrewdSquad.Mediator`), namespace rename |
 
-| Type | When |
-|------|------|
-| `Result` | `ICommand` (no response payload) |
-| `Result<T>` | `ICommand<T>` or `IQuery<T>` |
+**Default path:** v1.0 → v1.1 → v1.2 → v2.1 → v3.0. v1.3–v1.4 and v2.0 when needed.
 
-Supporting types: `Error`, `ErrorCode`.
+## Stays outside the lib
 
-Handlers and pipeline use **instance-only** `Success()` / `Failure()` on `new Result` / `new Result<T>`. Declare `var result = new Result<T>();` as the first statement in `HandleAsync` (supports multi-step flows and early returns).
+Repositories, EF, entities, feature DTOs/validators/handlers, AI orchestration, HTTP/Blazor — hosts consume `IMediator` only.
 
----
+## Principles
 
-## Request markers
-
-```csharp
-public sealed record SignInRequest(...) : ICommand<SignInResponse>;
-public sealed record DeleteRequest(...) : ICommand;
-public sealed record GetSettingsRequest(...) : IQuery<SettingsResponse>;
-public sealed record UserSignedIn(Guid UserId) : INotification;
-```
-
-Handlers:
-
-```csharp
-IRequestHandler<SignInRequest, SignInResponse>
-IRequestHandler<DeleteRequest>                    // ICommand, no payload
-INotificationHandler<UserSignedIn>
-```
-
----
-
-## Registration
-
-**WebApp** (composition root):
-
-```csharp
-services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
-services.AddMediatR(Assembly.GetExecutingAssembly());
-```
-
-`AddMediatR` registers request/notification handlers, pipeline behaviors, and `IMediator`. FluentValidation registration stays in the host so validators are optional and assembly choice is explicit.
-
----
-
-## Migration phases
-
-### Phase 0 — Scaffold
-
-- [x] Project + solution + WebApp reference
-- [x] README
-- [x] `MediatR.Results` moved out of WebApp
-
-### Phase 1 — Core lib
-
-- [x] Abstractions (`ICommand`, `IQuery`, `INotification`, `IMediator`, handlers)
-- [x] Pipeline, behaviors, dispatch
-- [x] `SendAsync` + `PublishAsync`
-- [x] `AddMediatR` replaces `AddFeatureLayer`
-- [x] `ValueTask` on mediator, handlers, behaviors
-- [x] Payload-only `ICommand<T>` / `IQuery<T>`
-- [x] WebApp handlers, Blazor, `AuthEndpoints` on `IMediator`
-- [x] Deleted `WebApp/Features/Shared/Cqrs/`
-- [x] Validator registration split to WebApp (`AddValidatorsFromAssembly` + `AddMediatR`)
-- [x] Duplicate-handler guard at startup
-- [x] Non-nullable `TResponse` on commands/queries
-- [x] Build passes
-
-**Notifications:** `PublishAsync` and `INotificationHandler` are registered by `AddMediatR`, but WebApp has no notifications yet. First real usage is **Phase 4**.
-
-### Phase 2 — Performance
-
-- [ ] `FrozenDictionary` dispatch table
-- [ ] Typed `SendAsync<TRequest>` without boxing / `Activator`
-
-### Phase 3 — Source generator (optional)
-
-- [ ] Compile-time handler registry + DI
-
-### Phase 4 — Notifications (adoption)
-
-- [ ] First `INotification` + `INotificationHandler` in WebApp
-- [ ] Call `IMediator.PublishAsync` from a use case (e.g. side effects after sign-in or thread create)
-- [ ] Confirm 1:N dispatch when multiple handlers exist for one notification
-
-### Phase 5 — FluentValidation decoupling
-
-Validator **registration** is already in WebApp (`AddValidatorsFromAssembly`). `ValidationBehavior` still lives in `lib/MediatR` and requires the FluentValidation package.
-
-- [ ] Decide approach: keep as-is, extract to `MediatR.FluentValidation`, or move behavior to WebApp
-- [ ] Implement chosen split so core `MediatR` does not hard-depend on FV (if extracting)
-- [ ] Update `Startup` / package references accordingly
-
-### Phase 6 — Tests (after migration complete)
-
-- [ ] Lib unit tests — dispatch table, pipeline behaviors, duplicate-handler guard
-- [ ] Optional handler integration / smoke tests in WebApp
-
----
-
-## Notes
-
-- **WebApp** keeps slices, validators, repos; `AddFeatureRepositories()` stays in WebApp.
-- **AI / orchestration** may keep direct repo access.
-- **Scoped** lifetime for mediator and handlers.
+| Topic | Decision |
+|-------|----------|
+| FluentValidation | Bundled in lib; validators live in feature slices |
+| Repositories | WebApp only |
+| AI / orchestration | May bypass mediator |
+| Lifetime | Scoped mediator + handlers |
+| Breaking changes | v2+ only, with migration notes |

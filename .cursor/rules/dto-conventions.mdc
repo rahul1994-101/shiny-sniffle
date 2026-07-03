@@ -1,18 +1,16 @@
 ---
-description: Slice DTOs vs WebApp.Models vs feature-owned use-case types; see feature-slice-conventions.mdc
+description: Slice DTOs vs Core.DTOs vs WebApp.Models — where types live
 globs: src/Core/DTOs/**/*.cs,src/WebApp/Models/**/*.cs,src/WebApp/Features/**/*.cs,src/WebApp/Components/**/*.razor
 alwaysApply: false
 ---
 
-# DTO conventions
+# Model placement
 
-Three model homes — **do not duplicate** types across them.
+Three homes — **do not duplicate** types across them.
 
-## Features (`WebApp/Features/`) — slice DTOs + use-case Request / Response
+## Features (`WebApp/Features/`)
 
-### Slice DTOs (`DTOs.cs`)
-
-Shared read shapes **within one vertical slice**. One `DTOs.cs` per slice folder:
+**Slice DTOs** (`DTOs.cs`) — shared read shapes within one slice:
 
 | Folder | Types |
 |--------|-------|
@@ -20,39 +18,33 @@ Shared read shapes **within one vertical slice**. One `DTOs.cs` per slice folder
 | `ChatThreads/` | `ChatThreadDto` |
 | `ChatMessages/` | `ChatMessageDto` |
 | `UserSettings/` | `GeneralSettingsDto`, `EmailSettingsDto` |
-| `Shared/` | Cross-slice DTOs (when multiple slices need the same read shape) |
+| `Shared/` | Cross-slice DTOs |
 
-- `FromEntity(Core.Entities.*)` for entity → DTO mapping.
-- `AsResponse<T>()` when a use-case Response inherits the DTO.
+`FromEntity(Core.Entities.*)` for mapping; `AsResponse<T>()` when Response inherits the DTO.
 
-### Use-case types (`Commands|Queries/{UseCase}.cs`)
+**Use-case types** (`Commands|Queries/{UseCase}.cs`):
 
-| Kind | Pattern | Example |
-|------|---------|---------|
-| Message | `{UseCase}Request` | `SignInRequest` |
-| Result | `{UseCase}Response` | `SignInResponse : SessionDto` |
-| Validator | `{UseCase}RequestValidator` | `SignInRequestValidator` |
-| Handler | `{UseCase}RequestHandler` | `SignInRequestHandler` |
+| Kind | Pattern |
+|------|---------|
+| Message | `{UseCase}Request` |
+| Result | `{UseCase}Response` (may extend slice DTO) |
+| Validator | `{UseCase}RequestValidator` |
+| Handler | `{UseCase}RequestHandler` |
 
-- Flat **Request** record (primitives or slice DTOs for complex input, e.g. `EmailSettingsDto`).
-- **Response** immediately after **Request** when present; inherit slice DTO when the shape matches.
-- Use **non-nullable** `{UseCase}Response` on `ICommand<T>` / `IQuery<T>` — failures use `HasError`, not a null payload.
-- Validator targets **Request** directly.
+Flat Request records; non-nullable Response on `ICommand<T>` / `IQuery<T>` — failures use `HasError`, not null payload.
 
-Do **not** put use-case Request/Response in `Core/DTOs/` or `WebApp/Models/`.
+Do **not** put use-case types in `Core/DTOs/` or `WebApp/Models/`.
 
-## Core (`Core/DTOs/`) — integration shapes only
-
-Types for **mailbox** and **Foundry** ports:
+## Core (`Core/DTOs/`) — integration only
 
 | File | Types |
 |------|-------|
 | `Mail.cs` | `InboxQuery`, `MailboxStatusResult`, … |
 | `Foundry.cs` | `FoundryOptions` |
 
-Namespace: `Core.DTOs`. No repository or feature DTOs here.
+No repository or feature DTOs here.
 
-## WebApp (`WebApp/Models/`) — app shell only
+## WebApp (`WebApp/Models/`) — app shell
 
 | File | Types |
 |------|-------|
@@ -60,39 +52,23 @@ Namespace: `Core.DTOs`. No repository or feature DTOs here.
 | `AI.cs` | `RunChatAgentRequest/Response` |
 | `Constants.cs` | `AuthConstants`, `ChatMessageRoles` |
 
-Namespace: `WebApp.Models`.
+## Decision tree
+
+1. Single use-case pair? → Features file
+2. Shared read shape in one slice? → `Features/{Slice}/DTOs.cs`
+3. Shared across slices? → `Features/Shared/DTOs.cs`
+4. Mailbox / Foundry port? → `Core/DTOs/`
+5. `Result` / `ErrorCode`? → `MediatR.Results`
+6. AI turn shapes? → `WebApp/Models/AI.cs`
+7. DB entity? → `Core/Entities/`
 
 ## Layer flow
 
 | Direction | Pattern |
 |-----------|---------|
-| **UI → Features** | `Mediator.SendAsync(new SignInRequest(...))` |
-| **Handlers → repos** | Local `{entity}Repo` + `sharedRepo`; primitives + entities on write |
-| **Repos → handlers** | Slice DTOs (`ChatThreadDto`, …) |
-| **UI lists** | May bind slice DTOs directly (`ChatThreadDto`, `ChatMessageDto`) |
+| UI → Features | `Mediator.SendAsync(new SignInRequest(...))` |
+| Handlers → repos | `{entity}Repo` + `sharedRepo` |
+| Repos → handlers | Slice DTOs |
+| UI lists | May bind slice DTOs directly |
 
-## Decision tree
-
-1. **Single use-case pair?** → `{UseCase}Request` / `{UseCase}Response` in Features file
-2. **Shared read shape within one slice?** → `Features/{Slice}/DTOs.cs`; Response may inherit
-3. **Shared read shape across slices?** → `Features/Shared/DTOs.cs`
-4. **Mailbox / Foundry port shape?** → `Core/DTOs/`
-5. **`Result` / `ErrorCode`?** → `MediatR.Results` (`lib/MediatR/`)
-6. **AI turn shapes?** → `WebApp/Models/AI.cs`
-7. **DB entity?** → `Core/Entities/`
-
-## Example
-
-```csharp
-// Users/DTOs.cs
-public class SessionDto { public T AsResponse<T>() where T : SessionDto, new() => ...; }
-
-// Users/Commands/SignIn.cs
-public sealed class SignInRequestHandler(UserRepository userRepo, SharedRepository sharedRepo) : ...
-{
-    private readonly SharedRepository _sharedRepo = sharedRepo;
-    var session = await userRepo.FindSessionByEmailAndPasswordAsync(...);
-    result.Success(session.AsResponse<SignInResponse>());
-}
-public sealed class SignInResponse : SessionDto { }
-```
+Handler/repo conventions: **`feature-slice-conventions.mdc`**.

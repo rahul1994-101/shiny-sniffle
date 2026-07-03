@@ -1,4 +1,4 @@
-@if (Messages.Count == 0)
+@if (Messages.Count == 0 && !IsAssistantLoading)
 {
     <div class="chat-empty">
         <div class="chat-empty-mark" aria-hidden="true"></div>
@@ -44,9 +44,29 @@ else
             </div>
         }
     }
+
+    @if (IsAssistantLoading)
+    {
+        <div class="msg-row msg-row-assistant">
+            <div class="msg-chunk msg-chunk-assistant">
+                <div class="msg-avatar msg-avatar-assistant" aria-hidden="true">AI</div>
+                <div class="msg-bubble msg-bubble-assistant msg-bubble-loading" aria-busy="true">
+                    <span class="visually-hidden">Assistant is thinking</span>
+                    <div class="msg-typing" aria-hidden="true">
+                        <span class="msg-typing-dot"></span>
+                        <span class="msg-typing-dot"></span>
+                        <span class="msg-typing-dot"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
 }
 
 @code {
     [Parameter]
     public IReadOnlyList<ChatMessageDto> Messages { get; set; } = [];
+
+    [Parameter]
+    public bool IsAssistantLoading { get; set; }
 }

@@ -8,11 +8,16 @@
 
 <div class="chat-shell">
     <div class="chat-messages" @ref="_messagesRegion">
-        <ChatMessageList Messages="_messages" />
+        <ChatMessageList Messages="_messages" IsAssistantLoading="_sending" />
     </div>
 
     <div class="chat-composer-wrap">
-        <div class="chat-composer">
+        @if (!string.IsNullOrWhiteSpace(_sendError))
+        {
+            <p class="chat-composer-error" role="alert">@_sendError</p>
+        }
+
+        <div class="chat-composer @( _sending ? "chat-composer-busy" : null)">
             <textarea @ref="_input"
                       @bind="_draft"
                       @bind:event="oninput"
@@ -22,15 +27,18 @@
                       class="chat-input"
                       rows="1"
                       placeholder="Message…"
-                      aria-label="Message"></textarea>
+                      aria-label="Message"
+                      disabled="@_sending"></textarea>
             <div class="chat-composer-actions">
                 <ChatAgentSelector ThreadId="_activeThreadId"
+                                   SendInProgress="_sending"
                                    @bind-Value="_chatAgent" />
                 <button type="button"
                         class="chat-send"
                         @onclick="SendAsync"
-                        disabled="@string.IsNullOrWhiteSpace(_draft)"
-                        title="Send (Enter)">
+                        disabled="@(_sending || string.IsNullOrWhiteSpace(_draft))"
+                        title="Send (Enter)"
+                        aria-busy="@_sending">
                     <svg class="chat-send-svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" /></svg>
                 </button>
             </div>
@@ -107,8 +115,11 @@
 
         // Valid thread: adopt route id, agent, and message history.
         _activeThreadId = threadId;
-        _chatAgent = result.Payload.ChatAgent;
+        _chatAgent = result.Payload!.ChatAgent;
         _draft = string.Empty;
+        _sendError = null;
+        _optimisticUserPending = false;
+        _sending = false;
 
         await LoadMessagesAsync();
 
@@ -122,6 +133,9 @@
 
     private string _draft = string.Empty;
     private bool _preventEnterNewline;
+    private bool _sending;
+    private string? _sendError;
+    private bool _optimisticUserPending;
 
     private async Task OnComposerKeyDownAsync(KeyboardEventArgs e)
     {
@@ -144,28 +158,77 @@
 
     private async Task SendAsync()
     {
+        if (_sending)
+        {
+            return;
+        }
+
         var text = _draft.Trim();
         if (string.IsNullOrEmpty(text))
         {
             return;
         }
 
+        _sendError = null;
         _draft = string.Empty;
         _resizeComposerAfterRender = true;
+        AppendOptimisticUserMessage(text);
+        _sending = true;
+        _scrollMessagesAfterRender = true;
 
-        var sendResult = await Mediator.SendAsync(new SendChatMessageRequest(
-            _activeThreadId,
-            CurrentUser.Id,
-            _chatAgent,
-            text));
-        if (!sendResult.HasError)
+        try
         {
+            var sendResult = await Mediator.SendAsync(new SendChatMessageRequest(
+                _activeThreadId,
+                CurrentUser.Id,
+                _chatAgent,
+                text));
+
+            if (sendResult.HasError)
+            {
+                RemoveOptimisticUserMessage();
+                _sendError = sendResult.Errors.FirstOrDefault()?.Message ?? "Could not send message.";
+                _draft = text;
+                _resizeComposerAfterRender = true;
+                return;
+            }
+
+            RemoveOptimisticUserMessage();
             _messages.Add(sendResult.Payload!.UserMessage);
             _messages.Add(sendResult.Payload.AssistantMessage);
+            _scrollMessagesAfterRender = true;
+        }
+        finally
+        {
+            _sending = false;
+        }
+    }
+
+    private void AppendOptimisticUserMessage(string text)
+    {
+        _messages.Add(new ChatMessageDto
+        {
+            ChatThreadId = _activeThreadId,
+            Role = ChatMessageRoles.User,
+            Content = text,
+            CreatedAt = DateTime.UtcNow
+        });
+        _optimisticUserPending = true;
+    }
+
+    private void RemoveOptimisticUserMessage()
+    {
+        if (!_optimisticUserPending || _messages.Count == 0)
+        {
+            return;
         }
 
-        await RefreshLayoutAsync();
-        _scrollMessagesAfterRender = true;
+        if (_messages[^1].Role == ChatMessageRoles.User)
+        {
+            _messages.RemoveAt(_messages.Count - 1);
+        }
+
+        _optimisticUserPending = false;
     }
 
     #endregion

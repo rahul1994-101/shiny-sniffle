@@ -107,7 +107,7 @@ If a method is used by more than one feature region, it belongs in Helpers.
 
 ## Method body pattern (inside feature methods)
 
-For non-trivial calls to `Features`, mirror `Features.cs` with inner regions:
+For non-trivial mediator calls, mirror feature handlers with inner regions:
 
 ```csharp
 #region # Validate

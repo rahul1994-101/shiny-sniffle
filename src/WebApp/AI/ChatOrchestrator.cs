@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Options;
 
 using WebApp.AI.Agents;
+using WebApp.AI.Memory;
 using WebApp.Features.ChatMessages;
 
 using AiChatRole = Microsoft.Extensions.AI.ChatRole;
@@ -10,11 +11,10 @@ namespace WebApp.AI;
 public sealed class ChatOrchestrator(
     IOptions<FoundryOptions> foundryOptions,
     ChatMessageRepository chatMessageRepo,
+    ThreadMemoryService threadMemory,
     AssistantAgent assistantAgent,
     EmailAgent emailAgent)
 {
-    private const int DefaultMessageLimit = 12;
-
     public async Task<RunChatAgentResponse> RunChatAgentAsync(RunChatAgentRequest request, CancellationToken cancellationToken = default)
     {
         #region # Validate
@@ -34,6 +34,7 @@ public sealed class ChatOrchestrator(
         #region # Execute
 
         var history = await LoadThreadHistoryAsync(request.ChatThreadId, cancellationToken);
+        history = await threadMemory.EnrichHistoryAsync(request.ChatThreadId, history, cancellationToken);
         var response = request.ChatAgent switch
         {
             ChatAgent.Email => await emailAgent.RunAsync(request, history, cancellationToken),
@@ -57,7 +58,7 @@ public sealed class ChatOrchestrator(
 
         var messages = await chatMessageRepo.GetRecentByChatThreadIdAsync(
             chatThreadId,
-            DefaultMessageLimit,
+            ChatMemoryLimits.ShortTermMessageLimit,
             cancellationToken);
 
         return (messages ?? [])

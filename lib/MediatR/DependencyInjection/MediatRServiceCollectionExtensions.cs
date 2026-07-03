@@ -1,4 +1,6 @@
+using System.Collections.Frozen;
 using System.Reflection;
+using FluentValidation;
 using MediatR.Abstractions;
 using MediatR.Behaviors;
 using MediatR.Dispatch;
@@ -14,6 +16,8 @@ public static class MediatRServiceCollectionExtensions
     {
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(assembly);
+
+        services.AddValidatorsFromAssembly(assembly);
 
         services.AddScoped(typeof(RequestPipeline<,>));
         services.AddScoped(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
@@ -32,7 +36,7 @@ public static class MediatRServiceCollectionExtensions
 
     private static RequestDispatchTable BuildRequestDispatchTable(Assembly assembly)
     {
-        var table = new RequestDispatchTable();
+        var invokers = new Dictionary<Type, IRequestInvoker>();
         var payloadHandlerType = typeof(IRequestHandler<,>);
         var commandHandlerType = typeof(IRequestHandler<>);
         var invokerType = typeof(RequestInvoker<,>);
@@ -58,38 +62,43 @@ public static class MediatRServiceCollectionExtensions
                     var requestType = serviceType.GetGenericArguments()[0];
                     var responseType = serviceType.GetGenericArguments()[1];
                     var resultType = typeof(Result<>).MakeGenericType(responseType);
-                    RegisterInvoker(table, invokerType, requestType, resultType);
+                    RegisterInvoker(invokers, invokerType, requestType, resultType);
                     continue;
                 }
 
                 if (genericDefinition == commandHandlerType)
                 {
                     var requestType = serviceType.GetGenericArguments()[0];
-                    RegisterInvoker(table, invokerType, requestType, typeof(Result));
+                    RegisterInvoker(invokers, invokerType, requestType, typeof(Result));
                 }
             }
         }
 
-        return table;
+        return new RequestDispatchTable(invokers.ToFrozenDictionary());
     }
 
     private static void RegisterInvoker(
-        RequestDispatchTable table,
+        Dictionary<Type, IRequestInvoker> invokers,
         Type invokerType,
         Type requestType,
         Type resultType)
     {
+        if (invokers.ContainsKey(requestType))
+        {
+            throw new InvalidOperationException(
+                $"Duplicate mediator handler registered for request type '{requestType.FullName}'.");
+        }
+
         var closedInvokerType = invokerType.MakeGenericType(requestType, resultType);
         var invoker = (IRequestInvoker)Activator.CreateInstance(closedInvokerType)!;
-        table.Register(invoker);
+        invokers[requestType] = invoker;
     }
 
     private static NotificationDispatchTable BuildNotificationDispatchTable(Assembly assembly)
     {
-        var table = new NotificationDispatchTable();
+        var invokers = new Dictionary<Type, INotificationHandlerInvoker>();
         var handlerType = typeof(INotificationHandler<>);
         var invokerType = typeof(NotificationHandlerInvoker<>);
-        var registered = new HashSet<Type>();
 
         foreach (var type in assembly.GetTypes())
         {
@@ -107,18 +116,18 @@ public static class MediatRServiceCollectionExtensions
                 }
 
                 var notificationType = serviceType.GetGenericArguments()[0];
-                if (!registered.Add(notificationType))
+                if (invokers.ContainsKey(notificationType))
                 {
                     continue;
                 }
 
                 var closedInvokerType = invokerType.MakeGenericType(notificationType);
                 var invoker = (INotificationHandlerInvoker)Activator.CreateInstance(closedInvokerType)!;
-                table.Register(invoker);
+                invokers[notificationType] = invoker;
             }
         }
 
-        return table;
+        return new NotificationDispatchTable(invokers.ToFrozenDictionary());
     }
 
     private static void RegisterRequestHandlers(IServiceCollection services, Assembly assembly)

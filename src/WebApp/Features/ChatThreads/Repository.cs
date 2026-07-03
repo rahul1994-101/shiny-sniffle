@@ -3,6 +3,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace WebApp.Features.ChatThreads;
 
+public sealed record ThreadMemoryState(string? Summary, Guid? SummaryThroughMessageId);
+
 public sealed class ChatThreadRepository(IDbContextFactory<AppDbContext> _dbContextFactory)
 {
     public async Task<List<ChatThreadDto>> GetActiveByUserIdAsync(Guid userId, CancellationToken cancellationToken = default)
@@ -72,6 +74,46 @@ public sealed class ChatThreadRepository(IDbContextFactory<AppDbContext> _dbCont
         entity.UpdatedAt = DateTime.UtcNow;
         await ctx.SaveChangesAsync(cancellationToken);
         return ChatThreadDto.FromEntity(entity);
+    }
+
+    public async Task<ThreadMemoryState?> GetMemoryStateAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        await using var ctx = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var thread = await ctx.ChatThreads
+            .AsNoTracking()
+            .Where(x =>
+                x.Id == id &&
+                x.IsActive &&
+                !x.IsDeleted)
+            .Select(x => new { x.MemorySummary, x.MemorySummaryThroughMessageId })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        return thread is null
+            ? null
+            : new ThreadMemoryState(thread.MemorySummary, thread.MemorySummaryThroughMessageId);
+    }
+
+    public async Task<bool> UpdateMemorySummaryAsync(
+        Guid id,
+        Guid userId,
+        string? summary,
+        Guid? summaryThroughMessageId,
+        Guid updatedBy,
+        CancellationToken cancellationToken = default)
+    {
+        await using var ctx = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var entity = await FindActiveTrackedAsync(ctx, id, userId, cancellationToken);
+        if (entity is null)
+        {
+            return false;
+        }
+
+        entity.MemorySummary = summary;
+        entity.MemorySummaryThroughMessageId = summaryThroughMessageId;
+        entity.UpdatedBy = updatedBy;
+        entity.UpdatedAt = DateTime.UtcNow;
+        await ctx.SaveChangesAsync(cancellationToken);
+        return true;
     }
 
     public async Task<bool> DeleteAsync(Guid id, Guid userId, Guid updatedBy, CancellationToken cancellationToken = default)

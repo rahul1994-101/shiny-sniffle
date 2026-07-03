@@ -14,7 +14,7 @@
     <button type="button"
             id="chat-agent-trigger"
             class="chat-agent-trigger"
-            disabled="@(_busy || ThreadId == Guid.Empty)"
+            disabled="@(_busy || SendInProgress || ThreadId == Guid.Empty)"
             aria-haspopup="listbox"
             aria-expanded="@_open"
             aria-label="Chat agent: @ChatAgentHelpers.GetDisplayName(Value)"
@@ -64,6 +64,9 @@
     [Parameter]
     public EventCallback<ChatAgent> ValueChanged { get; set; }
 
+    [Parameter]
+    public bool SendInProgress { get; set; }
+
     private bool _open;
     private bool _busy;
     private string? _error;
@@ -72,7 +75,7 @@
 
     private void ToggleOpen()
     {
-        if (_busy || ThreadId == Guid.Empty)
+        if (_busy || SendInProgress || ThreadId == Guid.Empty)
         {
             return;
         }
