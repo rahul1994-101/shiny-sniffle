@@ -2,7 +2,7 @@ name: CI - Web Projects
 
 on:
   pull_request:
-    branches: [main, development]
+    branches: [main]
     paths: [src/WebApp/**, src/WebApi/**, src/SharedKernel/**]
 
 jobs:
