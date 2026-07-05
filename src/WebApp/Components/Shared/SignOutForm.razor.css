@@ -1,0 +1,121 @@
+.sign-out-form {
+    display: block;
+    width: 100%;
+    margin: 0;
+}
+
+.sign-out-form button.sidebar-footer-link {
+    box-sizing: border-box;
+    display: inline-flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.55rem 0.75rem;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 0.5rem;
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--app-fg);
+    text-decoration: none;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    line-height: 1.2;
+    cursor: pointer;
+    font-family: inherit;
+    text-align: left;
+    appearance: none;
+    transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.sign-out-form button.sidebar-footer-link:hover {
+    background: var(--app-sidebar-hover);
+    border-color: rgba(255, 255, 255, 0.18);
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.sign-out-form button.sidebar-footer-link:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--app-accent) 35%, transparent);
+}
+
+.sign-out-form button.sidebar-footer-link .sidebar-footer-link-ico {
+    width: 1.1rem;
+    height: 1.1rem;
+    flex-shrink: 0;
+    stroke: currentColor;
+    fill: none;
+    color: var(--app-muted);
+    opacity: 0.95;
+}
+
+.sign-out-form button.sidebar-footer-link:hover .sidebar-footer-link-ico {
+    color: var(--app-fg);
+    opacity: 1;
+}
+
+.sign-out-form button.dash-quick-link {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+    padding: 0.65rem 0.5rem;
+    margin: 0 -0.5rem;
+    border: none;
+    border-radius: 0.5rem;
+    background: transparent;
+    color: var(--app-fg);
+    text-decoration: none;
+    cursor: pointer;
+    font-family: inherit;
+    text-align: left;
+    appearance: none;
+    box-sizing: border-box;
+    transition: background 0.15s ease;
+}
+
+.sign-out-form button.dash-quick-link:hover {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.sign-out-form button.dash-quick-link:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--app-accent) 35%, transparent);
+}
+
+.sign-out-form button.dash-quick-link .dash-quick-link-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 0.375rem;
+    background: rgba(255, 255, 255, 0.06);
+    flex-shrink: 0;
+}
+
+.sign-out-form button.dash-quick-link .dash-quick-link-icon svg {
+    width: 1rem;
+    height: 1rem;
+    color: var(--app-muted);
+    stroke: currentColor;
+    fill: none;
+}
+
+.sign-out-form button.dash-quick-link .dash-quick-link-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    min-width: 0;
+}
+
+.sign-out-form button.dash-quick-link .dash-quick-link-label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #fecaca;
+}
+
+.sign-out-form button.dash-quick-link .dash-quick-link-desc {
+    font-size: 0.75rem;
+    color: var(--app-muted);
+}

@@ -1,0 +1,47 @@
+﻿@inherits LayoutComponentBase
+
+<div id="app-shell" class="page app-chat-layout">
+    <CascadingValue Value="_notifyLayoutRefresh" Name="NotifyLayoutRefresh" IsFixed="true">
+        <Sidebar />
+
+        <button type="button"
+                id="sidebar-backdrop"
+                class="sidebar-backdrop"
+                data-shell-close
+                hidden
+                aria-hidden="true"
+                tabindex="-1"
+                aria-label="Close menu"></button>
+
+        <div class="main-stack">
+            <Navbar />
+            <main class="main-area">
+                <article class="content">
+                    @Body
+                </article>
+            </main>
+        </div>
+    </CascadingValue>
+</div>
+
+<div id="blazor-error-ui" data-nosnippet>
+    An unhandled error has occurred.
+    <a href="." class="reload">Reload</a>
+    <span class="dismiss">🗙</span>
+</div>
+
+@code {
+    private EventCallback _notifyLayoutRefresh;
+
+    protected override void OnInitialized()
+    {
+        _notifyLayoutRefresh = EventCallback.Factory.Create(this, RefreshLayoutAsync);
+    }
+
+
+    #region # Helpers
+
+    private Task RefreshLayoutAsync() => InvokeAsync(StateHasChanged);
+
+    #endregion
+}

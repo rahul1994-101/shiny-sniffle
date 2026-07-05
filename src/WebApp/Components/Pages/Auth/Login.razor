@@ -1,0 +1,108 @@
+@page "/auth/login"
+
+@layout EmptyLayout
+
+@attribute [AllowAnonymous]
+
+@using Microsoft.AspNetCore.Antiforgery
+
+@inject IAntiforgery Antiforgery
+@inject IHttpContextAccessor HttpContextAccessor
+@inject NavigationManager NavigationManager
+
+
+<PageTitle>Sign in</PageTitle>
+
+<div class="login-shell">
+    <div class="login-card">
+        <div id="login-loading" class="login-loading" hidden aria-hidden="true">
+            <div class="login-spinner" aria-hidden="true"></div>
+            <span class="login-loading-text">Signing in…</span>
+        </div>
+
+        <div class="login-brand" aria-hidden="true">Assistant</div>
+        <h1 class="login-title">Sign in</h1>
+        <p class="login-subtitle">Use your workspace account to continue.</p>
+
+        @if (!string.IsNullOrEmpty(_errorMessage))
+        {
+            <div class="login-alert" role="alert">
+                <span class="login-alert-label">Could not sign in</span>
+                <span class="login-alert-message">@_errorMessage</span>
+            </div>
+        }
+
+        <form id="login-form"
+              class="login-form"
+              method="post"
+              action="@AuthConstants.LoginApiPath"
+              autocomplete="on">
+            @if (_antiforgeryToken is not null)
+            {
+                <input type="hidden" name="@_antiforgeryToken.FormFieldName" value="@_antiforgeryToken.RequestToken" />
+            }
+
+            <input type="hidden" name="@AuthConstants.ReturnUrlQuery" value="@_returnUrl" />
+
+            <div class="login-field">
+                <label class="login-label" for="email">Email</label>
+                <input id="email"
+                       name="EmailId"
+                       type="email"
+                       class="login-input"
+                       autocomplete="username"
+                       placeholder="you@example.com"
+                       required />
+            </div>
+
+            <div class="login-field">
+                <label class="login-label" for="password">Password</label>
+                <input id="password"
+                       name="Password"
+                       type="password"
+                       class="login-input"
+                       autocomplete="current-password"
+                       placeholder="Enter your password"
+                       required />
+            </div>
+
+            <button type="submit" class="login-submit">
+                <span class="login-submit-label">Sign in</span>
+                <span class="login-submit-loading" hidden aria-hidden="true">Signing in…</span>
+            </button>
+        </form>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    [SupplyParameterFromQuery(Name = AuthConstants.ReturnUrlQuery)]
+    public string? ReturnUrl { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery(Name = AuthConstants.ErrorQuery)]
+    public string? Error { get; set; }
+
+    private string? _errorMessage;
+    private string _returnUrl = AuthConstants.DefaultReturnUrl;
+    private AntiforgeryTokenSet? _antiforgeryToken;
+
+    protected override void OnInitialized()
+    {
+        var httpContext = HttpContextAccessor.HttpContext;
+        if (httpContext?.User.Identity?.IsAuthenticated == true)
+        {
+            var destination = ReturnUrl.NormalizeReturnUrl();
+            NavigationManager.NavigateTo(destination, forceLoad: true);
+            return;
+        }
+
+        _returnUrl = ReturnUrl.NormalizeReturnUrl();
+        _errorMessage = string.IsNullOrWhiteSpace(Error) ? null : Error;
+
+        if (httpContext is not null)
+        {
+            _antiforgeryToken = Antiforgery.GetAndStoreTokens(httpContext);
+        }
+    }
+}

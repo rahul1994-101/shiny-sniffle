@@ -1,0 +1,251 @@
+---
+description: Blazor component file layout, directive order, and @code organization
+globs: src/WebApp/Components/**/*.razor
+alwaysApply: false
+---
+
+# Blazor conventions
+
+Use the same **tooling habits** as the rest of the solution (`#region #`, consistent file layout) — but **do not copy C# data-layer or AI-layer grouping or region names into Blazor**. They answer different questions.
+
+## C# data layer vs Blazor — two perspectives
+
+| | **C# (Features, Core DTOs/repos)** | **Blazor (`@code`)** |
+|---|--------------------------------------|----------------------|
+| **Organized by** | Entity, operation, technical step | User action, UI concern, screen behavior |
+| **Region names** | Entity/type: `# ChatThread`, `# User` | Activity: `# List/Select ChatThreads`, `# Rename ChatThread` |
+| **Shared state** | Constructor params (`_chatThreads`, …) | Preamble at top of `@code` (`_threads`) |
+| **Shared logic** | Private methods in same class / layer | `# Helpers` at bottom of `@code` |
+| **Lifecycle** | N/A | Preamble only — never inside a feature region |
+| **Inner method blocks** | `# Validate`, `# Execute`, `# Handle Result` | Same — still mirror `Features` inside a handler |
+
+**C# asks:** “Which entity or API operation is this?”  
+**Blazor asks:** “What is the user doing on this component?”
+
+Region names in `.razor` files can be shorter and plainer than C# when it helps readability. Prefer clarity over matching `Features` method names exactly.
+
+## File layout (top to bottom)
+
+1. **Directives** (see order below) — blank line after the last directive
+2. **`<PageTitle>`** — routable pages only
+3. **Markup**
+4. **`@code { }`** — or a sibling `ComponentName.razor.cs` partial when `@code` is large
+
+### Directive order
+
+Use only what the file needs, in this order:
+
+1. `@page`
+2. `@layout`
+3. `@rendermode`
+4. `@inherits` — `BaseComponent` for app components; `LayoutComponentBase` for layouts
+5. `@implements`
+6. `@attribute`
+7. `@using` — only namespaces **not** in `_Imports.razor`; System first, then Microsoft, then `WebApp.*` (alphabetical within each group)
+8. `@inject` — avoid when inheriting `BaseComponent` (injections live on the base class)
+
+**Do not** repeat `@using` already declared in `Components/_Imports.razor`.
+
+### Global usings (`_Imports.razor`)
+
+Framework and app-wide namespaces belong here, not on every page.
+
+## Inheritance
+
+| Component kind | Inherits |
+|----------------|----------|
+| Pages, layout parts with logic (Sidebar, Navbar if needed) | `BaseComponent` |
+| `MainLayout`, other layout roots | `LayoutComponentBase` |
+| `App.razor`, `Routes.razor`, static markup-only | No base (or `BaseComponent` only when injections are needed) |
+
+Shared members on `BaseComponent`:
+
+- `Features`, `NavigationManager`, `JsRuntime` — injected properties use **PascalCase** (Blazor convention)
+- `NotifyLayoutRefresh` — cascading parameter (PascalCase)
+- `RefreshLayoutAsync()`
+
+`BaseComponent` uses `#region # Init` for injections and cascading parameters (`.cs` base class only).
+
+## `@code` block layout
+
+Three layers, in this order:
+
+### 1. Preamble (no region)
+
+Put at the **top** of `@code`, **outside** any `#region`:
+
+- **Shared state** used across multiple areas (e.g. `_threads`, `_messages`, `[Parameter]` properties)
+- **All lifecycle overrides** (`OnInitializedAsync`, `OnParametersSetAsync`, `OnAfterRenderAsync`, `DisposeAsync`, etc.)
+
+Never put lifecycle or shared fields inside a feature region.
+
+Feature-specific fields that only one area uses may live inside that area’s region (e.g. rename fields under `# Rename ChatThread`).
+
+Blank line, then regions.
+
+### 2. Feature regions (middle)
+
+Use `#region # Name` with `#` prefix (same marker as C#).
+
+- Name regions by **what the user does** or **similar functionality grouped together** — not one region per API method.
+- Combine related actions in one region when they stay focused (use `/` if helpful): e.g. `# List/Select ChatThreads`, `# Create/Delete ChatThread`, `# Rename ChatThread`.
+- Regions are mostly **methods**; only include fields when they belong exclusively to that feature.
+- Do **not** put shared or reusable logic here — move it to Helpers.
+
+Order regions in a sensible user-flow order (load/list → mutate → edit → …).
+
+### 3. `#region # Helpers` (last)
+
+Always last. Dump anything **shared or cross-cutting**:
+
+- Static parsers, formatters, validators
+- Navigation/orchestration called from multiple regions
+- JS interop (shell, scroll, keyboard)
+- Thin wrappers that only exist to keep feature regions clean
+
+If a method is used by more than one feature region, it belongs in Helpers.
+
+## Method body pattern (inside feature methods)
+
+For non-trivial mediator calls, mirror feature handlers with inner regions:
+
+```csharp
+#region # Validate
+// guard clauses, early return
+#endregion
+
+#region # Execute
+// call Features.*Async
+#endregion
+
+#region # Handle Result
+// check HasError / Payload, update state
+#endregion
+```
+
+## Naming
+
+| Kind | Convention | Example |
+|------|------------|---------|
+| Injected services (base) | PascalCase (Blazor) | `Features`, `NavigationManager`, `JsRuntime` |
+| Private component state | `_camelCase` | `_threads`, `_draft` |
+| View models | `*ViewModel` | `SettingsViewModel` |
+| Parameters / cascade | PascalCase | `ThreadId`, `NotifyLayoutRefresh` |
+| Event handlers | `OnXxx` / `*Async` | `SendAsync`, `OnRenameBlurAsync` |
+| Feature `#region` names | Short, UI-oriented; group related actions | `# List`, `# Create/Delete`, `# Rename` (or longer if clearer) |
+| Inner method `#region` names | Match data layer | `# Validate`, `# Execute`, `# Handle Result` |
+| CSS classes | kebab-case | `chat-shell`, `thread-list` |
+
+**Note:** Underscore prefix (`_repo`, `_ctx`) is for the **data layer** (constructor-injected services), not for Blazor `[Inject]` properties.
+
+## File location
+
+Keep all UI under `Components/`:
+
+- `Components/Pages/` — all routable pages
+- `Components/Pages/{Area}/` — when routes share a URL prefix (e.g. `/auth/login` → `Pages/Auth/Login.razor`); `@page` keeps the full path
+- `Components/Layout/` — layout roots only (`MainLayout`, `EmptyLayout`) and layout-scoped CSS
+- `Components/Shared/` — non-routable components (auth helpers, shell chrome, reconnect modal, etc.)
+- `Components/BaseComponent.cs` — shared base for interactive components (folder root, not `Shared/`)
+- Optional: `Component.razor` + `Component.razor.cs` partial in the same folder
+
+**Pages subfolders:** Use a subfolder when multiple pages share a route segment (`auth/login` → `Pages/Auth/`). Top-level `Pages/` is fine for single-segment routes (`/settings`, `/chat/...`, `/Error`).
+
+**Page-local components:** When a page has multiple small, non-routable pieces used only on that page, use `Pages/{PageName}/{PageName}.razor` plus `Pages/{PageName}/Shared/` for widgets. Add `Pages/{PageName}/_Imports.razor` with `@using WebApp.Components.Pages.{PageName}.Shared`. Do not put page-local widgets in app-wide `Components/Shared/`.
+
+**When to extract (page `Shared/`):** A distinct UI block with its own markup (or repeated structure), not tied to parent `@ref`/JS interop. **Do not extract:** static nav/aside with no logic; composer/input wired to parent refs; single small form sections; entire pages with one cohesive layout (Settings). **Auth:** route-prefix folder only (`Pages/Auth/Login.razor`) — no page `Shared/` until a second auth page needs shared fragments.
+
+## Markup
+
+- One blank line between major sections (header, list, footer)
+- `aria-*` on interactive controls
+- Prefer `NavLink` for in-app navigation
+
+## Reference: Sidebar `@code` shape
+
+```razor
+@code {
+    private List<GetChatThreadResponse> _threads = [];
+
+    protected override async Task OnInitializedAsync() { ... }
+    protected override async Task OnAfterRenderAsync(bool firstRender) { ... }
+
+    #region # List
+    // load + select
+    #endregion
+
+    #region # Create/Delete
+    // new + remove (both mutate _threads and navigate)
+    #endregion
+
+    #region # Rename
+    // rename-only fields + handlers
+    #endregion
+
+    #region # Helpers
+    // IsThreadActive, NavigateToChatThreadAsync, JS shell, etc.
+    #endregion
+}
+```
+
+### Simplifying region names (optional)
+
+Start long if needed; shorten when the file is familiar:
+
+| Verbose (fine) | Shorter |
+|----------------|---------|
+| `# List/Select ChatThreads` | `# List` |
+| `# Create/Delete ChatThread` | `# Create/Delete` |
+| `# Rename ChatThread` | `# Rename` |
+| `# Load/Show ChatMessages` + `# Send` | `# Messages` (load and send together) |
+| `# Resolve ChatThread` | `# Thread` |
+
+Do not split load and send into separate regions when both belong to the same UI surface (message list + composer).
+
+## Reference: Chat `@code` shape
+
+```razor
+@code {
+    [Parameter] public Guid? ThreadId { get; set; }
+    // shared state, lifecycle, DisposeAsync
+
+    #region # Thread
+    // ResolveActiveThreadIdAsync — which conversation is open
+    #endregion
+
+    #region # Messages
+    // SendFromJsAsync, LoadMessagesAsync, SendAsync
+    // (inner # Execute / # Handle Result inside SendAsync as needed)
+    #endregion
+
+    #region # Helpers
+    // ScrollToEndAsync, IsUser, AssistantReply
+    #endregion
+}
+```
+
+## Page template (minimal page)
+
+```razor
+@page "/your-route"
+
+@inherits BaseComponent
+
+<PageTitle>Your Page</PageTitle>
+
+<!-- markup -->
+
+@code {
+    // [Parameter] properties
+    // shared state
+    // lifecycle overrides
+
+    #region # <Grouped feature>
+    #endregion
+
+    #region # Helpers
+    #endregion
+}
+```
+
+Markup-only pages with no logic may use an empty `@code { }` or omit `@code` entirely.

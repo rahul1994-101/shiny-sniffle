@@ -1,0 +1,308 @@
+@inherits BaseComponent
+@using ChatThreadCmd = WebApp.Features.ChatThreads.Commands
+@using WebApp.Features.ChatThreads
+@using WebApp.Features.ChatThreads.Queries
+
+@attribute [Authorize]
+
+<aside id="app-sidebar" class="sidebar">
+    <div class="sidebar-chrome">
+        <div class="sidebar-header">
+            <a class="sidebar-brand" href="/" title="Assistant">Assistant</a>
+            <div class="sidebar-header-actions">
+            <button type="button"
+                    class="sidebar-header-btn sidebar-header-close"
+                    data-shell-close
+                    aria-label="Close menu"
+                    title="Close">
+                <svg class="sidebar-header-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <path d="M18 6L6 18M6 6l12 12" />
+                </svg>
+            </button>
+            <button type="button"
+                    class="sidebar-header-btn sidebar-header-collapse"
+                    data-shell-toggle
+                    aria-expanded="true"
+                    aria-controls="app-sidebar"
+                    title="Hide sidebar">
+                <svg class="sidebar-header-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <rect x="3" y="4" width="18" height="16" rx="2" />
+                    <path d="M9 4v16" />
+                </svg>
+            </button>
+            </div>
+        </div>
+        <div class="sidebar-body">
+            <div class="nav-root">
+                <div class="nav-scrollable">
+                    <div class="nav-actions">
+                        <button type="button" class="btn-new-chat" @onclick="StartNewChatAsync">
+                            <svg class="nav-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+                            New chat
+                        </button>
+                    </div>
+
+                    <div class="thread-list-label">Recent</div>
+                    <ul class="thread-list">
+                        @foreach (var t in _threads)
+                        {
+                            var active = IsThreadActive(t.Id);
+                            <li @key="t.Id" class="thread-item @(active ? "thread-item-active" : null)">
+                                @if (_editingId == t.Id)
+                                {
+                                    <div class="thread-edit" @onclick:stopPropagation="true">
+                                        <input type="text"
+                                               class="thread-rename-input"
+                                               @ref="_renameInput"
+                                               @bind="_editTitle"
+                                               @bind:event="oninput"
+                                               @onkeydown="RenameKeyDownAsync"
+                                               @onblur="OnRenameBlurAsync"
+                                               maxlength="80"
+                                               aria-label="Chat name" />
+                                    </div>
+                                }
+                                else
+                                {
+                                    <button type="button" class="thread-select" @onclick="() => SelectThreadAsync(t.Id)" title="@t.Title">
+                                        <svg class="thread-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
+                                        <span class="thread-title">@t.Title</span>
+                                    </button>
+                                    <button type="button" class="thread-rename" @onclick="() => BeginRename(t)" @onclick:stopPropagation="true" aria-label="Rename chat" title="Rename">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
+                                    </button>
+                                }
+                                @if (_editingId != t.Id)
+                                {
+                                    <button type="button" class="thread-delete" @onclick="() => DeleteThreadAsync(t.Id)" @onclick:stopPropagation="true" aria-label="Remove chat" title="Remove">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12" /></svg>
+                                    </button>
+                                }
+                            </li>
+                        }
+                    </ul>
+                </div>
+            </div>
+
+            <footer class="sidebar-footer">
+                <nav class="sidebar-footer-nav" aria-label="Workspace">
+                    <NavLink class="sidebar-footer-link" href="settings" ActiveClass="sidebar-footer-link-active" @onclick="FooterNavAsync">
+                        <svg class="sidebar-footer-link-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <circle cx="12" cy="12" r="3" />
+                            <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
+                        </svg>
+                        <span>Settings</span>
+                    </NavLink>
+                    <SignOutForm ButtonClass="sidebar-footer-link" OnClick="FooterNavAsync">
+                        <svg class="sidebar-footer-link-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                            <polyline points="16 17 21 12 16 7" />
+                            <line x1="21" y1="12" x2="9" y2="12" />
+                        </svg>
+                        <span>Sign out</span>
+                    </SignOutForm>
+                    <div class="sidebar-footer-extras"></div>
+                </nav>
+            </footer>
+        </div>
+    </div>
+</aside>
+
+@code {
+    private List<ChatThreadDto> _threads = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadThreadsAsync();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_focusRenameInput)
+        {
+            _focusRenameInput = false;
+            try
+            {
+                await _renameInput.FocusAsync();
+            }
+            catch
+            {
+            }
+        }
+    }
+
+
+    #region # List
+
+    private async Task LoadThreadsAsync()
+    {
+        var result = await Mediator.SendAsync(new GetChatThreadsByUserIdRequest(CurrentUser.Id));
+        _threads = result.HasError ? [] : result.Payload.Threads;
+    }
+
+    private Task SelectThreadAsync(Guid id) => NavigateToChatThreadAsync(id);
+
+    #endregion
+
+    #region # Create/Delete
+
+    private async Task StartNewChatAsync()
+    {
+        var result = await Mediator.SendAsync(new ChatThreadCmd.AddChatThreadRequest("New chat", CurrentUser.Id));
+        if (result.HasError)
+        {
+            return;
+        }
+
+        var thread = result.Payload!;
+        _threads.Insert(0, thread);
+
+        await NavigateToChatThreadAsync(thread.Id);
+    }
+
+    private async Task DeleteThreadAsync(Guid id)
+    {
+        var result = await Mediator.SendAsync(new ChatThreadCmd.DeleteChatThreadRequest(id, CurrentUser.Id));
+        if (result.HasError)
+        {
+            return;
+        }
+
+        _threads.RemoveAll(t => t.Id == id);
+
+        if (_threads.Count == 0)
+        {
+            var created = await Mediator.SendAsync(new ChatThreadCmd.AddChatThreadRequest("New chat", CurrentUser.Id));
+            if (!created.HasError)
+            {
+                _threads.Insert(0, created.Payload!);
+            }
+        }
+
+        if (_threads.Count > 0)
+        {
+            await NavigateToChatThreadAsync(_threads[0].Id);
+        }
+    }
+
+    #endregion
+
+    #region # Rename
+
+    private Guid? _editingId;
+    private string _editTitle = string.Empty;
+    private ElementReference _renameInput;
+    private bool _focusRenameInput;
+
+    private void BeginRename(ChatThreadDto t)
+    {
+        _editingId = t.Id;
+        _editTitle = t.Title;
+        _focusRenameInput = true;
+    }
+
+    private async Task RenameKeyDownAsync(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await CommitRenameAsync();
+        }
+        else if (e.Key == "Escape")
+        {
+            CancelRename();
+        }
+    }
+
+    private async Task OnRenameBlurAsync()
+    {
+        if (_editingId is not null)
+        {
+            await CommitRenameAsync();
+        }
+    }
+
+    private async Task CommitRenameAsync()
+    {
+        if (_editingId is null)
+        {
+            return;
+        }
+
+        var threadId = _editingId.Value;
+        var result = await Mediator.SendAsync(new ChatThreadCmd.UpdateChatThreadTitleRequest(
+            threadId,
+            _editTitle,
+            CurrentUser.Id));
+
+        _editingId = null;
+
+        if (!result.HasError)
+        {
+            var idx = _threads.FindIndex(t => t.Id == threadId);
+            if (idx >= 0)
+            {
+                _threads[idx] = result.Payload!;
+            }
+        }
+
+        await RefreshLayoutAsync();
+    }
+
+    private void CancelRename()
+    {
+        _editingId = null;
+    }
+
+    #endregion
+
+    #region # Helpers
+
+    private bool IsThreadActive(Guid id) =>
+        TryParseChatRouteThreadId(NavigationManager, out var cur) && cur == id;
+
+    private static bool TryParseChatRouteThreadId(NavigationManager nav, out Guid threadId)
+    {
+        threadId = default;
+        var rel = nav.ToBaseRelativePath(nav.Uri);
+        var q = rel.IndexOf('?', StringComparison.Ordinal);
+        if (q >= 0)
+        {
+            rel = rel[..q];
+        }
+
+        rel = rel.Trim('/').ToLowerInvariant();
+        const string prefix = "chat/";
+        if (!rel.StartsWith(prefix, StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        var seg = rel[prefix.Length..].Trim('/');
+        return !string.IsNullOrEmpty(seg) && Guid.TryParse(seg, out threadId);
+    }
+
+    private async Task NavigateToChatThreadAsync(Guid threadId)
+    {
+        NavigationManager.NavigateTo($"/chat/{threadId}", replace: true);
+        await CollapseMobileDrawerAsync();
+        await RefreshLayoutAsync();
+    }
+
+    private async Task CollapseMobileDrawerAsync()
+    {
+        try
+        {
+            await JsRuntime.InvokeVoidAsync("webAppShell.collapseSidebarIfMobile");
+        }
+        catch (JSException)
+        {
+        }
+        catch (InvalidOperationException)
+        {
+        }
+    }
+
+    private Task FooterNavAsync() => CollapseMobileDrawerAsync();
+
+    #endregion
+}
