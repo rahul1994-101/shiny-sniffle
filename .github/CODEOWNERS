@@ -1,0 +1,7 @@
+# Auto-assign yourself as the reviewer for everything in the repo
+*       @rahul1994-101
+
+# Or assign different owners per area (if simulating team)
+# /src/Frontend/   @staffing-rahul-srivastava
+# /src/Backend/    @staffing-rahul-srivastava
+# /src/Database/   @staffing-rahul-srivastava

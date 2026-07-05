@@ -1,0 +1,160 @@
+﻿name: CD - WebApp
+
+on:
+  push:
+    branches: [main]
+    paths: [src/WebApp/**, src/SharedKernel/**]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout source code
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      # Setup .NET
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.x'
+
+      # Cache NuGet packages
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', '**/Directory.Build.*', '**/global.json') }}
+          restore-keys: |
+            nuget-${{ runner.os }}-
+
+      # Restore dependencies
+      - name: Restore dependencies
+        run: dotnet restore ShinySniffle.sln
+
+      # Build project
+      - name: Build WebApp
+        run: dotnet build src/WebApp/WebApp.csproj --configuration Release --no-restore
+
+      # Publish project
+      - name: Publish WebApp
+        run: dotnet publish src/WebApp/WebApp.csproj --configuration Release --output ./artifacts/WebApp
+
+      # Zip published project
+      - name: Zip published project
+        run: zip -r WebApp.zip ./*
+        working-directory: ./artifacts/WebApp
+
+      # Upload artifact
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: WebApp-latest
+          # path: ./artifacts/WebApp
+          path: ./artifacts/WebApp/WebApp.zip  # If you are zipping the output
+          compression-level: 6  #  0 (no compression) to 9 (max)
+          if-no-files-found: error
+
+  deploy-dev:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: dev
+
+    env:
+      ARTIFACT_NAME: WebApp-latest
+      ARTIFACT_PATH: ./artifacts/WebApp
+      ARTIFACT_ZIP: ./artifacts/WebApp/WebApp.zip  # If you are zipping the output
+
+    steps:
+      # Checkout actions (For Vendoring)
+      - name: Checkout actions (For Vendoring)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          submodules: false
+          lfs: false
+          sparse-checkout: .github/actions
+          sparse-checkout-cone-mode: true
+
+      # Download artifact
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.ARTIFACT_NAME }}
+          path: ${{ env.ARTIFACT_PATH }}
+
+      # Validate artifact content
+      - name: Validate artifact content
+        # run: |
+        #   if [ ! -d "${{ env.ARTIFACT_PATH }}" ] || [ -z "$(ls -A ${{ env.ARTIFACT_PATH }})" ]; then
+        #     echo "❌ Artifact not found or is empty."
+        #     exit 1
+        #   fi
+        run: |
+          if [ ! -f "${{ env.ARTIFACT_ZIP }}" ]; then
+            echo "❌ WebApp.zip not found!"
+            exit 1
+          fi
+
+      # Deploy to Azure WebApp
+      - name: Deploy to Azure WebApp
+        # uses: azure/webapps-deploy@v2
+        uses: ./.github/actions/azure/webapps-deploy/3.0.6
+        with:
+          app-name: sniffle-webapp-dev
+          publish-profile: ${{ secrets.WEBAPP_DEV_PUBLISH_PROFILE }}
+          # package: ${{ env.ARTIFACT_PATH }}
+          package: ${{ env.ARTIFACT_ZIP }}  # If you are zipping the output
+
+  deploy-stg:
+    needs: deploy-dev
+    runs-on: ubuntu-latest
+    environment: stg
+
+    env:
+      ARTIFACT_NAME: WebApp-latest
+      ARTIFACT_PATH: ./artifacts/WebApp
+      ARTIFACT_ZIP: ./artifacts/WebApp/WebApp.zip  # If you are zipping the output
+
+    steps:
+      # Checkout actions (For Vendoring)
+      - name: Checkout actions (For Vendoring)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          submodules: false
+          lfs: false
+          sparse-checkout: .github/actions
+          sparse-checkout-cone-mode: true
+
+      # Download artifact
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.ARTIFACT_NAME }}
+          path: ${{ env.ARTIFACT_PATH }}
+
+      # Validate artifact content
+      - name: Validate artifact content
+        # run: |
+        #   if [ ! -d "${{ env.ARTIFACT_PATH }}" ] || [ -z "$(ls -A ${{ env.ARTIFACT_PATH }})" ]; then
+        #     echo "❌ Artifact not found or is empty."
+        #     exit 1
+        #   fi
+        run: |
+          if [ ! -f "${{ env.ARTIFACT_ZIP }}" ]; then
+            echo "❌ WebApp.zip not found!"
+            exit 1
+          fi
+
+      # Deploy to Azure WebApp
+      - name: Deploy to Azure WebApp
+        # uses: azure/webapps-deploy@v2
+        uses: ./.github/actions/azure/webapps-deploy/3.0.6
+        with:
+          app-name: sniffle-webapp-stg
+          publish-profile: ${{ secrets.WEBAPP_STG_PUBLISH_PROFILE }}
+          # package: ${{ env.ARTIFACT_PATH }}
+          package: ${{ env.ARTIFACT_ZIP }}  # If you are zipping the output
