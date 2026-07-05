@@ -1,0 +1,73 @@
+@page "/"
+
+@attribute [Authorize]
+
+@inherits BaseComponent
+
+<PageTitle>Dashboard</PageTitle>
+
+<div class="dash">
+    <DashboardHero Greeting="@Greeting()"
+                   DisplayName="@DisplayName()"
+                   UserEmail="@CurrentUser.Email" />
+
+    <div class="dash-body">
+        <aside class="dash-panel dash-quick-panel" aria-labelledby="dash-quick-heading">
+            <h2 id="dash-quick-heading" class="dash-panel-title">Quick links</h2>
+            <nav class="dash-quick-nav" aria-label="Quick links">
+                <NavLink class="dash-quick-link" href="settings">
+                    <span class="dash-quick-link-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="3" />
+                            <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
+                        </svg>
+                    </span>
+                    <span class="dash-quick-link-text">
+                        <span class="dash-quick-link-label">Settings</span>
+                        <span class="dash-quick-link-desc">Mailbox for the Email agent</span>
+                    </span>
+                </NavLink>
+                <SignOutForm ButtonClass="dash-quick-link dash-quick-link-muted">
+                    <span class="dash-quick-link-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" />
+                        </svg>
+                    </span>
+                    <span class="dash-quick-link-text">
+                        <span class="dash-quick-link-label">Sign out</span>
+                        <span class="dash-quick-link-desc">End your session</span>
+                    </span>
+                </SignOutForm>
+            </nav>
+        </aside>
+    </div>
+</div>
+
+@code {
+    private string DisplayName()
+    {
+        if (!string.IsNullOrWhiteSpace(CurrentUser.FullName))
+        {
+            return CurrentUser.FullName.Trim();
+        }
+
+        if (!string.IsNullOrWhiteSpace(CurrentUser.Email))
+        {
+            var local = CurrentUser.Email.Split('@')[0];
+            return string.IsNullOrWhiteSpace(local) ? "there" : local;
+        }
+
+        return "there";
+    }
+
+    private static string Greeting()
+    {
+        var hour = DateTime.Now.Hour;
+        return hour switch
+        {
+            < 12 => "Good morning",
+            < 17 => "Good afternoon",
+            _ => "Good evening"
+        };
+    }
+}

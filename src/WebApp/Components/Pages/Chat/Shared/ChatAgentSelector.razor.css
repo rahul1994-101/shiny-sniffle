@@ -1,0 +1,130 @@
+.chat-agent-picker {
+    position: relative;
+    flex-shrink: 0;
+}
+
+.chat-agent-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 20;
+    margin: 0;
+    padding: 0;
+    border: none;
+    background: transparent;
+    cursor: default;
+}
+
+.chat-agent-trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.15rem;
+    min-width: 0;
+    padding: 0.3rem 0.45rem;
+    border: none;
+    border-radius: 0.5rem;
+    background: transparent;
+    color: var(--app-muted);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    line-height: 1.2;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.chat-agent-trigger:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--app-fg);
+}
+
+.chat-agent-trigger:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--app-accent) 45%, transparent);
+}
+
+.chat-agent-trigger:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.chat-agent-trigger-label {
+    white-space: nowrap;
+}
+
+.chat-agent-chevron {
+    width: 0.85rem;
+    height: 0.85rem;
+    flex-shrink: 0;
+    opacity: 0.65;
+    stroke: currentColor;
+    fill: none;
+}
+
+.chat-agent-trigger:hover:not(:disabled) .chat-agent-chevron,
+.chat-agent-trigger[aria-expanded="true"] .chat-agent-chevron {
+    opacity: 0.9;
+}
+
+.chat-agent-menu {
+    position: absolute;
+    right: 0;
+    bottom: calc(100% + 0.35rem);
+    z-index: 21;
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    min-width: 8.5rem;
+    padding: 0.25rem;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 0.625rem;
+    background: var(--app-surface-elevated);
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+}
+
+.chat-agent-option {
+    display: block;
+    width: 100%;
+    padding: 0.45rem 0.6rem;
+    border: none;
+    border-radius: 0.4rem;
+    background: transparent;
+    color: var(--app-fg);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.12s ease, color 0.12s ease;
+}
+
+.chat-agent-option:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.chat-agent-option:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--app-accent) 45%, transparent);
+}
+
+.chat-agent-option-active {
+    color: var(--app-accent);
+}
+
+.chat-agent-error {
+    position: absolute;
+    right: 0;
+    bottom: calc(100% + 2.5rem);
+    z-index: 22;
+    max-width: 16rem;
+    margin: 0;
+    padding: 0.35rem 0.5rem;
+    border-radius: 0.4rem;
+    background: color-mix(in srgb, #c44 18%, var(--app-surface-elevated));
+    color: var(--app-fg);
+    font-size: 0.75rem;
+    line-height: 1.35;
+}
+
+.chat-agent-error a,
+.chat-agent-error ::deep a {
+    color: var(--app-accent);
+    white-space: nowrap;
+}

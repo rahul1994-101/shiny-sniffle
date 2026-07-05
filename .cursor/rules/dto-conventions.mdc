@@ -1,0 +1,74 @@
+---
+description: Slice DTOs vs Core.DTOs vs WebApp.Models — where types live
+globs: src/Core/DTOs/**/*.cs,src/WebApp/Models/**/*.cs,src/WebApp/Features/**/*.cs,src/WebApp/Components/**/*.razor
+alwaysApply: false
+---
+
+# Model placement
+
+Three homes — **do not duplicate** types across them.
+
+## Features (`WebApp/Features/`)
+
+**Slice DTOs** (`DTOs.cs`) — shared read shapes within one slice:
+
+| Folder | Types |
+|--------|-------|
+| `Users/` | `SessionDto` |
+| `ChatThreads/` | `ChatThreadDto` |
+| `ChatMessages/` | `ChatMessageDto` |
+| `UserSettings/` | `GeneralSettingsDto`, `EmailSettingsDto` |
+| `Shared/` | Cross-slice DTOs |
+
+`FromEntity(Core.Entities.*)` for mapping; `AsResponse<T>()` when Response inherits the DTO.
+
+**Use-case types** (`Commands|Queries/{UseCase}.cs`):
+
+| Kind | Pattern |
+|------|---------|
+| Message | `{UseCase}Request` |
+| Result | `{UseCase}Response` (may extend slice DTO) |
+| Validator | `{UseCase}RequestValidator` |
+| Handler | `{UseCase}RequestHandler` |
+
+Flat Request records; non-nullable Response on `ICommand<T>` / `IQuery<T>` — failures use `HasError`, not null payload.
+
+Do **not** put use-case types in `Core/DTOs/` or `WebApp/Models/`.
+
+## Core (`Core/DTOs/`) — integration only
+
+| File | Types |
+|------|-------|
+| `Mail.cs` | `InboxQuery`, `MailboxStatusResult`, … |
+| `Foundry.cs` | `FoundryOptions` |
+
+No repository or feature DTOs here.
+
+## WebApp (`WebApp/Models/`) — app shell
+
+| File | Types |
+|------|-------|
+| `Enums.cs` | `SettingsSection` |
+| `AI.cs` | `RunChatAgentRequest/Response` |
+| `Constants.cs` | `AuthConstants`, `ChatMessageRoles` |
+
+## Decision tree
+
+1. Single use-case pair? → Features file
+2. Shared read shape in one slice? → `Features/{Slice}/DTOs.cs`
+3. Shared across slices? → `Features/Shared/DTOs.cs`
+4. Mailbox / Foundry port? → `Core/DTOs/`
+5. `Result` / `ErrorCode`? → `MediatR.Results`
+6. AI turn shapes? → `WebApp/Models/AI.cs`
+7. DB entity? → `Core/Entities/`
+
+## Layer flow
+
+| Direction | Pattern |
+|-----------|---------|
+| UI → Features | `Mediator.SendAsync(new SignInRequest(...))` |
+| Handlers → repos | `{entity}Repo` + `sharedRepo` |
+| Repos → handlers | Slice DTOs |
+| UI lists | May bind slice DTOs directly |
+
+Handler/repo conventions: **`feature-slice-conventions.mdc`**.

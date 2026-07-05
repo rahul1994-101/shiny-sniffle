@@ -1,0 +1,55 @@
+@page "/Error"
+
+@attribute [AllowAnonymous]
+
+@using System.Diagnostics
+
+@inject NavigationManager NavigationManager
+
+<PageTitle>Error</PageTitle>
+
+<div class="status-shell">
+    <div class="status-card" role="alert">
+        <p class="status-eyebrow">Error</p>
+        <h1 class="status-title">Something went wrong</h1>
+        <p class="status-message">
+            An error occurred while processing your request. Try again or return home.
+        </p>
+
+        @if (ShowRequestId)
+        {
+            <p class="status-meta">
+                <span class="status-meta-label">Request ID</span>
+                <code class="status-code">@RequestId</code>
+            </p>
+        }
+
+        <div class="status-actions">
+            <NavLink class="status-action" href="/">Back to home</NavLink>
+            <button type="button" class="status-action status-action-muted" @onclick="ReloadPage">Reload page</button>
+        </div>
+
+        <details class="status-details">
+            <summary>Developer details</summary>
+            <p class="status-details-text">
+                Enable the <strong>Development</strong> environment for full exception details locally.
+                Do not enable it on production servers.
+            </p>
+        </details>
+    </div>
+</div>
+
+@code {
+    [CascadingParameter]
+    private HttpContext? HttpContext { get; set; }
+
+    private string? RequestId { get; set; }
+
+    private bool ShowRequestId => !string.IsNullOrEmpty(RequestId);
+
+    protected override void OnInitialized() =>
+        RequestId = Activity.Current?.Id ?? HttpContext?.TraceIdentifier;
+
+    private void ReloadPage() =>
+        NavigationManager.NavigateTo(NavigationManager.Uri, forceLoad: true);
+}

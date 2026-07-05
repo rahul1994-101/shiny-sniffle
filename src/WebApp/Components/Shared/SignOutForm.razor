@@ -1,0 +1,38 @@
+@using Microsoft.AspNetCore.Antiforgery
+
+@inject IAntiforgery Antiforgery
+@inject IHttpContextAccessor HttpContextAccessor
+
+<form method="post"
+      action="@AuthConstants.LogoutApiPath"
+      class="sign-out-form">
+    @if (_antiforgeryToken is not null)
+    {
+        <input type="hidden" name="@_antiforgeryToken.FormFieldName" value="@_antiforgeryToken.RequestToken" />
+    }
+    <button type="submit" class="@ButtonClass" @onclick="OnClick">
+        @ChildContent
+    </button>
+</form>
+
+@code {
+    [Parameter, EditorRequired]
+    public string ButtonClass { get; set; } = null!;
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    [Parameter]
+    public EventCallback<MouseEventArgs> OnClick { get; set; }
+
+    private AntiforgeryTokenSet? _antiforgeryToken;
+
+    protected override void OnInitialized()
+    {
+        var httpContext = HttpContextAccessor.HttpContext;
+        if (httpContext is not null)
+        {
+            _antiforgeryToken = Antiforgery.GetAndStoreTokens(httpContext);
+        }
+    }
+}

@@ -1,0 +1,174 @@
+.page {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    background: var(--app-main-bg);
+    color: var(--app-fg);
+}
+
+.app-chat-layout {
+    height: 100vh;
+    height: 100dvh;
+    max-height: 100vh;
+    max-height: 100dvh;
+    overflow: hidden;
+}
+
+.main-stack {
+    position: relative;
+    z-index: 1;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    min-width: 0;
+    max-height: 100dvh;
+    overflow: hidden;
+    background: transparent;
+}
+
+.main-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    min-width: 0;
+    background: transparent;
+}
+
+main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    background: transparent;
+}
+
+.sidebar-backdrop {
+    display: none;
+}
+
+.app-chat-layout ::deep .sidebar {
+    background: var(--app-sidebar-bg);
+    border-right: 1px solid var(--app-border);
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    z-index: 2;
+    transition: width 0.22s ease, opacity 0.2s ease, border-color 0.2s ease, transform 0.22s ease;
+}
+
+@media (min-width: 641px) {
+    .page {
+        flex-direction: row;
+    }
+
+    .app-chat-layout ::deep .sidebar {
+        width: 288px;
+        min-width: 288px;
+        min-height: 100vh;
+        max-height: 100vh;
+        position: sticky;
+        top: 0;
+        align-self: flex-start;
+    }
+
+    #app-shell.sidebar-collapsed ::deep .sidebar {
+        width: 0;
+        min-width: 0;
+        opacity: 0;
+        border-right-width: 0;
+        overflow: hidden;
+        pointer-events: none;
+    }
+
+    /* Sidebar open: collapse control is in the sidebar header. Collapsed: sidebar
+       has no hit target — show the navbar toggle again so the drawer can reopen. */
+    #app-shell:not(.sidebar-collapsed) ::deep #sidebar-toggle-btn {
+        display: none !important;
+    }
+
+    #app-shell.sidebar-collapsed ::deep #sidebar-toggle-btn {
+        display: flex !important;
+    }
+
+    main {
+        min-height: 0;
+    }
+
+    .main-stack {
+        height: 100%;
+        min-height: 0;
+        max-height: 100dvh;
+    }
+}
+
+@media (max-width: 640px) {
+    .sidebar-backdrop:not([hidden]) {
+        display: block;
+        position: fixed;
+        inset: 0;
+        z-index: 40;
+        margin: 0;
+        padding: 0;
+        border: none;
+        border-radius: 0;
+        background: rgba(0, 0, 0, 0.52);
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    .app-chat-layout ::deep .sidebar {
+        position: fixed;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: min(20rem, 88vw);
+        max-width: 320px;
+        min-width: 0;
+        min-height: 100vh;
+        max-height: 100vh;
+        z-index: 50;
+        transform: translateX(0);
+        opacity: 1;
+        border-right: 1px solid var(--app-border);
+        pointer-events: auto;
+        box-shadow: 8px 0 32px rgba(0, 0, 0, 0.45);
+    }
+
+    #app-shell.sidebar-collapsed ::deep .sidebar {
+        transform: translateX(-100%);
+        pointer-events: none;
+        opacity: 1;
+        border-right-width: 1px;
+    }
+
+    .main-stack {
+        height: 100%;
+        min-height: 0;
+        max-height: 100dvh;
+        width: 100%;
+    }
+}
+
+#blazor-error-ui {
+    color-scheme: light only;
+    background: lightyellow;
+    bottom: 0;
+    box-shadow: 0 -1px 2px rgba(0, 0, 0, 0.2);
+    box-sizing: border-box;
+    display: none;
+    left: 0;
+    padding: 0.6rem 1.25rem 0.7rem 1.25rem;
+    position: fixed;
+    width: 100%;
+    z-index: 1000;
+}
+
+    #blazor-error-ui .dismiss {
+        cursor: pointer;
+        position: absolute;
+        right: 0.75rem;
+        top: 0.5rem;
+    }

@@ -1,0 +1,140 @@
+@inherits BaseComponent
+@using ChatThreadCmd = WebApp.Features.ChatThreads.Commands
+
+<div class="chat-agent-picker">
+    @if (_open)
+    {
+        <button type="button"
+                class="chat-agent-backdrop"
+                tabindex="-1"
+                aria-hidden="true"
+                @onclick="Close"></button>
+    }
+
+    <button type="button"
+            id="chat-agent-trigger"
+            class="chat-agent-trigger"
+            disabled="@(_busy || SendInProgress || ThreadId == Guid.Empty)"
+            aria-haspopup="listbox"
+            aria-expanded="@_open"
+            aria-label="Chat agent: @ChatAgentHelpers.GetDisplayName(Value)"
+            @onclick="ToggleOpen">
+        <span class="chat-agent-trigger-label">@ChatAgentHelpers.GetDisplayName(Value)</span>
+        <svg class="chat-agent-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M6 9l6 6 6-6" />
+        </svg>
+    </button>
+
+    @if (_open)
+    {
+        <div class="chat-agent-menu"
+             role="listbox"
+             aria-labelledby="chat-agent-trigger"
+             @onkeydown="OnMenuKeyDown">
+            @foreach (var agent in ChatAgentHelpers.All)
+            {
+                var selected = agent == Value;
+                <button type="button"
+                        role="option"
+                        aria-selected="@selected"
+                        class="chat-agent-option @(selected ? "chat-agent-option-active" : null)"
+                        @onclick="() => SelectAsync(agent)">
+                    @ChatAgentHelpers.GetDisplayName(agent)
+                </button>
+            }
+        </div>
+    }
+
+    @if (!string.IsNullOrWhiteSpace(_error))
+    {
+        <p class="chat-agent-error" role="alert">
+            @_error
+            <NavLink href="/settings/email">Settings → Email</NavLink>
+        </p>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public Guid ThreadId { get; set; }
+
+    [Parameter]
+    public ChatAgent Value { get; set; }
+
+    [Parameter]
+    public EventCallback<ChatAgent> ValueChanged { get; set; }
+
+    [Parameter]
+    public bool SendInProgress { get; set; }
+
+    private bool _open;
+    private bool _busy;
+    private string? _error;
+
+    #region # Select
+
+    private void ToggleOpen()
+    {
+        if (_busy || SendInProgress || ThreadId == Guid.Empty)
+        {
+            return;
+        }
+
+        _open = !_open;
+    }
+
+    private void Close() => _open = false;
+
+    private void OnMenuKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Escape")
+        {
+            Close();
+        }
+    }
+
+    private async Task SelectAsync(ChatAgent selected)
+    {
+        Close();
+
+        if (selected == Value || ThreadId == Guid.Empty)
+        {
+            return;
+        }
+
+        _busy = true;
+        _error = null;
+
+        try
+        {
+            #region # Execute
+
+            var result = await Mediator.SendAsync(new ChatThreadCmd.UpdateChatThreadAgentRequest(
+                ThreadId,
+                CurrentUser.Id,
+                selected));
+
+            #endregion
+
+            #region # Handle Result
+
+            if (!result.HasError)
+            {
+                Value = result.Payload!.ChatAgent;
+                await ValueChanged.InvokeAsync(Value);
+            }
+            else
+            {
+                _error = result.Errors.FirstOrDefault()?.Message;
+            }
+
+            #endregion
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    #endregion
+}

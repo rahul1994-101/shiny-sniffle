@@ -1,0 +1,12 @@
+# Environments
+.env
+.venv
+env/
+venv/
+gainz_venv2/
+gainz_venv/
+ENV/
+gainz_venv/
+gainz_venv2/
+env.bak/
+venv.bak/
