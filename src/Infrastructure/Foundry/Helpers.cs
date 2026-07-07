@@ -1,4 +1,4 @@
-namespace Infrastructure.Utilities.Helpers;
+namespace Infrastructure.Foundry;
 
 /// <summary>
 /// Normalizes Azure OpenAI / Foundry endpoint URLs from config (resource base URL, trailing slash).

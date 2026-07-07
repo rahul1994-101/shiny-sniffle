@@ -1,5 +1,5 @@
 using Infrastructure.Persistence;
-using Infrastructure.Utilities.Helpers;
+using Infrastructure.Mailbox;
 using Microsoft.EntityFrameworkCore;
 using WebApp.Utilities.Extensions;
 

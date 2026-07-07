@@ -1,10 +1,7 @@
-using System.ComponentModel.DataAnnotations;
-
 namespace Core.Entities;
 
 public class UserSetting : BaseAuditableEntity
 {
-    [Required(ErrorMessage = "User Id is required.")]
     public Guid UserId { get; set; }
 
     /// <summary>JSON payload for <see cref="EmailSettings"/>; column <c>EmailSettingsJson</c>.</summary>

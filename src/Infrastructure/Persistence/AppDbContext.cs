@@ -1,54 +1,16 @@
-using EntityFramework.Exceptions.SqlServer;
-using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
-using System.Data;
 
 namespace Infrastructure.Persistence;
 
-public class AppDbContext : DbContext
+public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
 {
-    #region # Init
+    public DbSet<User> Users { get; set; }
 
-    private readonly IConfiguration _configuration;
+    public DbSet<ChatThread> ChatThreads { get; set; }
 
-    public AppDbContext(DbContextOptions<AppDbContext> options, IConfiguration configuration)
-        : base(options)
-    {
-        _configuration = configuration;
-        try
-        {
-            var conn = _configuration.GetConnectionString("DefaultConnection");
-            Connection = new SqlConnection(conn);
-        }
-        catch (Exception ex)
-        {
-            throw new InvalidOperationException("Could not open the database connection.", ex);
-        }
-    }
+    public DbSet<ChatMessage> ChatMessages { get; set; }
 
-    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-    {
-        ArgumentNullException.ThrowIfNull(optionsBuilder);
-        try
-        {
-            if (!optionsBuilder.IsConfigured)
-            {
-                var conn = _configuration.GetConnectionString("DefaultConnection");
-                optionsBuilder.UseSqlServer(conn);
-            }
-
-            optionsBuilder.EnableDetailedErrors(true);
-            optionsBuilder.EnableSensitiveDataLogging(true);
-
-            optionsBuilder.UseLazyLoadingProxies(false);
-            optionsBuilder.UseExceptionProcessor();
-        }
-        catch (Exception ex)
-        {
-            throw new InvalidOperationException("Could not open the database connection.", ex);
-        }
-    }
+    public DbSet<UserSetting> UserSettings { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -57,10 +19,10 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<User>(entity =>
         {
             entity.ToTable("User", "dbo");
-            entity.Property(e => e.FirstName).HasColumnName("firstName");
-            entity.Property(e => e.LastName).HasColumnName("lastName");
-            entity.Property(e => e.Email).HasColumnName("email");
-            entity.Property(e => e.Mobile).HasColumnName("mobile");
+            entity.Property(e => e.FirstName).HasColumnName("firstName").HasMaxLength(50);
+            entity.Property(e => e.LastName).HasColumnName("lastName").HasMaxLength(50);
+            entity.Property(e => e.Email).HasColumnName("email").HasMaxLength(255);
+            entity.Property(e => e.Mobile).HasColumnName("mobile").HasMaxLength(20);
             entity.Property(e => e.Password).HasColumnName("password").HasMaxLength(512);
             entity.Property(e => e.IsActive).HasColumnName("isActive");
             entity.Property(e => e.IsDeleted).HasColumnName("isDeleted");
@@ -72,40 +34,43 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<ChatThread>(entity =>
         {
             entity.ToTable("ChatThread", "dbo");
+            entity.Property(e => e.UserId).HasColumnName("userId");
+            entity.Property(e => e.Title).HasColumnName("title").HasMaxLength(200);
             entity.Property(e => e.ChatAgent).HasColumnName("chatAgent");
             entity.Property(e => e.MemorySummary).HasColumnName("memorySummary");
             entity.Property(e => e.MemorySummaryThroughMessageId).HasColumnName("memorySummaryThroughMessageId");
-        });
-        modelBuilder.Entity<ChatMessage>(entity =>
-        {
-            entity.ToTable("ChatMessage", "dbo");
-            entity.Property(e => e.Role).HasColumnName("role");
-        });
-        modelBuilder.Entity<UserSetting>(entity =>
-        {
-            entity.ToTable("UserSetting", "dbo");
-            entity.Property(e => e.UserId).HasColumnName("userId");
             entity.Property(e => e.IsActive).HasColumnName("isActive");
             entity.Property(e => e.IsDeleted).HasColumnName("isDeleted");
             entity.Property(e => e.CreatedBy).HasColumnName("createdBy");
             entity.Property(e => e.CreatedAt).HasColumnName("createdAt");
             entity.Property(e => e.UpdatedBy).HasColumnName("updatedBy");
             entity.Property(e => e.UpdatedAt).HasColumnName("updatedAt");
+        });
+        modelBuilder.Entity<ChatMessage>(entity =>
+        {
+            entity.ToTable("ChatMessage", "dbo");
+            entity.Property(e => e.ChatThreadId).HasColumnName("chatThreadId");
+            entity.Property(e => e.Role).HasColumnName("role").HasMaxLength(20);
+            entity.Property(e => e.Content).HasColumnName("content");
+            entity.Property(e => e.IsActive).HasColumnName("isActive");
+            entity.Property(e => e.IsDeleted).HasColumnName("isDeleted");
+            entity.Property(e => e.CreatedBy).HasColumnName("createdBy");
+            entity.Property(e => e.CreatedAt).HasColumnName("createdAt");
+            entity.Property(e => e.UpdatedBy).HasColumnName("updatedBy");
+            entity.Property(e => e.UpdatedAt).HasColumnName("updatedAt");
+        });
+        modelBuilder.Entity<UserSetting>(entity =>
+        {
+            entity.ToTable("UserSetting", "dbo");
+            entity.Property(e => e.UserId).HasColumnName("userId");
             entity.Property(e => e.EmailSettingsJson).HasColumnName("EmailSettingsJson");
+            entity.Property(e => e.IsActive).HasColumnName("isActive");
+            entity.Property(e => e.IsDeleted).HasColumnName("isDeleted");
+            entity.Property(e => e.CreatedBy).HasColumnName("createdBy");
+            entity.Property(e => e.CreatedAt).HasColumnName("createdAt");
+            entity.Property(e => e.UpdatedBy).HasColumnName("updatedBy");
+            entity.Property(e => e.UpdatedAt).HasColumnName("updatedAt");
             entity.HasIndex(e => e.UserId).IsUnique();
         });
     }
-
-    #endregion
-
-    #region # Helpers
-
-    public IDbConnection Connection { get; private set; }
-
-    #endregion
-
-    public DbSet<User> Users { get; set; }
-    public DbSet<ChatThread> ChatThreads { get; set; }
-    public DbSet<ChatMessage> ChatMessages { get; set; }
-    public DbSet<UserSetting> UserSettings { get; set; }
 }

@@ -42,11 +42,11 @@ Integration ports and models — **`Abstractions.cs`** (interfaces + contract co
 | `Mailbox/` | `InboxQuery`, `MailboxStatusResult`, … | `IMailboxService` |
 | `Foundry/` | `FoundryOptions` | `IFoundryAgentFactory`, `FoundryDeployments` |
 
-Implementations in the same folder (`MailKitMailboxService`, `FoundryAgentFactory`).
+Implementations in the same folder (`MailKitMailboxService`, `FoundryAgentFactory`). Helpers in **`Helpers.cs`** per concern (internal types + public `EmailSettingsJsonHelpers`).
 
 ## Core (`Core/Entities/`)
 
-DB-mapped entities and entity-owned types (e.g. `EmailSettings` on `UserSetting`).
+DB-mapped POCOs and entity-owned types (e.g. `EmailSettings` on `UserSetting`). No data annotations — column limits in SSDT + EF fluent config; input rules on Feature `Request` validators.
 
 ## WebApp (`WebApp/Models/`) — app shell
 

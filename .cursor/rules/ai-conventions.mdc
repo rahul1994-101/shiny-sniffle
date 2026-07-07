@@ -46,7 +46,7 @@ Register AI types in `Startup.InjectAi` only — not scattered across the app.
 | **Memory/** | memory layer | `LoadAsync` / `RefreshAsync` | `ThreadMemoryService`, etc. No LLM calls. See `docs/ai-memory.md`. |
 | **Workflows/** | workflow | `RunAsync` | Multi-step; compose agents and tools. |
 
-Endpoint URL normalization for Foundry config: `Infrastructure/Utilities/Helpers/AzureOpenAiEndpointHelpers.cs` (not under `AI/` or WebApp).
+Endpoint URL normalization for Foundry config: `Infrastructure/Foundry/Helpers.cs` (not under `AI/` or WebApp).
 
 Shared MAF wiring: `Infrastructure/Foundry/FoundryAgentFactory.cs` implements `IFoundryAgentFactory`; registered in `AddInfrastructure()`.
 

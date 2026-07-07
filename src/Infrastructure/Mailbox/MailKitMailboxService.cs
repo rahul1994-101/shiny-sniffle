@@ -1,4 +1,3 @@
-using Infrastructure.Utilities.Helpers;
 using MailKit;
 using MailKit.Net.Imap;
 using MailKit.Net.Smtp;

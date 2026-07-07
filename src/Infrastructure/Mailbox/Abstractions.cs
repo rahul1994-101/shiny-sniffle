@@ -1,5 +1,3 @@
-using Core.Entities;
-
 namespace Infrastructure.Mailbox;
 
 public interface IMailboxService
