@@ -8,7 +8,8 @@ Blazor Server workspace app: vertical-slice features, custom CQRS (`lib/MediatR`
 lib/MediatR/              CQRS dispatcher
 src/Core/                 Entities + Database/ (SQL schema scripts)
 src/Infrastructure/       EF, Mailbox, Foundry (ports + DTOs.cs per folder)
-src/WebApp/               UI, Features, AI, Startup
+src/Application/          Features, AI, app services + AddApplication()
+src/WebApp/               Blazor UI, Endpoints, Startup
 ```
 
 ## Documentation

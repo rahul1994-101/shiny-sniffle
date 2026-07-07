@@ -3,7 +3,7 @@
 Four context layers injected into each agent turn — in addition to the current user message.
 
 **Integration point:** `ChatOrchestrator` composes layers before `AssistantAgent` / `EmailAgent` `RunAsync`.  
-**Code home:** `src/WebApp/AI/Memory/`. No MediatR lib changes.
+**Code home:** `src/Application/AI/Memory/`. No MediatR lib changes.
 
 ## Stack order (target)
 
@@ -67,10 +67,10 @@ Do **not** put user or working memory on `ChatThread`.
 ## Key files
 
 ```text
-src/WebApp/AI/ChatOrchestrator.cs
-src/WebApp/AI/Memory/ThreadMemoryService.cs
-src/WebApp/AI/Memory/ChatMemoryLimits.cs
-src/WebApp/Features/ChatMessages/Commands/SendChatMessage.cs
+src/Application/AI/ChatOrchestrator.cs
+src/Application/AI/Memory/ThreadMemoryService.cs
+src/Application/AI/Memory/ChatMemoryLimits.cs
+src/Application/Features/ChatMessages/Commands/SendChatMessage.cs
 src/Core/Entities/ChatThread.cs
 ```
 

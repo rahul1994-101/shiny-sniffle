@@ -1,6 +1,6 @@
 ---
 description: AI layer layout — orchestrator, agents, tools, memory
-globs: src/WebApp/AI/**/*.cs
+globs: src/Application/AI/**/*.cs
 alwaysApply: false
 ---
 
@@ -12,8 +12,8 @@ Roadmap: `docs/ai-memory.md`, `docs/email-read-implementation-plan.md`.
 
 ## File layout (top to bottom)
 
-1. **Usings** — `System.*` first, blank line, `Microsoft.*`, blank line, `WebApp.*` (alphabetical within each group)
-2. **Namespace** — `WebApp.AI.{Folder}` for subfolders (`Agents`, `Memory`, `Tools`, `Workflows`); `WebApp.AI` for root-level `ChatOrchestrator.cs`
+1. **Usings** — `System.*` first, blank line, `Microsoft.*`, blank line, `Application.*` (alphabetical within each group)
+2. **Namespace** — `Application.AI.{Folder}` for subfolders (`Agents`, `Memory`, `Tools`, `Workflows`); `Application.AI` for root-level `ChatOrchestrator.cs`
 3. **Type** — `public sealed class` for DI services
 4. **Constants / fields** — `private const` at top of class body (before public methods), when needed
 5. **Public API** — entry methods (`RunChatAgentAsync`, `RunAsync`, `CreateTools`, `Create*Agent`)
@@ -34,7 +34,7 @@ public sealed class ChatOrchestrator(
     EmailAgent emailAgent)
 ```
 
-Register AI types in `Startup.InjectAi` only — not scattered across the app.
+Register AI types in `Application.DependencyInjection.AddApplication` only — not scattered across the app.
 
 ## Folder rules
 
@@ -139,7 +139,7 @@ private static readonly (string Intent, string Capability, string[] Prompts)[] S
 ## Reference: ChatOrchestrator shape
 
 ```csharp
-namespace WebApp.AI;
+namespace Application.AI;
 
 public sealed class ChatOrchestrator(...)
 {

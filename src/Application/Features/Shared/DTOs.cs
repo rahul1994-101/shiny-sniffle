@@ -1,0 +1,1 @@
+namespace Application.Features.Shared;

@@ -1,12 +1,12 @@
 ---
 description: Vertical slices — repos, handlers, CQRS, EF/JSON data patterns
-globs: src/WebApp/Features/**/*.cs,src/Infrastructure/Persistence/**/*.cs
+globs: src/Application/Features/**/*.cs,src/Infrastructure/Persistence/**/*.cs
 alwaysApply: false
 ---
 
 # Feature vertical slices
 
-`WebApp/Features/` is **vertically sliced**. Each top-level folder (except plumbing) owns its use cases end-to-end.
+`Application/Features/` is **vertically sliced**. Each top-level folder (except plumbing) owns its use cases end-to-end.
 
 ## Slice vs plumbing
 
@@ -117,7 +117,7 @@ Map entities to DB camelCase + `HasMaxLength` in `AppDbContext.OnModelCreating` 
 |-------|---------|
 | Entity | `EmailSettingsJson` on `UserSetting`; typed `EmailSettings` in `Core.Entities` |
 | Infrastructure | `EmailSettingsJsonHelpers` in `Infrastructure/Mailbox/Helpers.cs` |
-| WebApp | `EmailSettingsMapping` in `Features/UserSettings/` |
+| Application | `EmailSettingsMapping` in `Features/UserSettings/` |
 
 ## Cross-slice placement
 

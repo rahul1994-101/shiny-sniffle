@@ -1,6 +1,6 @@
 ---
 description: Slice DTOs vs Infrastructure integration models vs WebApp.Models
-globs: src/Infrastructure/**/*.cs,src/WebApp/Models/**/*.cs,src/WebApp/Features/**/*.cs,src/WebApp/Components/**/*.razor
+globs: src/Infrastructure/**/*.cs,src/Application/**/*.cs,src/WebApp/Models/**/*.cs,src/WebApp/Components/**/*.razor
 alwaysApply: false
 ---
 
@@ -8,7 +8,7 @@ alwaysApply: false
 
 Four homes — **do not duplicate** types across them.
 
-## Features (`WebApp/Features/`)
+## Features (`Application/Features/`)
 
 **Slice DTOs** (`DTOs.cs`) — shared read shapes within one slice:
 
@@ -48,13 +48,19 @@ Implementations in the same folder (`MailKitMailboxService`, `FoundryAgentFactor
 
 DB-mapped POCOs and entity-owned types (e.g. `EmailSettings` on `UserSetting`). No data annotations — column limits in `Core/Database/` + EF fluent config; input rules on Feature `Request` validators.
 
-## WebApp (`WebApp/Models/`) — app shell
+## Application (`Application/Models/`) — app layer
+
+| File | Types |
+|------|-------|
+| `AI.cs` | `RunChatAgentRequest/Response` |
+| `Constants.cs` | `ChatMessageRoles` |
+
+## WebApp (`WebApp/Models/`) — UI shell
 
 | File | Types |
 |------|-------|
 | `Enums.cs` | `SettingsSection` |
-| `AI.cs` | `RunChatAgentRequest/Response` |
-| `Constants.cs` | `AuthConstants`, `ChatMessageRoles` |
+| `Constants.cs` | `AuthConstants` |
 
 ## Decision tree
 
@@ -63,7 +69,7 @@ DB-mapped POCOs and entity-owned types (e.g. `EmailSettings` on `UserSetting`). 
 3. Shared across slices? → `Features/Shared/DTOs.cs`
 4. Mailbox / Foundry integration shape? → `Infrastructure/{Concern}/DTOs.cs`
 5. `Result` / `ErrorCode`? → `MediatR.Results`
-6. AI turn shapes? → `WebApp/Models/AI.cs`
+6. AI turn shapes? → `Application/Models/AI.cs`
 7. DB entity? → `Core/Entities/`
 
 Handler/repo conventions: **`feature-slice-conventions.mdc`**.
