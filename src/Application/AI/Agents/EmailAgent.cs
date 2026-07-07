@@ -1,7 +1,6 @@
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
 using Application.AI.Tools;
-using Application.Utilities.Helpers;
 
 namespace Application.AI.Agents;
 

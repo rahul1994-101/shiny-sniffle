@@ -1,7 +1,6 @@
 using Microsoft.Extensions.AI;
 using System.ComponentModel;
 using System.Net.Mail;
-using Application.Utilities.Helpers;
 using Application.Features.Shared;
 
 namespace Application.AI.Tools;

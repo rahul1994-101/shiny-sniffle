@@ -9,11 +9,24 @@ alwaysApply: false
 Product logic. Register everything in `DependencyInjection.AddApplication()`.
 
 ```text
-Features/       vertical slices + Shared/ (DTOs, Repository, Services, repos DI)
+Features/       vertical slices + Shared/ (DTOs, Repository, Helpers, Services)
 AI/             ChatOrchestrator, Agents, Tools, Memory, Workflows
 Models/         AI turn shapes, ChatMessageRoles
-Utilities/      crypto, email-read helpers (not Blazor)
+Utilities/      technical cross-cutting only (crypto) — not slice business logic
 ```
+
+### Helpers vs Utilities
+
+| | `{Slice}/Helpers.cs` or `Shared/Helpers.cs` | `Application/Utilities/` |
+|---|---------------------------------------------|---------------------------|
+| **What** | Slice or cross-slice **business** logic | **Technical** plumbing with no slice owner |
+| **Examples** | `EmailSettingsMapping`, inbox date parsing for AI tools | `CryptographyHelpers`, `Encrypt()` extensions |
+| **Uses entities/DTOs?** | Yes — maps, presets, domain rules | No — algorithms, formats, extensions |
+| **Promote** | Handler → slice `Helpers` → `Shared/Helpers` | Add here only when 2+ slices need same technical helper and it is not domain mapping |
+
+**Decision tree:** “Does this belong to one slice’s domain?” → `{Slice}/Helpers.cs`. “Used across slices but still product logic?” → `Shared/Helpers.cs`. “Generic technical helper (crypto, parsing lib-style)?” → `Utilities/`. When unsure, start in handler private and promote.
+
+`WebApp/Utilities/` is separate — UI/auth/cookies only; do not put Application business logic there.
 
 ## Features — vertical slices
 

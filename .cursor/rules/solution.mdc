@@ -23,6 +23,7 @@ Start at the **smallest place that works**; promote only when reuse or boundarie
 | **Infrastructure** | One concern folder (`Mailbox/`, `Foundry/`) with `Abstractions` + `DTOs` + `Helpers` + impl | New `{Concern}/` folder for a new external system |
 | **Application — data** | Handler `# Private Helpers` + `IDbContextFactory` | `{Slice}/Repository.cs` → `Shared/Repository.cs` |
 | **Application — logic** | Handler private | `{Slice}/Helpers.cs` → `Shared/Helpers.cs` |
+| **Application — technical** | Inline or local static | `Application/Utilities/` (crypto, etc.) — not slice DTO mapping |
 | **Application — services** | Handler private or slice class | `{Slice}/Services.cs` → `Shared/Services.cs` |
 | **Application — slice sub-concern** (optional) | Inline in handler | `{Slice}/{Concern}.cs` before a consolidated `Helpers.cs` |
 | **Application — AI** | Slice repos | `SharedRepository` for cross-slice; never `IDbContextFactory` |

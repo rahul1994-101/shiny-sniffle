@@ -1,7 +1,84 @@
 using System.Globalization;
+using System.Text;
 using System.Text.RegularExpressions;
 
-namespace Application.Utilities.Helpers;
+namespace Application.Features.Shared;
+
+internal sealed record InboxDateRange(
+    DateTime SinceUtc,
+    DateTime? UntilUtcExclusive,
+    string Label);
+
+/// <summary>Layer 0 read limits and shared copy for mailbox list/status tools.</summary>
+internal static class EmailReadConstants
+{
+    internal const int DefaultListLimit = 20;
+
+    internal const int DefaultDigestListLimit = DefaultListLimit;
+
+    internal const int MinListLimit = 1;
+
+    internal const int MaxListLimit = 50;
+
+    internal const int MaxDeepReadsPerTurn = 5;
+
+    internal const int MaxDigestOptionalGets = 3;
+
+    internal const int SnippetMaxLength = 120;
+
+    internal const string SettingsEmailHint = "Connect your mailbox in Settings → Email.";
+
+    internal const string NotConfiguredForAgent =
+        $"Mailbox is not configured. {SettingsEmailHint}";
+
+    internal const string NotConfiguredForList =
+        $"Mailbox is not configured. {SettingsEmailHint} Then ask again to list mail.";
+
+    internal const string NotConfiguredForSend =
+        $"Mailbox is not configured. {SettingsEmailHint} Before sending mail.";
+
+    internal const string NotConfiguredForGet =
+        $"Mailbox is not configured. {SettingsEmailHint} Then ask again to read a message.";
+
+    internal const string NotConfiguredForFolders =
+        $"Mailbox is not configured. {SettingsEmailHint} Then ask again to list folders.";
+
+    internal const int MaxMessageBodyLength = 12_000;
+
+    internal const string SinceParseHint =
+        "Could not parse the date range. Use today, yesterday, this_week, last_N_days, yyyy-MM-dd..yyyy-MM-dd, " +
+        "yyyy-MM-dd to yyyy-MM-dd, or since + until (yyyy-MM-dd).";
+
+    internal static string FormatSinceParseHint() =>
+        $"{SinceParseHint} Today (UTC) is {EmailReadDateContext.TodayUtcIso}. Example range: 2026-05-01..2026-05-07.";
+
+    internal static int ClampListLimit(int limit) =>
+        limit <= 0 ? DefaultListLimit : Math.Clamp(limit, MinListLimit, MaxListLimit);
+}
+
+/// <summary>Current UTC calendar for Email agent/tools — avoids wrong-year ISO dates from the model.</summary>
+internal static class EmailReadDateContext
+{
+    internal static DateTime TodayUtc => DateTime.UtcNow.Date;
+
+    internal static string TodayUtcIso =>
+        TodayUtc.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+
+    internal static int CurrentYear => TodayUtc.Year;
+
+    internal static string AgentDateBlock()
+    {
+        var now = DateTime.UtcNow;
+        return
+            $"Current date (UTC): {TodayUtcIso} ({now:dddd}). Current year: {CurrentYear}. " +
+            "Use this when choosing since values or interpreting the user's time words.";
+    }
+
+    internal static string SinceToolHint() =>
+        "Relative: today, yesterday, this_week, last_week, last_N_days. " +
+        "Explicit range: yyyy-MM-dd..yyyy-MM-dd, yyyy-MM-dd to yyyy-MM-dd, or since=yyyy-MM-dd + until=yyyy-MM-dd. " +
+        $"Today (UTC) is {TodayUtcIso}. Empty since means today.";
+}
 
 internal static partial class InboxListRangeParser
 {
@@ -92,7 +169,6 @@ internal static partial class InboxListRangeParser
         return false;
     }
 
-    /// <summary>Correct common model mistakes (wrong year on ISO dates, future dates) before parse.</summary>
     internal static string? NormalizeSince(string? since)
     {
         if (string.IsNullOrWhiteSpace(since))
@@ -297,4 +373,136 @@ internal static partial class InboxListRangeParser
 
     private static string? NullIfWhiteSpace(string? value) =>
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+}
+
+internal static class EmailMailboxTextHelpers
+{
+    internal static string FormatInboxQueryLabel(string rangeLabel, InboxQuery query)
+    {
+        var parts = new List<string>();
+
+        if (!IsInboxAlias(query.Folder))
+        {
+            parts.Add($"folder '{query.Folder!.Trim()}'");
+        }
+
+        parts.Add(rangeLabel);
+
+        if (query.UnreadOnly)
+        {
+            parts.Add("unread only");
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.FromContains))
+        {
+            parts.Add($"from contains '{query.FromContains.Trim()}'");
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.SubjectContains))
+        {
+            parts.Add($"subject contains '{query.SubjectContains.Trim()}'");
+        }
+
+        return string.Join(", ", parts);
+    }
+
+    internal static string FormatInboxCount(int count, string queryLabel) =>
+        count == 0
+            ? $"No messages found for {queryLabel}."
+            : $"Message count for {queryLabel}: {count}.";
+
+    internal static string FormatInboxList(IReadOnlyList<InboxMessageSummary> messages, string queryLabel, int totalMatched)
+    {
+        if (messages.Count == 0)
+        {
+            return totalMatched == 0
+                ? $"No messages found for {queryLabel}."
+                : $"No messages to show for {queryLabel} ({totalMatched} matched).";
+        }
+
+        var shownNote = totalMatched > messages.Count
+            ? $"{messages.Count} shown of {totalMatched} matched"
+            : $"{messages.Count}";
+
+        var builder = new StringBuilder();
+        builder.AppendLine(
+            $"Messages for {queryLabel} ({shownNote}; previews up to {EmailReadConstants.SnippetMaxLength} chars — use get_inbox_message with folder + Uid for full body):");
+        for (var i = 0; i < messages.Count; i++)
+        {
+            var message = messages[i];
+            builder.Append('#').Append(i + 1)
+                .Append(" | Uid: ").Append(message.Uid)
+                .Append(" | From: ")
+                .Append(message.From)
+                .Append(" | Subject: ")
+                .Append(message.Subject)
+                .Append(" | Date: ")
+                .Append(message.Date.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture));
+
+            if (!string.IsNullOrWhiteSpace(message.Snippet))
+            {
+                builder.Append(" | Preview: ").Append(message.Snippet);
+            }
+
+            builder.AppendLine();
+        }
+
+        return builder.ToString().TrimEnd();
+    }
+
+    internal static string FormatInboxMessage(InboxMessageDetail message)
+    {
+        var builder = new StringBuilder();
+        builder.Append("Message (folder: ").Append(message.Folder)
+            .Append(", Uid: ").Append(message.Uid).AppendLine("):");
+        builder.Append("From: ").AppendLine(message.From);
+        builder.Append("Subject: ").AppendLine(message.Subject);
+        builder.Append("Date: ").AppendLine(message.Date.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture));
+
+        if (message.AttachmentNames.Count == 0)
+        {
+            builder.AppendLine("Attachments: none");
+        }
+        else
+        {
+            builder.Append("Attachments: ").AppendLine(string.Join(", ", message.AttachmentNames));
+        }
+
+        builder.AppendLine();
+        builder.Append(message.BodyFromHtml ? "Body (converted from HTML):" : "Body:");
+        builder.AppendLine();
+        builder.Append(message.Body);
+        return builder.ToString().TrimEnd();
+    }
+
+    internal static string FormatFolderList(IReadOnlyList<MailboxFolderInfo> folders)
+    {
+        if (folders.Count == 0)
+        {
+            return "No mailbox folders were found.";
+        }
+
+        var builder = new StringBuilder();
+        builder.AppendLine($"Mailbox folders ({folders.Count}). Use folder name or role alias (inbox, sent, drafts, trash, junk) on list/get tools:");
+        foreach (var folder in folders)
+        {
+            builder.Append("- ").Append(folder.Name);
+            if (!folder.Name.Equals(folder.FullName, StringComparison.Ordinal))
+            {
+                builder.Append(" (path: ").Append(folder.FullName).Append(')');
+            }
+
+            if (!string.IsNullOrWhiteSpace(folder.Role))
+            {
+                builder.Append(" [").Append(folder.Role).Append(']');
+            }
+
+            builder.AppendLine();
+        }
+
+        return builder.ToString().TrimEnd();
+    }
+
+    private static bool IsInboxAlias(string? folder) =>
+        string.IsNullOrWhiteSpace(folder) || folder.Trim().Equals("inbox", StringComparison.OrdinalIgnoreCase);
 }

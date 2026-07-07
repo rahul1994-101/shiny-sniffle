@@ -1,6 +1,5 @@
 using System.Net.Mail;
 using Application.Features.UserSettings;
-using Application.Utilities.Helpers;
 
 namespace Application.Features.Shared;
 
