@@ -4,8 +4,11 @@ using Application.AI;
 using Application.AI.Agents;
 using Application.AI.Memory;
 using Application.AI.Tools;
+using Application.Features.ChatMessages;
+using Application.Features.ChatThreads;
 using Application.Features.Shared;
-using Application.Services;
+using Application.Features.UserSettings;
+using Application.Features.Users;
 using MediatR.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -19,17 +22,35 @@ public static class DependencyInjection
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(configuration);
 
-        services.AddFeatureRepositories();
+        #region Feature repositories
+
+        services.AddScoped<SharedRepository>();
+        services.AddScoped<UserRepository>();
+        services.AddScoped<ChatThreadRepository>();
+        services.AddScoped<ChatMessageRepository>();
+        services.AddScoped<UserSettingsRepository>();
+
+        #endregion
+
+        #region Feature services (Shared/Services.cs)
+
+        services.AddScoped<UserMailboxService>();
+
+        #endregion
+
         services.AddMediatR(Assembly.GetExecutingAssembly());
 
         services.Configure<FoundryOptions>(configuration.GetSection(FoundryOptions.SectionName));
 
-        services.AddScoped<UserMailboxService>();
+        #region AI
+
         services.AddScoped<EmailTools>();
         services.AddScoped<ThreadMemoryService>();
         services.AddScoped<AssistantAgent>();
         services.AddScoped<EmailAgent>();
         services.AddScoped<ChatOrchestrator>();
+
+        #endregion
 
         return services;
     }

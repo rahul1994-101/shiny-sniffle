@@ -1,0 +1,98 @@
+---
+description: WebApp — Blazor UI, Endpoints, UI models, composition root
+globs: src/WebApp/**/*
+alwaysApply: false
+---
+
+# WebApp
+
+UI + HTTP host only. No handlers, repos, `AppDbContext`, or entities.
+
+```text
+Components/     Blazor pages and shared UI
+Endpoints/      *Endpoints.cs — thin IMediator + HTTP
+Models/           AuthConstants, SettingsSection (UI/routing only)
+Utilities/        CurrentUser, auth cookies, ChatHelpers, form validation
+Startup.cs        AddInfrastructure + AddApplication
+```
+
+Call Application via `IMediator.SendAsync(new …Request(...))` — not repositories.
+
+## Models (`WebApp/Models/`)
+
+| File | Types |
+|------|-------|
+| `Constants.cs` | `AuthConstants` |
+| `Enums.cs` | `SettingsSection` |
+
+Do **not** put slice DTOs, entities, or use-case types here.
+
+---
+
+## Blazor (`Components/`)
+
+C# Features = entity/operation; Blazor `@code` = **user action / UI concern**.
+
+### Directive order
+
+`@page` → `@layout` → `@rendermode` → `@inherits` → `@implements` → `@attribute` → `@using` (not in `_Imports`) → `@inject`
+
+Do not repeat `_Imports.razor` usings.
+
+### Inheritance
+
+| Kind | Base |
+|------|------|
+| Pages, interactive shared | `BaseComponent` |
+| Layout roots | `LayoutComponentBase` |
+
+`BaseComponent`: `Mediator`, `NavigationManager`, `JsRuntime`, `RefreshLayoutAsync()`.
+
+### `@code` layout
+
+1. **Preamble** (no region) — shared state, lifecycle, `[Parameter]`
+2. **Feature regions** — `#region # List`, `# Create/Delete`, user-flow names
+3. **`#region # Helpers`** — last; shared formatters, JS interop, multi-region helpers
+
+Inner method blocks mirror handlers: `# Validate` → `# Execute` → `# Handle Result`.
+
+### Naming
+
+| Kind | Convention |
+|------|------------|
+| Injected (base) | PascalCase — `Mediator` |
+| Private state | `_camelCase` |
+| Event handlers | `OnXxx` / `*Async` |
+| CSS | kebab-case |
+
+Underscore prefix is for **Application** constructor injection, not Blazor `[Inject]`.
+
+### File location
+
+- `Pages/{Area}/` — shared URL prefix (`Pages/Auth/Login.razor`)
+- `Pages/{Page}/Shared/` — page-local widgets only
+- `Components/Shared/` — app-wide chrome (Sidebar, Navbar)
+- Do not put page-local widgets in app-wide `Shared/`
+
+### Minimal page
+
+```razor
+@page "/your-route"
+@inherits BaseComponent
+<PageTitle>Title</PageTitle>
+<!-- markup -->
+@code {
+    protected override async Task OnInitializedAsync() { }
+    #region # Feature
+    #endregion
+    #region # Helpers
+    #endregion
+}
+```
+
+## Endpoints
+
+- One file per area: `AuthEndpoints.cs`
+- Namespace `WebApp.Endpoints`
+- Routes under `/api/...` only
+- Thin: validate antiforgery → `mediator.SendAsync` → HTTP result

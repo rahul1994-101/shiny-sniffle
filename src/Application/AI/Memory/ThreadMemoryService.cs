@@ -1,10 +1,8 @@
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Options;
-
 using Application.Features.ChatMessages;
 using Application.Features.ChatThreads;
-
 using AiChatMessage = Microsoft.Extensions.AI.ChatMessage;
 using AiChatRole = Microsoft.Extensions.AI.ChatRole;
 
@@ -94,6 +92,8 @@ public sealed class ThreadMemoryService(
             cancellationToken);
     }
 
+    #region # Private Helpers
+
     private static List<ChatMessageDto> SelectMessagesToSummarize(
         IReadOnlyList<ChatMessageDto> beyondWindow,
         Guid? summaryThroughMessageId)
@@ -166,4 +166,6 @@ public sealed class ThreadMemoryService(
 
         return builder.ToString();
     }
+
+    #endregion
 }

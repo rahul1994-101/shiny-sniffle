@@ -1,4 +1,4 @@
-namespace Core.Entities;
+namespace Infrastructure.Persistence.Entities;
 
 /// <summary>
 /// Chat thread agent selection. Stored on <see cref="ChatThread.ChatAgent"/> (not a lookup table).

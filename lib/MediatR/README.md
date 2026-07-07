@@ -2,7 +2,7 @@
 
 Custom CQRS dispatcher for ShinySniffle. **Not** the Jimmy Bogard NuGet package. Folder stays `lib/MediatR` until a future NuGet publish.
 
-**Status:** v1.0.0 shipped — WebApp on `IMediator`; **parked** while app features take priority.
+**Status:** v1.0.0 shipped — Application on `IMediator`; **parked** while app features take priority.
 
 ## Flows
 
@@ -26,19 +26,19 @@ Registers validators, handlers, behaviors, and `IMediator` from one assembly.
 ```csharp
 public sealed record SignInRequest(...) : ICommand<SignInResponse>;
 
-public sealed class SignInRequestHandler(UserRepository userRepo, SharedRepository sharedRepo)
+public sealed class SignInRequestHandler(UserRepository userRepo)
     : IRequestHandler<SignInRequest, SignInResponse>
 {
     public async ValueTask<Result<SignInResponse>> HandleAsync(SignInRequest request, CancellationToken ct = default)
     {
         var result = new Result<SignInResponse>();
-        // result.Success(...) or result.Failure(...)
+        // #region # Execute / # Handle Result — see application.mdc
         return result;
     }
 }
 ```
 
-Use-case conventions: `.cursor/rules/feature-slice-conventions.mdc`.
+Use-case conventions: `.cursor/rules/application.mdc`.
 
 ## Namespaces
 
@@ -54,7 +54,7 @@ MediatR.DependencyInjection   AddMediatR
 | Version | Focus |
 |---------|--------|
 | **v1.0** ✅ | Send pipeline, `Result`, `AddMediatR`, FluentValidation, `FrozenDictionary` dispatch |
-| **v1.1** | Notifications in WebApp (prove Publish path) |
+| **v1.1** | Notifications in Application (prove Publish path) |
 | **v1.2** | Exception hardening — safe client messages |
 | **v1.3** | `AddMediatR` options (extra behaviors, assemblies) |
 | **v2.0** | Source generator — compile-time registration |
@@ -72,7 +72,7 @@ Repositories, EF, entities, feature DTOs/validators/handlers, AI orchestration, 
 | Topic | Decision |
 |-------|----------|
 | FluentValidation | Bundled in lib; validators live in feature slices |
-| Repositories | WebApp only |
+| Repositories | Application `Features/` only |
 | AI / orchestration | May bypass mediator |
 | Lifetime | Scoped mediator + handlers |
 | Breaking changes | v2+ only, with migration notes |

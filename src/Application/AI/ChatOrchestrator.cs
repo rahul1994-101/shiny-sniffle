@@ -1,9 +1,7 @@
 using Microsoft.Extensions.Options;
-
 using Application.AI.Agents;
 using Application.AI.Memory;
 using Application.Features.ChatMessages;
-
 using AiChatRole = Microsoft.Extensions.AI.ChatRole;
 
 namespace Application.AI;
@@ -61,7 +59,7 @@ public sealed class ChatOrchestrator(
             ChatMemoryLimits.ShortTermMessageLimit,
             cancellationToken);
 
-        return (messages ?? [])
+        return messages
             .Select(m => new Microsoft.Extensions.AI.ChatMessage(new AiChatRole(m.Role), m.Content))
             .ToList();
     }

@@ -20,10 +20,9 @@ public sealed class GetEmailSettingsRequestValidator : AbstractValidator<GetEmai
     }
 }
 
-public sealed class GetEmailSettingsRequestHandler(UserSettingsRepository userSettingsRepo, SharedRepository sharedRepo)
+public sealed class GetEmailSettingsRequestHandler(UserSettingsRepository userSettingsRepo)
     : IRequestHandler<GetEmailSettingsRequest, GetEmailSettingsResponse>
 {
-    private readonly SharedRepository _sharedRepo = sharedRepo;
 
 
     public async ValueTask<Result<GetEmailSettingsResponse>> HandleAsync(GetEmailSettingsRequest request, CancellationToken cancellationToken = default)

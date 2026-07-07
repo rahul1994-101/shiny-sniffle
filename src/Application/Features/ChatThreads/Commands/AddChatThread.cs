@@ -1,5 +1,6 @@
 using FluentValidation;
-
+using Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
 
 namespace Application.Features.ChatThreads.Commands;
 
@@ -26,12 +27,9 @@ public sealed class AddChatThreadRequestValidator : AbstractValidator<AddChatThr
     }
 }
 
-public sealed class AddChatThreadRequestHandler(ChatThreadRepository chatThreadRepo, SharedRepository sharedRepo)
+public sealed class AddChatThreadRequestHandler(IDbContextFactory<AppDbContext> dbContextFactory)
     : IRequestHandler<AddChatThreadRequest, AddChatThreadResponse>
 {
-    private readonly SharedRepository _sharedRepo = sharedRepo;
-
-
     public async ValueTask<Result<AddChatThreadResponse>> HandleAsync(AddChatThreadRequest request, CancellationToken cancellationToken = default)
     {
         var result = new Result<AddChatThreadResponse>();
@@ -47,7 +45,7 @@ public sealed class AddChatThreadRequestHandler(ChatThreadRepository chatThreadR
             UpdatedBy = request.UserId
         };
 
-        var chatThread = await chatThreadRepo.AddAsync(entity, cancellationToken);
+        var chatThread = await AddAsync(entity, cancellationToken);
 
         #endregion
 
@@ -66,4 +64,16 @@ public sealed class AddChatThreadRequestHandler(ChatThreadRepository chatThreadR
 
         return result;
     }
+
+    #region # Private Helpers
+
+    private async Task<ChatThreadDto?> AddAsync(ChatThread entity, CancellationToken cancellationToken)
+    {
+        await using var ctx = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        await ctx.ChatThreads.AddAsync(entity, cancellationToken);
+        await ctx.SaveChangesAsync(cancellationToken);
+        return ChatThreadDto.FromEntity(entity);
+    }
+
+    #endregion
 }

@@ -1,5 +1,8 @@
 using FluentValidation;
-
+using Application.Features.Users;
+using Application.Utilities.Extensions;
+using Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
 
 namespace Application.Features.Users.Commands;
 
@@ -26,18 +29,16 @@ public sealed class SignInRequestValidator : AbstractValidator<SignInRequest>
     }
 }
 
-public sealed class SignInRequestHandler(UserRepository userRepo, SharedRepository sharedRepo)
+public sealed class SignInRequestHandler(IDbContextFactory<AppDbContext> dbContextFactory)
     : IRequestHandler<SignInRequest, SignInResponse>
 {
-    private readonly SharedRepository _sharedRepo = sharedRepo;
-
     public async ValueTask<Result<SignInResponse>> HandleAsync(SignInRequest request, CancellationToken cancellationToken = default)
     {
         var result = new Result<SignInResponse>();
 
         #region # Execute
 
-        var session = await userRepo.FindSessionByEmailAndPasswordAsync(request.EmailId, request.Password, cancellationToken);
+        var session = await FindSessionByEmailAndPasswordAsync(request.EmailId, request.Password, cancellationToken);
 
         #endregion
 
@@ -56,4 +57,27 @@ public sealed class SignInRequestHandler(UserRepository userRepo, SharedReposito
 
         return result;
     }
+
+    #region # Private Helpers
+
+    private async Task<SessionDto?> FindSessionByEmailAndPasswordAsync(string emailId, string password, CancellationToken cancellationToken)
+    {
+        await using var ctx = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var user = await ctx.Users
+            .AsNoTracking()
+            .Where(x =>
+                x.Email.ToLower() == emailId.ToLower() &&
+                x.IsActive &&
+                !x.IsDeleted)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (user is null || !user.Password.MatchesStoredPassword(password))
+        {
+            return null;
+        }
+
+        return SessionDto.FromEntity(user);
+    }
+
+    #endregion
 }

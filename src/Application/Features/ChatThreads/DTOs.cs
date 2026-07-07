@@ -1,5 +1,7 @@
 namespace Application.Features.ChatThreads;
 
+public sealed record ThreadMemoryState(string? Summary, Guid? SummaryThroughMessageId);
+
 public class ChatThreadDto
 {
     public Guid Id { get; init; }

@@ -39,7 +39,7 @@ ALTER TABLE [dbo].[ChatThread] ADD
     [memorySummaryThroughMessageId] UNIQUEIDENTIFIER NULL;
 ```
 
-Keep `src/Core/Database/dbo/Tables/ChatThread.sql` in sync.
+Keep `src/Infrastructure/Database/dbo/Tables/ChatThread.sql` in sync.
 
 ### User memory (phase B — next)
 
@@ -71,7 +71,7 @@ src/Application/AI/ChatOrchestrator.cs
 src/Application/AI/Memory/ThreadMemoryService.cs
 src/Application/AI/Memory/ChatMemoryLimits.cs
 src/Application/Features/ChatMessages/Commands/SendChatMessage.cs
-src/Core/Entities/ChatThread.cs
+src/Infrastructure/Persistence/Entities/ChatThread.cs
 ```
 
 ## Implementation order

@@ -1,26 +1,12 @@
+using Application.Utilities.Extensions;
 using Infrastructure.Persistence;
 using Infrastructure.Mailbox;
 using Microsoft.EntityFrameworkCore;
-using Application.Utilities.Extensions;
 
 namespace Application.Features.UserSettings;
 
 public sealed class UserSettingsRepository(IDbContextFactory<AppDbContext> _dbContextFactory)
 {
-    public async Task<GeneralSettingsDto?> GetGeneralSettingsAsync(Guid userId, CancellationToken cancellationToken = default)
-    {
-        await using var ctx = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
-        var user = await ctx.Users
-            .AsNoTracking()
-            .Where(x =>
-                x.Id == userId &&
-                x.IsActive &&
-                !x.IsDeleted)
-            .FirstOrDefaultAsync(cancellationToken);
-
-        return user is null ? null : GeneralSettingsDto.FromEntity(user);
-    }
-
     public async Task<GeneralSettingsDto?> UpdateUserProfileAsync(Guid userId, string firstName, string lastName, Guid updatedBy, CancellationToken cancellationToken = default)
     {
         await using var ctx = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
@@ -82,43 +68,6 @@ public sealed class UserSettingsRepository(IDbContextFactory<AppDbContext> _dbCo
             .FirstOrDefaultAsync(cancellationToken);
 
         return EmailSettingsJsonHelpers.FromJson(emailSettingsJson);
-    }
-
-    public async Task<EmailSettings?> SaveUserEmailSettingsAsync(Guid userId, EmailSettings? emailSettings, Guid updatedBy, CancellationToken cancellationToken = default)
-    {
-        await using var ctx = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
-        var existing = await ctx.UserSettings
-            .Where(x =>
-                x.UserId == userId &&
-                x.IsActive &&
-                !x.IsDeleted)
-            .FirstOrDefaultAsync(cancellationToken);
-
-        var now = DateTime.UtcNow;
-        var emailSettingsJson = EmailSettingsJsonHelpers.ToJson(emailSettings);
-
-        if (existing is null)
-        {
-            var entity = new UserSetting
-            {
-                UserId = userId,
-                EmailSettingsJson = emailSettingsJson,
-                CreatedBy = updatedBy,
-                UpdatedBy = updatedBy,
-                CreatedAt = now,
-                UpdatedAt = now
-            };
-
-            await ctx.UserSettings.AddAsync(entity, cancellationToken);
-            await ctx.SaveChangesAsync(cancellationToken);
-            return EmailSettingsJsonHelpers.FromJson(entity.EmailSettingsJson);
-        }
-
-        existing.EmailSettingsJson = emailSettingsJson;
-        existing.UpdatedBy = updatedBy;
-        existing.UpdatedAt = now;
-        await ctx.SaveChangesAsync(cancellationToken);
-        return EmailSettingsJsonHelpers.FromJson(existing.EmailSettingsJson);
     }
 
     private static Task<User?> FindActiveTrackedUserAsync(AppDbContext ctx, Guid userId, CancellationToken cancellationToken) =>

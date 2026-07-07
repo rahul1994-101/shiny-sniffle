@@ -1,0 +1,67 @@
+---
+description: Infrastructure — persistence, SQL schema, EF, Mailbox, Foundry
+globs: src/Infrastructure/**/*
+alwaysApply: false
+---
+
+# Infrastructure
+
+Persistence + external adapters. Register in `DependencyInjection.AddInfrastructure()`. **Least scope first** — see `solution.mdc`.
+
+## Layout
+
+```text
+Persistence/
+  Entities/           POCOs — namespace Infrastructure.Persistence.Entities
+  AppDbContext.cs     EF mapping only
+Database/
+  dbo/Tables/         current schema (source of truth with entities)
+  Migrations/         manual ALTER scripts
+  Seed/
+Mailbox/
+  Abstractions.cs     IMailboxService
+  DTOs.cs             InboxQuery, MailboxStatusResult, …
+  Helpers.cs          internal + EmailSettingsJsonHelpers (public)
+  MailKitMailboxService.cs
+Foundry/
+  Abstractions.cs     IFoundryAgentFactory, FoundryDeployments
+  DTOs.cs             FoundryOptions
+  Helpers.cs
+  FoundryAgentFactory.cs
+```
+
+Per concern: **`Abstractions.cs`** + **`DTOs.cs`** + **`Helpers.cs`** + implementation.
+
+## Entities
+
+- No data annotations — limits in `Database/dbo/Tables/` + `AppDbContext.OnModelCreating`
+- Input validation on `Application` `{UseCase}RequestValidator`, not on entities
+- Entity-owned types (e.g. `EmailSettings` on `UserSetting`) live here
+
+## EF (`AppDbContext`)
+
+- Map camelCase columns + `HasMaxLength` to match `Database/dbo/Tables/`
+- Repos and handler private helpers use `IDbContextFactory<AppDbContext>` — not scoped `DbContext` in app code
+
+**JSON columns** — do not use EF `OwnsOne` + `ToJson()`:
+
+| Piece | Location |
+|-------|----------|
+| `EmailSettingsJson` on entity | `Persistence/Entities/` |
+| Serialize/deserialize | `Mailbox/Helpers.cs` (`EmailSettingsJsonHelpers`) |
+| App mapping | `Application/Features/UserSettings/Helpers.cs` (`EmailSettingsMapping`) |
+
+## Database workflow
+
+1. Update `Persistence/Entities/`
+2. Update `Database/dbo/Tables/`
+3. Add `Database/Migrations/*.sql` for existing DBs
+4. Update `AppDbContext` fluent config
+
+## Integration DTOs
+
+Mailbox / Foundry shapes belong in `Infrastructure/{Concern}/DTOs.cs` — not in Application or WebApp.
+
+## Foundry config
+
+`Foundry:Enabled`, `Foundry:Endpoint`, `Foundry:ApiKey` — user secrets / env only.

@@ -1,0 +1,60 @@
+---
+description: MediatR CQRS lib — IMediator, Result, pipeline, handlers
+globs: lib/MediatR/**/*
+alwaysApply: false
+---
+
+# MediatR (`lib/MediatR`)
+
+Custom CQRS dispatcher — **not** the Jimmy Bogard NuGet package.
+
+## Flows
+
+| Flow | API | Returns |
+|------|-----|---------|
+| Commands / queries | `IMediator.SendAsync` | `Result` / `Result<T>` |
+| Notifications | `IMediator.PublishAsync` | nothing (0..N handlers) |
+
+Pipeline: `ValidationBehavior` → `ExceptionBehavior` → handler.
+
+## Registration
+
+```csharp
+services.AddMediatR(Assembly.GetExecutingAssembly());
+```
+
+Called from `Application.DependencyInjection` — scans Application assembly for handlers and validators.
+
+## Handler contract (consumer apps)
+
+Handlers live in **Application** only. See `application.mdc` for templates.
+
+```csharp
+public sealed record SignInRequest(...) : ICommand<SignInResponse>;
+
+public sealed class SignInRequestHandler(UserRepository userRepo)
+    : IRequestHandler<SignInRequest, SignInResponse>
+{
+    public async ValueTask<Result<SignInResponse>> HandleAsync(SignInRequest request, CancellationToken ct = default)
+    {
+        var result = new Result<SignInResponse>();
+        // Execute / Handle Result
+        return result;
+    }
+}
+```
+
+## Namespaces
+
+```text
+MediatR.Abstractions       IMediator, ICommand, IQuery, IRequestHandler
+MediatR.Results            Result, Result<T>, Error, ErrorCode
+MediatR.Behaviors          ValidationBehavior, ExceptionBehavior
+MediatR.DependencyInjection AddMediatR
+```
+
+## Stays outside the lib
+
+Repositories, EF, entities, feature DTOs, AI, Blazor — Application/WebApp consume `IMediator` only.
+
+Version roadmap: `lib/MediatR/README.md`.

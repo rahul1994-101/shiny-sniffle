@@ -1,6 +1,5 @@
 using FluentValidation;
 
-
 namespace Application.Features.ChatThreads.Commands;
 
 public sealed record UpdateChatThreadTitleRequest(Guid Id, string Title, Guid UserId)
@@ -30,12 +29,9 @@ public sealed class UpdateChatThreadTitleRequestValidator : AbstractValidator<Up
     }
 }
 
-public sealed class UpdateChatThreadTitleRequestHandler(ChatThreadRepository chatThreadRepo, SharedRepository sharedRepo)
+public sealed class UpdateChatThreadTitleRequestHandler(ChatThreadRepository chatThreadRepo)
     : IRequestHandler<UpdateChatThreadTitleRequest, UpdateChatThreadTitleResponse>
 {
-    private readonly SharedRepository _sharedRepo = sharedRepo;
-
-
     public async ValueTask<Result<UpdateChatThreadTitleResponse>> HandleAsync(UpdateChatThreadTitleRequest request, CancellationToken cancellationToken = default)
     {
         var result = new Result<UpdateChatThreadTitleResponse>();

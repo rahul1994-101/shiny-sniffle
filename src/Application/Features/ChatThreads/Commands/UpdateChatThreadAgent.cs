@@ -1,7 +1,5 @@
 using FluentValidation;
 
-using Application.Services;
-
 namespace Application.Features.ChatThreads.Commands;
 
 public sealed record UpdateChatThreadAgentRequest(Guid Id, Guid UserId, ChatAgent ChatAgent)
@@ -25,12 +23,9 @@ public sealed class UpdateChatThreadAgentRequestValidator : AbstractValidator<Up
     }
 }
 
-public sealed class UpdateChatThreadAgentRequestHandler(ChatThreadRepository chatThreadRepo, SharedRepository sharedRepo, UserMailboxService mailboxService)
+public sealed class UpdateChatThreadAgentRequestHandler(ChatThreadRepository chatThreadRepo, UserMailboxService mailboxService)
     : IRequestHandler<UpdateChatThreadAgentRequest, UpdateChatThreadAgentResponse>
 {
-    private readonly SharedRepository _sharedRepo = sharedRepo;
-
-
     public async ValueTask<Result<UpdateChatThreadAgentResponse>> HandleAsync(UpdateChatThreadAgentRequest request, CancellationToken cancellationToken = default)
     {
         var result = new Result<UpdateChatThreadAgentResponse>();

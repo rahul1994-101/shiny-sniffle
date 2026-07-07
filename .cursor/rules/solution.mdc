@@ -1,0 +1,74 @@
+---
+description: Solution layout, project references, and where new code goes
+alwaysApply: true
+---
+
+# Solution
+
+```text
+lib/MediatR/            CQRS — see mediatr.mdc + lib/MediatR/README.md
+src/Infrastructure/     Persistence, Database, Mailbox, Foundry — infrastructure.mdc
+src/Application/        Features, AI, Models — application.mdc; DI in `DependencyInjection.cs`
+src/WebApp/             Blazor UI, Endpoints — webapp.mdc
+```
+
+**References:** `Application → Infrastructure` + `MediatR` · `WebApp → Application`
+
+## Least scope first (global)
+
+Start at the **smallest place that works**; promote only when reuse or boundaries require it. Do not skip levels.
+
+| Layer | Start | Promote to |
+|-------|--------|------------|
+| **Infrastructure** | One concern folder (`Mailbox/`, `Foundry/`) with `Abstractions` + `DTOs` + `Helpers` + impl | New `{Concern}/` folder for a new external system |
+| **Application — data** | Handler `# Private Helpers` + `IDbContextFactory` | `{Slice}/Repository.cs` → `Shared/Repository.cs` |
+| **Application — logic** | Handler private | `{Slice}/Helpers.cs` → `Shared/Helpers.cs` |
+| **Application — services** | Handler private or slice class | `{Slice}/Services.cs` → `Shared/Services.cs` |
+| **Application — slice sub-concern** (optional) | Inline in handler | `{Slice}/{Concern}.cs` before a consolidated `Helpers.cs` |
+| **Application — AI** | Slice repos | `SharedRepository` for cross-slice; never `IDbContextFactory` |
+| **WebApp** | Page-local private helpers | `Components/Shared/` or `Utilities/` when reused |
+
+**Slice ↔ Shared (one-to-one file names):**
+
+| | `{Slice}/` | `Features/Shared/` |
+|---|------------|-------------------|
+| Read shapes | `DTOs.cs` | `DTOs.cs` |
+| Data access | `Repository.cs` | `Repository.cs` |
+| Logic / mapping | `Helpers.cs` | `Helpers.cs` |
+| Facades / orchestration | `Services.cs` | `Services.cs` |
+
+Omit a file until the slice needs it. Promote local → shared when reuse crosses slices.
+
+Project-specific escalation detail: `application.mdc`, `infrastructure.mdc`.
+
+## Where new code goes
+
+| Question | Place |
+|----------|--------|
+| DB entity / SQL table | `Infrastructure/Persistence/Entities/` + `Infrastructure/Database/dbo/Tables/` |
+| Manual migration | `Infrastructure/Database/Migrations/` |
+| EF mapping | `Infrastructure/Persistence/AppDbContext.cs` |
+| External adapter (mail, AI) | `Infrastructure/{Concern}/` |
+| Use case | `Application/Features/{Slice}/Commands\|Queries/` |
+| LLM / agents / memory | `Application/AI/` |
+| Blazor UI | `WebApp/Components/` |
+| HTTP API | `WebApp/Endpoints/` |
+
+## Startup (`WebApp/Startup.cs`)
+
+- `AddInfrastructure(configuration)` + `CurrentUser`
+- `AddApplication(configuration)` — repos, MediatR, AI, services
+
+## Foundry secrets
+
+`Foundry:Enabled`, `Foundry:Endpoint`, `Foundry:ApiKey` in user secrets / env — never commit.
+
+## Project rules
+
+| Project | Rule file |
+|---------|-----------|
+| Infrastructure | `infrastructure.mdc` |
+| Application | `application.mdc` |
+| WebApp | `webapp.mdc` |
+| MediatR lib | `mediatr.mdc` |
+| Roadmaps | `docs/` |

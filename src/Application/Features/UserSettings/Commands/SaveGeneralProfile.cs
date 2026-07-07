@@ -1,6 +1,5 @@
 using FluentValidation;
 
-
 namespace Application.Features.UserSettings.Commands;
 
 public sealed record SaveGeneralProfileRequest(Guid UserId, string FirstName, string LastName)
@@ -32,12 +31,9 @@ public sealed class SaveGeneralProfileRequestValidator : AbstractValidator<SaveG
     }
 }
 
-public sealed class SaveGeneralProfileRequestHandler(UserSettingsRepository userSettingsRepo, SharedRepository sharedRepo)
+public sealed class SaveGeneralProfileRequestHandler(UserSettingsRepository userSettingsRepo)
     : IRequestHandler<SaveGeneralProfileRequest, SaveGeneralProfileResponse>
 {
-    private readonly SharedRepository _sharedRepo = sharedRepo;
-
-
     public async ValueTask<Result<SaveGeneralProfileResponse>> HandleAsync(SaveGeneralProfileRequest request, CancellationToken cancellationToken = default)
     {
         var result = new Result<SaveGeneralProfileResponse>();

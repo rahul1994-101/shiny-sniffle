@@ -1,5 +1,4 @@
 using FluentValidation;
-
 using Application.AI;
 using Application.AI.Memory;
 using Application.Features.ChatMessages;
@@ -37,14 +36,10 @@ public sealed class SendChatMessageRequestValidator : AbstractValidator<SendChat
 public sealed class SendChatMessageRequestHandler(
     ChatThreadRepository chatThreadRepo,
     ChatMessageRepository chatMessageRepo,
-    SharedRepository sharedRepo,
     ChatOrchestrator chatOrchestrator,
     ThreadMemoryService threadMemory)
     : IRequestHandler<SendChatMessageRequest, SendChatMessageResponse>
 {
-    private readonly SharedRepository _sharedRepo = sharedRepo;
-
-
     public async ValueTask<Result<SendChatMessageResponse>> HandleAsync(SendChatMessageRequest request, CancellationToken cancellationToken = default)
     {
         var result = new Result<SendChatMessageResponse>();

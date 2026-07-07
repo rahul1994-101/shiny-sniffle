@@ -1,5 +1,6 @@
 using FluentValidation;
-
+using Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
 
 namespace Application.Features.UserSettings.Commands;
 
@@ -24,12 +25,11 @@ public sealed class SaveEmailSettingsRequestValidator : AbstractValidator<SaveEm
     }
 }
 
-public sealed class SaveEmailSettingsRequestHandler(UserSettingsRepository userSettingsRepo, SharedRepository sharedRepo)
+public sealed class SaveEmailSettingsRequestHandler(
+    IDbContextFactory<AppDbContext> dbContextFactory,
+    UserSettingsRepository userSettingsRepo)
     : IRequestHandler<SaveEmailSettingsRequest, SaveEmailSettingsResponse>
 {
-    private readonly SharedRepository _sharedRepo = sharedRepo;
-
-
     public async ValueTask<Result<SaveEmailSettingsResponse>> HandleAsync(SaveEmailSettingsRequest request, CancellationToken cancellationToken = default)
     {
         var result = new Result<SaveEmailSettingsResponse>();
@@ -45,7 +45,7 @@ public sealed class SaveEmailSettingsRequestHandler(UserSettingsRepository userS
 
         #region # Execute
 
-        var savedSettings = await userSettingsRepo.SaveUserEmailSettingsAsync(request.UserId, newSettings, request.UserId, cancellationToken);
+        var savedSettings = await SaveUserEmailSettingsAsync(request.UserId, newSettings, request.UserId, cancellationToken);
 
         #endregion
 
@@ -57,4 +57,45 @@ public sealed class SaveEmailSettingsRequestHandler(UserSettingsRepository userS
 
         return result;
     }
+
+    #region # Private Helpers
+
+    private async Task<EmailSettings?> SaveUserEmailSettingsAsync(Guid userId, EmailSettings? emailSettings, Guid updatedBy, CancellationToken cancellationToken)
+    {
+        await using var ctx = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var existing = await ctx.UserSettings
+            .Where(x =>
+                x.UserId == userId &&
+                x.IsActive &&
+                !x.IsDeleted)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        var now = DateTime.UtcNow;
+        var emailSettingsJson = EmailSettingsJsonHelpers.ToJson(emailSettings);
+
+        if (existing is null)
+        {
+            var entity = new UserSetting
+            {
+                UserId = userId,
+                EmailSettingsJson = emailSettingsJson,
+                CreatedBy = updatedBy,
+                UpdatedBy = updatedBy,
+                CreatedAt = now,
+                UpdatedAt = now
+            };
+
+            await ctx.UserSettings.AddAsync(entity, cancellationToken);
+            await ctx.SaveChangesAsync(cancellationToken);
+            return EmailSettingsJsonHelpers.FromJson(entity.EmailSettingsJson);
+        }
+
+        existing.EmailSettingsJson = emailSettingsJson;
+        existing.UpdatedBy = updatedBy;
+        existing.UpdatedAt = now;
+        await ctx.SaveChangesAsync(cancellationToken);
+        return EmailSettingsJsonHelpers.FromJson(existing.EmailSettingsJson);
+    }
+
+    #endregion
 }

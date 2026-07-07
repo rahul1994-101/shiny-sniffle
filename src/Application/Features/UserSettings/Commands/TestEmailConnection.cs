@@ -1,7 +1,5 @@
 using FluentValidation;
 
-using Application.Services;
-
 namespace Application.Features.UserSettings.Commands;
 
 public sealed record TestEmailConnectionRequest(Guid UserId, EmailSettingsDto Email)
@@ -26,10 +24,9 @@ public sealed class TestEmailConnectionRequestValidator : AbstractValidator<Test
     }
 }
 
-public sealed class TestEmailConnectionRequestHandler(UserMailboxService mailboxService, SharedRepository sharedRepo)
+public sealed class TestEmailConnectionRequestHandler(UserMailboxService mailboxService)
     : IRequestHandler<TestEmailConnectionRequest, TestEmailConnectionResponse>
 {
-    private readonly SharedRepository _sharedRepo = sharedRepo;
 
 
     public async ValueTask<Result<TestEmailConnectionResponse>> HandleAsync(TestEmailConnectionRequest request, CancellationToken cancellationToken = default)

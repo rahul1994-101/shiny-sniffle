@@ -1,6 +1,5 @@
 using FluentValidation;
 
-
 namespace Application.Features.ChatThreads.Commands;
 
 public sealed record DeleteChatThreadRequest(Guid Id, Guid UserId) : ICommand;
@@ -19,12 +18,9 @@ public sealed class DeleteChatThreadRequestValidator : AbstractValidator<DeleteC
     }
 }
 
-public sealed class DeleteChatThreadRequestHandler(ChatThreadRepository chatThreadRepo, SharedRepository sharedRepo)
+public sealed class DeleteChatThreadRequestHandler(ChatThreadRepository chatThreadRepo)
     : IRequestHandler<DeleteChatThreadRequest>
 {
-    private readonly SharedRepository _sharedRepo = sharedRepo;
-
-
     public async ValueTask<Result> HandleAsync(DeleteChatThreadRequest request, CancellationToken cancellationToken = default)
     {
         var result = new Result();

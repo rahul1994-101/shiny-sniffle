@@ -1,5 +1,7 @@
 using FluentValidation;
-
+using Application.Features.ChatMessages;
+using Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
 
 namespace Application.Features.ChatMessages.Queries;
 
@@ -21,19 +23,16 @@ public sealed class GetChatMessagesByChatThreadIdRequestValidator : AbstractVali
     }
 }
 
-public sealed class GetChatMessagesByChatThreadIdRequestHandler(ChatMessageRepository chatMessageRepo, SharedRepository sharedRepo)
+public sealed class GetChatMessagesByChatThreadIdRequestHandler(IDbContextFactory<AppDbContext> dbContextFactory)
     : IRequestHandler<GetChatMessagesByChatThreadIdRequest, GetChatMessagesByChatThreadIdResponse>
 {
-    private readonly SharedRepository _sharedRepo = sharedRepo;
-
-
     public async ValueTask<Result<GetChatMessagesByChatThreadIdResponse>> HandleAsync(GetChatMessagesByChatThreadIdRequest request, CancellationToken cancellationToken = default)
     {
         var result = new Result<GetChatMessagesByChatThreadIdResponse>();
 
         #region # Execute
 
-        var messages = await chatMessageRepo.GetByChatThreadIdAsync(request.ChatThreadId, cancellationToken);
+        var messages = await GetByChatThreadIdAsync(request.ChatThreadId, cancellationToken);
 
         #endregion
 
@@ -45,4 +44,23 @@ public sealed class GetChatMessagesByChatThreadIdRequestHandler(ChatMessageRepos
 
         return result;
     }
+
+    #region # Private Helpers
+
+    private async Task<List<ChatMessageDto>> GetByChatThreadIdAsync(Guid chatThreadId, CancellationToken cancellationToken)
+    {
+        await using var ctx = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var messages = await ctx.ChatMessages
+            .AsNoTracking()
+            .Where(x =>
+                x.ChatThreadId == chatThreadId &&
+                x.IsActive &&
+                !x.IsDeleted)
+            .OrderBy(x => x.CreatedAt)
+            .ToListAsync(cancellationToken);
+
+        return ChatMessageDto.FromEntities(messages);
+    }
+
+    #endregion
 }

@@ -3,11 +3,14 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Application.Features.Shared;
 
-public sealed class SharedRepository(IDbContextFactory<AppDbContext> _dbContextFactory)
+/// <summary>
+/// Cross-slice data access only — queries spanning multiple feature folders.
+/// AI/Services use slice repos for single-slice data; inject Shared when slices combine.
+/// </summary>
+public sealed class SharedRepository
 {
-    public async Task<bool> ReturnTrueAsync(CancellationToken cancellationToken = default)
-    {
-        await using var _ = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
-        return true;
-    }
+    private readonly IDbContextFactory<AppDbContext> _dbContextFactory;
+
+    public SharedRepository(IDbContextFactory<AppDbContext> dbContextFactory) =>
+        _dbContextFactory = dbContextFactory;
 }

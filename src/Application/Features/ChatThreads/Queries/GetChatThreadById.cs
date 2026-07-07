@@ -20,12 +20,9 @@ public sealed class GetChatThreadByIdRequestValidator : AbstractValidator<GetCha
     }
 }
 
-public sealed class GetChatThreadByIdRequestHandler(ChatThreadRepository chatThreadRepo, SharedRepository sharedRepo)
+public sealed class GetChatThreadByIdRequestHandler(ChatThreadRepository chatThreadRepo)
     : IRequestHandler<GetChatThreadByIdRequest, GetChatThreadByIdResponse>
 {
-    private readonly SharedRepository _sharedRepo = sharedRepo;
-
-
     public async ValueTask<Result<GetChatThreadByIdResponse>> HandleAsync(GetChatThreadByIdRequest request, CancellationToken cancellationToken = default)
     {
         var result = new Result<GetChatThreadByIdResponse>();

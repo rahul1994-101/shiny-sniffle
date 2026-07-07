@@ -1,9 +1,8 @@
 using System.Net.Mail;
-
 using Application.Features.UserSettings;
 using Application.Utilities.Helpers;
 
-namespace Application.Services;
+namespace Application.Features.Shared;
 
 public sealed class UserMailboxService(UserSettingsRepository userSettingsRepo, IMailboxService mailboxService)
 {

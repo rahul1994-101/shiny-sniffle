@@ -1,6 +1,6 @@
 # Documentation
 
-Roadmaps and implementation plans. **Coding conventions** live in [`.cursor/rules/`](../.cursor/rules/) — not here.
+Roadmaps and implementation plans. **Coding conventions** live in [`.cursor/rules/`](../.cursor/rules/) — one file per project (`solution.mdc`, `infrastructure.mdc`, `application.mdc`, `webapp.mdc`, `mediatr.mdc`).
 
 | Doc | Status |
 |-----|--------|
