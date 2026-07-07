@@ -1,4 +1,4 @@
-namespace Core.DTOs;
+namespace Infrastructure.Mailbox;
 
 public sealed class InboxMessageSummary
 {

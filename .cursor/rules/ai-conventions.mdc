@@ -41,7 +41,7 @@ Register AI types in `Startup.InjectAi` only — not scattered across the app.
 | Folder | One file per | Public entry | Notes |
 |--------|--------------|--------------|-------|
 | **AI/ (root)** | coordinator | `RunChatAgentAsync` | `ChatOrchestrator.cs` — turn routing only. |
-| **Agents/** | agent role | `RunAsync` | `FoundryDeployments` in `Core/Abstractions/Foundry.cs`; per-agent name, description, instructions, and routing catalog in each file's private `Create{Role}Agent`; **`#region # Supported User Prompts`** catalog for debug/test; call `IFoundryAgentFactory.CreateAgent`. Return `RunChatAgentResponse`. |
+| **Agents/** | agent role | `RunAsync` | `FoundryDeployments` in `Infrastructure/Foundry/Abstractions.cs`; per-agent name, description, instructions, and routing catalog in each file's private `Create{Role}Agent`; **`#region # Supported User Prompts`** catalog for debug/test; call `IFoundryAgentFactory.CreateAgent`. Return `RunChatAgentResponse`. |
 | **Tools/** | agent domain | `CreateTools` | MAF `AITool` list; mock/real impls in `# Private Helpers`. No LLM calls. |
 | **Memory/** | memory layer | `LoadAsync` / `RefreshAsync` | `ThreadMemoryService`, etc. No LLM calls. See `docs/ai-memory.md`. |
 | **Workflows/** | workflow | `RunAsync` | Multi-step; compose agents and tools. |

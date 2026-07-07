@@ -1,12 +1,12 @@
 ---
-description: Slice DTOs vs Core.DTOs vs WebApp.Models — where types live
-globs: src/Core/DTOs/**/*.cs,src/WebApp/Models/**/*.cs,src/WebApp/Features/**/*.cs,src/WebApp/Components/**/*.razor
+description: Slice DTOs vs Infrastructure integration models vs WebApp.Models
+globs: src/Infrastructure/**/*.cs,src/WebApp/Models/**/*.cs,src/WebApp/Features/**/*.cs,src/WebApp/Components/**/*.razor
 alwaysApply: false
 ---
 
 # Model placement
 
-Three homes — **do not duplicate** types across them.
+Four homes — **do not duplicate** types across them.
 
 ## Features (`WebApp/Features/`)
 
@@ -31,18 +31,22 @@ Three homes — **do not duplicate** types across them.
 | Validator | `{UseCase}RequestValidator` |
 | Handler | `{UseCase}RequestHandler` |
 
-Flat Request records; non-nullable Response on `ICommand<T>` / `IQuery<T>` — failures use `HasError`, not null payload.
+Do **not** put use-case types in `Infrastructure/` or `WebApp/Models/`.
 
-Do **not** put use-case types in `Core/DTOs/` or `WebApp/Models/`.
+## Infrastructure (`Infrastructure/{Concern}/`)
 
-## Core (`Core/DTOs/`) — integration only
+Integration ports and models — **`Abstractions.cs`** (interfaces + contract constants) and **`DTOs.cs`** per concern folder:
 
-| File | Types |
-|------|-------|
-| `Mail.cs` | `InboxQuery`, `MailboxStatusResult`, … |
-| `Foundry.cs` | `FoundryOptions` |
+| Folder | `DTOs.cs` | `Abstractions.cs` |
+|--------|-----------|-------------------|
+| `Mailbox/` | `InboxQuery`, `MailboxStatusResult`, … | `IMailboxService` |
+| `Foundry/` | `FoundryOptions` | `IFoundryAgentFactory`, `FoundryDeployments` |
 
-No repository or feature DTOs here.
+Implementations in the same folder (`MailKitMailboxService`, `FoundryAgentFactory`).
+
+## Core (`Core/Entities/`)
+
+DB-mapped entities and entity-owned types (e.g. `EmailSettings` on `UserSetting`).
 
 ## WebApp (`WebApp/Models/`) — app shell
 
@@ -57,18 +61,9 @@ No repository or feature DTOs here.
 1. Single use-case pair? → Features file
 2. Shared read shape in one slice? → `Features/{Slice}/DTOs.cs`
 3. Shared across slices? → `Features/Shared/DTOs.cs`
-4. Mailbox / Foundry port? → `Core/DTOs/`
+4. Mailbox / Foundry integration shape? → `Infrastructure/{Concern}/DTOs.cs`
 5. `Result` / `ErrorCode`? → `MediatR.Results`
 6. AI turn shapes? → `WebApp/Models/AI.cs`
 7. DB entity? → `Core/Entities/`
-
-## Layer flow
-
-| Direction | Pattern |
-|-----------|---------|
-| UI → Features | `Mediator.SendAsync(new SignInRequest(...))` |
-| Handlers → repos | `{entity}Repo` + `sharedRepo` |
-| Repos → handlers | Slice DTOs |
-| UI lists | May bind slice DTOs directly |
 
 Handler/repo conventions: **`feature-slice-conventions.mdc`**.

@@ -5,15 +5,15 @@ alwaysApply: true
 
 # Architecture
 
-Vertical slices in WebApp. **Core** = entities + integration ports. **Infrastructure** = EF, MailKit, Foundry. **WebApp/Features** = use cases + repositories. **MediatR** (`lib/MediatR`) = CQRS — not the Jimmy Bogard NuGet package.
+Vertical slices in WebApp. **Core** = entities only. **Infrastructure** = EF, MailKit, Foundry (ports + `DTOs.cs` per concern). **WebApp/Features** = use cases + repositories. **MediatR** (`lib/MediatR`) = CQRS — not the Jimmy Bogard NuGet package.
 
 ## Solution layout
 
 ```text
 databases/Database/     SQL Server project (not under src/)
 lib/MediatR/            CQRS dispatcher — see lib/MediatR/README.md
-src/Core/               Entities, Core.DTOs (Mail/Foundry), Abstractions (ports)
-src/Infrastructure/     AppDbContext, MailKit, Foundry + AddInfrastructure()
+src/Core/               Entities only
+src/Infrastructure/     Persistence, Mailbox/, Foundry/ + AddInfrastructure()
 src/WebApp/             UI, Features, AI, composition root (Startup)
 ```
 
@@ -24,8 +24,8 @@ src/WebApp/             UI, Features, AI, composition root (Startup)
 | Question | Place |
 |----------|--------|
 | DB table / domain field | `Core/Entities/` |
-| Mailbox / Foundry port shape | `Core/DTOs/` + `Core/Abstractions/` |
-| Port implementation | `Infrastructure/{Concern}/` |
+| Mailbox port + models | `Infrastructure/Mailbox/` (`Abstractions.cs`, `DTOs.cs`, impl) |
+| Foundry port + config | `Infrastructure/Foundry/` (`Abstractions.cs`, `DTOs.cs`, impl) |
 | Use case (Request/Handler) | `WebApp/Features/{Slice}/Commands\|Queries/{UseCase}.cs` |
 | Slice read shape | `WebApp/Features/{Slice}/DTOs.cs` |
 | Cross-slice read shape | `WebApp/Features/Shared/DTOs.cs` |
@@ -37,7 +37,7 @@ src/WebApp/             UI, Features, AI, composition root (Startup)
 | Blazor UI | `WebApp/Components/` |
 | HTTP API | `WebApp/Endpoints/*Endpoints.cs` |
 
-**Not in WebApp:** `AppDbContext`, entities, `Core/DTOs` repository shapes.
+**Not in WebApp:** `AppDbContext`, entities.
 
 ## WebApp folders
 

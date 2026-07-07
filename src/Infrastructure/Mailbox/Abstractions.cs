@@ -1,6 +1,6 @@
-using Core.DTOs;
+using Core.Entities;
 
-namespace Core.Abstractions;
+namespace Infrastructure.Mailbox;
 
 public interface IMailboxService
 {

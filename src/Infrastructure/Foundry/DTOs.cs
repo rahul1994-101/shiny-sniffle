@@ -1,4 +1,4 @@
-namespace Core.DTOs;
+namespace Infrastructure.Foundry;
 
 public sealed class FoundryOptions
 {

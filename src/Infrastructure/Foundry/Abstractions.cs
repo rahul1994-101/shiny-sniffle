@@ -1,7 +1,7 @@
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
 
-namespace Core.Abstractions;
+namespace Infrastructure.Foundry;
 
 public interface IFoundryAgentFactory
 {
