@@ -109,7 +109,7 @@ Multi-repo handlers name each: `chatThreadRepo`, `chatMessageRepo`, plus `shared
 
 **`AppDbContext`** lives in `Infrastructure/Persistence/` only.
 
-Map entities to DB camelCase + `HasMaxLength` in `AppDbContext.OnModelCreating` (match `databases/Database/`). Entities have no data annotations — validation lives on `{UseCase}RequestValidator`.
+Map entities to DB camelCase + `HasMaxLength` in `AppDbContext.OnModelCreating` (match `Core/Database/dbo/Tables/`). Entities have no data annotations — validation lives on `{UseCase}RequestValidator`.
 
 **JSON settings columns** — do not use EF `OwnsOne` + `ToJson()`:
 

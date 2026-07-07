@@ -46,7 +46,7 @@ Implementations in the same folder (`MailKitMailboxService`, `FoundryAgentFactor
 
 ## Core (`Core/Entities/`)
 
-DB-mapped POCOs and entity-owned types (e.g. `EmailSettings` on `UserSetting`). No data annotations — column limits in SSDT + EF fluent config; input rules on Feature `Request` validators.
+DB-mapped POCOs and entity-owned types (e.g. `EmailSettings` on `UserSetting`). No data annotations — column limits in `Core/Database/` + EF fluent config; input rules on Feature `Request` validators.
 
 ## WebApp (`WebApp/Models/`) — app shell
 

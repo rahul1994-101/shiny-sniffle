@@ -5,14 +5,13 @@ alwaysApply: true
 
 # Architecture
 
-Vertical slices in WebApp. **Core** = entities only. **Infrastructure** = EF, MailKit, Foundry (ports + `DTOs.cs` per concern). **WebApp/Features** = use cases + repositories. **MediatR** (`lib/MediatR`) = CQRS — not the Jimmy Bogard NuGet package.
+Vertical slices in WebApp. **Core** = entities + SQL schema scripts. **Infrastructure** = EF, MailKit, Foundry (ports + `DTOs.cs` per concern). **WebApp/Features** = use cases + repositories. **MediatR** (`lib/MediatR`) = CQRS — not the Jimmy Bogard NuGet package.
 
 ## Solution layout
 
 ```text
-databases/Database/     SQL Server project (not under src/)
 lib/MediatR/            CQRS dispatcher — see lib/MediatR/README.md
-src/Core/               Entities only
+src/Core/               Entities/ + Database/ (schema scripts, manual migrations)
 src/Infrastructure/     Persistence, Mailbox/, Foundry/ + AddInfrastructure()
 src/WebApp/             UI, Features, AI, composition root (Startup)
 ```
@@ -23,7 +22,9 @@ src/WebApp/             UI, Features, AI, composition root (Startup)
 
 | Question | Place |
 |----------|--------|
-| DB table / domain field | `Core/Entities/` (POCOs — no data annotations; validate on `Request`) |
+| DB table / domain field | `Core/Entities/` (POCOs) + `Core/Database/dbo/Tables/` (SQL — no data annotations on entities; validate on `Request`) |
+| Manual schema migration | `Core/Database/Migrations/` (ALTER scripts for existing DBs; keep `dbo/Tables/` in sync) |
+| Seed data | `Core/Database/Seed/` |
 | Mailbox port + models | `Infrastructure/Mailbox/` (`Abstractions.cs`, `DTOs.cs`, `Helpers.cs`, `MailKitMailboxService`) |
 | Foundry port + config | `Infrastructure/Foundry/` (`Abstractions.cs`, `DTOs.cs`, `Helpers.cs`, `FoundryAgentFactory`) |
 | Use case (Request/Handler) | `WebApp/Features/{Slice}/Commands\|Queries/{UseCase}.cs` |

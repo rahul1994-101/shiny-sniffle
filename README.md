@@ -6,10 +6,9 @@ Blazor Server workspace app: vertical-slice features, custom CQRS (`lib/MediatR`
 
 ```text
 lib/MediatR/              CQRS dispatcher
-src/Core/                 Entities only
+src/Core/                 Entities + Database/ (SQL schema scripts)
 src/Infrastructure/       EF, Mailbox, Foundry (ports + DTOs.cs per folder)
 src/WebApp/               UI, Features, AI, Startup
-databases/Database/       SQL Server project
 ```
 
 ## Documentation
@@ -23,5 +22,5 @@ databases/Database/       SQL Server project
 ## Quick start
 
 1. Configure connection string and Foundry (`Foundry:Enabled`, `Endpoint`, `ApiKey` in user secrets).
-2. Publish or run migrations from `databases/Database/`.
+2. Apply schema from `src/Core/Database/` (manual SQL; `Migrations/` for ALTERs on existing DBs).
 3. Run `src/WebApp`.

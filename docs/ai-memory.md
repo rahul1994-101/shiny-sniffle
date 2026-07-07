@@ -39,7 +39,7 @@ ALTER TABLE [dbo].[ChatThread] ADD
     [memorySummaryThroughMessageId] UNIQUEIDENTIFIER NULL;
 ```
 
-Or publish SSDT `databases/Database/`.
+Keep `src/Core/Database/dbo/Tables/ChatThread.sql` in sync.
 
 ### User memory (phase B — next)
 

@@ -1,10 +1,4 @@
 <Solution>
-  <Folder Name="/databases/">
-    <Project Path="databases/Database/Database.sqlproj" Id="0874c45e-2681-4816-9fa1-8820713c356e">
-      <Build />
-      <Deploy />
-    </Project>
-  </Folder>
   <Folder Name="/lib/">
     <Project Path="lib/MediatR/MediatR.csproj" Id="154612a0-3ff1-48fd-8ea1-1b713775a5be" />
   </Folder>
