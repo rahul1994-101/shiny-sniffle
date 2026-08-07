@@ -28,7 +28,9 @@
     font-weight: 500;
     line-height: 1.2;
     cursor: pointer;
-    transition: background 0.15s ease, color 0.15s ease;
+    transition:
+        background var(--ui-duration) var(--ui-ease),
+        color var(--ui-duration) var(--ui-ease);
 }
 
 .chat-agent-trigger:hover:not(:disabled) {
@@ -74,36 +76,14 @@
     gap: 0.1rem;
     min-width: 8.5rem;
     padding: 0.25rem;
-    border: 1px solid var(--app-border);
     border-radius: var(--ui-radius-sm);
-    background: var(--app-surface);
-    box-shadow: var(--app-shadow-md);
-    -webkit-backdrop-filter: blur(calc(var(--app-glass-blur) * 0.85));
-    backdrop-filter: blur(calc(var(--app-glass-blur) * 0.85));
 }
 
 .chat-agent-option {
-    display: block;
-    width: 100%;
     padding: 0.45rem 0.6rem;
-    border: none;
     border-radius: var(--ui-radius-xs);
-    background: transparent;
-    color: var(--app-fg);
     font-size: 0.8125rem;
     font-weight: 500;
-    text-align: left;
-    cursor: pointer;
-    transition: background 0.12s ease, color 0.12s ease;
-}
-
-.chat-agent-option:hover {
-    background: var(--app-overlay-hover);
-}
-
-.chat-agent-option:focus-visible {
-    outline: none;
-    box-shadow: 0 0 0 2px color-mix(in srgb, var(--app-accent) 45%, transparent);
 }
 
 .chat-agent-option-active {

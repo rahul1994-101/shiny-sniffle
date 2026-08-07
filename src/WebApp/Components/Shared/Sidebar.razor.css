@@ -50,7 +50,10 @@
     font-size: 0.8125rem;
     font-weight: 500;
     line-height: 1.2;
-    transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+    transition:
+        background var(--ui-duration) var(--ui-ease),
+        border-color var(--ui-duration) var(--ui-ease),
+        box-shadow var(--ui-duration) var(--ui-ease);
 }
 
 .sidebar-footer-nav ::deep button.sidebar-footer-link {
@@ -128,7 +131,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
     cursor: pointer;
-    transition: opacity 0.15s ease;
+    transition: opacity var(--ui-duration) var(--ui-ease);
 }
 
 .sidebar-brand:hover {
@@ -166,7 +169,9 @@
     background: transparent;
     color: var(--app-muted);
     cursor: pointer;
-    transition: background 0.15s ease, color 0.15s ease;
+    transition:
+        background var(--ui-duration) var(--ui-ease),
+        color var(--ui-duration) var(--ui-ease);
 }
 
 .sidebar-header-btn:hover {
@@ -238,7 +243,10 @@
     font-size: 0.8125rem;
     font-weight: 500;
     cursor: pointer;
-    transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+    transition:
+        background var(--ui-duration) var(--ui-ease),
+        border-color var(--ui-duration) var(--ui-ease),
+        box-shadow var(--ui-duration) var(--ui-ease);
 }
 
 .btn-new-chat:hover {

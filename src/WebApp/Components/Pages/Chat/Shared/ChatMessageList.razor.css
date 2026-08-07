@@ -165,7 +165,7 @@
 
         color-mix(in srgb, var(--app-user-avatar-bg) 22%, transparent) 0%,
 
-        rgba(25, 195, 125, 0.14) 100%
+        color-mix(in srgb, var(--app-user-avatar-bg) 14%, var(--app-surface-elevated)) 100%
 
     );
 

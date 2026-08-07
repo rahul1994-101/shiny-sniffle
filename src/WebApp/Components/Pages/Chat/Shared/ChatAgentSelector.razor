@@ -27,7 +27,7 @@
 
     @if (_open)
     {
-        <div class="chat-agent-menu"
+        <div class="chat-agent-menu ui-dropdown-menu"
              role="listbox"
              aria-labelledby="chat-agent-trigger"
              @onkeydown="OnMenuKeyDown">
@@ -37,7 +37,7 @@
                 <button type="button"
                         role="option"
                         aria-selected="@selected"
-                        class="chat-agent-option @(selected ? "chat-agent-option-active" : null)"
+                        class="chat-agent-option ui-dropdown-option @(selected ? "chat-agent-option-active ui-dropdown-option-active" : null)"
                         @onclick="() => SelectAsync(agent)">
                     @ChatAgentHelpers.GetDisplayName(agent)
                 </button>

@@ -104,14 +104,14 @@ else
 
                         @if (_providerOpen)
                         {
-                            <div class="settings-provider-menu" role="listbox" aria-labelledby="mail-provider-label">
+                            <div class="settings-provider-menu ui-dropdown-menu" role="listbox" aria-labelledby="mail-provider-label">
                                 @foreach (var provider in _providerOptions)
                                 {
                                     var selected = provider == _email.Provider;
                                     <button type="button"
                                             role="option"
                                             aria-selected="@selected"
-                                            class="settings-provider-option @(selected ? "settings-provider-option-active" : null)"
+                                            class="settings-provider-option ui-dropdown-option @(selected ? "settings-provider-option-active ui-dropdown-option-active" : null)"
                                             @onclick="() => SelectProvider(provider)">
                                         @GetProviderLabel(provider)
                                     </button>

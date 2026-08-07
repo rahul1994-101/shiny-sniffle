@@ -762,3 +762,41 @@ body.app-login-page {
     background: var(--app-surface-muted);
     color: var(--app-muted);
 }
+
+/* Floating dropdown panels (settings provider picker, chat agent, etc.). */
+.ui-dropdown-menu {
+    background: var(--app-surface-elevated);
+    border: 1px solid var(--app-border);
+    box-shadow: var(--app-shadow-md);
+    -webkit-backdrop-filter: blur(var(--app-glass-blur)) saturate(1.15);
+    backdrop-filter: blur(var(--app-glass-blur)) saturate(1.15);
+}
+
+.ui-dropdown-option {
+    display: block;
+    width: 100%;
+    border: 0;
+    background: var(--app-surface-elevated);
+    color: var(--app-fg);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition:
+        background var(--ui-duration) var(--ui-ease),
+        color var(--ui-duration) var(--ui-ease);
+}
+
+.ui-dropdown-option:hover {
+    background: color-mix(in srgb, var(--app-overlay-hover) 65%, var(--app-surface-elevated));
+}
+
+.ui-dropdown-option:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--app-focus-ring);
+}
+
+.ui-dropdown-option-active {
+    background: color-mix(in srgb, var(--app-accent) 14%, var(--app-surface-elevated));
+    color: var(--app-fg);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--app-accent) 35%, transparent);
+}
