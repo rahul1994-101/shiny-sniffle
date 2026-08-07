@@ -248,7 +248,7 @@ Entry: `mediator.SendAsync(new SignInRequest(...))` — pipeline in `mediatr.mdc
 | Section | Promoted in repo | Level 1 (handler private) |
 |---------|------------------|---------------------------|
 | General | `UpdateUserProfileAsync`, password match/update | `GetGeneralSettings` |
-| Email | `GetUserEmailSettingsAsync` | `SaveEmailSettings` (write) |
+| Email | `EmailAccountRepository` (default account) | `SaveEmailSettings` → `EmailAccount` |
 
 ---
 

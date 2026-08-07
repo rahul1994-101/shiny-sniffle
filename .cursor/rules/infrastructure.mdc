@@ -21,7 +21,7 @@ Database/
 Mailbox/
   Abstractions.cs     IMailboxService
   DTOs.cs             InboxQuery, MailboxStatusResult, …
-  Helpers.cs          internal + EmailSettingsJsonHelpers (public)
+  Helpers.cs          internal mailbox helpers
   MailKitMailboxService.cs
 Foundry/
   Abstractions.cs     IFoundryAgentFactory, FoundryDeployments
@@ -36,20 +36,15 @@ Per concern: **`Abstractions.cs`** + **`DTOs.cs`** + **`Helpers.cs`** + implemen
 
 - No data annotations — limits in `Database/dbo/Tables/` + `AppDbContext.OnModelCreating`
 - Input validation on `Application` `{UseCase}RequestValidator`, not on entities
-- Entity-owned types (e.g. `EmailSettings` on `UserSetting`) live here
+- Entity-owned runtime types (e.g. `EmailSettings` for MailKit) live in `Persistence/Entities/`
+- Per-user mail connections: `EmailAccount` table; catalog: `EmailProvider`
 
 ## EF (`AppDbContext`)
 
 - Map camelCase columns + `HasMaxLength` to match `Database/dbo/Tables/`
 - Repos and handler private helpers use `IDbContextFactory<AppDbContext>` — not scoped `DbContext` in app code
 
-**JSON columns** — do not use EF `OwnsOne` + `ToJson()`:
-
-| Piece | Location |
-|-------|----------|
-| `EmailSettingsJson` on entity | `Persistence/Entities/` |
-| Serialize/deserialize | `Mailbox/Helpers.cs` (`EmailSettingsJsonHelpers`) |
-| App mapping | `Application/Features/UserSettings/Helpers.cs` (`EmailSettingsMapping`) |
+**Mail connection config** — `EmailSettings` is built in Application from `EmailAccount` + `EmailProvider` catalog; passed to `IMailboxService`. App mapping: `Application/Features/UserSettings/Helpers.cs` (`EmailSettingsMapping`).
 
 ## Database workflow
 

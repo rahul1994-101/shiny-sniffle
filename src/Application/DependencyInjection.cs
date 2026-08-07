@@ -7,6 +7,7 @@ using Application.AI.Tools;
 using Application.Features.ChatMessages;
 using Application.Features.ChatThreads;
 using Application.Features.Shared;
+using Application.Features.EmailAccounts;
 using Application.Features.EmailProviders;
 using Application.Features.UserSettings;
 using Application.Features.Users;
@@ -31,6 +32,7 @@ public static class DependencyInjection
         services.AddScoped<ChatMessageRepository>();
         services.AddScoped<UserSettingsRepository>();
         services.AddScoped<EmailProviderRepository>();
+        services.AddScoped<EmailAccountRepository>();
 
         #endregion
 

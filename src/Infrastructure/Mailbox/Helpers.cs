@@ -3,8 +3,6 @@ using MailKit.Net.Imap;
 using MimeKit;
 using MimeKit.Utils;
 using System.Net;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 
 namespace Infrastructure.Mailbox;
@@ -23,31 +21,6 @@ internal static class MailboxReadLimitsHelpers
 
     internal static int ClampListLimit(int limit) =>
         limit <= 0 ? DefaultListLimit : Math.Clamp(limit, MinListLimit, MaxListLimit);
-}
-
-internal static class JsonColumnHelpers
-{
-    internal static readonly JsonSerializerOptions Options = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        PropertyNameCaseInsensitive = true,
-        Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) }
-    };
-
-    internal static T? Deserialize<T>(string? json) where T : class =>
-        string.IsNullOrWhiteSpace(json) ? null : JsonSerializer.Deserialize<T>(json, Options);
-
-    internal static string? Serialize<T>(T? value) where T : class =>
-        value is null ? null : JsonSerializer.Serialize(value, Options);
-}
-
-public static class EmailSettingsJsonHelpers
-{
-    public static EmailSettings? FromJson(string? json) =>
-        JsonColumnHelpers.Deserialize<EmailSettings>(json);
-
-    public static string? ToJson(EmailSettings? settings) =>
-        JsonColumnHelpers.Serialize(settings);
 }
 
 internal static class MailboxFolderResolverHelpers

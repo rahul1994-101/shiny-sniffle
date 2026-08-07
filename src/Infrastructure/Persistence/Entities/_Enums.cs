@@ -12,7 +12,7 @@ public enum ChatAgent
     Email = 1
 }
 
-/// <summary>Mailbox provider preset for IMAP/SMTP endpoints stored on <see cref="EmailSettings"/>.</summary>
+/// <summary>Legacy provider preset on DTOs; endpoints come from <see cref="EmailProviderDefinition"/> catalog.</summary>
 public enum EmailProvider
 {
     Custom = 0,

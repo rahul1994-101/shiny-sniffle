@@ -1,6 +1,5 @@
 using Application.Utilities.Extensions;
 using Infrastructure.Persistence;
-using Infrastructure.Mailbox;
 using Microsoft.EntityFrameworkCore;
 
 namespace Application.Features.UserSettings;
@@ -53,21 +52,6 @@ public sealed class UserSettingsRepository(IDbContextFactory<AppDbContext> _dbCo
         user.UpdatedAt = DateTime.UtcNow;
         await ctx.SaveChangesAsync(cancellationToken);
         return true;
-    }
-
-    public async Task<EmailSettings?> GetUserEmailSettingsAsync(Guid userId, CancellationToken cancellationToken = default)
-    {
-        await using var ctx = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
-        var emailSettingsJson = await ctx.UserSettings
-            .AsNoTracking()
-            .Where(x =>
-                x.UserId == userId &&
-                x.IsActive &&
-                !x.IsDeleted)
-            .Select(x => x.EmailSettingsJson)
-            .FirstOrDefaultAsync(cancellationToken);
-
-        return EmailSettingsJsonHelpers.FromJson(emailSettingsJson);
     }
 
     private static Task<User?> FindActiveTrackedUserAsync(AppDbContext ctx, Guid userId, CancellationToken cancellationToken) =>

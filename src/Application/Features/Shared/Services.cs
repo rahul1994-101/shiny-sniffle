@@ -1,14 +1,15 @@
 using System.Net.Mail;
+using Application.Features.EmailAccounts;
 using Application.Features.UserSettings;
 
 namespace Application.Features.Shared;
 
-public sealed class UserMailboxService(UserSettingsRepository userSettingsRepo, IMailboxService mailboxService)
+public sealed class UserMailboxService(EmailAccountRepository emailAccountRepo, IMailboxService mailboxService)
 {
     public async Task<bool> IsConfiguredAsync(Guid userId, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var emailSettings = await userSettingsRepo.GetUserEmailSettingsAsync(userId, cancellationToken);
+        var emailSettings = await emailAccountRepo.GetDefaultEmailSettingsAsync(userId, cancellationToken);
         return EmailSettingsMapping.IsMailboxConfigured(emailSettings);
     }
 
@@ -111,7 +112,7 @@ public sealed class UserMailboxService(UserSettingsRepository userSettingsRepo, 
         CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var stored = await userSettingsRepo.GetUserEmailSettingsAsync(userId, cancellationToken);
+        var stored = await emailAccountRepo.GetDefaultEmailSettingsAsync(userId, cancellationToken);
         var resolved = EmailSettingsMapping.ResolveForMail(stored, draft);
         return EmailSettingsMapping.ToMailRuntime(resolved);
     }

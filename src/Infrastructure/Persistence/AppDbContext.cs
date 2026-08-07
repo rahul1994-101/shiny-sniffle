@@ -14,6 +14,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
 
     public DbSet<EmailProviderDefinition> EmailProviders { get; set; }
 
+    public DbSet<EmailAccount> EmailAccounts { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -65,7 +67,6 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         {
             entity.ToTable("UserSetting", "dbo");
             entity.Property(e => e.UserId).HasColumnName("userId");
-            entity.Property(e => e.EmailSettingsJson).HasColumnName("EmailSettingsJson");
             entity.Property(e => e.IsActive).HasColumnName("isActive");
             entity.Property(e => e.IsDeleted).HasColumnName("isDeleted");
             entity.Property(e => e.CreatedBy).HasColumnName("createdBy");
@@ -98,6 +99,41 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
                 .IsUnique()
                 .HasFilter("[isDeleted] = 0");
             entity.HasIndex(e => e.SortOrder)
+                .HasFilter("[isDeleted] = 0");
+        });
+        modelBuilder.Entity<EmailAccount>(entity =>
+        {
+            entity.ToTable("EmailAccount", "dbo");
+            entity.Property(e => e.UserId).HasColumnName("userId");
+            entity.Property(e => e.EmailProviderId).HasColumnName("emailProviderId");
+            entity.Property(e => e.Alias).HasColumnName("alias").HasMaxLength(64);
+            entity.Property(e => e.EmailAddress).HasColumnName("emailAddress").HasMaxLength(255);
+            entity.Property(e => e.Username).HasColumnName("username").HasMaxLength(255);
+            entity.Property(e => e.Password).HasColumnName("password").HasMaxLength(512);
+            entity.Property(e => e.IsDefault).HasColumnName("isDefault");
+            entity.Property(e => e.SortOrder).HasColumnName("sortOrder");
+            entity.Property(e => e.IsActive).HasColumnName("isActive");
+            entity.Property(e => e.IsDeleted).HasColumnName("isDeleted");
+            entity.Property(e => e.CreatedBy).HasColumnName("createdBy");
+            entity.Property(e => e.CreatedAt).HasColumnName("createdAt");
+            entity.Property(e => e.UpdatedBy).HasColumnName("updatedBy");
+            entity.Property(e => e.UpdatedAt).HasColumnName("updatedAt");
+            entity.HasOne(e => e.EmailProvider)
+                .WithMany()
+                .HasForeignKey(e => e.EmailProviderId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasIndex(e => new { e.UserId, e.Alias })
+                .IsUnique()
+                .HasFilter("[isDeleted] = 0");
+            entity.HasIndex(e => e.UserId)
+                .IsUnique()
+                .HasFilter("[isDefault] = 1 AND [isDeleted] = 0");
+            entity.HasIndex(e => new { e.UserId, e.EmailAddress })
+                .IsUnique()
+                .HasFilter("[isDeleted] = 0");
+            entity.HasIndex(e => new { e.UserId, e.SortOrder })
+                .HasFilter("[isDeleted] = 0");
+            entity.HasIndex(e => e.EmailProviderId)
                 .HasFilter("[isDeleted] = 0");
         });
     }
