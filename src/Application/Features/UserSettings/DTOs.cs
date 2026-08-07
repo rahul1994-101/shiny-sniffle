@@ -24,6 +24,9 @@ public class GeneralSettingsDto
 public class EmailSettingsDto
 {
     public EmailProvider Provider { get; set; } = EmailProvider.Custom;
+
+    public string ProviderSlug { get; set; } = "custom";
+
     public string EmailAddress { get; set; } = string.Empty;
     public string ImapHost { get; set; } = string.Empty;
     public int ImapPort { get; set; } = 993;
@@ -43,20 +46,15 @@ public class EmailSettingsDto
     }
 
     public bool ContentEquals(EmailSettingsDto other) =>
-        Provider == other.Provider
+        string.Equals(ProviderSlug, other.ProviderSlug, StringComparison.OrdinalIgnoreCase)
         && string.Equals(EmailAddress, other.EmailAddress, StringComparison.Ordinal)
         && string.Equals(Username, other.Username, StringComparison.Ordinal)
-        && string.Equals(ImapHost, other.ImapHost, StringComparison.Ordinal)
-        && ImapPort == other.ImapPort
-        && ImapUseSsl == other.ImapUseSsl
-        && string.Equals(SmtpHost, other.SmtpHost, StringComparison.Ordinal)
-        && SmtpPort == other.SmtpPort
-        && SmtpUseSsl == other.SmtpUseSsl
         && HasStoredPassword == other.HasStoredPassword;
 
     private EmailSettingsDto CloneShallow() => new()
     {
         Provider = Provider,
+        ProviderSlug = ProviderSlug,
         EmailAddress = EmailAddress,
         Username = Username,
         ImapHost = ImapHost,
@@ -72,6 +70,7 @@ public class EmailSettingsDto
     public T AsResponse<T>() where T : EmailSettingsDto, new() => new()
     {
         Provider = Provider,
+        ProviderSlug = ProviderSlug,
         EmailAddress = EmailAddress,
         ImapHost = ImapHost,
         ImapPort = ImapPort,

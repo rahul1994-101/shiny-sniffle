@@ -1,3 +1,4 @@
+using Application.Features.EmailProviders;
 using FluentValidation;
 using Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -27,15 +28,31 @@ public sealed class SaveEmailSettingsRequestValidator : AbstractValidator<SaveEm
 
 public sealed class SaveEmailSettingsRequestHandler(
     IDbContextFactory<AppDbContext> dbContextFactory,
-    UserSettingsRepository userSettingsRepo)
+    UserSettingsRepository userSettingsRepo,
+    EmailProviderRepository emailProviderRepo)
     : IRequestHandler<SaveEmailSettingsRequest, SaveEmailSettingsResponse>
 {
     public async ValueTask<Result<SaveEmailSettingsResponse>> HandleAsync(SaveEmailSettingsRequest request, CancellationToken cancellationToken = default)
     {
         var result = new Result<SaveEmailSettingsResponse>();
 
+        var (catalog, catalogError) = await EmailSettingsCatalog.LoadCatalogAsync(emailProviderRepo, cancellationToken);
+        if (catalogError is not null)
+        {
+            result.Failure(ErrorCode.BadRequest, catalogError);
+            return result;
+        }
+
+        var email = request.Email;
+        var applyError = EmailSettingsCatalog.TryApplyCatalog(email, catalog);
+        if (applyError is not null)
+        {
+            result.Failure(ErrorCode.BadRequest, applyError);
+            return result;
+        }
+
         var existingSettings = await userSettingsRepo.GetUserEmailSettingsAsync(request.UserId, cancellationToken);
-        var validationError = EmailSettingsMapping.TryBuildEntity(request.Email, existingSettings, EmailSettingsBuildMode.Save, out var newSettings);
+        var validationError = EmailSettingsMapping.TryBuildEntity(email, existingSettings, EmailSettingsBuildMode.Save, out var newSettings);
 
         if (validationError is not null)
         {

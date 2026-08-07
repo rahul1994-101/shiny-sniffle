@@ -1,7 +1,8 @@
 @inherits BaseComponent
 
+@using Application.Features.EmailProviders
+@using Application.Features.EmailProviders.Queries
 @using WebApp.Components.Pages.Settings
-@using WebApp.Utilities.Helpers
 
 @implements IDisposable
 
@@ -25,198 +26,120 @@ else
         </div>
 
         <section class="settings-card" aria-labelledby="mail-heading">
-            <h2 id="mail-heading" class="settings-section-title">Mailbox (IMAP / SMTP)</h2>
+            <h2 id="mail-heading" class="settings-section-title">Mailbox</h2>
+            <p class="settings-section-lead">
+                Connect the Email agent with your address and password. IMAP/SMTP templates are managed under
+                <NavLink href="/settings/email/providers">Providers</NavLink>.
+            </p>
 
-            <div class="settings-mail-body">
-                <div class="settings-mail-account">
-                    <label class="settings-label" for="mail-email">Email address</label>
-                    <input id="mail-email"
-                           type="email"
-                           class="settings-input"
-                           @bind="_email.EmailAddress"
-                           @bind:after="OnEmailEdited"
-                           autocomplete="email"
-                           disabled="@IsFormBusy" />
-
-                    <label class="settings-label" for="mail-username">Username</label>
-                    <input id="mail-username"
-                           type="text"
-                           class="settings-input"
-                           @bind="_email.Username"
-                           @bind:after="OnEmailEdited"
-                           autocomplete="username"
-                           disabled="@IsFormBusy" />
-
-                    <div class="settings-field">
-                        <label class="settings-label" for="mail-password">Password</label>
-                        <div class="settings-password-wrap">
-                            <input id="mail-password"
-                                   type="@(_showMailPassword ? "text" : "password")"
-                                   class="settings-input"
-                                   @bind="_email.Password"
-                                   @bind:after="OnEmailEdited"
-                                   autocomplete="new-password"
-                                   placeholder="@(_email.HasStoredPassword ? "Saved — leave blank to keep" : "App password or mailbox password")"
-                                   disabled="@IsFormBusy" />
-                            <button type="button"
-                                    class="settings-password-toggle"
-                                    aria-label="@(_showMailPassword ? "Hide password" : "Show password")"
-                                    aria-pressed="@_showMailPassword"
-                                    disabled="@IsFormBusy"
-                                    @onclick="() => _showMailPassword = !_showMailPassword">
-                                @(_showMailPassword ? "Hide" : "Show")
-                            </button>
-                        </div>
-                        <p class="settings-hint">Stored encrypted. Leave blank on save to keep the existing password.</p>
-                    </div>
-                </div>
-
-                <div class="settings-mail-server">
-                    <label class="settings-label" id="mail-provider-label">Provider</label>
-                    <div class="settings-provider-picker">
-                        @if (_providerOpen)
-                        {
-                            <button type="button"
-                                    class="settings-provider-backdrop"
-                                    tabindex="-1"
-                                    aria-hidden="true"
-                                    @onclick="CloseProviderPicker"></button>
-                        }
-
-                        <button type="button"
-                                id="mail-provider"
-                                class="settings-provider-trigger"
-                                aria-haspopup="listbox"
-                                aria-expanded="@_providerOpen"
-                                aria-labelledby="mail-provider-label mail-provider"
-                                disabled="@IsFormBusy"
-                                @onclick="ToggleProviderPicker">
-                            <span class="settings-provider-trigger-label">@GetProviderLabel(_email.Provider)</span>
-                            <svg class="settings-provider-chevron @(_providerOpen ? "settings-provider-chevron-open" : null)"
-                                 viewBox="0 0 24 24"
-                                 fill="none"
-                                 stroke="currentColor"
-                                 stroke-width="2"
-                                 aria-hidden="true">
-                                <path d="M6 9l6 6 6-6" />
-                            </svg>
-                        </button>
-
-                        @if (_providerOpen)
-                        {
-                            <div class="settings-provider-menu ui-dropdown-menu" role="listbox" aria-labelledby="mail-provider-label">
-                                @foreach (var provider in _providerOptions)
-                                {
-                                    var selected = provider == _email.Provider;
-                                    <button type="button"
-                                            role="option"
-                                            aria-selected="@selected"
-                                            class="settings-provider-option ui-dropdown-option @(selected ? "settings-provider-option-active ui-dropdown-option-active" : null)"
-                                            @onclick="() => SelectProvider(provider)">
-                                        @GetProviderLabel(provider)
-                                    </button>
-                                }
-                            </div>
-                        }
-                    </div>
-
-                    @if (_email.Provider == EmailProvider.Gmail)
+            <label class="settings-label" id="mail-provider-label">Provider</label>
+            @if (_catalog.Count == 0)
+            {
+                <p class="settings-hint" role="status">
+                    No provider templates found. Run the database migration or add providers in the Providers tab.
+                </p>
+            }
+            else
+            {
+                <div class="settings-provider-picker">
+                    @if (_providerOpen)
                     {
-                        <p class="settings-hint">
-                            Gmail uses fixed IMAP/SMTP endpoints.
-                            <a class="settings-link" href="https://support.google.com/accounts/answer/185833" target="_blank" rel="noopener noreferrer">Create an app password</a>
-                            if 2-step verification is enabled.
-                        </p>
-
                         <button type="button"
-                                class="settings-collapsible-toggle"
-                                aria-expanded="@_endpointsExpanded"
-                                disabled="@IsFormBusy"
-                                @onclick="ToggleEndpointsExpanded">
-                            <span>Server settings</span>
-                            <span class="settings-collapsible-meta">Gmail preset</span>
-                            <svg class="settings-collapsible-chevron @(_endpointsExpanded ? "settings-collapsible-chevron-open" : null)"
-                                 viewBox="0 0 24 24"
-                                 fill="none"
-                                 stroke="currentColor"
-                                 stroke-width="2"
-                                 aria-hidden="true">
-                                <path d="M6 9l6 6 6-6" />
-                            </svg>
-                        </button>
+                                class="settings-provider-backdrop"
+                                tabindex="-1"
+                                aria-hidden="true"
+                                @onclick="CloseProviderPicker"></button>
                     }
 
-                    @if (ShowEndpointFields)
+                    <button type="button"
+                            id="mail-provider"
+                            class="settings-provider-trigger"
+                            aria-haspopup="listbox"
+                            aria-expanded="@_providerOpen"
+                            aria-labelledby="mail-provider-label mail-provider"
+                            disabled="@IsFormBusy"
+                            @onclick="ToggleProviderPicker">
+                        <span class="settings-provider-trigger-label">@SelectedProviderName()</span>
+                        <svg class="settings-provider-chevron @(_providerOpen ? "settings-provider-chevron-open" : null)"
+                             viewBox="0 0 24 24"
+                             fill="none"
+                             stroke="currentColor"
+                             stroke-width="2"
+                             aria-hidden="true">
+                            <path d="M6 9l6 6 6-6" />
+                        </svg>
+                    </button>
+
+                    @if (_providerOpen)
                     {
-                        <div class="settings-endpoints">
-                            <label class="settings-label" for="mail-imap-host">IMAP host</label>
-                            <input id="mail-imap-host"
-                                   type="text"
-                                   class="settings-input"
-                                   @bind="_email.ImapHost"
-                                   @bind:after="OnEmailEdited"
-                                   placeholder="imap.example.com"
-                                   autocomplete="off"
-                                   disabled="@IsProviderEndpointsLocked || IsFormBusy" />
-
-                            <div class="settings-row">
-                                <div class="settings-row-field">
-                                    <label class="settings-label" for="mail-imap-port">IMAP port</label>
-                                    <input id="mail-imap-port"
-                                           type="number"
-                                           min="1"
-                                           max="65535"
-                                           class="settings-input"
-                                           @bind="_email.ImapPort"
-                                           @bind:after="OnEmailEdited"
-                                           disabled="@IsProviderEndpointsLocked || IsFormBusy" />
-                                </div>
-                                <div class="settings-row-field settings-row-check">
-                                    <label class="settings-check">
-                                        <input type="checkbox"
-                                               @bind="_email.ImapUseSsl"
-                                               @bind:after="OnEmailEdited"
-                                               disabled="@IsProviderEndpointsLocked || IsFormBusy" />
-                                        <span>IMAP SSL</span>
-                                    </label>
-                                </div>
-                            </div>
-
-                            <label class="settings-label" for="mail-smtp-host">SMTP host</label>
-                            <input id="mail-smtp-host"
-                                   type="text"
-                                   class="settings-input"
-                                   @bind="_email.SmtpHost"
-                                   @bind:after="OnEmailEdited"
-                                   placeholder="smtp.example.com"
-                                   autocomplete="off"
-                                   disabled="@IsProviderEndpointsLocked || IsFormBusy" />
-
-                            <div class="settings-row">
-                                <div class="settings-row-field">
-                                    <label class="settings-label" for="mail-smtp-port">SMTP port</label>
-                                    <input id="mail-smtp-port"
-                                           type="number"
-                                           min="1"
-                                           max="65535"
-                                           class="settings-input"
-                                           @bind="_email.SmtpPort"
-                                           @bind:after="OnEmailEdited"
-                                           disabled="@IsProviderEndpointsLocked || IsFormBusy" />
-                                </div>
-                                <div class="settings-row-field settings-row-check">
-                                    <label class="settings-check">
-                                        <input type="checkbox"
-                                               @bind="_email.SmtpUseSsl"
-                                               @bind:after="OnEmailEdited"
-                                               disabled="@IsProviderEndpointsLocked || IsFormBusy" />
-                                        <span>SMTP SSL</span>
-                                    </label>
-                                </div>
-                            </div>
+                        <div class="settings-provider-menu ui-dropdown-menu" role="listbox" aria-labelledby="mail-provider-label">
+                            @foreach (var provider in _catalog)
+                            {
+                                var selected = string.Equals(provider.Slug, _email.ProviderSlug, StringComparison.OrdinalIgnoreCase);
+                                <button type="button"
+                                        role="option"
+                                        aria-selected="@selected"
+                                        class="settings-provider-option ui-dropdown-option @(selected ? "settings-provider-option-active ui-dropdown-option-active" : null)"
+                                        @onclick="() => SelectProvider(provider)">
+                                    @provider.Name
+                                </button>
+                            }
                         </div>
                     }
                 </div>
+
+                @if (!string.IsNullOrWhiteSpace(SelectedProvider()?.SetupHelpUrl))
+                {
+                    <p class="settings-hint">
+                        <a class="settings-link"
+                           href="@SelectedProvider()!.SetupHelpUrl"
+                           target="_blank"
+                           rel="noopener noreferrer">
+                            Provider setup help
+                        </a>
+                    </p>
+                }
+            }
+
+            <label class="settings-label" for="mail-email">Email address</label>
+            <input id="mail-email"
+                   type="email"
+                   class="settings-input"
+                   @bind="_email.EmailAddress"
+                   @bind:after="OnEmailEdited"
+                   autocomplete="email"
+                   disabled="@IsFormBusy" />
+
+            <label class="settings-label" for="mail-username">Username</label>
+            <input id="mail-username"
+                   type="text"
+                   class="settings-input"
+                   @bind="_email.Username"
+                   @bind:after="OnEmailEdited"
+                   autocomplete="username"
+                   disabled="@IsFormBusy" />
+
+            <div class="settings-field">
+                <label class="settings-label" for="mail-password">Password</label>
+                <div class="settings-password-wrap">
+                    <input id="mail-password"
+                           type="@(_showMailPassword ? "text" : "password")"
+                           class="settings-input"
+                           @bind="_email.Password"
+                           @bind:after="OnEmailEdited"
+                           autocomplete="new-password"
+                           placeholder="@(_email.HasStoredPassword ? "Saved — leave blank to keep" : "App password or mailbox password")"
+                           disabled="@IsFormBusy" />
+                    <button type="button"
+                            class="settings-password-toggle"
+                            aria-label="@(_showMailPassword ? "Hide password" : "Show password")"
+                            aria-pressed="@_showMailPassword"
+                            disabled="@IsFormBusy"
+                            @onclick="() => _showMailPassword = !_showMailPassword">
+                        @(_showMailPassword ? "Hide" : "Show")
+                    </button>
+                </div>
+                <p class="settings-hint">Stored encrypted. Leave blank on save to keep the existing password.</p>
             </div>
 
             @if (_status.Current is not null)
@@ -247,38 +170,27 @@ else
 }
 
 @code {
-    private static readonly EmailProvider[] _providerOptions =
-    [
-        EmailProvider.Custom,
-        EmailProvider.Gmail
-    ];
-
     [CascadingParameter]
     public SettingsPageContext PageContext { get; set; } = null!;
 
     private EmailSettingsDto _email = new();
     private EmailSettingsDto _emailBaseline = new();
+    private readonly List<EmailProviderDto> _catalog = [];
     private TabBusy _busy = TabBusy.Loading;
     private bool _saving;
     private bool _testing;
     private SettingsSectionStatusHandle _status = null!;
     private bool _providerOpen;
-    private bool _endpointsExpanded;
     private bool _showMailPassword;
     private string? _lastTestSummary;
 
     private bool IsFormBusy => _saving || _testing;
 
-    private bool IsProviderEndpointsLocked => _email.Provider != EmailProvider.Custom;
-
-    private bool ShowEndpointFields =>
-        _email.Provider == EmailProvider.Custom || _endpointsExpanded;
-
     private bool IsEmailDirty =>
         !_email.ContentEquals(_emailBaseline)
         || !string.IsNullOrEmpty(_email.Password);
 
-    private bool CanSaveEmail => IsEmailDirty && !IsFormBusy;
+    private bool CanSaveEmail => IsEmailDirty && !IsFormBusy && _catalog.Count > 0;
 
     private string _mailboxStatusTitle => IsMailboxConfigured()
         ? "Mailbox configured"
@@ -293,7 +205,7 @@ else
                 return "Add credentials below to connect the Email agent.";
             }
 
-            var provider = GetProviderLabel(_email.Provider);
+            var provider = SelectedProviderName();
             var email = string.IsNullOrWhiteSpace(_email.EmailAddress) ? _email.Username : _email.EmailAddress;
             var summary = string.IsNullOrWhiteSpace(email) ? provider : $"{provider} · {email}";
 
@@ -328,20 +240,34 @@ else
         _busy = TabBusy.Loading;
         _status.Clear();
 
-        var result = await Mediator.SendAsync(new GetEmailSettingsRequest(CurrentUser.Id));
+        var settingsResult = await Mediator.SendAsync(new GetEmailSettingsRequest(CurrentUser.Id));
+        var catalogResult = await Mediator.SendAsync(new ListEmailProvidersRequest());
 
         #region # Handle Result
 
-        if (result.HasError)
+        if (catalogResult.HasError)
         {
             _status.Set(
-                result.Errors.FirstOrDefault()?.Message ?? "Failed to load email settings.",
+                catalogResult.Errors.FirstOrDefault()?.Message ?? "Failed to load provider catalog.",
                 isError: true);
         }
         else
         {
-            _email = result.Payload;
-            _endpointsExpanded = _email.Provider == EmailProvider.Custom;
+            _catalog.Clear();
+            _catalog.AddRange(catalogResult.Payload.Providers);
+        }
+
+        if (settingsResult.HasError)
+        {
+            _status.Set(
+                settingsResult.Errors.FirstOrDefault()?.Message ?? "Failed to load email settings.",
+                isError: true);
+        }
+        else
+        {
+            _email = settingsResult.Payload;
+            EnsureProviderSlugInCatalog();
+            ApplySelectedCatalogToEmail();
             CaptureEmailBaseline();
         }
 
@@ -359,6 +285,7 @@ else
     {
         _saving = true;
         _status.Clear();
+        ApplySelectedCatalogToEmail();
 
         #region # Execute
 
@@ -379,7 +306,7 @@ else
             _email = result.Payload;
             _email.Password = string.Empty;
             _showMailPassword = false;
-            _endpointsExpanded = _email.Provider == EmailProvider.Custom;
+            EnsureProviderSlugInCatalog();
             CaptureEmailBaseline();
             _status.Set("Email settings saved.", isError: false, autoClear: true);
         }
@@ -398,6 +325,7 @@ else
     {
         _testing = true;
         _status.Clear();
+        ApplySelectedCatalogToEmail();
 
         #region # Execute
 
@@ -444,9 +372,42 @@ else
         _email.HasStoredPassword
         && (!string.IsNullOrWhiteSpace(_email.EmailAddress) || !string.IsNullOrWhiteSpace(_email.Username));
 
+    private EmailProviderDto? SelectedProvider() =>
+        EmailProviderCatalog.FindBySlug(_catalog, _email.ProviderSlug);
+
+    private string SelectedProviderName() =>
+        SelectedProvider()?.Name ?? "Select provider";
+
+    private void EnsureProviderSlugInCatalog()
+    {
+        if (_catalog.Count == 0)
+        {
+            return;
+        }
+
+        if (EmailProviderCatalog.FindBySlug(_catalog, _email.ProviderSlug) is not null)
+        {
+            return;
+        }
+
+        var fallback = EmailProviderCatalog.FindBySlug(_catalog, "custom") ?? _catalog[0];
+        _email.ProviderSlug = fallback.Slug;
+    }
+
+    private void ApplySelectedCatalogToEmail()
+    {
+        var row = SelectedProvider();
+        if (row is null)
+        {
+            return;
+        }
+
+        EmailProviderCatalog.ApplyTo(_email, row);
+    }
+
     private void ToggleProviderPicker()
     {
-        if (IsFormBusy)
+        if (IsFormBusy || _catalog.Count == 0)
         {
             return;
         }
@@ -456,42 +417,19 @@ else
 
     private void CloseProviderPicker() => _providerOpen = false;
 
-    private void SelectProvider(EmailProvider provider)
+    private void SelectProvider(EmailProviderDto provider)
     {
-        if (provider == _email.Provider)
+        if (string.Equals(provider.Slug, _email.ProviderSlug, StringComparison.OrdinalIgnoreCase))
         {
             CloseProviderPicker();
             return;
         }
 
-        _email.Provider = provider;
-        OnProviderChanged();
+        _email.ProviderSlug = provider.Slug;
+        EmailProviderCatalog.ApplyTo(_email, provider);
         CloseProviderPicker();
         SyncDirtyState();
     }
-
-    private void ToggleEndpointsExpanded() => _endpointsExpanded = !_endpointsExpanded;
-
-    private void OnProviderChanged()
-    {
-        if (_email.Provider == EmailProvider.Custom)
-        {
-            EmailProviderPresets.ClearEndpoints(_email);
-            _endpointsExpanded = true;
-            return;
-        }
-
-        EmailProviderPresets.Apply(_email);
-        _endpointsExpanded = false;
-    }
-
-    private static string GetProviderLabel(EmailProvider provider) =>
-        provider switch
-        {
-            EmailProvider.Gmail => "Gmail",
-            EmailProvider.Custom => "Custom",
-            _ => provider.ToString()
-        };
 
     private enum TabBusy
     {

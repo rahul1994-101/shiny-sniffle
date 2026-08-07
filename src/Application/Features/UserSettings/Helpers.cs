@@ -1,3 +1,4 @@
+using Application.Features.EmailProviders;
 using Application.Utilities.Extensions;
 
 namespace Application.Features.UserSettings;
@@ -110,6 +111,7 @@ internal static class EmailSettingsMapping
         return new EmailSettingsDto
         {
             Provider = provider,
+            ProviderSlug = ResolveProviderSlug(stored, provider),
             EmailAddress = stored.EmailAddress,
             ImapHost = stored.ImapHost,
             ImapPort = stored.ImapPort,
@@ -155,17 +157,9 @@ internal static class EmailSettingsMapping
                 return "Mailbox password is required.";
             }
 
-            if (response.Provider == EmailProvider.Custom)
+            if (string.IsNullOrWhiteSpace(response.ImapHost) || string.IsNullOrWhiteSpace(response.SmtpHost))
             {
-                if (string.IsNullOrWhiteSpace(response.ImapHost))
-                {
-                    return "IMAP host is required for mailbox settings.";
-                }
-
-                if (string.IsNullOrWhiteSpace(response.SmtpHost))
-                {
-                    return "SMTP host is required for mailbox settings.";
-                }
+                return "Mail provider server settings are missing. Configure them under Settings → Email → Providers.";
             }
         }
         else if (string.IsNullOrWhiteSpace(password))
@@ -206,6 +200,7 @@ internal static class EmailSettingsMapping
         return new EmailSettings
         {
             Provider = settings.Provider,
+            ProviderSlug = settings.ProviderSlug,
             EmailAddress = settings.EmailAddress.Trim(),
             Username = settings.Username.Trim(),
             Password = settings.Password.Decrypt(),
@@ -220,29 +215,30 @@ internal static class EmailSettingsMapping
 
     private static EmailSettings CreateEntity(EmailSettingsDto response, string password)
     {
-        var settings = new EmailSettings
+        return new EmailSettings
         {
             Provider = response.Provider,
+            ProviderSlug = EmailProviderCatalog.NormalizeSlug(response.ProviderSlug),
             EmailAddress = response.EmailAddress.Trim(),
             Username = response.Username.Trim(),
-            Password = password
+            Password = password,
+            ImapHost = response.ImapHost.Trim(),
+            ImapPort = response.ImapPort,
+            ImapUseSsl = response.ImapUseSsl,
+            SmtpHost = response.SmtpHost.Trim(),
+            SmtpPort = response.SmtpPort,
+            SmtpUseSsl = response.SmtpUseSsl
         };
+    }
 
-        if (response.Provider == EmailProvider.Custom)
+    private static string ResolveProviderSlug(EmailSettings stored, EmailProvider provider)
+    {
+        if (!string.IsNullOrWhiteSpace(stored.ProviderSlug))
         {
-            settings.ImapHost = response.ImapHost.Trim();
-            settings.ImapPort = response.ImapPort;
-            settings.ImapUseSsl = response.ImapUseSsl;
-            settings.SmtpHost = response.SmtpHost.Trim();
-            settings.SmtpPort = response.SmtpPort;
-            settings.SmtpUseSsl = response.SmtpUseSsl;
-        }
-        else
-        {
-            EmailProviderPresets.Apply(settings);
+            return EmailProviderCatalog.NormalizeSlug(stored.ProviderSlug);
         }
 
-        return settings;
+        return provider == EmailProvider.Gmail ? "gmail" : "custom";
     }
 
     private static EmailProvider ResolveProvider(EmailSettings stored)
@@ -269,13 +265,7 @@ internal static class EmailSettingsMapping
             return false;
         }
 
-        if (email.Provider != EmailProvider.Custom)
-        {
-            return true;
-        }
-
-        return string.IsNullOrWhiteSpace(email.ImapHost) &&
-               string.IsNullOrWhiteSpace(email.SmtpHost);
+        return true;
     }
 
     private static string ResolvePassword(string plainPassword, string? existingEncryptedPassword)

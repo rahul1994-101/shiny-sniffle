@@ -1,3 +1,4 @@
+using Application.Features.EmailProviders;
 using FluentValidation;
 
 namespace Application.Features.UserSettings.Commands;
@@ -24,7 +25,9 @@ public sealed class TestEmailConnectionRequestValidator : AbstractValidator<Test
     }
 }
 
-public sealed class TestEmailConnectionRequestHandler(UserMailboxService mailboxService)
+public sealed class TestEmailConnectionRequestHandler(
+    UserMailboxService mailboxService,
+    EmailProviderRepository emailProviderRepo)
     : IRequestHandler<TestEmailConnectionRequest, TestEmailConnectionResponse>
 {
 
@@ -33,9 +36,24 @@ public sealed class TestEmailConnectionRequestHandler(UserMailboxService mailbox
     {
         var result = new Result<TestEmailConnectionResponse>();
 
+        var (catalog, catalogError) = await EmailSettingsCatalog.LoadCatalogAsync(emailProviderRepo, cancellationToken);
+        if (catalogError is not null)
+        {
+            result.Failure(ErrorCode.BadRequest, catalogError);
+            return result;
+        }
+
+        var email = request.Email;
+        var applyError = EmailSettingsCatalog.TryApplyCatalog(email, catalog);
+        if (applyError is not null)
+        {
+            result.Failure(ErrorCode.BadRequest, applyError);
+            return result;
+        }
+
         #region # Execute
 
-        var testResult = await mailboxService.TestConnectionAsync(request.UserId, request.Email, cancellationToken);
+        var testResult = await mailboxService.TestConnectionAsync(request.UserId, email, cancellationToken);
 
         #endregion
 

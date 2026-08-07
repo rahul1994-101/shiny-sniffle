@@ -1,5 +1,5 @@
+using Application.Features.EmailProviders;
 using FluentValidation;
-
 
 namespace Application.Features.UserSettings.Queries;
 
@@ -20,7 +20,9 @@ public sealed class GetEmailSettingsRequestValidator : AbstractValidator<GetEmai
     }
 }
 
-public sealed class GetEmailSettingsRequestHandler(UserSettingsRepository userSettingsRepo)
+public sealed class GetEmailSettingsRequestHandler(
+    UserSettingsRepository userSettingsRepo,
+    EmailProviderRepository emailProviderRepo)
     : IRequestHandler<GetEmailSettingsRequest, GetEmailSettingsResponse>
 {
 
@@ -32,12 +34,19 @@ public sealed class GetEmailSettingsRequestHandler(UserSettingsRepository userSe
         #region # Execute
 
         var emailSettings = await userSettingsRepo.GetUserEmailSettingsAsync(request.UserId, cancellationToken);
+        var dto = EmailSettingsMapping.FromEntity(emailSettings);
+
+        var catalog = await emailProviderRepo.ListAsync(cancellationToken);
+        if (catalog.Count > 0)
+        {
+            _ = EmailSettingsCatalog.TryApplyCatalog(dto, catalog);
+        }
 
         #endregion
 
         #region # Handle Result
 
-        result.Success(EmailSettingsMapping.FromEntity(emailSettings).AsResponse<GetEmailSettingsResponse>());
+        result.Success(dto.AsResponse<GetEmailSettingsResponse>());
 
         #endregion
 
