@@ -16,8 +16,9 @@ All commercial and product decisions should be updated in **`product.md`** only.
 |-----|--------|
 | [email-read-implementation-plan.md](email-read-implementation-plan.md) | Mailbox read + Email agent layers 0–5, 6a done; 6b+ planned |
 | [ai-memory.md](ai-memory.md) | Thread memory done; user/working memory planned |
+| [design-system.md](design-system.md) | WebApp UI tokens, `ui-*` components, glass, elevation, motion |
 
-**Coding conventions:** [`.cursor/rules/`](../.cursor/rules/) (`solution.mdc`, `infrastructure.mdc`, `application.mdc`, `webapp.mdc`, `mediatr.mdc`).
+**Coding conventions:** [`.cursor/rules/`](../.cursor/rules/) (`solution.mdc`, `infrastructure.mdc`, `application.mdc`, `webapp.mdc`, `design-system.mdc`, `mediatr.mdc`).
 
 ---
 

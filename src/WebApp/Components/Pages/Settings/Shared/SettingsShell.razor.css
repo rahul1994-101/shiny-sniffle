@@ -42,8 +42,8 @@
     width: 100%;
     box-sizing: border-box;
     overflow: visible;
-    -webkit-backdrop-filter: blur(calc(var(--app-glass-blur) * 0.6));
-    backdrop-filter: blur(calc(var(--app-glass-blur) * 0.6));
+    -webkit-backdrop-filter: blur(var(--app-glass-blur-panel)) saturate(var(--app-glass-saturate-soft));
+    backdrop-filter: blur(var(--app-glass-blur-panel)) saturate(var(--app-glass-saturate-soft));
     box-shadow: var(--app-elev-1);
 }
 

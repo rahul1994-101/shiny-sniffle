@@ -70,6 +70,6 @@ Project-specific escalation detail: `application.mdc`, `infrastructure.mdc`.
 |---------|-----------|
 | Infrastructure | `infrastructure.mdc` |
 | Application | `application.mdc` |
-| WebApp | `webapp.mdc` |
+| WebApp | `webapp.mdc`, `design-system.mdc` |
 | MediatR lib | `mediatr.mdc` |
 | Roadmaps | `docs/` |

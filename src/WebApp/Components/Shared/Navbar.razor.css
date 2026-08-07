@@ -9,10 +9,10 @@
     padding: 0.35rem var(--app-page-pad-x);
     border: 1px solid var(--app-border);
     border-radius: var(--ui-radius-md);
-    background: var(--app-page-header-bg);
-    -webkit-backdrop-filter: blur(var(--app-glass-blur)) saturate(1.15);
-    backdrop-filter: blur(var(--app-glass-blur)) saturate(1.15);
-    box-shadow: var(--app-elev-1);
+    background: color-mix(in srgb, var(--app-page-header-bg) 88%, var(--app-glass-scrim));
+    box-shadow: var(--app-elev-1), inset 0 1px 0 var(--app-glass-highlight);
+    -webkit-backdrop-filter: blur(var(--app-glass-blur-chrome)) saturate(var(--app-glass-saturate));
+    backdrop-filter: blur(var(--app-glass-blur-chrome)) saturate(var(--app-glass-saturate));
 }
 
 .layout-navbar-start {

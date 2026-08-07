@@ -96,3 +96,16 @@ Underscore prefix is for **Application** constructor injection, not Blazor `[Inj
 - Namespace `WebApp.Endpoints`
 - Routes under `/api/...` only
 - Thin: validate antiforgery → `mediator.SendAsync` → HTTP result
+
+---
+
+## Design system
+
+Unified UI: tokens + `ui-*` in `wwwroot/app.css`, dark/light via `[data-theme]`. **Do not** add a component library or one-off button/card styles.
+
+| Doc / rule | Purpose |
+|------------|---------|
+| [`docs/design-system.md`](../docs/design-system.md) | Full tokens, components, shell, checklist |
+| [`.cursor/rules/design-system.mdc`](design-system.mdc) | Agent checklist when editing WebApp UI |
+
+**Quick rules:** use `app-page` + `ui-group` / `ui-btn` / `ui-segmented` / `ui-dropdown-*`; elevation `--app-elev-1|2|3`; glass blur tiers; focus `--app-focus-ring-shadow`; page CSS in `*.razor.css`, shared patterns in `app.css`.

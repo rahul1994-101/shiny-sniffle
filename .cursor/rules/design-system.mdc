@@ -1,0 +1,44 @@
+---
+description: WebApp design system — tokens, ui-* components, glass, elevation, motion
+globs: src/WebApp/**/*.{razor,css,html,js}
+alwaysApply: false
+---
+
+# Design system (WebApp)
+
+Full reference: [`docs/design-system.md`](../docs/design-system.md). Implementation: `src/WebApp/wwwroot/app.css`.
+
+## Non‑negotiables
+
+- **No new UI libraries.** Use `ui-*` / `app-page-*` primitives and CSS variables.
+- **No raw colors in component CSS** for theme surfaces/text (use `--app-*` / `--ui-*`).
+- **No `::deep` in `app.css`** — only in scoped `*.razor.css`.
+- **Focus:** `--app-focus-ring-shadow` (2px ring), not ad‑hoc `color-mix` rings.
+- **Elevation:** `--app-elev-1` (chrome/cards) → `--app-elev-2` (menus/composer focus) → `--app-elev-3` (modals/drawer). Shadow containers, not rows.
+- **Glass:** use `--app-glass-blur-chrome|panel|float` + `--app-glass-scrim` / `--app-glass-highlight`; shell shows `--app-main-gradient` through panels.
+
+## Markup shortcuts
+
+| Need | Use |
+|------|-----|
+| Page (dashboard, settings) | `app-page` → `app-page-header` + `app-page-body` / `app-page-body-inner` |
+| Settings chrome | `SettingsShell` + `settings-card` / `settings-input` (shell CSS) |
+| Primary/secondary/danger action | `ui-btn` + `ui-btn-primary` / `-secondary` / `-danger` |
+| Settings-style list | `ui-group` + `ui-group-row` (+ title/desc/chevron) |
+| Tabs / Dark–Light | `ui-segmented` + `ui-segmented-btn` + `ui-segmented-btn-active` |
+| Empty / status | `ui-empty-state`, `ui-status-pill` |
+| Menu | `ui-dropdown-menu` + `ui-dropdown-option` |
+
+Bootstrap classes are for legacy form reboot only — not product buttons/cards.
+
+## CSS placement
+
+1. Token or reusable pattern → `app.css`
+2. One page layout → `{Page}.razor.css`
+3. Settings forms → `SettingsShell.razor.css` with `::deep` as needed
+
+Match existing motion: `--ui-duration*`, `--ui-ease-out` for enter; honor `prefers-reduced-motion`.
+
+## Theme
+
+Dark default on `:root`; light via `[data-theme="light"]`. New semantic tokens → **both** theme blocks.

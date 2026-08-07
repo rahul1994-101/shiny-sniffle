@@ -15,7 +15,10 @@ body.shell-sidebar-drawer-open {
     --ui-duration-fast: 120ms;
     --ui-duration: 180ms;
     --ui-duration-slow: 280ms;
+    --ui-duration-enter: 340ms;
     --ui-ease: cubic-bezier(0.4, 0, 0.2, 1);
+    --ui-ease-out: cubic-bezier(0, 0, 0.2, 1);
+    --ui-ease-emphasized: cubic-bezier(0.2, 0, 0, 1);
     --ui-space-1: 0.25rem;
     --ui-space-2: 0.5rem;
     --ui-space-3: 0.75rem;
@@ -37,21 +40,31 @@ body.shell-sidebar-drawer-open {
 [data-theme="dark"] {
     color-scheme: dark;
 
-    --app-glass-blur: 14px;
+    --app-glass-blur: 18px;
+    --app-glass-blur-chrome: 18px;
+    --app-glass-blur-panel: 12px;
+    --app-glass-blur-float: 22px;
+    --app-glass-saturate: 1.2;
+    --app-glass-saturate-soft: 1.1;
+    --app-glass-highlight: rgba(255, 255, 255, 0.07);
+    --app-glass-scrim: rgba(28, 28, 30, 0.42);
 
-    --app-fg: #f2f2f3;
-    --app-muted: #9a9aa4;
-    --app-border: rgba(255, 255, 255, 0.1);
-    --app-border-strong: rgba(255, 255, 255, 0.16);
-    --app-sidebar-bg: rgba(20, 20, 22, 0.78);
+    --app-fg: #f4f4f5;
+    --app-muted: #a8a8b2;
+    --app-fg-subtle: #8e8e98;
+    --app-border: rgba(255, 255, 255, 0.12);
+    --app-border-strong: rgba(255, 255, 255, 0.2);
+    --app-sidebar-bg: rgba(22, 22, 24, 0.68);
     --app-sidebar-chrome: rgba(0, 0, 0, 0.18);
     --app-sidebar-hover: rgba(255, 255, 255, 0.06);
     --app-sidebar-active: rgba(255, 255, 255, 0.1);
-    --app-main-bg: #1c1c1e;
-    --app-main-gradient: radial-gradient(ellipse 85% 45% at 50% -15%, rgba(16, 163, 127, 0.09), transparent);
-    --app-surface: rgba(42, 42, 44, 0.82);
-    --app-surface-elevated: rgba(52, 52, 54, 0.88);
-    --app-surface-muted: rgba(0, 0, 0, 0.22);
+    --app-main-bg: #18181a;
+    --app-main-gradient:
+        radial-gradient(ellipse 90% 50% at 50% -20%, rgba(16, 163, 127, 0.11), transparent 55%),
+        radial-gradient(ellipse 60% 40% at 100% 0%, rgba(84, 54, 218, 0.06), transparent 50%);
+    --app-surface: rgba(44, 44, 46, 0.76);
+    --app-surface-elevated: rgba(56, 56, 58, 0.88);
+    --app-surface-muted: rgba(255, 255, 255, 0.06);
     --app-surface-subtle: rgba(255, 255, 255, 0.04);
     --app-overlay-hover: rgba(255, 255, 255, 0.06);
     --app-overlay-active: rgba(255, 255, 255, 0.1);
@@ -62,7 +75,7 @@ body.shell-sidebar-drawer-open {
     --app-input-bg: rgba(0, 0, 0, 0.32);
     --app-input-border: rgba(255, 255, 255, 0.12);
     --app-input-border-hover: rgba(255, 255, 255, 0.2);
-    --app-focus-ring: color-mix(in srgb, var(--app-accent) 35%, transparent);
+    --app-focus-ring: color-mix(in srgb, var(--app-accent) 42%, transparent);
     --app-focus-ring-shadow: 0 0 0 2px var(--app-focus-ring);
     /* Elevation: 1 = resting cards/chrome, 2 = floats/menus, 3 = modals/drawer. */
     --app-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.28), 0 4px 14px rgba(0, 0, 0, 0.2);
@@ -78,16 +91,16 @@ body.shell-sidebar-drawer-open {
     --app-accent: #10a37f;
     --app-accent-hover: #0d8f6e;
     --app-on-accent: #ffffff;
-    --app-link: #7dd3fc;
-    --app-link-hover: #bae6fd;
+    --app-link: #8ed4f8;
+    --app-link-hover: #c5eaff;
     --app-danger: #f87171;
     --app-danger-fg: #fecaca;
     --app-danger-bg: rgba(248, 113, 113, 0.14);
     --app-danger-border: rgba(248, 113, 113, 0.4);
-    --app-success-fg: #86efac;
-    --app-warning-border: rgba(251, 191, 36, 0.35);
-    --app-warning-bg: rgba(251, 191, 36, 0.08);
-    --app-warning-fg: #fbbf24;
+    --app-success-fg: #9ae6b0;
+    --app-warning-border: rgba(251, 191, 36, 0.38);
+    --app-warning-bg: rgba(251, 191, 36, 0.1);
+    --app-warning-fg: #fcd34d;
     --app-code-block-bg: rgba(0, 0, 0, 0.28);
     --app-code-inline-bg: rgba(0, 0, 0, 0.22);
     --app-markdown-quote-bg: var(--app-surface-muted);
@@ -104,7 +117,7 @@ body.shell-sidebar-drawer-open {
     --app-composer-focus-shadow: var(--app-elev-2), 0 0 0 1px color-mix(in srgb, var(--app-accent) 22%, transparent);
     --app-page-max: min(100%, 56rem);
     --app-page-pad-x: 1rem;
-    --app-page-header-bg: rgba(34, 34, 36, 0.72);
+    --app-page-header-bg: rgba(36, 36, 38, 0.58);
     --app-page-header-border: var(--app-border);
     --app-scrollbar-thumb: rgba(255, 255, 255, 0.16);
     --app-skeleton-a: rgba(255, 255, 255, 0.04);
@@ -114,21 +127,31 @@ body.shell-sidebar-drawer-open {
 [data-theme="light"] {
     color-scheme: light;
 
-    --app-glass-blur: 14px;
+    --app-glass-blur: 16px;
+    --app-glass-blur-chrome: 16px;
+    --app-glass-blur-panel: 11px;
+    --app-glass-blur-float: 20px;
+    --app-glass-saturate: 1.15;
+    --app-glass-saturate-soft: 1.06;
+    --app-glass-highlight: rgba(255, 255, 255, 0.75);
+    --app-glass-scrim: rgba(255, 255, 255, 0.55);
 
-    --app-fg: #111113;
-    --app-muted: #5c5c66;
-    --app-border: rgba(0, 0, 0, 0.08);
-    --app-border-strong: rgba(0, 0, 0, 0.14);
-    --app-sidebar-bg: rgba(246, 246, 248, 0.82);
+    --app-fg: #0f0f11;
+    --app-muted: #484852;
+    --app-fg-subtle: #5f5f6a;
+    --app-border: rgba(0, 0, 0, 0.1);
+    --app-border-strong: rgba(0, 0, 0, 0.16);
+    --app-sidebar-bg: rgba(250, 250, 252, 0.72);
     --app-sidebar-chrome: rgba(255, 255, 255, 0.45);
     --app-sidebar-hover: rgba(0, 0, 0, 0.05);
     --app-sidebar-active: rgba(0, 0, 0, 0.07);
-    --app-main-bg: #ebebef;
-    --app-main-gradient: radial-gradient(ellipse 85% 45% at 50% -15%, rgba(13, 150, 111, 0.06), transparent);
-    --app-surface: rgba(255, 255, 255, 0.78);
-    --app-surface-elevated: rgba(255, 255, 255, 0.92);
-    --app-surface-muted: rgba(255, 255, 255, 0.55);
+    --app-main-bg: #e4e4ea;
+    --app-main-gradient:
+        radial-gradient(ellipse 90% 50% at 50% -20%, rgba(13, 150, 111, 0.09), transparent 55%),
+        radial-gradient(ellipse 55% 35% at 100% 0%, rgba(84, 54, 218, 0.05), transparent 50%);
+    --app-surface: rgba(255, 255, 255, 0.82);
+    --app-surface-elevated: rgba(255, 255, 255, 0.94);
+    --app-surface-muted: rgba(255, 255, 255, 0.72);
     --app-surface-subtle: rgba(0, 0, 0, 0.02);
     --app-overlay-hover: rgba(0, 0, 0, 0.04);
     --app-overlay-active: rgba(0, 0, 0, 0.06);
@@ -139,7 +162,7 @@ body.shell-sidebar-drawer-open {
     --app-input-bg: rgba(255, 255, 255, 0.72);
     --app-input-border: rgba(0, 0, 0, 0.12);
     --app-input-border-hover: rgba(0, 0, 0, 0.2);
-    --app-focus-ring: color-mix(in srgb, var(--app-accent) 28%, transparent);
+    --app-focus-ring: color-mix(in srgb, var(--app-accent) 34%, transparent);
     --app-focus-ring-shadow: 0 0 0 2px var(--app-focus-ring);
     --app-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06), 0 2px 10px rgba(0, 0, 0, 0.05);
     --app-shadow-md: 0 4px 16px rgba(0, 0, 0, 0.08), 0 12px 32px rgba(0, 0, 0, 0.06);
@@ -154,8 +177,8 @@ body.shell-sidebar-drawer-open {
     --app-accent: #0d966f;
     --app-accent-hover: #0a7d5c;
     --app-on-accent: #ffffff;
-    --app-link: #0878a8;
-    --app-link-hover: #065a7d;
+    --app-link: #056494;
+    --app-link-hover: #034261;
     --app-danger: #dc2626;
     --app-danger-fg: #b91c1c;
     --app-danger-bg: rgba(220, 38, 38, 0.08);
@@ -178,11 +201,33 @@ body.shell-sidebar-drawer-open {
     --app-composer-shadow: var(--app-elev-1);
     --app-composer-focus-border: color-mix(in srgb, var(--app-accent) 45%, transparent);
     --app-composer-focus-shadow: var(--app-elev-2), 0 0 0 1px color-mix(in srgb, var(--app-accent) 18%, transparent);
-    --app-page-header-bg: rgba(246, 246, 248, 0.76);
+    --app-page-header-bg: rgba(255, 255, 255, 0.68);
     --app-page-header-border: var(--app-border);
     --app-scrollbar-thumb: rgba(0, 0, 0, 0.16);
     --app-skeleton-a: rgba(0, 0, 0, 0.04);
     --app-skeleton-b: rgba(0, 0, 0, 0.07);
+}
+
+/* Glass backdrop tiers (gradient on .content shows through translucent panels). */
+.app-glass-chrome {
+    -webkit-backdrop-filter: blur(var(--app-glass-blur-chrome)) saturate(var(--app-glass-saturate));
+    backdrop-filter: blur(var(--app-glass-blur-chrome)) saturate(var(--app-glass-saturate));
+}
+
+.app-glass-panel {
+    -webkit-backdrop-filter: blur(var(--app-glass-blur-panel)) saturate(var(--app-glass-saturate-soft));
+    backdrop-filter: blur(var(--app-glass-blur-panel)) saturate(var(--app-glass-saturate-soft));
+}
+
+.app-glass-float {
+    -webkit-backdrop-filter: blur(var(--app-glass-blur-float)) saturate(var(--app-glass-saturate));
+    backdrop-filter: blur(var(--app-glass-blur-float)) saturate(var(--app-glass-saturate));
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    html {
+        scroll-behavior: smooth;
+    }
 }
 
 /* Standard page chrome (settings, dashboard, automations — not chat). */
@@ -202,10 +247,10 @@ body.shell-sidebar-drawer-open {
     margin: var(--ui-space-2) var(--app-page-pad-x) var(--ui-space-3);
     border: 1px solid var(--app-page-header-border);
     border-radius: var(--ui-radius-md);
-    background: var(--app-page-header-bg);
-    -webkit-backdrop-filter: blur(var(--app-glass-blur)) saturate(1.15);
-    backdrop-filter: blur(var(--app-glass-blur)) saturate(1.15);
-    box-shadow: var(--app-elev-1);
+    background: color-mix(in srgb, var(--app-page-header-bg) 88%, var(--app-glass-scrim));
+    box-shadow: var(--app-elev-1), inset 0 1px 0 var(--app-glass-highlight);
+    -webkit-backdrop-filter: blur(var(--app-glass-blur-chrome)) saturate(var(--app-glass-saturate));
+    backdrop-filter: blur(var(--app-glass-blur-chrome)) saturate(var(--app-glass-saturate));
 }
 
 .app-page-header-inner {
@@ -243,12 +288,18 @@ body.shell-sidebar-drawer-open {
 }
 
 @media (prefers-reduced-motion: no-preference) {
+    .app-page-header {
+        animation: ui-chrome-in var(--ui-duration-enter) var(--ui-ease-out) both;
+    }
+
     .app-page-body-inner {
-        animation: ui-page-in var(--ui-duration-slow) var(--ui-ease);
+        animation: ui-page-in var(--ui-duration-enter) var(--ui-ease-out) both;
+        animation-delay: 40ms;
     }
 }
 
 @media (prefers-reduced-motion: reduce) {
+    .app-page-header,
     .app-page-body-inner {
         animation: none;
     }
@@ -257,16 +308,27 @@ body.shell-sidebar-drawer-open {
     *::before,
     *::after {
         scroll-behavior: auto !important;
-        transition-duration: 0.01ms !important;
         animation-duration: 0.01ms !important;
         animation-iteration-count: 1 !important;
+    }
+}
+
+@keyframes ui-chrome-in {
+    from {
+        opacity: 0;
+        transform: translateY(-6px);
+    }
+
+    to {
+        opacity: 1;
+        transform: none;
     }
 }
 
 @keyframes ui-page-in {
     from {
         opacity: 0;
-        transform: translateY(4px);
+        transform: translateY(8px);
     }
 
     to {
@@ -364,6 +426,11 @@ body.shell-sidebar-drawer-open {
     max-width: 48rem;
 }
 
+.app-page-breadcrumb-item,
+.app-page-breadcrumb-item:not(:last-child)::after {
+    color: var(--app-fg-subtle);
+}
+
 @media (min-width: 641px) {
     .app-page-title {
         font-size: clamp(1.375rem, 2.5vw, 1.625rem);
@@ -454,11 +521,11 @@ body.app-login-page {
 .ui-group {
     border: 1px solid var(--app-border);
     border-radius: var(--ui-radius-md);
-    background: var(--app-surface);
+    background: color-mix(in srgb, var(--app-surface) 92%, var(--app-glass-scrim));
     overflow: hidden;
-    box-shadow: var(--app-elev-1);
-    -webkit-backdrop-filter: blur(calc(var(--app-glass-blur) * 0.65));
-    backdrop-filter: blur(calc(var(--app-glass-blur) * 0.65));
+    box-shadow: var(--app-elev-1), inset 0 1px 0 var(--app-glass-highlight);
+    -webkit-backdrop-filter: blur(var(--app-glass-blur-panel)) saturate(var(--app-glass-saturate-soft));
+    backdrop-filter: blur(var(--app-glass-blur-panel)) saturate(var(--app-glass-saturate-soft));
 }
 
 .ui-group-row,
@@ -472,15 +539,36 @@ body.app-login-page {
     padding: 0.95rem 1.1rem;
     color: var(--app-fg);
     text-decoration: none;
-    transition: background var(--ui-duration) var(--ui-ease);
+    transition:
+        background var(--ui-duration) var(--ui-ease),
+        color var(--ui-duration) var(--ui-ease),
+        box-shadow var(--ui-duration) var(--ui-ease);
+}
+
+.ui-group-row:hover,
+.ui-group-row.active {
+    background: var(--app-overlay-hover);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .ui-group-row {
+        transition:
+            background var(--ui-duration) var(--ui-ease-out),
+            color var(--ui-duration) var(--ui-ease-out),
+            transform var(--ui-duration-fast) var(--ui-ease-out);
+    }
+
+    .ui-group-row:hover {
+        transform: translateX(2px);
+    }
+
+    .ui-group-row:active {
+        transform: none;
+    }
 }
 
 .ui-group-row:not(:last-child) {
     border-bottom: 1px solid var(--app-border);
-}
-
-.ui-group-row:hover {
-    background: var(--app-overlay-hover);
 }
 
 .ui-group-row-static,
@@ -499,7 +587,7 @@ body.app-login-page {
     margin-top: 0.15rem;
     font-size: 0.8125rem;
     font-weight: 400;
-    color: var(--app-muted);
+    color: var(--app-fg-subtle);
 }
 
 .ui-group-row-chevron {
@@ -712,7 +800,8 @@ button.ui-segmented-btn-active {
         color var(--ui-duration) var(--ui-ease),
         opacity var(--ui-duration) var(--ui-ease),
         filter var(--ui-duration) var(--ui-ease),
-        box-shadow var(--ui-duration) var(--ui-ease);
+        box-shadow var(--ui-duration) var(--ui-ease),
+        transform var(--ui-duration-fast) var(--ui-ease-out);
 }
 
 .ui-btn:focus-visible {
@@ -736,6 +825,21 @@ button.ui-segmented-btn-active {
     background: var(--app-accent-hover);
     border-color: var(--app-accent-hover);
     filter: brightness(1.03);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .ui-btn:not(:disabled):active {
+        transform: scale(0.985);
+    }
+
+    .ui-segmented-btn-active,
+    button.ui-segmented-btn-active {
+        transition:
+            background var(--ui-duration) var(--ui-ease-out),
+            color var(--ui-duration) var(--ui-ease-out),
+            box-shadow var(--ui-duration) var(--ui-ease-out),
+            transform var(--ui-duration-fast) var(--ui-ease-emphasized);
+    }
 }
 
 .ui-btn-primary:focus-visible {
@@ -829,11 +933,11 @@ button.ui-segmented-btn-active {
 
 /* Floating dropdown panels (settings provider picker, chat agent, etc.). */
 .ui-dropdown-menu {
-    background: var(--app-surface-elevated);
+    background: color-mix(in srgb, var(--app-surface-elevated) 90%, var(--app-glass-scrim));
     border: 1px solid var(--app-border);
-    box-shadow: var(--app-elev-2);
-    -webkit-backdrop-filter: blur(var(--app-glass-blur)) saturate(1.15);
-    backdrop-filter: blur(var(--app-glass-blur)) saturate(1.15);
+    box-shadow: var(--app-elev-2), inset 0 1px 0 var(--app-glass-highlight);
+    -webkit-backdrop-filter: blur(var(--app-glass-blur-float)) saturate(var(--app-glass-saturate));
+    backdrop-filter: blur(var(--app-glass-blur-float)) saturate(var(--app-glass-saturate));
 }
 
 .ui-dropdown-option {

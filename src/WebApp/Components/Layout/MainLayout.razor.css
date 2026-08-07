@@ -4,6 +4,7 @@
     flex-direction: column;
     min-height: 100vh;
     background: var(--app-main-bg);
+    background-image: var(--app-main-gradient);
     color: var(--app-fg);
 }
 
@@ -52,8 +53,8 @@ main {
 
 .app-chat-layout ::deep .sidebar {
     background: var(--app-sidebar-bg);
-    -webkit-backdrop-filter: blur(var(--app-glass-blur)) saturate(1.12);
-    backdrop-filter: blur(var(--app-glass-blur)) saturate(1.12);
+    -webkit-backdrop-filter: blur(var(--app-glass-blur-chrome)) saturate(var(--app-glass-saturate));
+    backdrop-filter: blur(var(--app-glass-blur-chrome)) saturate(var(--app-glass-saturate));
     display: flex;
     flex-direction: column;
     min-height: 0;
@@ -103,10 +104,10 @@ main {
         gap: var(--ui-space-2);
         border: 1px solid var(--app-border);
         border-radius: var(--ui-radius-md);
-        background: var(--app-surface);
-        box-shadow: var(--app-elev-1);
-        -webkit-backdrop-filter: blur(calc(var(--app-glass-blur) * 0.55));
-        backdrop-filter: blur(calc(var(--app-glass-blur) * 0.55));
+        background: color-mix(in srgb, var(--app-surface) 90%, var(--app-glass-scrim));
+        box-shadow: var(--app-elev-1), inset 0 1px 0 var(--app-glass-highlight);
+        -webkit-backdrop-filter: blur(var(--app-glass-blur-panel)) saturate(var(--app-glass-saturate-soft));
+        backdrop-filter: blur(var(--app-glass-blur-panel)) saturate(var(--app-glass-saturate-soft));
         overflow: hidden;
         box-sizing: border-box;
     }
