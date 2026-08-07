@@ -17,7 +17,8 @@ src/WebApp/               Blazor UI, Endpoints, Startup
 |-----|---------|
 | [`.cursor/rules/`](.cursor/rules/) | Coding conventions — one rule file per project |
 | [`lib/MediatR/README.md`](lib/MediatR/README.md) | CQRS lib API and version roadmap |
-| [`docs/README.md`](docs/README.md) | Feature roadmaps (AI memory, email read) |
+| [`docs/product.md`](docs/product.md) | Business / product spec (single doc) |
+| [`docs/README.md`](docs/README.md) | Technical roadmaps index |
 
 ## Quick start
 

@@ -4,14 +4,15 @@ using Application.AI.Tools;
 
 namespace Application.AI.Agents;
 
-public sealed class EmailAgent(IFoundryAgentFactory _agentFactory, EmailTools _emailTools)
+/// <summary>Email Triage system — mailbox ingest, prioritize, and act via tools.</summary>
+public sealed class EmailTriageAgent(IFoundryAgentFactory _agentFactory, EmailTriageTools _emailTools)
 {
     public async Task<RunChatAgentResponse> RunAsync(RunChatAgentRequest request, IReadOnlyList<Microsoft.Extensions.AI.ChatMessage> history, CancellationToken cancellationToken = default)
     {
         #region # Execute
 
         var tools = _emailTools.CreateTools(request.UserId, request.ChatThreadId);
-        var agent = CreateEmailAgent(tools);
+        var agent = CreateFoundryAgent(tools);
         var messages = history.ToList();
         var response = await agent.RunAsync(messages, cancellationToken: cancellationToken);
 
@@ -164,7 +165,7 @@ public sealed class EmailAgent(IFoundryAgentFactory _agentFactory, EmailTools _e
 
     #region # Private Helpers
 
-    private AIAgent CreateEmailAgent(IList<AITool> tools)
+    private AIAgent CreateFoundryAgent(IList<AITool> tools)
     {
         var modelDeployment = FoundryDeployments.Gpt54Mini;
         var name = "Email";

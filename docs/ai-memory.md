@@ -2,7 +2,7 @@
 
 Four context layers injected into each agent turn — in addition to the current user message.
 
-**Integration point:** `ChatOrchestrator` composes layers before `AssistantAgent` / `EmailAgent` `RunAsync`.  
+**Integration point:** `ChatOrchestrator` composes layers before `AssistantAgent` / `EmailTriageAgent` `RunAsync`.  
 **Code home:** `src/Application/AI/Memory/`. No MediatR lib changes.
 
 ## Stack order (target)

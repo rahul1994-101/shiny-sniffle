@@ -11,7 +11,7 @@ public sealed class ChatOrchestrator(
     ChatMessageRepository chatMessageRepo,
     ThreadMemoryService threadMemory,
     AssistantAgent assistantAgent,
-    EmailAgent emailAgent)
+    EmailTriageAgent emailTriageAgent)
 {
     public async Task<RunChatAgentResponse> RunChatAgentAsync(RunChatAgentRequest request, CancellationToken cancellationToken = default)
     {
@@ -35,7 +35,7 @@ public sealed class ChatOrchestrator(
         history = await threadMemory.EnrichHistoryAsync(request.ChatThreadId, history, cancellationToken);
         var response = request.ChatAgent switch
         {
-            ChatAgent.Email => await emailAgent.RunAsync(request, history, cancellationToken),
+            ChatAgent.Email => await emailTriageAgent.RunAsync(request, history, cancellationToken),
             _ => await assistantAgent.RunAsync(request, history, cancellationToken)
         };
 

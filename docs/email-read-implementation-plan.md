@@ -1,6 +1,6 @@
 # Email read — implementation plan
 
-> Index: [docs/README.md](README.md) · Memory layers: [ai-memory.md](ai-memory.md)
+> Index: [docs/README.md](README.md) · Business: [product.md](product.md) · Memory layers: [ai-memory.md](ai-memory.md)
 
 Roadmap for mailbox **read** capabilities: Email agent + `UserMailboxService` / `MailKitMailboxService` / `EmailTools`.
 

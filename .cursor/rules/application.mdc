@@ -261,10 +261,10 @@ Roadmaps: `docs/ai-memory.md`, `docs/email-read-implementation-plan.md`.
 | Folder | Entry | Notes |
 |--------|-------|-------|
 | **AI/** root | `ChatOrchestrator.RunChatAgentAsync` | Turn routing |
-| **Agents/** | `RunAsync` | `Create{Role}Agent` private; `# Supported User Prompts` catalog |
-| **Tools/** | `CreateTools` | MAF tools; no LLM |
-| **Memory/** | `LoadAsync` / `RefreshAsync` | No LLM — see `docs/ai-memory.md` |
-| **Workflows/** | `RunAsync` | Multi-step |
+| **Agents/** | `RunAsync` | `{Domain}TriageAgent` or `{Role}Agent` — see `AI/Agents/README.md` |
+| **Tools/** | `CreateTools` | `{Domain}TriageTools` for triage; MAF tools, no LLM |
+| **Memory/** | `EnrichHistoryAsync` / `RefreshAsync` | No LLM — see `docs/ai-memory.md` |
+| **Workflows/** | `RunAsync` | Cross-cutting multi-step (not single agent turn) |
 
 Register in `AddApplication()` only. Foundry factory in Infrastructure.
 
@@ -291,4 +291,4 @@ Constructor: underscore prefix on injected params (`_agentFactory`).
 
 ### Naming
 
-`{Role}Agent`, `{Domain}Tools`, `ChatOrchestrator`, `{entity}Repo` for injected repos, `RunChatAgentAsync` / `RunAsync` / `CreateTools`.
+`{Role}Agent` (non-triage), `{System}TriageAgent`, `{System}TriageTools`, `ChatOrchestrator`, `{entity}Repo` for injected repos, `RunChatAgentAsync` / `RunAsync` / `CreateTools`.

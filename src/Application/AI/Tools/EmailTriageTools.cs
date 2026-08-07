@@ -1,11 +1,10 @@
 using Microsoft.Extensions.AI;
 using System.ComponentModel;
 using System.Net.Mail;
-using Application.Features.Shared;
 
 namespace Application.AI.Tools;
 
-public sealed class EmailTools(UserMailboxService _mailboxService)
+public sealed class EmailTriageTools(UserMailboxService _mailboxService)
 {
     public IList<AITool> CreateTools(Guid userId, Guid chatThreadId)
     {

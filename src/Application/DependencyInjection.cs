@@ -44,10 +44,10 @@ public static class DependencyInjection
 
         #region AI
 
-        services.AddScoped<EmailTools>();
+        services.AddScoped<EmailTriageTools>();
+        services.AddScoped<EmailTriageAgent>();
         services.AddScoped<ThreadMemoryService>();
         services.AddScoped<AssistantAgent>();
-        services.AddScoped<EmailAgent>();
         services.AddScoped<ChatOrchestrator>();
 
         #endregion
