@@ -79,6 +79,11 @@ body.shell-sidebar-drawer-open {
     --app-success-fg: #86efac;
     --app-warning-border: rgba(251, 191, 36, 0.35);
     --app-warning-bg: rgba(251, 191, 36, 0.08);
+    --app-warning-fg: #fbbf24;
+    --app-code-block-bg: rgba(0, 0, 0, 0.28);
+    --app-code-inline-bg: rgba(0, 0, 0, 0.22);
+    --app-markdown-quote-bg: var(--app-surface-muted);
+    --app-msg-shadow: var(--app-shadow-sm);
     --app-user-avatar-bg: #19c37d;
     --app-user-avatar-fg: #0d0d0d;
     --app-assistant-avatar-bg: #5436da;
@@ -143,6 +148,11 @@ body.shell-sidebar-drawer-open {
     --app-success-fg: #15803d;
     --app-warning-border: rgba(217, 119, 6, 0.35);
     --app-warning-bg: rgba(251, 191, 36, 0.12);
+    --app-warning-fg: #b45309;
+    --app-code-block-bg: rgba(0, 0, 0, 0.06);
+    --app-code-inline-bg: rgba(0, 0, 0, 0.08);
+    --app-markdown-quote-bg: var(--app-surface-muted);
+    --app-msg-shadow: var(--app-shadow-sm);
     --app-user-avatar-bg: #19c37d;
     --app-user-avatar-fg: #0d0d0d;
     --app-assistant-avatar-bg: #5436da;
@@ -603,8 +613,8 @@ body.app-login-page {
     color: var(--app-muted);
 }
 
-.ui-empty-state .settings-btn-save,
-.ui-empty-state .settings-btn-secondary {
+.ui-empty-state .ui-btn-primary,
+.ui-empty-state .ui-btn-secondary {
     justify-self: center;
     margin-top: var(--ui-space-2);
 }
@@ -624,4 +634,131 @@ body.app-login-page {
 
 .ui-group-row-danger .ui-group-row-title {
     color: var(--app-danger-fg);
+}
+
+/* Shared buttons (settings, auth, status pages, chat send). */
+.ui-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--ui-space-2);
+    min-height: 2.5rem;
+    padding: 0.5rem 1.15rem;
+    border: 1px solid transparent;
+    border-radius: var(--ui-radius-sm);
+    font: inherit;
+    font-size: var(--ui-type-body);
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    line-height: 1.2;
+    text-decoration: none !important;
+    cursor: pointer;
+    box-sizing: border-box;
+    transition:
+        background-color var(--ui-duration) var(--ui-ease),
+        border-color var(--ui-duration) var(--ui-ease),
+        color var(--ui-duration) var(--ui-ease),
+        opacity var(--ui-duration) var(--ui-ease),
+        filter var(--ui-duration) var(--ui-ease);
+}
+
+.ui-btn:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--app-focus-ring);
+}
+
+.ui-btn:disabled {
+    opacity: 0.7;
+    cursor: wait;
+}
+
+.ui-btn-primary {
+    color: var(--app-on-accent);
+    background: var(--app-accent);
+    border-color: color-mix(in srgb, var(--app-accent) 85%, black);
+}
+
+.ui-btn-primary:hover:not(:disabled) {
+    background: var(--app-accent-hover);
+    border-color: var(--app-accent-hover);
+}
+
+.ui-btn-secondary {
+    color: var(--app-fg);
+    background: transparent;
+    border-color: var(--app-border);
+    font-weight: 600;
+}
+
+.ui-btn-secondary:hover:not(:disabled) {
+    background: var(--app-overlay-hover);
+    border-color: var(--app-border-strong);
+}
+
+.ui-btn-danger {
+    color: var(--app-danger-fg);
+    background: var(--app-danger-bg);
+    border-color: var(--app-danger-border);
+    font-weight: 500;
+}
+
+.ui-btn-danger:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--app-danger-bg) 70%, var(--app-danger) 30%);
+    border-color: var(--app-danger-border);
+}
+
+.ui-btn-icon {
+    min-height: 0;
+    width: 2.35rem;
+    height: 2.35rem;
+    padding: 0;
+    flex-shrink: 0;
+}
+
+.ui-btn-block {
+    width: 100%;
+}
+
+.ui-btn-lg {
+    min-height: 2.75rem;
+    padding: 0.625rem 1rem;
+    font-size: 1rem;
+}
+
+/* Rich static rows inside ui-group (metadata + actions). */
+.ui-list-row-rich {
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: var(--ui-space-3);
+}
+
+.ui-list-row-rich-body {
+    flex: 1 1 12rem;
+    min-width: 0;
+}
+
+.ui-list-row-rich-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--ui-space-2);
+    flex-shrink: 0;
+}
+
+.ui-list-row-meta {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem 0.5rem;
+}
+
+.ui-list-row-badge {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 0.12rem 0.4rem;
+    border-radius: var(--ui-radius-xs);
+    background: var(--app-surface-muted);
+    color: var(--app-muted);
 }

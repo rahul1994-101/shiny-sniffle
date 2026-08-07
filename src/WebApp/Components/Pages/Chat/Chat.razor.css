@@ -258,55 +258,10 @@
 
 
 
-.chat-send {
-
-    flex-shrink: 0;
-
-    width: 2.35rem;
-
-    height: 2.35rem;
-
-    border: none;
-
-    border-radius: var(--ui-radius-sm);
-
-    background: var(--app-accent);
-
-    color: var(--app-on-accent);
-
-    cursor: pointer;
-
-    display: flex;
-
-    align-items: center;
-
-    justify-content: center;
-
-    transition:
-        background var(--ui-duration) var(--ui-ease),
-        opacity var(--ui-duration) var(--ui-ease);
-
-}
-
-
-
 .chat-send:disabled {
-
     opacity: 0.35;
-
     cursor: not-allowed;
-
 }
-
-
-
-.chat-send:not(:disabled):hover {
-
-    background: var(--app-accent-hover);
-
-}
-
-
 
 .chat-send-svg {
 

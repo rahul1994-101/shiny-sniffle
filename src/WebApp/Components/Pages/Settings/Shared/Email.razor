@@ -231,13 +231,13 @@ else
 
         <div class="settings-card-footer settings-actions">
             <button type="button"
-                    class="settings-btn-save"
+                    class="ui-btn ui-btn-primary"
                     disabled="@(!CanSaveEmail)"
                     @onclick="SaveAsync">
                 @(_saving ? "Saving…" : "Save email settings")
             </button>
             <button type="button"
-                    class="settings-btn-secondary"
+                    class="ui-btn ui-btn-secondary"
                     disabled="@IsFormBusy"
                     @onclick="TestConnectionAsync">
                 @(_testing ? "Testing…" : "Test connection")

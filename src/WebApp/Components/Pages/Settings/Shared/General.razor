@@ -94,7 +94,7 @@ else
 
             <div class="settings-card-footer">
                 <button type="button"
-                        class="settings-btn-save"
+                        class="ui-btn ui-btn-primary"
                         disabled="@(!CanSaveProfile)"
                         @onclick="SaveProfileAsync">
                     @(_profileSaving ? "Saving…" : "Save profile")
@@ -203,7 +203,7 @@ else
 
             <div class="settings-card-footer">
                 <button type="button"
-                        class="settings-btn-save"
+                        class="ui-btn ui-btn-primary"
                         disabled="@(!CanChangePassword)"
                         @onclick="ChangePasswordAsync">
                     @(_passwordSaving ? "Updating…" : "Update password")

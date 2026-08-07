@@ -87,27 +87,14 @@
 #components-reconnect-modal p {
     margin: 0;
     text-align: center;
+    color: var(--app-muted);
+    font-size: var(--ui-type-body);
+    line-height: 1.45;
 }
 
-#components-reconnect-modal button {
-    border: 1px solid color-mix(in srgb, var(--app-accent) 85%, black);
-    background-color: var(--app-accent);
-    color: var(--app-on-accent);
-    padding: 0.45rem 1.25rem;
-    border-radius: var(--ui-radius-sm);
-    font: inherit;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background-color var(--ui-duration) var(--ui-ease);
+#components-reconnect-modal .ui-btn {
+    min-width: 6.5rem;
 }
-
-    #components-reconnect-modal button:hover {
-        background-color: var(--app-accent-hover);
-    }
-
-    #components-reconnect-modal button:active {
-        background-color: var(--app-accent);
-    }
 
 .components-rejoining-animation {
     position: relative;

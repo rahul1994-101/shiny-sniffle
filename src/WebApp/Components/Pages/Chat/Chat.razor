@@ -34,7 +34,7 @@
                                    SendInProgress="_sending"
                                    @bind-Value="_chatAgent" />
                 <button type="button"
-                        class="chat-send"
+                        class="ui-btn ui-btn-primary ui-btn-icon chat-send"
                         @onclick="SendAsync"
                         disabled="@(_sending || string.IsNullOrWhiteSpace(_draft))"
                         title="Send (Enter)"

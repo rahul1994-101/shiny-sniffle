@@ -23,7 +23,7 @@ else
                     <p class="ui-empty-state-title">No providers yet</p>
                     <p class="ui-empty-state-lead">Add a template or run the database migration to seed defaults.</p>
                     <button type="button"
-                            class="settings-btn-save"
+                            class="ui-btn ui-btn-primary"
                             disabled="@IsFormBusy"
                             @onclick="BeginAdd">
                         Add provider
@@ -32,25 +32,25 @@ else
             }
             else
             {
-                <ul class="settings-provider-list" aria-label="Email providers">
+                <div class="ui-group" aria-label="Email providers">
                     @foreach (var provider in _providers)
                     {
-                        <li class="settings-provider-row">
-                            <div class="settings-provider-row-main">
-                                <span class="settings-provider-row-name">@provider.Name</span>
-                                <span class="settings-provider-row-slug">@provider.Slug</span>
-                                @if (provider.IsSystem)
-                                {
-                                    <span class="settings-provider-badge">System</span>
-                                }
+                        <div class="ui-group-row ui-group-row-static ui-list-row-rich">
+                            <div class="ui-list-row-rich-body">
+                                <span class="ui-list-row-meta">
+                                    <span class="ui-group-row-title">@provider.Name</span>
+                                    @if (provider.IsSystem)
+                                    {
+                                        <span class="ui-list-row-badge">System</span>
+                                    }
+                                </span>
+                                <span class="ui-group-row-desc">
+                                    @provider.Slug · IMAP @provider.ImapHost:@provider.ImapPort @(provider.ImapUseSsl ? "SSL" : "plain") · SMTP @provider.SmtpHost:@provider.SmtpPort @(provider.SmtpUseSsl ? "SSL" : "plain")
+                                </span>
                             </div>
-                            <div class="settings-provider-row-endpoints">
-                                <span>IMAP @provider.ImapHost:@provider.ImapPort @(provider.ImapUseSsl ? "SSL" : "plain")</span>
-                                <span>SMTP @provider.SmtpHost:@provider.SmtpPort @(provider.SmtpUseSsl ? "SSL" : "plain")</span>
-                            </div>
-                            <div class="settings-provider-row-actions">
+                            <div class="ui-list-row-rich-actions">
                                 <button type="button"
-                                        class="settings-btn-secondary settings-provider-row-btn"
+                                        class="ui-btn ui-btn-secondary settings-provider-row-btn"
                                         disabled="@IsFormBusy"
                                         @onclick="() => BeginEdit(provider)">
                                     Edit
@@ -58,23 +58,23 @@ else
                                 @if (!provider.IsSystem)
                                 {
                                     <button type="button"
-                                            class="settings-btn-danger settings-provider-row-btn"
+                                            class="ui-btn ui-btn-danger settings-provider-row-btn"
                                             disabled="@IsFormBusy"
                                             @onclick="() => DeleteAsync(provider)">
                                         Delete
                                     </button>
                                 }
                             </div>
-                        </li>
+                        </div>
                     }
-                </ul>
+                </div>
             }
 
             @if (_providers.Count > 0)
             {
                 <div class="settings-card-footer settings-provider-list-footer">
                     <button type="button"
-                            class="settings-btn-secondary"
+                            class="ui-btn ui-btn-secondary"
                             disabled="@IsFormBusy"
                             @onclick="BeginAdd">
                         Add provider
@@ -158,13 +158,13 @@ else
 
                 <div class="settings-card-footer settings-actions">
                     <button type="button"
-                            class="settings-btn-save"
+                            class="ui-btn ui-btn-primary"
                             disabled="@(!CanSaveEditor)"
                             @onclick="SaveEditorAsync">
                         @(_saving ? "Saving…" : "Save provider")
                     </button>
                     <button type="button"
-                            class="settings-btn-secondary"
+                            class="ui-btn ui-btn-secondary"
                             disabled="@IsFormBusy"
                             @onclick="CancelEditor">
                         Cancel

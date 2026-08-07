@@ -62,45 +62,8 @@
 .status-actions {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.65rem;
-    margin-bottom: 0.5rem;
-}
-
-.status-action {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0.55rem 1rem;
-    font-size: 0.875rem;
-    font-weight: 500;
-    border-radius: var(--ui-radius-sm);
-    text-decoration: none !important;
-    color: var(--app-fg) !important;
-    background: var(--app-accent);
-    border: 1px solid transparent;
-    transition:
-        filter var(--ui-duration) var(--ui-ease),
-        background var(--ui-duration) var(--ui-ease);
-}
-
-.status-action:hover {
-    filter: brightness(1.08);
-}
-
-.status-action-muted {
-    background: var(--app-control-bg);
-    border-color: var(--app-border);
-    color: var(--app-fg) !important;
-}
-
-.status-action-muted:hover {
-    background: var(--app-overlay-hover);
-    filter: none;
-}
-
-button.status-action {
-    cursor: pointer;
-    font-family: inherit;
+    gap: var(--ui-space-2);
+    margin-bottom: var(--ui-space-2);
 }
 
 .status-details {
