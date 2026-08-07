@@ -1,6 +1,6 @@
 ﻿namespace WebApp.Models;
 
-/// <summary>Settings page tab routes (<c>/settings/general</c>, <c>/settings/email</c>).</summary>
+/// <summary>Top-level settings hub areas (<c>/settings/general</c>, <c>/settings/email/…</c>).</summary>
 public enum SettingsSection
 {
     General = 0,

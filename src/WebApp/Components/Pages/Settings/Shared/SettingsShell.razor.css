@@ -5,136 +5,134 @@
 }
 
 .settings-shell {
-    flex: 1 1 0;
-    min-height: 0;
-    height: 100%;
-    max-width: 100%;
-    width: 100%;
-    overflow-x: hidden;
-    overflow-y: auto;
-    scrollbar-width: thin;
-    scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
-}
-
-.settings-shell::-webkit-scrollbar {
-    width: 8px;
-}
-
-.settings-shell::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-.settings-shell::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.15);
-    border-radius: 999px;
-}
-
-.settings-shell::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.25);
-}
-
-.settings-inner {
-    --settings-max: 100%;
-    --settings-pad-x: 1rem;
+    --settings-max: var(--app-page-max);
+    --settings-pad-x: var(--app-page-pad-x);
     --settings-pad-b: 2rem;
     --settings-block-gap: 1.25rem;
     --settings-col-min: 100%;
+    --settings-surface: rgba(255, 255, 255, 0.025);
+    --settings-surface-border: rgba(255, 255, 255, 0.07);
+    --settings-radius: 0.75rem;
+    --settings-radius-sm: 0.5rem;
+}
 
+.settings-shell .settings-section-nav {
     width: 100%;
-    max-width: var(--settings-max);
-    margin: 0 auto;
-    padding: 0.85rem var(--settings-pad-x) var(--settings-pad-b);
-    box-sizing: border-box;
+    margin: 0 0 1.25rem;
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    gap: 0;
+    justify-content: flex-start;
+    padding: 0;
+    border-bottom: 1px solid var(--settings-surface-border);
 }
 
-.settings-grid {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-areas:
-        "header"
-        "tabs"
-        "content";
-    row-gap: var(--settings-block-gap);
-    align-content: start;
-}
-
-.settings-grid > .settings-header {
-    grid-area: header;
-    margin-bottom: 0;
-}
-
-.settings-grid > .settings-tabs {
-    grid-area: tabs;
-    margin-bottom: 0;
-}
-
-.settings-grid > .settings-content {
-    grid-area: content;
+.settings-content {
     min-width: 0;
 }
 
-.settings-title {
-    font-size: 1.5rem;
+.settings-content ::deep .settings-hub {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.65rem;
+    min-width: 0;
+}
+
+.settings-shell .settings-section-nav ::deep a.settings-tab {
+    flex: 0 1 auto;
+    min-width: 5.5rem;
+    text-align: center;
+    padding: 0.6rem 1.05rem;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--app-muted) !important;
+    text-decoration: none !important;
+    border-radius: 0;
+    margin-bottom: -1px;
+    border-bottom: 2px solid transparent;
+    transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.settings-shell .settings-section-nav ::deep a.settings-tab:hover {
+    color: var(--app-fg) !important;
+    background: transparent;
+}
+
+.settings-shell .settings-section-nav ::deep a.settings-tab-active {
+    color: var(--app-fg) !important;
+    background: transparent;
+    box-shadow: none;
+    border-bottom-color: var(--app-accent);
     font-weight: 600;
-    letter-spacing: -0.03em;
-    margin: 0 0 0.35rem;
+}
+
+.settings-content ::deep .settings-hub-card {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem 1.15rem;
+    border: 1px solid var(--settings-surface-border);
+    border-radius: var(--settings-radius);
+    background: var(--settings-surface);
+    color: var(--app-fg) !important;
+    text-decoration: none !important;
+    transition: border-color 0.15s ease, background 0.15s ease, transform 0.15s ease;
+}
+
+.settings-content ::deep .settings-hub-card::after {
+    content: "→";
+    flex-shrink: 0;
+    font-size: 0.9375rem;
+    color: var(--app-muted);
+    transition: color 0.15s ease, transform 0.15s ease;
+}
+
+.settings-content ::deep .settings-hub-card:hover {
+    border-color: color-mix(in srgb, var(--app-accent) 28%, var(--settings-surface-border));
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.settings-content ::deep .settings-hub-card:hover::after {
+    color: var(--app-fg);
+    transform: translateX(2px);
+}
+
+.settings-content ::deep .settings-hub-card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+.settings-content ::deep .settings-hub-card-title {
+    font-size: 0.9375rem;
+    font-weight: 600;
     color: var(--app-fg);
 }
 
-.settings-subtitle {
-    margin: 0;
-    color: var(--app-muted);
-    font-size: 0.9rem;
+.settings-content ::deep .settings-hub-card-lead {
+    font-size: 0.8125rem;
     line-height: 1.45;
-}
-
-.settings-tabs {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.25rem;
-    width: 100%;
-    max-width: 100%;
-    padding: 0.25rem;
-    border: 1px solid var(--app-border);
-    border-radius: 0.625rem;
-    background: rgba(0, 0, 0, 0.22);
-}
-
-.settings-tabs ::deep a.settings-tab {
-    min-width: 0;
-    text-align: center;
-    padding: 0.55rem 1rem;
-    font-size: 0.875rem;
-    font-weight: 600;
-    color: var(--app-muted) !important;
-    text-decoration: none !important;
-    border-radius: 0.45rem;
-    transition: color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
-}
-
-.settings-tabs ::deep a.settings-tab:hover {
-    color: var(--app-fg) !important;
-    background: rgba(255, 255, 255, 0.05);
-}
-
-.settings-tabs ::deep a.settings-tab-active {
-    color: var(--app-fg) !important;
-    background: var(--app-surface);
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2), inset 0 0 0 1px var(--app-border);
+    color: var(--app-muted);
+    margin-top: 0.15rem;
 }
 
 .settings-content ::deep .settings-card {
-    border: 1px solid var(--app-border);
-    border-radius: 0.75rem;
-    padding: 1.1rem 1.2rem;
+    border: 1px solid var(--settings-surface-border);
+    border-radius: var(--settings-radius);
+    padding: 1.25rem 1.35rem;
     margin-bottom: 0.75rem;
-    background: var(--app-surface);
+    background: var(--settings-surface);
     width: 100%;
     box-sizing: border-box;
 }
 
 .settings-content ::deep .settings-card-muted {
-    background: rgba(0, 0, 0, 0.12);
+    background: rgba(0, 0, 0, 0.15);
 }
 
 .settings-content ::deep .settings-card > .settings-label:not(:first-child) {
@@ -142,12 +140,12 @@
 }
 
 .settings-content ::deep .settings-section-title {
-    font-size: 0.8125rem;
+    font-size: 0.9375rem;
     font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    margin: 0 0 0.35rem;
-    color: var(--app-muted);
+    text-transform: none;
+    letter-spacing: -0.01em;
+    margin: 0 0 0.5rem;
+    color: var(--app-fg);
 }
 
 .settings-content ::deep .settings-section-lead {
@@ -267,13 +265,15 @@
 }
 
 .settings-content ::deep .settings-link {
-    color: #7dd3fc;
-    text-decoration: underline;
-    text-underline-offset: 0.12em;
+    color: color-mix(in srgb, var(--app-accent) 75%, var(--app-fg));
+    text-decoration: none;
+    border-bottom: 1px solid color-mix(in srgb, var(--app-accent) 35%, transparent);
+    transition: color 0.15s ease, border-color 0.15s ease;
 }
 
 .settings-content ::deep .settings-link:hover {
-    color: #bae6fd;
+    color: var(--app-accent);
+    border-bottom-color: color-mix(in srgb, var(--app-accent) 55%, transparent);
 }
 
 .settings-content ::deep .settings-status-strip {
@@ -281,10 +281,10 @@
     flex-wrap: wrap;
     align-items: baseline;
     gap: 0.35rem 0.65rem;
-    padding: 0.65rem 0.85rem;
-    border: 1px solid var(--app-border);
-    border-radius: 0.625rem;
-    background: rgba(0, 0, 0, 0.14);
+    padding: 0.7rem 0.9rem;
+    border: 1px solid var(--settings-surface-border);
+    border-radius: var(--settings-radius-sm);
+    background: rgba(0, 0, 0, 0.12);
 }
 
 .settings-content ::deep .settings-status-strip-title {
@@ -299,18 +299,21 @@
 }
 
 .settings-content ::deep .settings-status-strip-success {
-    border-color: rgba(16, 163, 127, 0.35);
-    background: rgba(16, 163, 127, 0.1);
+    border-color: color-mix(in srgb, var(--app-accent) 22%, var(--settings-surface-border));
+    border-left: 3px solid var(--app-accent);
+    background: color-mix(in srgb, var(--app-accent) 6%, transparent);
 }
 
 .settings-content ::deep .settings-status-strip-warning {
-    border-color: rgba(251, 191, 36, 0.35);
-    background: rgba(251, 191, 36, 0.08);
+    border-color: rgba(251, 191, 36, 0.22);
+    border-left: 3px solid rgba(251, 191, 36, 0.85);
+    background: rgba(251, 191, 36, 0.06);
 }
 
 .settings-content ::deep .settings-status-strip-error {
-    border-color: rgba(248, 113, 113, 0.35);
-    background: rgba(248, 113, 113, 0.1);
+    border-color: rgba(248, 113, 113, 0.22);
+    border-left: 3px solid rgba(248, 113, 113, 0.85);
+    background: rgba(248, 113, 113, 0.06);
 }
 
 .settings-content ::deep .settings-loading {
@@ -370,7 +373,7 @@
 .settings-content ::deep .settings-panel {
     display: grid;
     grid-template-rows: auto auto auto;
-    gap: 0.75rem;
+    gap: 1rem;
     min-width: 0;
 }
 
@@ -480,12 +483,15 @@
 .settings-content ::deep .settings-input {
     display: block;
     width: 100%;
-    padding: 0.5rem 0.65rem;
-    background: rgba(0, 0, 0, 0.2);
-    border: 1px solid var(--app-border);
+    min-height: 2.5rem;
+    padding: 0.5rem 0.7rem;
+    background: rgba(0, 0, 0, 0.22);
+    border: 1px solid var(--settings-surface-border);
     color: var(--app-fg);
-    border-radius: 0.5rem;
+    border-radius: var(--settings-radius-sm);
     box-sizing: border-box;
+    font-size: 0.875rem;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
 }
 
 .settings-content ::deep .settings-input:focus {
@@ -515,8 +521,9 @@
 .settings-content ::deep .form-label {
     display: block;
     font-size: 0.8125rem;
-    color: var(--app-fg);
-    margin-bottom: 0.35rem;
+    font-weight: 500;
+    color: color-mix(in srgb, var(--app-fg) 92%, var(--app-muted));
+    margin-bottom: 0.4rem;
 }
 
 .settings-content ::deep .settings-select {
@@ -758,20 +765,20 @@
     justify-content: center;
     flex: 1 1 auto;
     min-height: 2.5rem;
-    padding: 0.5rem 1rem;
-    font-size: 0.9rem;
+    padding: 0.5rem 1.15rem;
+    font-size: 0.875rem;
     font-weight: 600;
     color: var(--app-fg);
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid var(--app-border);
-    border-radius: 0.5rem;
+    background: transparent;
+    border: 1px solid var(--settings-surface-border);
+    border-radius: var(--settings-radius-sm);
     cursor: pointer;
     transition: background-color 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
 }
 
 .settings-content ::deep .settings-btn-secondary:hover:not(:disabled) {
-    background: rgba(255, 255, 255, 0.1);
-    border-color: rgba(255, 255, 255, 0.14);
+    background: rgba(255, 255, 255, 0.04);
+    border-color: color-mix(in srgb, var(--app-fg) 12%, var(--settings-surface-border));
 }
 
 .settings-content ::deep .settings-btn-secondary:disabled {
@@ -785,13 +792,14 @@
     justify-content: center;
     flex: 1 1 auto;
     min-height: 2.5rem;
-    padding: 0.5rem 1rem;
-    font-size: 0.9rem;
+    padding: 0.5rem 1.15rem;
+    font-size: 0.875rem;
     font-weight: 600;
+    letter-spacing: 0.01em;
     color: #ffffff;
     background: var(--app-accent);
-    border: 1px solid var(--app-accent);
-    border-radius: 0.5rem;
+    border: 1px solid color-mix(in srgb, var(--app-accent) 85%, black);
+    border-radius: var(--settings-radius-sm);
     cursor: pointer;
     transition: background-color 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
 }
@@ -861,20 +869,16 @@
 /* Responsive: mobile (base) → desktop 641px (matches app shell) */
 
 @media (min-width: 641px) {
-    .settings-inner {
-        --settings-max: min(100%, 56rem);
-        --settings-pad-x: clamp(1.25rem, 3vw, 2rem);
+    .settings-shell {
         --settings-pad-b: 2.75rem;
         --settings-block-gap: 1.5rem;
         --settings-col-min: 18rem;
     }
 
-    .settings-title {
-        font-size: 1.75rem;
-    }
-
-    .settings-subtitle {
-        font-size: 0.9375rem;
+    .settings-shell .settings-section-nav ::deep a.settings-tab {
+        min-width: 6.5rem;
+        padding-left: 1.25rem;
+        padding-right: 1.25rem;
     }
 
     .settings-content ::deep .settings-card {
@@ -908,4 +912,93 @@
         padding-top: 0;
         border-top: 0;
     }
+}
+
+.settings-content ::deep .settings-provider-list {
+    list-style: none;
+    margin: 0.75rem 0 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+}
+
+.settings-content ::deep .settings-provider-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    padding: 0.75rem 0.85rem;
+    border: 1px solid var(--app-border);
+    border-radius: 0.5rem;
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.settings-content ::deep .settings-provider-row-main {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem 0.65rem;
+}
+
+.settings-content ::deep .settings-provider-row-name {
+    font-weight: 600;
+    font-size: 0.9375rem;
+}
+
+.settings-content ::deep .settings-provider-row-slug {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 0.75rem;
+    color: var(--app-muted);
+}
+
+.settings-content ::deep .settings-provider-badge {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 0.12rem 0.4rem;
+    border-radius: 0.25rem;
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--app-muted);
+}
+
+.settings-content ::deep .settings-provider-row-endpoints {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    font-size: 0.78rem;
+    color: var(--app-muted);
+}
+
+.settings-content ::deep .settings-provider-row-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.25rem;
+}
+
+.settings-content ::deep .settings-provider-row-btn {
+    width: auto;
+    min-width: 5rem;
+    margin-top: 0;
+}
+
+.settings-content ::deep .settings-provider-list-footer {
+    margin-top: 0.85rem;
+}
+
+.settings-content ::deep .settings-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    margin-top: 0.5rem;
+    font-size: 0.875rem;
+    color: var(--app-fg);
+    cursor: pointer;
+}
+
+.settings-content ::deep .settings-checkbox input {
+    width: 1rem;
+    height: 1rem;
+    accent-color: var(--app-accent);
 }

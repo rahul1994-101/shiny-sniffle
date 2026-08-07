@@ -7,6 +7,7 @@ using Application.AI.Tools;
 using Application.Features.ChatMessages;
 using Application.Features.ChatThreads;
 using Application.Features.Shared;
+using Application.Features.EmailProviders;
 using Application.Features.UserSettings;
 using Application.Features.Users;
 using MediatR.DependencyInjection;
@@ -29,6 +30,7 @@ public static class DependencyInjection
         services.AddScoped<ChatThreadRepository>();
         services.AddScoped<ChatMessageRepository>();
         services.AddScoped<UserSettingsRepository>();
+        services.AddScoped<EmailProviderRepository>();
 
         #endregion
 

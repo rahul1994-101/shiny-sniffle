@@ -1,9 +1,10 @@
-/* Shares layout tokens with PageNotFound.razor.css (status-*). Scoped bundle may duplicate rules per component. */
+/* Shares status-* with PageNotFound.razor.css */
 
 .status-shell {
     display: flex;
     align-items: center;
     justify-content: center;
+    flex: 1;
     min-height: min(70vh, 32rem);
     padding: 2rem 1.25rem 3rem;
     box-sizing: border-box;
@@ -17,15 +18,6 @@
     border-radius: 0.75rem;
     background: rgba(255, 255, 255, 0.03);
     box-shadow: 0 12px 40px rgba(0, 0, 0, 0.22);
-}
-
-.status-eyebrow {
-    margin: 0 0 0.5rem;
-    font-size: 0.75rem;
-    font-weight: 600;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: #f87171;
 }
 
 .status-title {

@@ -28,6 +28,161 @@ body.shell-sidebar-drawer-open {
     --app-assistant-avatar-fg: #fff;
     --app-msg-user-bg: rgba(255, 255, 255, 0.04);
     --app-msg-assistant-bg: rgba(255, 255, 255, 0.03);
+    --app-page-max: min(100%, 56rem);
+    --app-page-pad-x: 1rem;
+    --app-page-header-bg: rgba(0, 0, 0, 0.22);
+    --app-page-header-border: var(--app-border);
+}
+
+/* Standard page chrome (settings, dashboard, automations — not chat). */
+.app-page {
+    flex: 1 1 0;
+    min-height: 0;
+    height: 100%;
+    width: 100%;
+    max-width: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.app-page-header {
+    flex-shrink: 0;
+    background: var(--app-page-header-bg);
+    border-bottom: 1px solid var(--app-page-header-border);
+}
+
+.app-page-header-inner {
+    width: 100%;
+    max-width: var(--app-page-max);
+    margin: 0 auto;
+    padding: 0.85rem var(--app-page-pad-x);
+    box-sizing: border-box;
+}
+
+.app-page-body {
+    flex: 1 1 0;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+}
+
+.app-page-body::-webkit-scrollbar {
+    width: 8px;
+}
+
+.app-page-body::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 999px;
+}
+
+.app-page-body-inner {
+    width: 100%;
+    max-width: var(--app-page-max);
+    margin: 0 auto;
+    padding: 1.25rem var(--app-page-pad-x) 2rem;
+    box-sizing: border-box;
+}
+
+@media (min-width: 641px) {
+    :root {
+        --app-page-pad-x: clamp(1.25rem, 3vw, 2rem);
+    }
+
+    .app-page-header-inner {
+        padding-top: 1rem;
+    }
+
+    .app-page-body-inner {
+        padding-top: 1.5rem;
+        padding-bottom: 2.75rem;
+    }
+}
+
+.app-page-head-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.65rem 1.25rem;
+    width: 100%;
+}
+
+.app-page-title {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-size: 1.375rem;
+    font-weight: 600;
+    letter-spacing: -0.025em;
+    margin: 0;
+    color: var(--app-fg);
+    line-height: 1.2;
+}
+
+.app-page-breadcrumb {
+    flex: 0 1 auto;
+    margin: 0;
+    max-width: 100%;
+}
+
+.app-page-breadcrumb-list {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    font-size: 0.8125rem;
+    line-height: 1.4;
+}
+
+.app-page-breadcrumb-item {
+    display: inline-flex;
+    align-items: center;
+    min-width: 0;
+    color: var(--app-muted);
+}
+
+.app-page-breadcrumb-item:not(:last-child)::after {
+    content: "/";
+    margin: 0 0.45rem;
+    color: var(--app-muted);
+    opacity: 0.45;
+}
+
+.app-page-breadcrumb-item a {
+    color: color-mix(in srgb, var(--app-accent) 55%, #7dd3fc);
+    text-decoration: none;
+}
+
+.app-page-breadcrumb-item a:hover {
+    color: color-mix(in srgb, var(--app-accent) 75%, #bae6fd);
+}
+
+.app-page-breadcrumb-item-current {
+    color: var(--app-muted);
+}
+
+.app-page-subtitle {
+    margin: 0.5rem 0 0;
+    color: var(--app-muted);
+    font-size: 0.875rem;
+    line-height: 1.55;
+    max-width: 48rem;
+}
+
+@media (min-width: 641px) {
+    .app-page-title {
+        font-size: 1.625rem;
+    }
+
+    .app-page-subtitle {
+        max-width: 32rem;
+    }
 }
 
 a, .btn-link {

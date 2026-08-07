@@ -1,0 +1,19 @@
+@page "/settings/email"
+@page "/settings/email-providers"
+@inherits BaseComponent
+
+@attribute [Authorize]
+
+<PageTitle>Settings</PageTitle>
+
+@code {
+    protected override void OnInitialized()
+    {
+        var path = NavigationManager.ToBaseRelativePath(NavigationManager.Uri).TrimEnd('/');
+        var target = string.Equals(path, "settings/email-providers", StringComparison.OrdinalIgnoreCase)
+            ? "/settings/email/providers"
+            : "/settings/email/accounts";
+
+        NavigationManager.NavigateTo(target, replace: true);
+    }
+}

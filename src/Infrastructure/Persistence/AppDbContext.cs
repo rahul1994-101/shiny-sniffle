@@ -12,6 +12,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
 
     public DbSet<UserSetting> UserSettings { get; set; }
 
+    public DbSet<EmailProviderDefinition> EmailProviders { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -71,6 +73,32 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             entity.Property(e => e.UpdatedBy).HasColumnName("updatedBy");
             entity.Property(e => e.UpdatedAt).HasColumnName("updatedAt");
             entity.HasIndex(e => e.UserId).IsUnique();
+        });
+        modelBuilder.Entity<EmailProviderDefinition>(entity =>
+        {
+            entity.ToTable("EmailProvider", "dbo");
+            entity.Property(e => e.Name).HasColumnName("name").HasMaxLength(100);
+            entity.Property(e => e.Slug).HasColumnName("slug").HasMaxLength(64);
+            entity.Property(e => e.ImapHost).HasColumnName("imapHost").HasMaxLength(255);
+            entity.Property(e => e.ImapPort).HasColumnName("imapPort");
+            entity.Property(e => e.ImapUseSsl).HasColumnName("imapUseSsl");
+            entity.Property(e => e.SmtpHost).HasColumnName("smtpHost").HasMaxLength(255);
+            entity.Property(e => e.SmtpPort).HasColumnName("smtpPort");
+            entity.Property(e => e.SmtpUseSsl).HasColumnName("smtpUseSsl");
+            entity.Property(e => e.SetupHelpUrl).HasColumnName("setupHelpUrl").HasMaxLength(500);
+            entity.Property(e => e.SortOrder).HasColumnName("sortOrder");
+            entity.Property(e => e.IsSystem).HasColumnName("isSystem");
+            entity.Property(e => e.IsActive).HasColumnName("isActive");
+            entity.Property(e => e.IsDeleted).HasColumnName("isDeleted");
+            entity.Property(e => e.CreatedBy).HasColumnName("createdBy");
+            entity.Property(e => e.CreatedAt).HasColumnName("createdAt");
+            entity.Property(e => e.UpdatedBy).HasColumnName("updatedBy");
+            entity.Property(e => e.UpdatedAt).HasColumnName("updatedAt");
+            entity.HasIndex(e => e.Slug)
+                .IsUnique()
+                .HasFilter("[isDeleted] = 0");
+            entity.HasIndex(e => e.SortOrder)
+                .HasFilter("[isDeleted] = 0");
         });
     }
 }

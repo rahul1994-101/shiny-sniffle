@@ -1,0 +1,20 @@
+@page "/automations"
+@inherits BaseComponent
+
+@using WebApp.Components.Pages.Settings.Shared
+
+@attribute [Authorize]
+
+<PageTitle>Automations</PageTitle>
+
+<SettingsShell Title="Automations"
+               Subtitle="Schedules, rules, and triage presets."
+               UseDirtyGuard="false">
+    <section class="settings-card settings-card-muted">
+        <h2 class="settings-section-title">Coming soon</h2>
+        <p class="settings-section-lead">
+            Configure when triage runs and what it does. Connect mailboxes under
+            <NavLink class="settings-link" href="/settings/email/accounts">Settings → Email → Accounts</NavLink>.
+        </p>
+    </section>
+</SettingsShell>

@@ -1,0 +1,12 @@
+@page "/settings/general"
+@inherits BaseComponent
+
+@attribute [Authorize]
+
+<PageTitle>General settings</PageTitle>
+
+<SettingsShell Title="General"
+               Subtitle="Manage your profile and sign-in password."
+               Breadcrumbs="SettingsBreadcrumbTrails.General">
+    <General />
+</SettingsShell>

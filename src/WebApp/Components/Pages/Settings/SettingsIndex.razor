@@ -1,0 +1,30 @@
+@page "/settings"
+@inherits BaseComponent
+
+@attribute [Authorize]
+
+<PageTitle>Settings</PageTitle>
+
+<SettingsShell Title="Settings"
+               Subtitle="Choose an area to configure."
+               UseDirtyGuard="false">
+    <nav class="settings-hub" aria-label="Settings areas">
+        @foreach (var area in _areas)
+        {
+            <NavLink class="settings-hub-card" href="@area.Href">
+                <span class="settings-hub-card-body">
+                    <span class="settings-hub-card-title">@area.Title</span>
+                    <span class="settings-hub-card-lead">@area.Lead</span>
+                </span>
+            </NavLink>
+        }
+    </nav>
+</SettingsShell>
+
+@code {
+    private static readonly (string Href, string Title, string Lead)[] _areas =
+    [
+        ("/settings/general", "General", "Profile and sign-in password."),
+        ("/settings/email/accounts", "Email", "Mailboxes and provider templates.")
+    ];
+}

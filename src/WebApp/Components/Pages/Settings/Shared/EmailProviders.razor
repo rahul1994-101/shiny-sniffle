@@ -1,0 +1,363 @@
+@inherits BaseComponent
+
+@using WebApp.Components.Pages.Settings
+
+@if (_busy == TabBusy.Loading)
+{
+    <div class="settings-loading" role="status" aria-busy="true" aria-label="Loading email providers">
+        <div class="settings-skeleton settings-skeleton-card"></div>
+    </div>
+}
+else
+{
+    <div class="settings-sections">
+        <section class="settings-card" aria-labelledby="providers-catalog-heading">
+            <h2 id="providers-catalog-heading" class="settings-section-title">Provider catalog</h2>
+            <p class="settings-section-lead">
+                Manage provider templates used when connecting mailboxes.
+            </p>
+
+            @if (_providers.Count == 0)
+            {
+                <p class="settings-hint">No providers yet. Add one below or run the database migration to seed defaults.</p>
+            }
+            else
+            {
+                <ul class="settings-provider-list" aria-label="Email providers">
+                    @foreach (var provider in _providers)
+                    {
+                        <li class="settings-provider-row">
+                            <div class="settings-provider-row-main">
+                                <span class="settings-provider-row-name">@provider.Name</span>
+                                <span class="settings-provider-row-slug">@provider.Slug</span>
+                                @if (provider.IsSystem)
+                                {
+                                    <span class="settings-provider-badge">System</span>
+                                }
+                            </div>
+                            <div class="settings-provider-row-endpoints">
+                                <span>IMAP @provider.ImapHost:@provider.ImapPort @(provider.ImapUseSsl ? "SSL" : "plain")</span>
+                                <span>SMTP @provider.SmtpHost:@provider.SmtpPort @(provider.SmtpUseSsl ? "SSL" : "plain")</span>
+                            </div>
+                            <div class="settings-provider-row-actions">
+                                <button type="button"
+                                        class="settings-btn-secondary settings-provider-row-btn"
+                                        disabled="@IsFormBusy"
+                                        @onclick="() => BeginEdit(provider)">
+                                    Edit
+                                </button>
+                                @if (!provider.IsSystem)
+                                {
+                                    <button type="button"
+                                            class="settings-btn-danger settings-provider-row-btn"
+                                            disabled="@IsFormBusy"
+                                            @onclick="() => DeleteAsync(provider)">
+                                        Delete
+                                    </button>
+                                }
+                            </div>
+                        </li>
+                    }
+                </ul>
+            }
+
+            <div class="settings-card-footer settings-provider-list-footer">
+                <button type="button"
+                        class="settings-btn-secondary"
+                        disabled="@IsFormBusy"
+                        @onclick="BeginAdd">
+                    Add provider
+                </button>
+            </div>
+
+            @if (_status.Current is not null && !_editorOpen)
+            {
+                <p class="settings-sync-msg @(_status.Current.IsError ? "settings-sync-msg-error" : "settings-sync-msg-success") @(_status.Current.Fading ? "settings-sync-msg-fading" : null)"
+                   role="status"
+                   aria-live="polite">
+                    @_status.Current.Message
+                </p>
+            }
+        </section>
+
+        @if (_editorOpen)
+        {
+            <section class="settings-card" aria-labelledby="provider-editor-heading">
+                <h2 id="provider-editor-heading" class="settings-section-title">
+                    @(_form.Id is null ? "New provider" : "Edit provider")
+                </h2>
+
+                <div class="settings-field">
+                    <label class="settings-label" for="ep-name">Name</label>
+                    <input id="ep-name" type="text" class="settings-input" @bind="_form.Name" disabled="@IsFormBusy" />
+                </div>
+
+                <div class="settings-field">
+                    <label class="settings-label" for="ep-slug">Slug</label>
+                    <input id="ep-slug" type="text" class="settings-input" @bind="_form.Slug" disabled="@IsFormBusy" autocomplete="off" />
+                    <p class="settings-hint">Lowercase letters, numbers, and hyphens (e.g. gmail, my-host).</p>
+                </div>
+
+                <div class="settings-field">
+                    <label class="settings-label" for="ep-sort">Sort order</label>
+                    <input id="ep-sort" type="number" class="settings-input" @bind="_form.SortOrder" disabled="@IsFormBusy" />
+                </div>
+
+                <div class="settings-endpoints">
+                    <p class="settings-label">IMAP</p>
+                    <div class="settings-name-row">
+                        <div class="settings-field">
+                            <label class="settings-label" for="ep-imap-host">Host</label>
+                            <input id="ep-imap-host" type="text" class="settings-input" @bind="_form.ImapHost" disabled="@IsFormBusy" />
+                        </div>
+                        <div class="settings-field">
+                            <label class="settings-label" for="ep-imap-port">Port</label>
+                            <input id="ep-imap-port" type="number" class="settings-input" @bind="_form.ImapPort" disabled="@IsFormBusy" />
+                        </div>
+                    </div>
+                    <label class="settings-checkbox">
+                        <input type="checkbox" @bind="_form.ImapUseSsl" disabled="@IsFormBusy" />
+                        Use SSL for IMAP
+                    </label>
+                </div>
+
+                <div class="settings-endpoints">
+                    <p class="settings-label">SMTP</p>
+                    <div class="settings-name-row">
+                        <div class="settings-field">
+                            <label class="settings-label" for="ep-smtp-host">Host</label>
+                            <input id="ep-smtp-host" type="text" class="settings-input" @bind="_form.SmtpHost" disabled="@IsFormBusy" />
+                        </div>
+                        <div class="settings-field">
+                            <label class="settings-label" for="ep-smtp-port">Port</label>
+                            <input id="ep-smtp-port" type="number" class="settings-input" @bind="_form.SmtpPort" disabled="@IsFormBusy" />
+                        </div>
+                    </div>
+                    <label class="settings-checkbox">
+                        <input type="checkbox" @bind="_form.SmtpUseSsl" disabled="@IsFormBusy" />
+                        Use SSL for SMTP
+                    </label>
+                </div>
+
+                <div class="settings-field">
+                    <label class="settings-label" for="ep-help">Setup help URL (optional)</label>
+                    <input id="ep-help" type="url" class="settings-input" @bind="_form.SetupHelpUrl" disabled="@IsFormBusy" />
+                </div>
+
+                <div class="settings-card-footer settings-actions">
+                    <button type="button"
+                            class="settings-btn-save"
+                            disabled="@(!CanSaveEditor)"
+                            @onclick="SaveEditorAsync">
+                        @(_saving ? "Saving…" : "Save provider")
+                    </button>
+                    <button type="button"
+                            class="settings-btn-secondary"
+                            disabled="@IsFormBusy"
+                            @onclick="CancelEditor">
+                        Cancel
+                    </button>
+                </div>
+
+                @if (_status.Current is not null)
+                {
+                    <p class="settings-sync-msg @(_status.Current.IsError ? "settings-sync-msg-error" : "settings-sync-msg-success") @(_status.Current.Fading ? "settings-sync-msg-fading" : null)"
+                       role="status"
+                       aria-live="polite">
+                        @_status.Current.Message
+                    </p>
+                }
+            </section>
+        }
+    </div>
+}
+
+@code {
+    private TabBusy _busy = TabBusy.Loading;
+    private bool _saving;
+    private bool _deleting;
+    private bool _editorOpen;
+    private readonly List<EmailProviderDto> _providers = [];
+    private ProviderForm _form = new();
+    private SettingsSectionStatusHandle _status = null!;
+
+    private bool IsFormBusy => _saving || _deleting;
+
+    private bool CanSaveEditor =>
+        !IsFormBusy
+        && !string.IsNullOrWhiteSpace(_form.Name)
+        && !string.IsNullOrWhiteSpace(_form.Slug);
+
+    protected override async Task OnInitializedAsync()
+    {
+        _status = new SettingsSectionStatusHandle(() => InvokeAsync(StateHasChanged));
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _busy = TabBusy.Loading;
+        _status.Clear();
+
+        var result = await Mediator.SendAsync(new ListEmailProvidersRequest());
+
+        if (result.HasError)
+        {
+            _status.Set(
+                result.Errors.FirstOrDefault()?.Message ?? "Failed to load email providers.",
+                isError: true);
+            _providers.Clear();
+        }
+        else
+        {
+            _providers.Clear();
+            _providers.AddRange(result.Payload.Providers);
+        }
+
+        _busy = TabBusy.None;
+    }
+
+    private void BeginAdd()
+    {
+        _status.Clear();
+        _form = new ProviderForm { SortOrder = NextSortOrder() };
+        _editorOpen = true;
+    }
+
+    private void BeginEdit(EmailProviderDto provider)
+    {
+        _status.Clear();
+        _form = ProviderForm.FromDto(provider);
+        _editorOpen = true;
+    }
+
+    private void CancelEditor()
+    {
+        _editorOpen = false;
+        _form = new ProviderForm();
+        _status.Clear();
+    }
+
+    private int NextSortOrder() =>
+        _providers.Count == 0 ? 10 : _providers.Max(p => p.SortOrder) + 10;
+
+    private async Task SaveEditorAsync()
+    {
+        _saving = true;
+        _status.Clear();
+
+        var dto = _form.ToSaveDto();
+        var result = await Mediator.SendAsync(new SaveEmailProviderRequest(CurrentUser.Id, dto));
+
+        if (result.HasError)
+        {
+            _status.Set(
+                result.Errors.FirstOrDefault()?.Message ?? "Failed to save provider.",
+                isError: true);
+        }
+        else
+        {
+            _status.Set("Provider saved.", isError: false, autoClear: true);
+            _editorOpen = false;
+            await LoadAsync();
+        }
+
+        _saving = false;
+    }
+
+    private async Task DeleteAsync(EmailProviderDto provider)
+    {
+        var confirm = await JsRuntime.InvokeAsync<bool>(
+            "confirm",
+            $"Delete provider \"{provider.Name}\"? This cannot be undone.");
+
+        if (!confirm)
+        {
+            return;
+        }
+
+        _deleting = true;
+        _status.Clear();
+
+        var result = await Mediator.SendAsync(new DeleteEmailProviderRequest(provider.Id, CurrentUser.Id));
+
+        if (result.HasError)
+        {
+            _status.Set(
+                result.Errors.FirstOrDefault()?.Message ?? "Failed to delete provider.",
+                isError: true);
+        }
+        else
+        {
+            if (_form.Id == provider.Id)
+            {
+                CancelEditor();
+            }
+
+            await LoadAsync();
+        }
+
+        _deleting = false;
+    }
+
+    private sealed class ProviderForm
+    {
+        public Guid? Id { get; set; }
+
+        public string Name { get; set; } = string.Empty;
+
+        public string Slug { get; set; } = string.Empty;
+
+        public string ImapHost { get; set; } = string.Empty;
+
+        public int ImapPort { get; set; } = 993;
+
+        public bool ImapUseSsl { get; set; } = true;
+
+        public string SmtpHost { get; set; } = string.Empty;
+
+        public int SmtpPort { get; set; } = 587;
+
+        public bool SmtpUseSsl { get; set; } = true;
+
+        public string? SetupHelpUrl { get; set; }
+
+        public int SortOrder { get; set; }
+
+        public static ProviderForm FromDto(EmailProviderDto dto) => new()
+        {
+            Id = dto.Id,
+            Name = dto.Name,
+            Slug = dto.Slug,
+            ImapHost = dto.ImapHost,
+            ImapPort = dto.ImapPort,
+            ImapUseSsl = dto.ImapUseSsl,
+            SmtpHost = dto.SmtpHost,
+            SmtpPort = dto.SmtpPort,
+            SmtpUseSsl = dto.SmtpUseSsl,
+            SetupHelpUrl = dto.SetupHelpUrl,
+            SortOrder = dto.SortOrder
+        };
+
+        public SaveEmailProviderDto ToSaveDto() => new()
+        {
+            Id = Id,
+            Name = Name,
+            Slug = Slug,
+            ImapHost = ImapHost,
+            ImapPort = ImapPort,
+            ImapUseSsl = ImapUseSsl,
+            SmtpHost = SmtpHost,
+            SmtpPort = SmtpPort,
+            SmtpUseSsl = SmtpUseSsl,
+            SetupHelpUrl = SetupHelpUrl,
+            SortOrder = SortOrder
+        };
+    }
+
+    private enum TabBusy
+    {
+        None,
+        Loading
+    }
+}

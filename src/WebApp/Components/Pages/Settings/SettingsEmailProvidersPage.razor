@@ -1,0 +1,18 @@
+@page "/settings/email/providers"
+@inherits BaseComponent
+
+@attribute [Authorize]
+
+<PageTitle>Email providers</PageTitle>
+
+<SettingsShell Title="Providers"
+               Subtitle="IMAP/SMTP templates for mailbox connections."
+               Breadcrumbs="SettingsBreadcrumbTrails.Email"
+               UseDirtyGuard="false">
+    <Nav>
+        <SettingsEmailNav />
+    </Nav>
+    <ChildContent>
+        <EmailProviders />
+    </ChildContent>
+</SettingsShell>

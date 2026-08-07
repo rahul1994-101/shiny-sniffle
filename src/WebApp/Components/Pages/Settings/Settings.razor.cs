@@ -33,6 +33,24 @@ public sealed class SettingsPageContext : IDisposable
 
 public sealed record SettingsSectionStatus(string Message, bool IsError, bool Fading = false);
 
+/// <summary>One breadcrumb segment (ancestors only; current page is the H1).</summary>
+public sealed record SettingsBreadcrumbItem(string Label, string? Href = null);
+
+/// <summary>Shared breadcrumb trails for settings sub-pages (hub <c>/settings</c> uses none).</summary>
+public static class SettingsBreadcrumbTrails
+{
+    public static readonly IReadOnlyList<SettingsBreadcrumbItem> General =
+    [
+        new("Settings", "/settings")
+    ];
+
+    public static readonly IReadOnlyList<SettingsBreadcrumbItem> Email =
+    [
+        new("Settings", "/settings"),
+        new("Email", "/settings/email/accounts")
+    ];
+}
+
 /// <summary>Inline save/error status with optional auto-fade for settings cards.</summary>
 public sealed class SettingsSectionStatusHandle : IDisposable
 {
