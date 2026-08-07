@@ -17,6 +17,28 @@
 else
 {
     <div class="settings-sections">
+        <section class="settings-card" aria-labelledby="appearance-heading">
+            <h2 id="appearance-heading" class="settings-section-title">Appearance</h2>
+            <p class="settings-section-lead">Choose how the app looks on this device. Same as the sun/moon control in the header.</p>
+
+            <div class="ui-segmented" role="radiogroup" aria-label="Color theme">
+                <button type="button"
+                        role="radio"
+                        class="ui-segmented-btn @(_theme == "dark" ? "ui-segmented-btn-active" : null)"
+                        aria-checked="@(_theme == "dark")"
+                        @onclick='() => SetThemeAsync("dark")'>
+                    Dark
+                </button>
+                <button type="button"
+                        role="radio"
+                        class="ui-segmented-btn @(_theme == "light" ? "ui-segmented-btn-active" : null)"
+                        aria-checked="@(_theme == "light")"
+                        @onclick='() => SetThemeAsync("light")'>
+                    Light
+                </button>
+            </div>
+        </section>
+
         <section class="settings-card" aria-labelledby="profile-heading">
             <h2 id="profile-heading" class="settings-section-title">Profile</h2>
             <p class="settings-section-lead">Your name is shown in the app, sidebar, and chat.</p>
@@ -81,10 +103,10 @@ else
 
             @if (_profileStatus.Current is not null)
             {
-                <p class="settings-sync-msg @(_profileStatus.Current.IsError ? "settings-sync-msg-error" : "settings-sync-msg-success") @(_profileStatus.Current.Fading ? "settings-sync-msg-fading" : null)"
+                <p class="ui-status-pill @(_profileStatus.Current.IsError ? "ui-status-pill-error" : "ui-status-pill-success") @(_profileStatus.Current.Fading ? "ui-status-pill-fading" : null)"
                    role="status"
                    aria-live="polite">
-                    @_profileStatus.Current.Message
+                    <span class="ui-status-pill-label">@_profileStatus.Current.Message</span>
                 </p>
             }
         </section>
@@ -191,10 +213,10 @@ else
 
             @if (_passwordStatus.Current is not null)
             {
-                <p class="settings-sync-msg @(_passwordStatus.Current.IsError ? "settings-sync-msg-error" : "settings-sync-msg-success") @(_passwordStatus.Current.Fading ? "settings-sync-msg-fading" : null)"
+                <p class="ui-status-pill @(_passwordStatus.Current.IsError ? "ui-status-pill-error" : "ui-status-pill-success") @(_passwordStatus.Current.Fading ? "ui-status-pill-fading" : null)"
                    role="status"
                    aria-live="polite">
-                    @_passwordStatus.Current.Message
+                    <span class="ui-status-pill-label">@_passwordStatus.Current.Message</span>
                 </p>
             }
         </section>
@@ -225,12 +247,22 @@ else
     private bool _showNewPassword;
     private bool _showConfirmPassword;
     private bool _blockPasswordAutofill = true;
+    private string _theme = "dark";
 
     protected override async Task OnInitializedAsync()
     {
         _profileStatus = new SettingsSectionStatusHandle(() => InvokeAsync(StateHasChanged));
         _passwordStatus = new SettingsSectionStatusHandle(() => InvokeAsync(StateHasChanged));
         await LoadAsync();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _theme = await JsRuntime.InvokeAsync<string>("getAppTheme");
+            StateHasChanged();
+        }
     }
 
     public void Dispose()
@@ -399,6 +431,12 @@ else
     #endregion
 
     #region # Helpers
+
+    private async Task SetThemeAsync(string theme)
+    {
+        await JsRuntime.InvokeVoidAsync("setAppTheme", theme);
+        _theme = theme;
+    }
 
     private void CaptureProfileBaseline()
     {

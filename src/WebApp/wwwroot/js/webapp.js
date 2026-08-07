@@ -1,3 +1,65 @@
+window.webAppTheme = (function () {
+  var storageKey = "app-theme";
+
+  function normalize(theme) {
+    return theme === "light" ? "light" : "dark";
+  }
+
+  function get() {
+    return normalize(document.documentElement.getAttribute("data-theme"));
+  }
+
+  function syncToggleUi(theme) {
+    var isDark = theme === "dark";
+    document.querySelectorAll("[data-theme-toggle]").forEach(function (btn) {
+      btn.setAttribute("aria-label", isDark ? "Switch to light mode" : "Switch to dark mode");
+      btn.title = isDark ? "Light mode" : "Dark mode";
+    });
+  }
+
+  function set(theme) {
+    var next = normalize(theme);
+    document.documentElement.setAttribute("data-theme", next);
+    try {
+      localStorage.setItem(storageKey, next);
+    } catch (e) {
+      /* private mode */
+    }
+    syncToggleUi(next);
+  }
+
+  function toggle() {
+    set(get() === "dark" ? "light" : "dark");
+  }
+
+  function init() {
+    var stored = null;
+    try {
+      stored = localStorage.getItem(storageKey);
+    } catch (e) {
+      stored = null;
+    }
+    set(stored === "light" ? "light" : "dark");
+
+    document.addEventListener("click", function (e) {
+      if (e.target.closest("[data-theme-toggle]")) {
+        e.preventDefault();
+        toggle();
+      }
+    });
+  }
+
+  return { init: init, get: get, set: set, toggle: toggle };
+})();
+
+window.getAppTheme = function () {
+  return window.webAppTheme.get();
+};
+
+window.setAppTheme = function (theme) {
+  window.webAppTheme.set(theme);
+};
+
 window.webAppShell = (function () {
   var mq = window.matchMedia ? window.matchMedia("(max-width: 640px)") : null;
   var shellId = "app-shell";
@@ -153,6 +215,20 @@ window.webAppShell = (function () {
     collapseSidebar: collapseSidebar,
     collapseSidebarIfMobile: collapseSidebarIfMobile
   };
+})();
+
+(function () {
+  function tryInitTheme() {
+    if (window.webAppTheme) {
+      window.webAppTheme.init();
+    }
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", tryInitTheme);
+  } else {
+    tryInitTheme();
+  }
 })();
 
 (function () {

@@ -175,7 +175,7 @@
 
     background: var(--app-surface);
 
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--app-border);
 
     border-bottom-left-radius: 0.3rem;
 
@@ -441,7 +441,7 @@
 
     font-size: 1rem;
 
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    border-bottom: 1px solid var(--app-border);
 
     padding-bottom: 0.2rem;
 
@@ -529,7 +529,7 @@
 
     background: rgba(0, 0, 0, 0.28);
 
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--app-border);
 
 }
 
@@ -605,7 +605,7 @@
 
 .msg-markdown td {
 
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--app-border);
 
     padding: 0.35rem 0.45rem;
 

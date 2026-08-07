@@ -10,11 +10,33 @@
 <SettingsShell Title="Automations"
                Subtitle="Schedules, rules, and triage presets."
                UseDirtyGuard="false">
-    <section class="settings-card settings-card-muted">
-        <h2 class="settings-section-title">Coming soon</h2>
-        <p class="settings-section-lead">
-            Configure when triage runs and what it does. Connect mailboxes under
-            <NavLink class="settings-link" href="/settings/email/accounts">Settings → Email → Accounts</NavLink>.
-        </p>
-    </section>
+    <div class="settings-sections">
+        <div class="ui-empty-state" role="status">
+            <p class="ui-empty-state-title">No automations yet</p>
+            <p class="ui-empty-state-lead">
+                Lorem ipsum dolor sit amet, consectetur adipiscing elit. Schedules, rules, and triage presets will live here.
+            </p>
+        </div>
+
+        <div class="ui-group" aria-label="Placeholder">
+            @foreach (var row in _placeholderRows)
+            {
+                <div class="ui-group-row ui-group-row-static">
+                    <span>
+                        <span class="ui-group-row-title">@row.Title</span>
+                        <span class="ui-group-row-desc">@row.Lead</span>
+                    </span>
+                </div>
+            }
+        </div>
+    </div>
 </SettingsShell>
+
+@code {
+    private static readonly (string Title, string Lead)[] _placeholderRows =
+    [
+        ("Lorem ipsum", "Integer nec odio. Praesent libero sed cursus ante dapibus diam."),
+        ("Sed nisi nulla", "Quis sem at nibh elementum imperdiet duis sagittis ipsum."),
+        ("Mauris massa", "Vestibulum lacinia arcu eget nulla class aptent taciti sociosqu.")
+    ];
+}

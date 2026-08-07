@@ -8,23 +8,45 @@
 <SettingsShell Title="Settings"
                Subtitle="Choose an area to configure."
                UseDirtyGuard="false">
-    <nav class="settings-hub" aria-label="Settings areas">
-        @foreach (var area in _areas)
-        {
-            <NavLink class="settings-hub-card" href="@area.Href">
-                <span class="settings-hub-card-body">
-                    <span class="settings-hub-card-title">@area.Title</span>
-                    <span class="settings-hub-card-lead">@area.Lead</span>
-                </span>
-            </NavLink>
-        }
-    </nav>
+    <div class="settings-sections">
+        <nav class="ui-group" aria-label="Settings areas">
+            @foreach (var area in _areas)
+            {
+                <NavLink class="ui-group-row" href="@area.Href">
+                    <span>
+                        <span class="ui-group-row-title">@area.Title</span>
+                        <span class="ui-group-row-desc">@area.Lead</span>
+                    </span>
+                    <span class="ui-group-row-chevron" aria-hidden="true">›</span>
+                </NavLink>
+            }
+        </nav>
+
+        <div class="ui-group" aria-label="Placeholder">
+            @foreach (var row in _placeholderRows)
+            {
+                <div class="ui-group-row ui-group-row-static">
+                    <span>
+                        <span class="ui-group-row-title">@row.Title</span>
+                        <span class="ui-group-row-desc">@row.Lead</span>
+                    </span>
+                </div>
+            }
+        </div>
+    </div>
 </SettingsShell>
 
 @code {
     private static readonly (string Href, string Title, string Lead)[] _areas =
     [
-        ("/settings/general", "General", "Profile and sign-in password."),
+        ("/settings/general", "General", "Profile, appearance, and sign-in password."),
         ("/settings/email/accounts", "Email", "Mailboxes and provider templates.")
+    ];
+
+    private static readonly (string Title, string Lead)[] _placeholderRows =
+    [
+        ("Lorem ipsum", "Dolor sit amet, consectetur adipiscing elit sed do eiusmod tempor."),
+        ("Ut enim ad minim", "Quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea."),
+        ("Duis aute irure", "Dolor in reprehenderit in voluptate velit esse cillum dolore.")
     ];
 }

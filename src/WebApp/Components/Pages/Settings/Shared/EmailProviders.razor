@@ -19,7 +19,16 @@ else
 
             @if (_providers.Count == 0)
             {
-                <p class="settings-hint">No providers yet. Add one below or run the database migration to seed defaults.</p>
+                <div class="ui-empty-state">
+                    <p class="ui-empty-state-title">No providers yet</p>
+                    <p class="ui-empty-state-lead">Add a template or run the database migration to seed defaults.</p>
+                    <button type="button"
+                            class="settings-btn-save"
+                            disabled="@IsFormBusy"
+                            @onclick="BeginAdd">
+                        Add provider
+                    </button>
+                </div>
             }
             else
             {
@@ -61,21 +70,24 @@ else
                 </ul>
             }
 
-            <div class="settings-card-footer settings-provider-list-footer">
-                <button type="button"
-                        class="settings-btn-secondary"
-                        disabled="@IsFormBusy"
-                        @onclick="BeginAdd">
-                    Add provider
-                </button>
-            </div>
+            @if (_providers.Count > 0)
+            {
+                <div class="settings-card-footer settings-provider-list-footer">
+                    <button type="button"
+                            class="settings-btn-secondary"
+                            disabled="@IsFormBusy"
+                            @onclick="BeginAdd">
+                        Add provider
+                    </button>
+                </div>
+            }
 
             @if (_status.Current is not null && !_editorOpen)
             {
-                <p class="settings-sync-msg @(_status.Current.IsError ? "settings-sync-msg-error" : "settings-sync-msg-success") @(_status.Current.Fading ? "settings-sync-msg-fading" : null)"
+                <p class="ui-status-pill @(_status.Current.IsError ? "ui-status-pill-error" : "ui-status-pill-success") @(_status.Current.Fading ? "ui-status-pill-fading" : null)"
                    role="status"
                    aria-live="polite">
-                    @_status.Current.Message
+                    <span class="ui-status-pill-label">@_status.Current.Message</span>
                 </p>
             }
         </section>
@@ -161,10 +173,10 @@ else
 
                 @if (_status.Current is not null)
                 {
-                    <p class="settings-sync-msg @(_status.Current.IsError ? "settings-sync-msg-error" : "settings-sync-msg-success") @(_status.Current.Fading ? "settings-sync-msg-fading" : null)"
+                    <p class="ui-status-pill @(_status.Current.IsError ? "ui-status-pill-error" : "ui-status-pill-success") @(_status.Current.Fading ? "ui-status-pill-fading" : null)"
                        role="status"
                        aria-live="polite">
-                        @_status.Current.Message
+                        <span class="ui-status-pill-label">@_status.Current.Message</span>
                     </p>
                 }
             </section>

@@ -14,9 +14,14 @@
 else
 {
     <div class="settings-panel">
-        <div class="settings-status-strip @MailboxStatusStripClass" role="status">
-            <span class="settings-status-strip-title">@_mailboxStatusTitle</span>
-            <span class="settings-status-strip-detail">@_mailboxStatusDetail</span>
+        <div class="settings-status-row">
+            <p class="ui-status-pill @MailboxStatusPillClass" role="status">
+                <span class="ui-status-pill-label">@_mailboxStatusTitle</span>
+                @if (!string.IsNullOrWhiteSpace(_mailboxStatusDetail))
+                {
+                    <span class="ui-status-pill-detail">@_mailboxStatusDetail</span>
+                }
+            </p>
         </div>
 
         <section class="settings-card" aria-labelledby="mail-heading">
@@ -216,15 +221,15 @@ else
 
             @if (_status.Current is not null)
             {
-                <p class="settings-sync-msg @(_status.Current.IsError ? "settings-sync-msg-error" : "settings-sync-msg-success") @(_status.Current.Fading ? "settings-sync-msg-fading" : null)"
+                <p class="ui-status-pill @(_status.Current.IsError ? "ui-status-pill-error" : "ui-status-pill-success") @(_status.Current.Fading ? "ui-status-pill-fading" : null)"
                    role="status"
                    aria-live="polite">
-                    @_status.Current.Message
+                    <span class="ui-status-pill-label">@_status.Current.Message</span>
                 </p>
             }
         </section>
 
-        <div class="settings-actions">
+        <div class="settings-card-footer settings-actions">
             <button type="button"
                     class="settings-btn-save"
                     disabled="@(!CanSaveEmail)"
@@ -301,12 +306,12 @@ else
         }
     }
 
-    private string MailboxStatusStripClass =>
+    private string MailboxStatusPillClass =>
         _lastTestSummary?.StartsWith("Last test failed", StringComparison.OrdinalIgnoreCase) == true
-            ? "settings-status-strip-error"
+            ? "ui-status-pill-error"
             : IsMailboxConfigured()
-                ? "settings-status-strip-success"
-                : "settings-status-strip-warning";
+                ? "ui-status-pill-success"
+                : "ui-status-pill-warning";
 
     protected override async Task OnInitializedAsync()
     {

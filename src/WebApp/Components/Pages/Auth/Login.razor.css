@@ -6,7 +6,7 @@
     padding: 1.5rem;
     background: var(--app-main-bg);
     background-image: var(--app-main-gradient);
-    color-scheme: dark;
+    color-scheme: light dark;
 }
 
 .login-card {
@@ -14,10 +14,12 @@
     width: 100%;
     max-width: 26rem;
     padding: 2rem;
-    border-radius: 0.875rem;
+    border-radius: var(--ui-radius-md);
     background: var(--app-surface);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.35);
+    border: 1px solid var(--app-border);
+    box-shadow: var(--app-shadow-md);
+    -webkit-backdrop-filter: blur(var(--app-glass-blur));
+    backdrop-filter: blur(var(--app-glass-blur));
 }
 
 .login-loading {
@@ -30,8 +32,8 @@
     justify-content: center;
     gap: 0.75rem;
     border-radius: inherit;
-    background: rgba(33, 33, 33, 0.82);
-    color: #f4f4f5;
+    background: var(--app-overlay-scrim);
+    color: var(--app-fg);
     font-size: 0.9375rem;
     font-weight: 500;
 }
@@ -43,7 +45,7 @@
 .login-spinner {
     width: 1.75rem;
     height: 1.75rem;
-    border: 2px solid rgba(255, 255, 255, 0.2);
+    border: 2px solid var(--app-border-strong);
     border-top-color: var(--app-accent);
     border-radius: 50%;
     animation: login-spin 0.7s linear infinite;
@@ -69,14 +71,14 @@
     font-size: 1.625rem;
     font-weight: 600;
     line-height: 1.25;
-    color: #f4f4f5;
+    color: var(--app-fg);
 }
 
 .login-subtitle {
     margin: 0 0 1.5rem;
     font-size: 0.9375rem;
     line-height: 1.5;
-    color: #b4b4be;
+    color: var(--app-muted);
 }
 
 .login-alert {
@@ -85,21 +87,21 @@
     gap: 0.25rem;
     margin-bottom: 1.25rem;
     padding: 0.75rem 0.875rem;
-    border-radius: 0.5rem;
-    background: rgba(220, 38, 38, 0.15);
-    border: 1px solid rgba(248, 113, 113, 0.5);
+    border-radius: var(--ui-radius-sm);
+    background: var(--app-danger-bg);
+    border: 1px solid var(--app-danger-border);
 }
 
 .login-alert-label {
     font-size: 0.8125rem;
     font-weight: 600;
-    color: #fecaca;
+    color: var(--app-danger-fg);
 }
 
 .login-alert-message {
     font-size: 0.875rem;
     line-height: 1.45;
-    color: #fee2e2;
+    color: var(--app-fg);
 }
 
 .login-form.is-submitting {
@@ -115,7 +117,7 @@
     margin-bottom: 0.4rem;
     font-size: 0.875rem;
     font-weight: 500;
-    color: #e4e4e7;
+    color: var(--app-fg);
 }
 
 .login-input {
@@ -124,25 +126,25 @@
     padding: 0.625rem 0.75rem;
     font-size: 1rem;
     line-height: 1.5;
-    color: #fafafa;
-    background-color: #1a1a1a;
-    border: 1px solid rgba(255, 255, 255, 0.16);
-    border-radius: 0.5rem;
+    color: var(--app-fg);
+    background-color: var(--app-input-bg);
+    border: 1px solid var(--app-input-border);
+    border-radius: var(--ui-radius-sm);
     transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .login-input::placeholder {
-    color: #71717a;
+    color: var(--app-muted);
 }
 
 .login-input:hover:not(:disabled) {
-    border-color: rgba(255, 255, 255, 0.24);
+    border-color: var(--app-input-border-hover);
 }
 
 .login-input:focus {
     outline: none;
     border-color: var(--app-accent);
-    box-shadow: 0 0 0 3px rgba(16, 163, 127, 0.35);
+    box-shadow: 0 0 0 3px var(--app-focus-ring);
 }
 
 .login-input:disabled,
@@ -154,11 +156,9 @@
 .login-input:-webkit-autofill,
 .login-input:-webkit-autofill:hover,
 .login-input:-webkit-autofill:focus {
-    -webkit-text-fill-color: #fafafa;
-    -webkit-box-shadow: 0 0 0 1000px #1a1a1a inset;
-    box-shadow: 0 0 0 1000px #1a1a1a inset;
-    border: 1px solid rgba(255, 255, 255, 0.16);
-    caret-color: #fafafa;
+    -webkit-text-fill-color: var(--app-fg);
+    caret-color: var(--app-fg);
+    transition: background-color 9999s ease-out 0s;
 }
 
 .login-submit {
@@ -171,10 +171,10 @@
     padding: 0.625rem 1rem;
     font-size: 1rem;
     font-weight: 600;
-    color: #ffffff;
+    color: var(--app-on-accent);
     background: var(--app-accent);
     border: 1px solid var(--app-accent);
-    border-radius: 0.5rem;
+    border-radius: var(--ui-radius-sm);
     cursor: pointer;
     transition: background-color 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
 }
@@ -186,7 +186,7 @@
 
 .login-submit:focus-visible {
     outline: none;
-    box-shadow: 0 0 0 3px rgba(16, 163, 127, 0.45);
+    box-shadow: 0 0 0 3px var(--app-focus-ring);
 }
 
 .login-submit:disabled {

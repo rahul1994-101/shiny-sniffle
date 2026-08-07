@@ -17,7 +17,7 @@
     flex-shrink: 0;
     padding: 0.5rem 0.75rem 0.85rem;
     border-top: 1px solid var(--app-border);
-    background: rgba(0, 0, 0, 0.18);
+    background: var(--app-sidebar-chrome);
 }
 
 .sidebar-footer-nav {
@@ -42,9 +42,9 @@
     gap: 0.5rem;
     width: 100%;
     padding: 0.55rem 0.75rem;
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 0.5rem;
-    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--app-control-border);
+    border-radius: var(--ui-radius-sm);
+    background: var(--app-control-bg);
     color: var(--app-fg) !important;
     text-decoration: none !important;
     font-size: 0.8125rem;
@@ -63,8 +63,8 @@
 .sidebar-footer-nav ::deep a.sidebar-footer-link:hover,
 .sidebar-footer-nav ::deep button.sidebar-footer-link:hover {
     background: var(--app-sidebar-hover);
-    border-color: rgba(255, 255, 255, 0.18);
-    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04);
+    border-color: var(--app-control-border-hover);
+    box-shadow: 0 1px 0 var(--app-control-highlight);
 }
 
 .sidebar-footer-link:focus-visible,
@@ -79,7 +79,7 @@
 .sidebar-footer-nav ::deep a.sidebar-footer-link-active,
 .sidebar-footer-nav ::deep a.sidebar-footer-link.active {
     background: var(--app-sidebar-active);
-    border-color: rgba(255, 255, 255, 0.14);
+    border-color: var(--app-border-strong);
     color: var(--app-fg) !important;
 }
 
@@ -113,7 +113,7 @@
     min-height: 3rem;
     padding: 0 0.65rem 0 0.85rem;
     border-bottom: 1px solid var(--app-border);
-    background: rgba(0, 0, 0, 0.2);
+    background: var(--app-sidebar-chrome);
 }
 
 .sidebar-brand {
@@ -143,7 +143,7 @@
 
 .sidebar-brand:focus-visible {
     outline: none;
-    border-radius: 0.375rem;
+    border-radius: var(--ui-radius-xs);
     box-shadow: 0 0 0 2px color-mix(in srgb, var(--app-accent) 45%, transparent);
 }
 
@@ -162,7 +162,7 @@
     height: 2.5rem;
     padding: 0;
     border: none;
-    border-radius: 0.5rem;
+    border-radius: var(--ui-radius-sm);
     background: transparent;
     color: var(--app-muted);
     cursor: pointer;
@@ -170,7 +170,7 @@
 }
 
 .sidebar-header-btn:hover {
-    background: rgba(255, 255, 255, 0.08);
+    background: var(--app-overlay-active);
     color: var(--app-fg);
 }
 
@@ -231,9 +231,9 @@
     justify-content: center;
     gap: 0.5rem;
     padding: 0.55rem 0.75rem;
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 0.5rem;
-    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--app-control-border);
+    border-radius: var(--ui-radius-sm);
+    background: var(--app-control-bg);
     color: var(--app-fg);
     font-size: 0.8125rem;
     font-weight: 500;
@@ -243,8 +243,8 @@
 
 .btn-new-chat:hover {
     background: var(--app-sidebar-hover);
-    border-color: rgba(255, 255, 255, 0.18);
-    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04);
+    border-color: var(--app-control-border-hover);
+    box-shadow: 0 1px 0 var(--app-control-highlight);
 }
 
 .thread-list-label {
@@ -264,7 +264,7 @@
     min-height: 0;
     overflow-y: auto;
     scrollbar-width: thin;
-    scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+    scrollbar-color: var(--app-scrollbar-thumb) transparent;
 }
 
 .thread-list::-webkit-scrollbar {
@@ -272,19 +272,19 @@
 }
 
 .thread-list::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.15);
+    background: var(--app-scrollbar-thumb);
     border-radius: 999px;
 }
 
 .thread-list::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.25);
+    background: var(--app-border-strong);
 }
 
 .thread-item {
     display: flex;
     align-items: stretch;
     gap: 0.15rem;
-    border-radius: 0.5rem;
+    border-radius: var(--ui-radius-sm);
     margin-bottom: 0.2rem;
     transition: background 0.12s ease;
 }
@@ -307,19 +307,21 @@
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    padding: 0.5rem 0.4rem 0.5rem 0.5rem;
+    padding: 0.55rem 0.75rem;
     border: none;
-    border-radius: 0.5rem;
+    border-radius: var(--ui-radius-sm);
     background: transparent;
     color: var(--app-fg);
     font-size: 0.8125rem;
+    font-weight: 500;
+    line-height: 1.2;
     text-align: left;
     cursor: pointer;
 }
 
 .thread-ico {
-    width: 1rem;
-    height: 1rem;
+    width: 1.1rem;
+    height: 1.1rem;
     flex-shrink: 0;
     opacity: 0.55;
 }
@@ -334,7 +336,7 @@
     flex-shrink: 0;
     width: 2rem;
     border: none;
-    border-radius: 0.375rem;
+    border-radius: var(--ui-radius-xs);
     background: transparent;
     color: var(--app-muted);
     cursor: pointer;
@@ -356,7 +358,7 @@
 
 .thread-rename:hover {
     color: var(--app-fg);
-    background: rgba(255, 255, 255, 0.08);
+    background: var(--app-overlay-active);
 }
 
 .thread-edit {
@@ -371,21 +373,21 @@
     padding: 0.4rem 0.5rem;
     font-size: 0.8125rem;
     color: var(--app-fg);
-    background: rgba(0, 0, 0, 0.35);
-    border: 1px solid rgba(16, 163, 127, 0.45);
-    border-radius: 0.4rem;
+    background: var(--app-input-bg);
+    border: 1px solid var(--app-composer-focus-border);
+    border-radius: var(--ui-radius-xs);
     outline: none;
 }
 
 .thread-rename-input:focus {
-    border-color: rgba(16, 163, 127, 0.75);
+    border-color: var(--app-accent);
 }
 
 .thread-delete {
     flex-shrink: 0;
     width: 2rem;
     border: none;
-    border-radius: 0.375rem;
+    border-radius: var(--ui-radius-xs);
     background: transparent;
     color: var(--app-muted);
     cursor: pointer;
@@ -406,8 +408,8 @@
 }
 
 .thread-delete:hover {
-    color: #f87171;
-    background: rgba(248, 113, 113, 0.12);
+    color: var(--app-danger);
+    background: var(--app-danger-bg);
 }
 
 .nav-scrollable {
