@@ -74,7 +74,7 @@
 .sidebar-footer-nav ::deep a.sidebar-footer-link:focus-visible,
 .sidebar-footer-nav ::deep button.sidebar-footer-link:focus-visible {
     outline: none;
-    box-shadow: 0 0 0 2px color-mix(in srgb, var(--app-accent) 35%, transparent);
+    box-shadow: var(--app-focus-ring-shadow);
 }
 
 .sidebar-footer-link-active,
@@ -147,7 +147,7 @@
 .sidebar-brand:focus-visible {
     outline: none;
     border-radius: var(--ui-radius-xs);
-    box-shadow: 0 0 0 2px color-mix(in srgb, var(--app-accent) 45%, transparent);
+    box-shadow: var(--app-focus-ring-shadow);
 }
 
 .sidebar-header-actions {
@@ -181,7 +181,7 @@
 
 .sidebar-header-btn:focus-visible {
     outline: none;
-    box-shadow: 0 0 0 2px color-mix(in srgb, var(--app-accent) 45%, transparent);
+    box-shadow: var(--app-focus-ring-shadow);
 }
 
 .sidebar-header-ico {

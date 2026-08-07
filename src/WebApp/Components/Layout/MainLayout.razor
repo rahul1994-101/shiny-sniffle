@@ -1,6 +1,6 @@
 ﻿@inherits LayoutComponentBase
 
-<div id="app-shell" class="page app-chat-layout">
+<div id="app-shell" class="page app-chat-layout app-shell-sidebar-inset">
     <CascadingValue Value="_notifyLayoutRefresh" Name="NotifyLayoutRefresh" IsFixed="true">
         <Sidebar />
 
@@ -37,7 +37,6 @@
     {
         _notifyLayoutRefresh = EventCallback.Factory.Create(this, RefreshLayoutAsync);
     }
-
 
     #region # Helpers
 

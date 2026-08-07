@@ -16,50 +16,17 @@
     --settings-radius-sm: var(--ui-radius-sm);
 }
 
-.settings-shell .settings-section-nav {
+.settings-shell .settings-section-nav.ui-segmented {
+    display: flex;
     width: 100%;
     margin: 0 0 var(--ui-space-4);
-    display: inline-flex;
-    flex-wrap: wrap;
-    align-items: stretch;
-    gap: 0.15rem;
-    justify-content: flex-start;
-    padding: 0.2rem;
-    border: 1px solid var(--settings-surface-border);
-    border-radius: var(--ui-radius-md);
-    background: var(--app-surface-muted);
     box-sizing: border-box;
 }
 
-.settings-shell .settings-section-nav ::deep a.settings-tab {
+.settings-shell .settings-section-nav ::deep a.ui-segmented-btn {
     flex: 1 1 auto;
     min-width: 5.5rem;
     text-align: center;
-    padding: 0.45rem 0.85rem;
-    font-size: 0.8125rem;
-    font-weight: 600;
-    color: var(--app-muted) !important;
-    text-decoration: none !important;
-    border-radius: calc(var(--ui-radius-md) - 0.15rem);
-    margin-bottom: 0;
-    border-bottom: none;
-    transition:
-        color var(--ui-duration) var(--ui-ease),
-        background var(--ui-duration) var(--ui-ease),
-        box-shadow var(--ui-duration) var(--ui-ease);
-}
-
-.settings-shell .settings-section-nav ::deep a.settings-tab:hover {
-    color: var(--app-fg) !important;
-    background: var(--app-overlay-hover);
-}
-
-.settings-shell .settings-section-nav ::deep a.settings-tab-active {
-    color: var(--app-fg) !important;
-    background: var(--app-surface-elevated);
-    box-shadow: var(--app-shadow-sm);
-    border-bottom-color: transparent;
-    font-weight: 600;
 }
 
 .settings-content {
@@ -77,6 +44,7 @@
     overflow: visible;
     -webkit-backdrop-filter: blur(calc(var(--app-glass-blur) * 0.6));
     backdrop-filter: blur(calc(var(--app-glass-blur) * 0.6));
+    box-shadow: var(--app-elev-1);
 }
 
 .settings-content ::deep .settings-card-muted {
@@ -422,7 +390,7 @@
 .settings-content ::deep .settings-input:focus {
     outline: none;
     border-color: var(--app-accent);
-    box-shadow: 0 0 0 0.12rem var(--app-focus-ring);
+    box-shadow: var(--app-focus-ring-shadow);
 }
 
 .settings-content ::deep .settings-input:disabled {
@@ -513,7 +481,7 @@
 .settings-content ::deep .settings-provider-trigger:focus-visible {
     outline: none;
     border-color: var(--app-accent);
-    box-shadow: 0 0 0 0.12rem color-mix(in srgb, var(--app-accent) 28%, transparent);
+    box-shadow: var(--app-focus-ring-shadow);
 }
 
 .settings-content ::deep .settings-provider-trigger:disabled {
@@ -585,7 +553,7 @@
 .settings-content ::deep .settings-collapsible-toggle:focus-visible {
     outline: none;
     border-color: var(--app-accent);
-    box-shadow: 0 0 0 0.12rem color-mix(in srgb, var(--app-accent) 28%, transparent);
+    box-shadow: var(--app-focus-ring-shadow);
 }
 
 .settings-content ::deep .settings-collapsible-toggle:disabled {
@@ -721,7 +689,7 @@
         --settings-col-min: 18rem;
     }
 
-    .settings-shell .settings-section-nav ::deep a.settings-tab {
+    .settings-shell .settings-section-nav ::deep a.ui-segmented-btn {
         min-width: 6.5rem;
         padding-left: 1.25rem;
         padding-right: 1.25rem;
@@ -761,8 +729,27 @@
 }
 
 .settings-content ::deep .settings-section-lead + .ui-group,
-.settings-content ::deep .settings-section-lead + .ui-empty-state {
-    margin-top: 0;
+.settings-content ::deep .settings-section-lead + .ui-empty-state,
+.settings-content ::deep .settings-section-lead + .ui-segmented {
+    margin-top: var(--ui-space-3);
+}
+
+.settings-content ::deep .settings-card > .ui-segmented {
+    margin-top: var(--ui-space-3);
+}
+
+.settings-content ::deep .ui-segmented button.ui-segmented-btn {
+    border: none;
+    background: transparent;
+    font: inherit;
+    appearance: none;
+    -webkit-appearance: none;
+}
+
+.settings-content ::deep .ui-segmented button.ui-segmented-btn-active {
+    background: var(--app-surface-elevated);
+    color: var(--app-fg);
+    box-shadow: var(--app-elev-1);
 }
 
 .settings-content ::deep .settings-card > .ui-group {

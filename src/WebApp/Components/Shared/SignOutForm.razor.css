@@ -39,7 +39,7 @@
 
 .sign-out-form button.sidebar-footer-link:focus-visible {
     outline: none;
-    box-shadow: 0 0 0 2px color-mix(in srgb, var(--app-accent) 35%, transparent);
+    box-shadow: var(--app-focus-ring-shadow);
 }
 
 .sign-out-form button.sidebar-footer-link .sidebar-footer-link-ico {

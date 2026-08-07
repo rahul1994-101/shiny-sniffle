@@ -63,8 +63,16 @@ body.shell-sidebar-drawer-open {
     --app-input-border: rgba(255, 255, 255, 0.12);
     --app-input-border-hover: rgba(255, 255, 255, 0.2);
     --app-focus-ring: color-mix(in srgb, var(--app-accent) 35%, transparent);
-    --app-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.25);
-    --app-shadow-md: 0 8px 28px rgba(0, 0, 0, 0.35);
+    --app-focus-ring-shadow: 0 0 0 2px var(--app-focus-ring);
+    /* Elevation: 1 = resting cards/chrome, 2 = floats/menus, 3 = modals/drawer. */
+    --app-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.28), 0 4px 14px rgba(0, 0, 0, 0.2);
+    --app-shadow-md: 0 4px 16px rgba(0, 0, 0, 0.28), 0 12px 36px rgba(0, 0, 0, 0.22);
+    --app-shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.32), 0 24px 48px rgba(0, 0, 0, 0.28);
+    --app-shadow-inset-sm: inset 0 1px 2px rgba(0, 0, 0, 0.22);
+    --app-elev-1: var(--app-shadow-sm);
+    --app-elev-2: var(--app-shadow-md);
+    --app-elev-3: var(--app-shadow-lg);
+    --app-btn-primary-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 3px 10px color-mix(in srgb, var(--app-accent) 24%, transparent);
     --app-backdrop: rgba(0, 0, 0, 0.55);
     --app-overlay-scrim: rgba(28, 28, 30, 0.88);
     --app-accent: #10a37f;
@@ -83,7 +91,7 @@ body.shell-sidebar-drawer-open {
     --app-code-block-bg: rgba(0, 0, 0, 0.28);
     --app-code-inline-bg: rgba(0, 0, 0, 0.22);
     --app-markdown-quote-bg: var(--app-surface-muted);
-    --app-msg-shadow: var(--app-shadow-sm);
+    --app-msg-shadow: var(--app-elev-1);
     --app-user-avatar-bg: #19c37d;
     --app-user-avatar-fg: #0d0d0d;
     --app-assistant-avatar-bg: #5436da;
@@ -91,9 +99,9 @@ body.shell-sidebar-drawer-open {
     --app-msg-user-bg: rgba(255, 255, 255, 0.04);
     --app-msg-assistant-bg: rgba(255, 255, 255, 0.03);
     --app-composer-border: rgba(255, 255, 255, 0.12);
-    --app-composer-shadow: 0 2px 12px rgba(0, 0, 0, 0.22);
+    --app-composer-shadow: var(--app-elev-1);
     --app-composer-focus-border: color-mix(in srgb, var(--app-accent) 55%, transparent);
-    --app-composer-focus-shadow: 0 2px 16px rgba(0, 0, 0, 0.28), 0 0 0 1px color-mix(in srgb, var(--app-accent) 22%, transparent);
+    --app-composer-focus-shadow: var(--app-elev-2), 0 0 0 1px color-mix(in srgb, var(--app-accent) 22%, transparent);
     --app-page-max: min(100%, 56rem);
     --app-page-pad-x: 1rem;
     --app-page-header-bg: rgba(34, 34, 36, 0.72);
@@ -132,8 +140,15 @@ body.shell-sidebar-drawer-open {
     --app-input-border: rgba(0, 0, 0, 0.12);
     --app-input-border-hover: rgba(0, 0, 0, 0.2);
     --app-focus-ring: color-mix(in srgb, var(--app-accent) 28%, transparent);
-    --app-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06), 0 2px 8px rgba(0, 0, 0, 0.04);
-    --app-shadow-md: 0 4px 20px rgba(0, 0, 0, 0.08);
+    --app-focus-ring-shadow: 0 0 0 2px var(--app-focus-ring);
+    --app-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06), 0 2px 10px rgba(0, 0, 0, 0.05);
+    --app-shadow-md: 0 4px 16px rgba(0, 0, 0, 0.08), 0 12px 32px rgba(0, 0, 0, 0.06);
+    --app-shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.12);
+    --app-shadow-inset-sm: inset 0 1px 2px rgba(0, 0, 0, 0.06);
+    --app-elev-1: var(--app-shadow-sm);
+    --app-elev-2: var(--app-shadow-md);
+    --app-elev-3: var(--app-shadow-lg);
+    --app-btn-primary-shadow: 0 1px 2px rgba(0, 0, 0, 0.08), 0 3px 10px color-mix(in srgb, var(--app-accent) 18%, transparent);
     --app-backdrop: rgba(0, 0, 0, 0.35);
     --app-overlay-scrim: rgba(255, 255, 255, 0.92);
     --app-accent: #0d966f;
@@ -152,7 +167,7 @@ body.shell-sidebar-drawer-open {
     --app-code-block-bg: rgba(0, 0, 0, 0.06);
     --app-code-inline-bg: rgba(0, 0, 0, 0.08);
     --app-markdown-quote-bg: var(--app-surface-muted);
-    --app-msg-shadow: var(--app-shadow-sm);
+    --app-msg-shadow: var(--app-elev-1);
     --app-user-avatar-bg: #19c37d;
     --app-user-avatar-fg: #0d0d0d;
     --app-assistant-avatar-bg: #5436da;
@@ -160,9 +175,9 @@ body.shell-sidebar-drawer-open {
     --app-msg-user-bg: rgba(0, 0, 0, 0.04);
     --app-msg-assistant-bg: rgba(0, 0, 0, 0.02);
     --app-composer-border: rgba(0, 0, 0, 0.1);
-    --app-composer-shadow: var(--app-shadow-sm);
+    --app-composer-shadow: var(--app-elev-1);
     --app-composer-focus-border: color-mix(in srgb, var(--app-accent) 45%, transparent);
-    --app-composer-focus-shadow: var(--app-shadow-sm), 0 0 0 1px color-mix(in srgb, var(--app-accent) 18%, transparent);
+    --app-composer-focus-shadow: var(--app-elev-2), 0 0 0 1px color-mix(in srgb, var(--app-accent) 18%, transparent);
     --app-page-header-bg: rgba(246, 246, 248, 0.76);
     --app-page-header-border: var(--app-border);
     --app-scrollbar-thumb: rgba(0, 0, 0, 0.16);
@@ -184,13 +199,13 @@ body.shell-sidebar-drawer-open {
 
 .app-page-header {
     flex-shrink: 0;
-    margin: 0 var(--app-page-pad-x) var(--ui-space-3);
+    margin: var(--ui-space-2) var(--app-page-pad-x) var(--ui-space-3);
     border: 1px solid var(--app-page-header-border);
     border-radius: var(--ui-radius-md);
     background: var(--app-page-header-bg);
     -webkit-backdrop-filter: blur(var(--app-glass-blur)) saturate(1.15);
     backdrop-filter: blur(var(--app-glass-blur)) saturate(1.15);
-    box-shadow: var(--app-shadow-sm);
+    box-shadow: var(--app-elev-1);
 }
 
 .app-page-header-inner {
@@ -230,6 +245,21 @@ body.shell-sidebar-drawer-open {
 @media (prefers-reduced-motion: no-preference) {
     .app-page-body-inner {
         animation: ui-page-in var(--ui-duration-slow) var(--ui-ease);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .app-page-body-inner {
+        animation: none;
+    }
+
+    *,
+    *::before,
+    *::after {
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
     }
 }
 
@@ -356,7 +386,7 @@ a.sidebar-brand:visited {
 }
 
 .btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus, .form-select:focus {
-    box-shadow: 0 0 0 0.15rem color-mix(in srgb, var(--app-accent) 35%, transparent);
+    box-shadow: var(--app-focus-ring-shadow);
 }
 
 .content {
@@ -426,7 +456,7 @@ body.app-login-page {
     border-radius: var(--ui-radius-md);
     background: var(--app-surface);
     overflow: hidden;
-    box-shadow: var(--app-shadow-sm);
+    box-shadow: var(--app-elev-1);
     -webkit-backdrop-filter: blur(calc(var(--app-glass-blur) * 0.65));
     backdrop-filter: blur(calc(var(--app-glass-blur) * 0.65));
 }
@@ -502,9 +532,13 @@ body.app-login-page {
     border: 1px solid var(--app-border);
     border-radius: var(--ui-radius-md);
     background: var(--app-surface-muted);
+    box-shadow: var(--app-shadow-inset-sm);
 }
 
-.ui-segmented-btn {
+.ui-segmented-btn,
+.ui-segmented a.ui-segmented-btn,
+button.ui-segmented-btn,
+.ui-segmented button.ui-segmented-btn {
     min-width: 5.5rem;
     padding: 0.45rem 0.85rem;
     border: none;
@@ -515,25 +549,40 @@ body.app-login-page {
     font-size: var(--ui-type-caption);
     font-weight: 600;
     cursor: pointer;
+    text-decoration: none;
+    box-sizing: border-box;
+    appearance: none;
+    -webkit-appearance: none;
     transition:
         background var(--ui-duration) var(--ui-ease),
         color var(--ui-duration) var(--ui-ease),
         box-shadow var(--ui-duration) var(--ui-ease);
 }
 
-.ui-segmented-btn:hover {
+.ui-segmented a.ui-segmented-btn:visited {
+    color: var(--app-muted);
+}
+
+.ui-segmented-btn:hover,
+.ui-segmented a.ui-segmented-btn:hover,
+button.ui-segmented-btn:hover {
     color: var(--app-fg);
 }
 
-.ui-segmented-btn:focus-visible {
+.ui-segmented-btn:focus-visible,
+.ui-segmented a.ui-segmented-btn:focus-visible,
+button.ui-segmented-btn:focus-visible {
     outline: none;
-    box-shadow: 0 0 0 2px var(--app-focus-ring);
+    box-shadow: var(--app-focus-ring-shadow);
 }
 
-.ui-segmented-btn-active {
+.ui-segmented-btn-active,
+.ui-segmented a.ui-segmented-btn-active,
+.ui-segmented a.ui-segmented-btn-active:visited,
+button.ui-segmented-btn-active {
     background: var(--app-surface-elevated);
     color: var(--app-fg);
-    box-shadow: var(--app-shadow-sm);
+    box-shadow: var(--app-elev-1);
 }
 
 .ui-status-pill {
@@ -596,6 +645,7 @@ body.app-login-page {
     border: 1px dashed var(--app-border);
     border-radius: var(--ui-radius-md);
     background: var(--app-surface-subtle);
+    box-shadow: var(--app-elev-1);
     text-align: center;
 }
 
@@ -654,17 +704,20 @@ body.app-login-page {
     text-decoration: none !important;
     cursor: pointer;
     box-sizing: border-box;
+    appearance: none;
+    -webkit-appearance: none;
     transition:
         background-color var(--ui-duration) var(--ui-ease),
         border-color var(--ui-duration) var(--ui-ease),
         color var(--ui-duration) var(--ui-ease),
         opacity var(--ui-duration) var(--ui-ease),
-        filter var(--ui-duration) var(--ui-ease);
+        filter var(--ui-duration) var(--ui-ease),
+        box-shadow var(--ui-duration) var(--ui-ease);
 }
 
 .ui-btn:focus-visible {
     outline: none;
-    box-shadow: 0 0 0 2px var(--app-focus-ring);
+    box-shadow: var(--app-focus-ring-shadow);
 }
 
 .ui-btn:disabled {
@@ -676,11 +729,17 @@ body.app-login-page {
     color: var(--app-on-accent);
     background: var(--app-accent);
     border-color: color-mix(in srgb, var(--app-accent) 85%, black);
+    box-shadow: var(--app-btn-primary-shadow);
 }
 
 .ui-btn-primary:hover:not(:disabled) {
     background: var(--app-accent-hover);
     border-color: var(--app-accent-hover);
+    filter: brightness(1.03);
+}
+
+.ui-btn-primary:focus-visible {
+    box-shadow: var(--app-btn-primary-shadow), var(--app-focus-ring-shadow);
 }
 
 .ui-btn-secondary {
@@ -693,6 +752,11 @@ body.app-login-page {
 .ui-btn-secondary:hover:not(:disabled) {
     background: var(--app-overlay-hover);
     border-color: var(--app-border-strong);
+    box-shadow: var(--app-elev-1);
+}
+
+.ui-btn-secondary:focus-visible {
+    box-shadow: var(--app-elev-1), var(--app-focus-ring-shadow);
 }
 
 .ui-btn-danger {
@@ -767,7 +831,7 @@ body.app-login-page {
 .ui-dropdown-menu {
     background: var(--app-surface-elevated);
     border: 1px solid var(--app-border);
-    box-shadow: var(--app-shadow-md);
+    box-shadow: var(--app-elev-2);
     -webkit-backdrop-filter: blur(var(--app-glass-blur)) saturate(1.15);
     backdrop-filter: blur(var(--app-glass-blur)) saturate(1.15);
 }
@@ -792,7 +856,7 @@ body.app-login-page {
 
 .ui-dropdown-option:focus-visible {
     outline: none;
-    box-shadow: 0 0 0 2px var(--app-focus-ring);
+    box-shadow: var(--app-focus-ring-shadow);
 }
 
 .ui-dropdown-option-active {

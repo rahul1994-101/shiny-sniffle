@@ -17,7 +17,7 @@
     border: 1px solid var(--app-border);
     border-radius: var(--ui-radius-md);
     background: var(--app-surface);
-    box-shadow: var(--app-shadow-md);
+    box-shadow: var(--app-elev-3);
     -webkit-backdrop-filter: blur(var(--app-glass-blur));
     backdrop-filter: blur(var(--app-glass-blur));
 }

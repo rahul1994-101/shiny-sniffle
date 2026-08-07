@@ -26,6 +26,7 @@
     max-height: 100dvh;
     overflow: hidden;
     background: transparent;
+    gap: var(--ui-space-2);
 }
 
 .main-area {
@@ -51,14 +52,20 @@ main {
 
 .app-chat-layout ::deep .sidebar {
     background: var(--app-sidebar-bg);
-    border-right: 1px solid var(--app-border);
     -webkit-backdrop-filter: blur(var(--app-glass-blur)) saturate(1.12);
     backdrop-filter: blur(var(--app-glass-blur)) saturate(1.12);
     display: flex;
     flex-direction: column;
     min-height: 0;
     z-index: 2;
-    transition: width 0.22s ease, opacity 0.2s ease, border-color 0.2s ease, transform 0.22s ease;
+    transition:
+        width var(--ui-duration-slow) var(--ui-ease),
+        min-width var(--ui-duration-slow) var(--ui-ease),
+        flex-basis var(--ui-duration-slow) var(--ui-ease),
+        opacity var(--ui-duration) var(--ui-ease),
+        border-color var(--ui-duration) var(--ui-ease),
+        box-shadow var(--ui-duration) var(--ui-ease),
+        transform var(--ui-duration-slow) var(--ui-ease);
 }
 
 @media (min-width: 641px) {
@@ -66,27 +73,67 @@ main {
         flex-direction: row;
     }
 
-    .app-chat-layout ::deep .sidebar {
-        width: 288px;
-        min-width: 288px;
-        min-height: 100vh;
-        max-height: 100vh;
-        position: sticky;
-        top: 0;
-        align-self: flex-start;
+    #app-shell.app-shell-sidebar-inset.page {
+        padding: var(--ui-space-2);
+        gap: var(--ui-space-2);
+        box-sizing: border-box;
+    }
+
+    #app-shell.app-shell-sidebar-inset ::deep .sidebar {
+        position: relative;
+        top: auto;
+        align-self: stretch;
+        flex: 0 0 280px;
+        width: 280px;
+        min-width: 280px;
+        min-height: 0;
+        max-height: 100%;
+        height: auto;
+        border: 1px solid var(--app-border);
+        border-radius: var(--ui-radius-md);
+        box-shadow: var(--app-elev-1);
+        overflow: hidden;
+    }
+
+    #app-shell.app-shell-sidebar-inset .main-stack {
+        flex: 1 1 0;
+        min-width: 0;
+        min-height: 0;
+        padding: var(--ui-space-2);
+        gap: var(--ui-space-2);
+        border: 1px solid var(--app-border);
+        border-radius: var(--ui-radius-md);
+        background: var(--app-surface);
+        box-shadow: var(--app-elev-1);
+        -webkit-backdrop-filter: blur(calc(var(--app-glass-blur) * 0.55));
+        backdrop-filter: blur(calc(var(--app-glass-blur) * 0.55));
+        overflow: hidden;
+        box-sizing: border-box;
     }
 
     #app-shell.sidebar-collapsed ::deep .sidebar {
+        flex: 0 0 0;
         width: 0;
         min-width: 0;
         opacity: 0;
-        border-right-width: 0;
+        margin: 0;
+        padding: 0;
+        border-width: 0;
+        box-shadow: none;
         overflow: hidden;
         pointer-events: none;
     }
 
-    /* Sidebar open: collapse control is in the sidebar header. Collapsed: sidebar
-       has no hit target — show the navbar toggle again so the drawer can reopen. */
+    #app-shell.app-shell-sidebar-inset.sidebar-collapsed.page {
+        gap: 0;
+    }
+
+    #app-shell.app-shell-sidebar-inset.sidebar-collapsed .main-stack {
+        flex: 1 1 auto;
+        width: 100%;
+        max-width: 100%;
+    }
+
     #app-shell:not(.sidebar-collapsed) ::deep #sidebar-toggle-btn {
         display: none !important;
     }
@@ -121,6 +168,11 @@ main {
         -webkit-tap-highlight-color: transparent;
     }
 
+    #app-shell.app-shell-sidebar-inset.page {
+        padding: 0;
+        gap: 0;
+    }
+
     .app-chat-layout ::deep .sidebar {
         position: fixed;
         left: 0;
@@ -134,9 +186,9 @@ main {
         z-index: 50;
         transform: translateX(0);
         opacity: 1;
-        border-right: 1px solid var(--app-border);
+        border: 1px solid var(--app-border);
         pointer-events: auto;
-        box-shadow: 8px 0 32px rgba(0, 0, 0, 0.45);
+        box-shadow: var(--app-elev-3);
         border-top-right-radius: var(--ui-radius-lg);
         border-bottom-right-radius: var(--ui-radius-lg);
     }
@@ -145,7 +197,6 @@ main {
         transform: translateX(-100%);
         pointer-events: none;
         opacity: 1;
-        border-right-width: 1px;
     }
 
     .main-stack {
@@ -153,6 +204,9 @@ main {
         min-height: 0;
         max-height: 100dvh;
         width: 100%;
+        padding: var(--ui-space-2);
+        gap: var(--ui-space-2);
+        box-sizing: border-box;
     }
 }
 
