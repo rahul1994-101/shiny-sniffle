@@ -340,6 +340,21 @@
     font-size: var(--ui-type-caption);
 }
 
+.settings-editor-host ::deep .settings-provider-help-link {
+    display: inline-block;
+    max-width: 100%;
+    margin-top: var(--ui-space-1);
+    word-break: break-word;
+    color: color-mix(in srgb, var(--app-accent) 75%, var(--app-fg));
+    text-decoration: none;
+    border-bottom: 1px solid color-mix(in srgb, var(--app-accent) 35%, transparent);
+}
+
+.settings-editor-host ::deep .settings-provider-help-link:hover {
+    color: var(--app-accent);
+    border-bottom-color: color-mix(in srgb, var(--app-accent) 55%, transparent);
+}
+
 @media (min-width: 641px) {
     .settings-editor-host ::deep .settings-endpoint-row {
         display: grid;

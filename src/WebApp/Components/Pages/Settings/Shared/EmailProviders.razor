@@ -101,17 +101,20 @@ else
         </EditorContent>
         <EditorFooter>
             <div class="settings-card-footer settings-actions">
+                @if (!_editorReadOnly)
+                {
+                    <button type="button"
+                            class="ui-btn ui-btn-primary"
+                            disabled="@(!CanSaveEditor)"
+                            @onclick="SaveEditorAsync">
+                        @(_saving ? "Saving…" : "Save provider")
+                    </button>
+                }
                 <button type="button"
-                        class="ui-btn ui-btn-primary"
-                        disabled="@(!CanSaveEditor)"
-                        @onclick="SaveEditorAsync">
-                    @(_saving ? "Saving…" : "Save provider")
-                </button>
-                <button type="button"
-                        class="ui-btn ui-btn-secondary"
+                        class="@(_editorReadOnly ? "ui-btn ui-btn-primary" : "ui-btn ui-btn-secondary")"
                         disabled="@IsFormBusy"
                         @onclick="CancelEditorAsync">
-                    Cancel
+                    @(_editorReadOnly ? "Close" : "Cancel")
                 </button>
             </div>
 
@@ -139,13 +142,22 @@ else
 
     private bool IsFormBusy => _saving || _deleting;
 
+    private bool _editorReadOnly;
+
+    private bool IsFieldDisabled => IsFormBusy || _editorReadOnly;
+
     private bool CanSaveEditor =>
         !IsFormBusy
+        && !_editorReadOnly
         && !string.IsNullOrWhiteSpace(_form.Name)
         && !string.IsNullOrWhiteSpace(_form.Slug);
 
     private string EditorTitle =>
-        _form.Id is null ? "New provider" : $"Edit {_form.Name}";
+        _form.Id is null
+            ? "New provider"
+            : _editorReadOnly
+                ? $"View {_form.Name}"
+                : $"Edit {_form.Name}";
 
     private string ImapSslSelect
     {
@@ -168,32 +180,39 @@ else
     private RenderFragment EditorFields => __builder =>
     {
         <div class="settings-editor-form">
+            @if (_editorReadOnly)
+            {
+                <p class="settings-hint" role="status">System template — read only. Server settings are updated with product releases.</p>
+            }
             <div class="settings-field">
                 <label class="settings-label" for="ep-name">Name</label>
-                <input id="ep-name" type="text" class="settings-input" @bind="_form.Name" disabled="@IsFormBusy" />
+                <input id="ep-name" type="text" class="settings-input" @bind="_form.Name" disabled="@IsFieldDisabled" />
             </div>
             <div class="settings-field">
                 <label class="settings-label" for="ep-slug">Slug</label>
-                <input id="ep-slug" type="text" class="settings-input" @bind="_form.Slug" disabled="@IsFormBusy" autocomplete="off" />
-                <p class="settings-hint">Lowercase letters, numbers, and hyphens (e.g. gmail, my-host).</p>
+                <input id="ep-slug" type="text" class="settings-input" @bind="_form.Slug" disabled="@IsFieldDisabled" autocomplete="off" />
+                @if (!_editorReadOnly)
+                {
+                    <p class="settings-hint">Lowercase letters, numbers, and hyphens (e.g. gmail, my-host).</p>
+                }
             </div>
             <div class="settings-mail-server">
                 <div class="settings-endpoint-row">
                     <div class="settings-field">
                         <label class="settings-label" for="ep-imap-host">IMAP host</label>
-                        <input id="ep-imap-host" type="text" class="settings-input" @bind="_form.ImapHost" disabled="@IsFormBusy" />
+                        <input id="ep-imap-host" type="text" class="settings-input" @bind="_form.ImapHost" disabled="@IsFieldDisabled" />
                     </div>
                     <div class="settings-endpoint-port-ssl">
                         <div class="settings-field settings-field-port">
                             <label class="settings-label" for="ep-imap-port">IMAP port</label>
-                            <input id="ep-imap-port" type="number" class="settings-input" @bind="_form.ImapPort" disabled="@IsFormBusy" />
+                            <input id="ep-imap-port" type="number" class="settings-input" @bind="_form.ImapPort" disabled="@IsFieldDisabled" />
                         </div>
                         <div class="settings-field settings-field-ssl">
                             <label class="settings-label" for="ep-imap-ssl">IMAP SSL</label>
                             <select id="ep-imap-ssl"
                                     class="settings-input settings-select settings-ssl-select"
                                     @bind="ImapSslSelect"
-                                    disabled="@IsFormBusy">
+                                    disabled="@IsFieldDisabled">
                                 <option value="ssl">SSL</option>
                                 <option value="plain">Plain</option>
                             </select>
@@ -203,19 +222,19 @@ else
                 <div class="settings-endpoint-row">
                     <div class="settings-field">
                         <label class="settings-label" for="ep-smtp-host">SMTP host</label>
-                        <input id="ep-smtp-host" type="text" class="settings-input" @bind="_form.SmtpHost" disabled="@IsFormBusy" />
+                        <input id="ep-smtp-host" type="text" class="settings-input" @bind="_form.SmtpHost" disabled="@IsFieldDisabled" />
                     </div>
                     <div class="settings-endpoint-port-ssl">
                         <div class="settings-field settings-field-port">
                             <label class="settings-label" for="ep-smtp-port">SMTP port</label>
-                            <input id="ep-smtp-port" type="number" class="settings-input" @bind="_form.SmtpPort" disabled="@IsFormBusy" />
+                            <input id="ep-smtp-port" type="number" class="settings-input" @bind="_form.SmtpPort" disabled="@IsFieldDisabled" />
                         </div>
                         <div class="settings-field settings-field-ssl">
                             <label class="settings-label" for="ep-smtp-ssl">SMTP SSL</label>
                             <select id="ep-smtp-ssl"
                                     class="settings-input settings-select settings-ssl-select"
                                     @bind="SmtpSslSelect"
-                                    disabled="@IsFormBusy">
+                                    disabled="@IsFieldDisabled">
                                 <option value="ssl">SSL</option>
                                 <option value="plain">Plain</option>
                             </select>
@@ -227,11 +246,31 @@ else
                 <div class="settings-extras-row">
                     <div class="settings-field settings-field-help">
                         <label class="settings-label" for="ep-help">Setup help URL <span class="settings-label-optional">(optional)</span></label>
-                        <input id="ep-help" type="url" class="settings-input" @bind="_form.SetupHelpUrl" disabled="@IsFormBusy" />
+                        @if (_editorReadOnly)
+                        {
+                            @if (!string.IsNullOrWhiteSpace(_form.SetupHelpUrl))
+                            {
+                                <a id="ep-help"
+                                   class="settings-link settings-provider-help-link"
+                                   href="@_form.SetupHelpUrl"
+                                   target="_blank"
+                                   rel="noopener noreferrer">
+                                    @_form.SetupHelpUrl
+                                </a>
+                            }
+                            else
+                            {
+                                <p class="settings-hint" id="ep-help">No setup guide linked.</p>
+                            }
+                        }
+                        else
+                        {
+                            <input id="ep-help" type="url" class="settings-input" @bind="_form.SetupHelpUrl" disabled="@IsFieldDisabled" />
+                        }
                     </div>
                     <div class="settings-field settings-field-sort">
                         <label class="settings-label" for="ep-sort">Sort order</label>
-                        <input id="ep-sort" type="number" class="settings-input" @bind="_form.SortOrder" disabled="@IsFormBusy" />
+                        <input id="ep-sort" type="number" class="settings-input" @bind="_form.SortOrder" disabled="@IsFieldDisabled" />
                     </div>
                 </div>
             </div>
@@ -270,6 +309,7 @@ else
     private void BeginAdd()
     {
         _status.Clear();
+        _editorReadOnly = false;
         _form = new ProviderForm { SortOrder = NextSortOrder() };
         _editorOpen = true;
     }
@@ -278,12 +318,14 @@ else
     {
         _status.Clear();
         _form = ProviderForm.FromDto(provider);
+        _editorReadOnly = provider.IsSystem;
         _editorOpen = true;
     }
 
     private Task CancelEditorAsync()
     {
         _editorOpen = false;
+        _editorReadOnly = false;
         _form = new ProviderForm();
         _status.Clear();
         return Task.CompletedTask;
@@ -375,6 +417,8 @@ else
 
         public int SortOrder { get; set; }
 
+        public bool IsSystem { get; set; }
+
         public static ProviderForm FromDto(EmailProviderDto dto) => new()
         {
             Id = dto.Id,
@@ -387,7 +431,8 @@ else
             SmtpPort = dto.SmtpPort,
             SmtpUseSsl = dto.SmtpUseSsl,
             SetupHelpUrl = dto.SetupHelpUrl,
-            SortOrder = dto.SortOrder
+            SortOrder = dto.SortOrder,
+            IsSystem = dto.IsSystem
         };
 
         public SaveEmailProviderDto ToSaveDto() => new()

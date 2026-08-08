@@ -49,7 +49,7 @@ public sealed class SaveEmailProviderRequestHandler(EmailProviderRepository emai
             return result;
         }
 
-        var (saved, notFound) = await emailProviderRepo.SaveAsync(dto, request.UserId, cancellationToken);
+        var (saved, notFound, blockedSystem) = await emailProviderRepo.SaveAsync(dto, request.UserId, cancellationToken);
 
         #endregion
 
@@ -58,6 +58,10 @@ public sealed class SaveEmailProviderRequestHandler(EmailProviderRepository emai
         if (notFound)
         {
             result.Failure(ErrorCode.NotFound, "Email provider not found.");
+        }
+        else if (blockedSystem)
+        {
+            result.Failure(ErrorCode.BadRequest, "System providers cannot be modified.");
         }
         else if (saved is null)
         {

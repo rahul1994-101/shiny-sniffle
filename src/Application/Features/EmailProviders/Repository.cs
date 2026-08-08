@@ -28,7 +28,7 @@ public sealed class EmailProviderRepository(IDbContextFactory<AppDbContext> _dbC
         return entity is null ? null : EmailProviderMapping.FromEntity(entity);
     }
 
-    public async Task<(EmailProviderDto? Saved, bool NotFound)> SaveAsync(
+    public async Task<(EmailProviderDto? Saved, bool NotFound, bool BlockedSystem)> SaveAsync(
         SaveEmailProviderDto dto,
         Guid userId,
         CancellationToken cancellationToken = default)
@@ -43,7 +43,12 @@ public sealed class EmailProviderRepository(IDbContextFactory<AppDbContext> _dbC
             var existing = await ctx.EmailProviders.FirstOrDefaultAsync(x => x.Id == id && !x.IsDeleted, cancellationToken);
             if (existing is null)
             {
-                return (null, true);
+                return (null, true, false);
+            }
+
+            if (existing.IsSystem)
+            {
+                return (null, false, true);
             }
 
             entity = existing;
@@ -84,7 +89,7 @@ public sealed class EmailProviderRepository(IDbContextFactory<AppDbContext> _dbC
         }
 
         await ctx.SaveChangesAsync(cancellationToken);
-        return (EmailProviderMapping.FromEntity(entity), false);
+        return (EmailProviderMapping.FromEntity(entity), false, false);
     }
 
     public async Task<(bool Found, bool Blocked)> TrySoftDeleteAsync(Guid id, Guid userId, CancellationToken cancellationToken = default)
