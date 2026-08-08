@@ -608,12 +608,6 @@
     min-width: 5rem;
     margin-top: 0;
 }
-    resize: vertical;
-    min-height: 2.75rem;
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-    font-size: 0.78rem;
-    line-height: 1.35;
-}
 
 .settings-content ::deep .settings-actions {
     display: flex;
@@ -661,19 +655,43 @@
 }
 
 .settings-content ::deep .settings-card-footer.settings-actions {
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
     gap: var(--ui-space-2);
 }
 
-.settings-content ::deep .settings-card-footer.settings-actions .ui-btn-primary {
-    flex: 1 1 auto;
-    min-width: min(100%, 12rem);
+.settings-content ::deep .settings-card-footer.settings-actions .ui-btn-primary,
+.settings-content ::deep .settings-card-footer.settings-actions .ui-btn-secondary {
+    width: 100%;
+    min-width: 0;
+    margin-top: 0;
 }
 
-.settings-content ::deep .settings-card-footer.settings-actions .ui-btn-secondary {
-    flex: 1 1 auto;
-    min-width: min(100%, 12rem);
+.settings-content ::deep .settings-card > .ui-status-pill {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    width: 100%;
+    max-width: 100%;
+    margin-top: var(--ui-space-3);
+    box-sizing: border-box;
+    border-radius: var(--ui-radius-md);
+}
+
+@media (min-width: 520px) {
+    .settings-content ::deep .settings-card-footer.settings-actions {
+        grid-template-columns: minmax(0, 1fr) auto auto;
+        align-items: stretch;
+    }
+
+    .settings-content ::deep .settings-card-footer.settings-actions .ui-btn-primary,
+    .settings-content ::deep .settings-card-footer.settings-actions .ui-btn-secondary {
+        width: auto;
+    }
+
+    .settings-content ::deep .settings-card-footer.settings-actions .ui-btn-primary {
+        min-width: min(100%, 12rem);
+    }
 }
 
 .settings-content ::deep .settings-sync-msg {

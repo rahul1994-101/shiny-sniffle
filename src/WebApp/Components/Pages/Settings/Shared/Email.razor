@@ -1,5 +1,8 @@
 @inherits BaseComponent
 
+@using Application.Features.EmailAccounts
+@using Application.Features.EmailAccounts.Commands
+@using Application.Features.EmailAccounts.Queries
 @using Application.Features.EmailProviders
 @using Application.Features.EmailProviders.Queries
 @using WebApp.Components.Pages.Settings
@@ -8,141 +11,99 @@
 
 @if (_busy == TabBusy.Loading)
 {
-    <div class="settings-loading" role="status" aria-busy="true" aria-label="Loading email settings">
+    <div class="settings-loading" role="status" aria-busy="true" aria-label="Loading email accounts">
         <div class="settings-skeleton settings-skeleton-card"></div>
     </div>
 }
 else
 {
-    <div class="settings-panel">
+    <div class="settings-sections">
         <div class="settings-status-row">
-            <p class="ui-status-pill @MailboxStatusPillClass" role="status">
-                <span class="ui-status-pill-label">@_mailboxStatusTitle</span>
-                @if (!string.IsNullOrWhiteSpace(_mailboxStatusDetail))
+            <p class="ui-status-pill @ListStatusPillClass" role="status">
+                <span class="ui-status-pill-label">@ListStatusTitle</span>
+                @if (!string.IsNullOrWhiteSpace(ListStatusDetail))
                 {
-                    <span class="ui-status-pill-detail">@_mailboxStatusDetail</span>
+                    <span class="ui-status-pill-detail">@ListStatusDetail</span>
                 }
             </p>
         </div>
 
-        <section class="settings-card" aria-labelledby="mail-heading">
-            <h2 id="mail-heading" class="settings-section-title">Mailbox</h2>
+        <section class="settings-card" aria-labelledby="accounts-heading">
+            <h2 id="accounts-heading" class="settings-section-title">Connected accounts</h2>
             <p class="settings-section-lead">
-                Connect the Email agent with your address and password. IMAP/SMTP templates are managed under
-                <NavLink href="/settings/email/providers">Providers</NavLink>.
+                Connect one or more inboxes for the Email agent. The <strong>default</strong> account is used when no account is specified.
+                IMAP/SMTP templates are under <NavLink href="/settings/email/providers">Providers</NavLink>.
             </p>
 
-            <label class="settings-label" id="mail-provider-label">Provider</label>
-            @if (_catalog.Count == 0)
+            @if (_accounts.Count == 0)
             {
-                <p class="settings-hint" role="status">
-                    No provider templates found. Run the database migration or add providers in the Providers tab.
-                </p>
+                <div class="ui-empty-state">
+                    <p class="ui-empty-state-title">No accounts yet</p>
+                    <p class="ui-empty-state-lead">Add an account with your address and mailbox password.</p>
+                    <button type="button"
+                            class="ui-btn ui-btn-primary"
+                            disabled="@IsFormBusy"
+                            @onclick="BeginAdd">
+                        Add account
+                    </button>
+                </div>
             }
             else
             {
-                <div class="settings-provider-picker">
-                    @if (_providerOpen)
+                <div class="ui-group" aria-label="Email accounts">
+                    @foreach (var account in _accounts)
                     {
-                        <button type="button"
-                                class="settings-provider-backdrop"
-                                tabindex="-1"
-                                aria-hidden="true"
-                                @onclick="CloseProviderPicker"></button>
-                    }
-
-                    <button type="button"
-                            id="mail-provider"
-                            class="settings-provider-trigger"
-                            aria-haspopup="listbox"
-                            aria-expanded="@_providerOpen"
-                            aria-labelledby="mail-provider-label mail-provider"
-                            disabled="@IsFormBusy"
-                            @onclick="ToggleProviderPicker">
-                        <span class="settings-provider-trigger-label">@SelectedProviderName()</span>
-                        <svg class="settings-provider-chevron @(_providerOpen ? "settings-provider-chevron-open" : null)"
-                             viewBox="0 0 24 24"
-                             fill="none"
-                             stroke="currentColor"
-                             stroke-width="2"
-                             aria-hidden="true">
-                            <path d="M6 9l6 6 6-6" />
-                        </svg>
-                    </button>
-
-                    @if (_providerOpen)
-                    {
-                        <div class="settings-provider-menu ui-dropdown-menu" role="listbox" aria-labelledby="mail-provider-label">
-                            @foreach (var provider in _catalog)
-                            {
-                                var selected = string.Equals(provider.Slug, _email.ProviderSlug, StringComparison.OrdinalIgnoreCase);
+                        <div class="ui-group-row ui-group-row-static ui-list-row-rich">
+                            <div class="ui-list-row-rich-body">
+                                <span class="ui-list-row-meta">
+                                    <span class="ui-group-row-title">@account.Alias</span>
+                                    @if (account.IsDefault)
+                                    {
+                                        <span class="ui-list-row-badge">Default</span>
+                                    }
+                                </span>
+                                <span class="ui-group-row-desc">
+                                    @account.ProviderName · @account.EmailAddress
+                                </span>
+                            </div>
+                            <div class="ui-list-row-rich-actions">
+                                @if (!account.IsDefault)
+                                {
+                                    <button type="button"
+                                            class="ui-btn ui-btn-secondary settings-provider-row-btn"
+                                            disabled="@IsFormBusy"
+                                            @onclick="() => SetDefaultAsync(account)">
+                                        Make default
+                                    </button>
+                                }
                                 <button type="button"
-                                        role="option"
-                                        aria-selected="@selected"
-                                        class="settings-provider-option ui-dropdown-option @(selected ? "settings-provider-option-active ui-dropdown-option-active" : null)"
-                                        @onclick="() => SelectProvider(provider)">
-                                    @provider.Name
+                                        class="ui-btn ui-btn-secondary settings-provider-row-btn"
+                                        disabled="@IsFormBusy"
+                                        @onclick="() => BeginEditAsync(account)">
+                                    Edit
                                 </button>
-                            }
+                                <button type="button"
+                                        class="ui-btn ui-btn-danger settings-provider-row-btn"
+                                        disabled="@IsFormBusy"
+                                        @onclick="() => DeleteAsync(account)">
+                                    Delete
+                                </button>
+                            </div>
                         </div>
                     }
                 </div>
 
-                @if (!string.IsNullOrWhiteSpace(SelectedProvider()?.SetupHelpUrl))
-                {
-                    <p class="settings-hint">
-                        <a class="settings-link"
-                           href="@SelectedProvider()!.SetupHelpUrl"
-                           target="_blank"
-                           rel="noopener noreferrer">
-                            Provider setup help
-                        </a>
-                    </p>
-                }
-            }
-
-            <label class="settings-label" for="mail-email">Email address</label>
-            <input id="mail-email"
-                   type="email"
-                   class="settings-input"
-                   @bind="_email.EmailAddress"
-                   @bind:after="OnEmailEdited"
-                   autocomplete="email"
-                   disabled="@IsFormBusy" />
-
-            <label class="settings-label" for="mail-username">Username</label>
-            <input id="mail-username"
-                   type="text"
-                   class="settings-input"
-                   @bind="_email.Username"
-                   @bind:after="OnEmailEdited"
-                   autocomplete="username"
-                   disabled="@IsFormBusy" />
-
-            <div class="settings-field">
-                <label class="settings-label" for="mail-password">Password</label>
-                <div class="settings-password-wrap">
-                    <input id="mail-password"
-                           type="@(_showMailPassword ? "text" : "password")"
-                           class="settings-input"
-                           @bind="_email.Password"
-                           @bind:after="OnEmailEdited"
-                           autocomplete="new-password"
-                           placeholder="@(_email.HasStoredPassword ? "Saved — leave blank to keep" : "App password or mailbox password")"
-                           disabled="@IsFormBusy" />
+                <div class="settings-card-footer settings-provider-list-footer">
                     <button type="button"
-                            class="settings-password-toggle"
-                            aria-label="@(_showMailPassword ? "Hide password" : "Show password")"
-                            aria-pressed="@_showMailPassword"
+                            class="ui-btn ui-btn-secondary"
                             disabled="@IsFormBusy"
-                            @onclick="() => _showMailPassword = !_showMailPassword">
-                        @(_showMailPassword ? "Hide" : "Show")
+                            @onclick="BeginAdd">
+                        Add account
                     </button>
                 </div>
-                <p class="settings-hint">Stored encrypted. Leave blank on save to keep the existing password.</p>
-            </div>
+            }
 
-            @if (_status.Current is not null)
+            @if (_status.Current is not null && !_editorOpen)
             {
                 <p class="ui-status-pill @(_status.Current.IsError ? "ui-status-pill-error" : "ui-status-pill-success") @(_status.Current.Fading ? "ui-status-pill-fading" : null)"
                    role="status"
@@ -152,20 +113,161 @@ else
             }
         </section>
 
-        <div class="settings-card-footer settings-actions">
-            <button type="button"
-                    class="ui-btn ui-btn-primary"
-                    disabled="@(!CanSaveEmail)"
-                    @onclick="SaveAsync">
-                @(_saving ? "Saving…" : "Save email settings")
-            </button>
-            <button type="button"
-                    class="ui-btn ui-btn-secondary"
-                    disabled="@IsFormBusy"
-                    @onclick="TestConnectionAsync">
-                @(_testing ? "Testing…" : "Test connection")
-            </button>
-        </div>
+        @if (_editorOpen)
+        {
+            <section class="settings-card" aria-labelledby="account-editor-heading">
+                <h2 id="account-editor-heading" class="settings-section-title">
+                    @(_form.Id is null ? "New account" : "Edit account")
+                </h2>
+
+                <div class="settings-field">
+                    <label class="settings-label" for="acc-alias">Alias</label>
+                    <input id="acc-alias"
+                           type="text"
+                           class="settings-input"
+                           @bind="_form.Alias"
+                           @bind:after="OnFormEdited"
+                           maxlength="64"
+                           placeholder="Work, Personal, Client A"
+                           disabled="@IsFormBusy" />
+                    <p class="settings-hint">A short label so you can tell accounts apart in briefs and settings.</p>
+                </div>
+
+                <label class="settings-checkbox">
+                    <input type="checkbox"
+                           @bind="_form.IsDefault"
+                           @bind:after="OnFormEdited"
+                           disabled="@IsFormBusy || _form.IsDefaultForced" />
+                    Default account for Email agent
+                </label>
+
+                @if (_catalog.Count == 0)
+                {
+                    <p class="settings-hint" role="status">No provider templates found. Add providers first.</p>
+                }
+                else
+                {
+                    <label class="settings-label" id="acc-provider-label">Provider</label>
+                    <div class="settings-provider-picker">
+                        @if (_providerOpen)
+                        {
+                            <button type="button"
+                                    class="settings-provider-backdrop"
+                                    tabindex="-1"
+                                    aria-hidden="true"
+                                    @onclick="CloseProviderPicker"></button>
+                        }
+
+                        <button type="button"
+                                id="acc-provider"
+                                class="settings-provider-trigger"
+                                aria-haspopup="listbox"
+                                aria-expanded="@_providerOpen"
+                                aria-labelledby="acc-provider-label acc-provider"
+                                disabled="@IsFormBusy"
+                                @onclick="ToggleProviderPicker">
+                            <span class="settings-provider-trigger-label">@SelectedProviderName()</span>
+                            <svg class="settings-provider-chevron @(_providerOpen ? "settings-provider-chevron-open" : null)"
+                                 viewBox="0 0 24 24"
+                                 fill="none"
+                                 stroke="currentColor"
+                                 stroke-width="2"
+                                 aria-hidden="true">
+                                <path d="M6 9l6 6 6-6" />
+                            </svg>
+                        </button>
+
+                        @if (_providerOpen)
+                        {
+                            <div class="settings-provider-menu ui-dropdown-menu" role="listbox" aria-labelledby="acc-provider-label">
+                                @foreach (var provider in _catalog)
+                                {
+                                    var selected = string.Equals(provider.Slug, _form.ProviderSlug, StringComparison.OrdinalIgnoreCase);
+                                    <button type="button"
+                                            role="option"
+                                            aria-selected="@selected"
+                                            class="settings-provider-option ui-dropdown-option @(selected ? "settings-provider-option-active ui-dropdown-option-active" : null)"
+                                            @onclick="() => SelectProvider(provider)">
+                                        @provider.Name
+                                    </button>
+                                }
+                            </div>
+                        }
+                    </div>
+                }
+
+                <label class="settings-label" for="acc-email">Email address</label>
+                <input id="acc-email"
+                       type="email"
+                       class="settings-input"
+                       @bind="_form.EmailAddress"
+                       @bind:after="OnFormEdited"
+                       autocomplete="email"
+                       disabled="@IsFormBusy" />
+
+                <label class="settings-label" for="acc-username">Username</label>
+                <input id="acc-username"
+                       type="text"
+                       class="settings-input"
+                       @bind="_form.Username"
+                       @bind:after="OnFormEdited"
+                       autocomplete="username"
+                       disabled="@IsFormBusy" />
+
+                <div class="settings-field">
+                    <label class="settings-label" for="acc-password">Password</label>
+                    <div class="settings-password-wrap">
+                        <input id="acc-password"
+                               type="@(_showPassword ? "text" : "password")"
+                               class="settings-input"
+                               @bind="_form.Password"
+                               @bind:after="OnFormEdited"
+                               autocomplete="new-password"
+                               placeholder="@(_form.HasStoredPassword ? "Saved — leave blank to keep" : "App password or mailbox password")"
+                               disabled="@IsFormBusy" />
+                        <button type="button"
+                                class="settings-password-toggle"
+                                aria-label="@(_showPassword ? "Hide password" : "Show password")"
+                                aria-pressed="@_showPassword"
+                                disabled="@IsFormBusy"
+                                @onclick="() => _showPassword = !_showPassword">
+                            @(_showPassword ? "Hide" : "Show")
+                        </button>
+                    </div>
+                    <p class="settings-hint">Stored encrypted. Leave blank on save to keep the existing password.</p>
+                </div>
+
+                <div class="settings-card-footer settings-actions">
+                    <button type="button"
+                            class="ui-btn ui-btn-primary"
+                            disabled="@(!CanSaveEditor)"
+                            @onclick="SaveEditorAsync">
+                        @(_saving ? "Saving…" : "Save account")
+                    </button>
+                    <button type="button"
+                            class="ui-btn ui-btn-secondary"
+                            disabled="@IsFormBusy"
+                            @onclick="TestEditorAsync">
+                        @(_testing ? "Testing…" : "Test connection")
+                    </button>
+                    <button type="button"
+                            class="ui-btn ui-btn-secondary"
+                            disabled="@IsFormBusy"
+                            @onclick="CancelEditor">
+                        Cancel
+                    </button>
+                </div>
+
+                @if (_status.Current is not null)
+                {
+                    <p class="ui-status-pill @(_status.Current.IsError ? "ui-status-pill-error" : "ui-status-pill-success") @(_status.Current.Fading ? "ui-status-pill-fading" : null)"
+                       role="status"
+                       aria-live="polite">
+                        <span class="ui-status-pill-label">@_status.Current.Message</span>
+                    </p>
+                }
+            </section>
+        }
     </div>
 }
 
@@ -173,57 +275,53 @@ else
     [CascadingParameter]
     public SettingsPageContext PageContext { get; set; } = null!;
 
-    private EmailSettingsDto _email = new();
-    private EmailSettingsDto _emailBaseline = new();
+    private readonly List<EmailAccountSummaryDto> _accounts = [];
     private readonly List<EmailProviderDto> _catalog = [];
+    private AccountForm _form = new();
+    private AccountForm _formBaseline = new();
     private TabBusy _busy = TabBusy.Loading;
     private bool _saving;
     private bool _testing;
-    private SettingsSectionStatusHandle _status = null!;
+    private bool _deleting;
+    private bool _editorOpen;
     private bool _providerOpen;
-    private bool _showMailPassword;
-    private string? _lastTestSummary;
+    private bool _showPassword;
+    private SettingsSectionStatusHandle _status = null!;
 
-    private bool IsFormBusy => _saving || _testing;
+    private bool IsFormBusy => _saving || _testing || _deleting;
 
-    private bool IsEmailDirty =>
-        !_email.ContentEquals(_emailBaseline)
-        || !string.IsNullOrEmpty(_email.Password);
+    private bool IsFormDirty =>
+        !_form.ContentEquals(_formBaseline) || !string.IsNullOrEmpty(_form.Password);
 
-    private bool CanSaveEmail => IsEmailDirty && !IsFormBusy && _catalog.Count > 0;
+    private bool CanSaveEditor =>
+        !IsFormBusy
+        && _catalog.Count > 0
+        && !string.IsNullOrWhiteSpace(_form.Alias)
+        && !string.IsNullOrWhiteSpace(_form.EmailAddress)
+        && !string.IsNullOrWhiteSpace(_form.Username)
+        && IsFormDirty;
 
-    private string _mailboxStatusTitle => IsMailboxConfigured()
-        ? "Mailbox configured"
-        : "Mailbox not configured";
+    private string ListStatusTitle =>
+        _accounts.Count == 0 ? "No accounts connected" : $"{_accounts.Count} account{(_accounts.Count == 1 ? "" : "s")} connected";
 
-    private string _mailboxStatusDetail
+    private string ListStatusDetail
     {
         get
         {
-            if (!IsMailboxConfigured())
+            var def = _accounts.FirstOrDefault(a => a.IsDefault);
+            if (def is null)
             {
-                return "Add credentials below to connect the Email agent.";
+                return _accounts.Count == 0
+                    ? "Add an account to connect the Email agent."
+                    : "Choose a default account for the Email agent.";
             }
 
-            var provider = SelectedProviderName();
-            var email = string.IsNullOrWhiteSpace(_email.EmailAddress) ? _email.Username : _email.EmailAddress;
-            var summary = string.IsNullOrWhiteSpace(email) ? provider : $"{provider} · {email}";
-
-            if (!string.IsNullOrWhiteSpace(_lastTestSummary))
-            {
-                return $"{summary} · {_lastTestSummary}";
-            }
-
-            return summary;
+            return $"Default: {def.Alias} · {def.EmailAddress}";
         }
     }
 
-    private string MailboxStatusPillClass =>
-        _lastTestSummary?.StartsWith("Last test failed", StringComparison.OrdinalIgnoreCase) == true
-            ? "ui-status-pill-error"
-            : IsMailboxConfigured()
-                ? "ui-status-pill-success"
-                : "ui-status-pill-warning";
+    private string ListStatusPillClass =>
+        _accounts.Count == 0 ? "ui-status-pill-warning" : "ui-status-pill-success";
 
     protected override async Task OnInitializedAsync()
     {
@@ -233,23 +331,20 @@ else
 
     public void Dispose() => _status.Dispose();
 
-    #region # Load
-
     private async Task LoadAsync()
     {
         _busy = TabBusy.Loading;
         _status.Clear();
 
-        var settingsResult = await Mediator.SendAsync(new GetEmailSettingsRequest(CurrentUser.Id));
+        var accountsResult = await Mediator.SendAsync(new ListEmailAccountsRequest(CurrentUser.Id));
         var catalogResult = await Mediator.SendAsync(new ListEmailProvidersRequest());
-
-        #region # Handle Result
 
         if (catalogResult.HasError)
         {
             _status.Set(
                 catalogResult.Errors.FirstOrDefault()?.Message ?? "Failed to load provider catalog.",
                 isError: true);
+            _catalog.Clear();
         }
         else
         {
@@ -257,83 +352,107 @@ else
             _catalog.AddRange(catalogResult.Payload.Providers);
         }
 
-        if (settingsResult.HasError)
+        if (accountsResult.HasError)
         {
             _status.Set(
-                settingsResult.Errors.FirstOrDefault()?.Message ?? "Failed to load email settings.",
+                accountsResult.Errors.FirstOrDefault()?.Message ?? "Failed to load email accounts.",
                 isError: true);
+            _accounts.Clear();
         }
         else
         {
-            _email = settingsResult.Payload;
-            EnsureProviderSlugInCatalog();
-            ApplySelectedCatalogToEmail();
-            CaptureEmailBaseline();
+            _accounts.Clear();
+            _accounts.AddRange(accountsResult.Payload.Accounts);
         }
-
-        #endregion
 
         _busy = TabBusy.None;
         SyncDirtyState();
     }
 
-    #endregion
-
-    #region # Save
-
-    private async Task SaveAsync()
+    private void BeginAdd()
     {
-        _saving = true;
         _status.Clear();
-        ApplySelectedCatalogToEmail();
+        _form = new AccountForm
+        {
+            IsDefault = _accounts.Count == 0,
+            IsDefaultForced = _accounts.Count == 0,
+            ProviderSlug = ResolveInitialProviderSlug()
+        };
+        EnsureProviderSlugInForm();
+        CaptureFormBaseline();
+        _editorOpen = true;
+        _showPassword = false;
+        SyncDirtyState();
+    }
 
-        #region # Execute
+    private async Task BeginEditAsync(EmailAccountSummaryDto summary)
+    {
+        _status.Clear();
+        _busy = TabBusy.Loading;
 
-        var result = await Mediator.SendAsync(new SaveEmailSettingsRequest(CurrentUser.Id, _email));
-
-        #endregion
-
-        #region # Handle Result
+        var result = await Mediator.SendAsync(new GetEmailAccountRequest(CurrentUser.Id, summary.Id));
 
         if (result.HasError)
         {
             _status.Set(
-                result.Errors.FirstOrDefault()?.Message ?? "Failed to save email settings.",
+                result.Errors.FirstOrDefault()?.Message ?? "Failed to load account.",
+                isError: true);
+            _busy = TabBusy.None;
+            return;
+        }
+
+        _form = AccountForm.FromDto(result.Payload, _accounts.Count <= 1 && result.Payload.IsDefault);
+        EnsureProviderSlugInForm();
+        CaptureFormBaseline();
+        _editorOpen = true;
+        _showPassword = false;
+        _busy = TabBusy.None;
+        SyncDirtyState();
+    }
+
+    private void CancelEditor()
+    {
+        _editorOpen = false;
+        _form = new AccountForm();
+        _formBaseline = new AccountForm();
+        _providerOpen = false;
+        _status.Clear();
+        SyncDirtyState();
+    }
+
+    private async Task SaveEditorAsync()
+    {
+        _saving = true;
+        _status.Clear();
+
+        var result = await Mediator.SendAsync(new SaveEmailAccountRequest(CurrentUser.Id, _form.ToSaveDto()));
+
+        if (result.HasError)
+        {
+            _status.Set(
+                result.Errors.FirstOrDefault()?.Message ?? "Failed to save account.",
                 isError: true);
         }
         else
         {
-            _email = result.Payload;
-            _email.Password = string.Empty;
-            _showMailPassword = false;
-            EnsureProviderSlugInCatalog();
-            CaptureEmailBaseline();
-            _status.Set("Email settings saved.", isError: false, autoClear: true);
+            _status.Set("Account saved.", isError: false, autoClear: true);
+            _editorOpen = false;
+            await LoadAsync();
         }
-
-        #endregion
 
         _saving = false;
         SyncDirtyState();
     }
 
-    #endregion
-
-    #region # Test Connection
-
-    private async Task TestConnectionAsync()
+    private async Task TestEditorAsync()
     {
         _testing = true;
         _status.Clear();
-        ApplySelectedCatalogToEmail();
 
-        #region # Execute
-
-        var result = await Mediator.SendAsync(new TestEmailConnectionRequest(CurrentUser.Id, _email));
-
-        #endregion
-
-        #region # Handle Result
+        var result = await Mediator.SendAsync(new TestEmailAccountConnectionRequest(
+            CurrentUser.Id,
+            _form.ToSaveDto(),
+            _form.Id));
 
         if (result.HasError)
         {
@@ -345,64 +464,102 @@ else
         {
             var testResult = result.Payload.Result;
             _status.Set(testResult.Message, isError: !testResult.Success);
-            _lastTestSummary = testResult.Success
-                ? "Last test succeeded"
-                : "Last test failed";
         }
-
-        #endregion
 
         _testing = false;
     }
 
-    #endregion
-
-    #region # Helpers
-
-    private void OnEmailEdited() => SyncDirtyState();
-
-    private void CaptureEmailBaseline()
+    private async Task DeleteAsync(EmailAccountSummaryDto account)
     {
-        _emailBaseline = _email.CloneForBaseline();
+        var confirm = await JsRuntime.InvokeAsync<bool>(
+            "confirm",
+            $"Remove account \"{account.Alias}\" ({account.EmailAddress})? This cannot be undone.");
+
+        if (!confirm)
+        {
+            return;
+        }
+
+        _deleting = true;
+        _status.Clear();
+
+        var result = await Mediator.SendAsync(new DeleteEmailAccountRequest(CurrentUser.Id, account.Id));
+
+        if (result.HasError)
+        {
+            _status.Set(
+                result.Errors.FirstOrDefault()?.Message ?? "Failed to delete account.",
+                isError: true);
+        }
+        else
+        {
+            if (_form.Id == account.Id)
+            {
+                CancelEditor();
+            }
+
+            await LoadAsync();
+        }
+
+        _deleting = false;
     }
 
-    private void SyncDirtyState() => PageContext.SetEmailDirty(IsEmailDirty);
+    private async Task SetDefaultAsync(EmailAccountSummaryDto account)
+    {
+        _status.Clear();
 
-    private bool IsMailboxConfigured() =>
-        _email.HasStoredPassword
-        && (!string.IsNullOrWhiteSpace(_email.EmailAddress) || !string.IsNullOrWhiteSpace(_email.Username));
+        var result = await Mediator.SendAsync(new SetDefaultEmailAccountRequest(CurrentUser.Id, account.Id));
+
+        if (result.HasError)
+        {
+            _status.Set(
+                result.Errors.FirstOrDefault()?.Message ?? "Failed to update default account.",
+                isError: true);
+        }
+        else
+        {
+            _status.Set($"Default account set to \"{account.Alias}\".", isError: false, autoClear: true);
+            await LoadAsync();
+        }
+    }
+
+    private void OnFormEdited() => SyncDirtyState();
+
+    private void CaptureFormBaseline() => _formBaseline = _form.CloneForBaseline();
+
+    private void SyncDirtyState() => PageContext.SetEmailDirty(_editorOpen && IsFormDirty);
+
+    private string ResolveInitialProviderSlug()
+    {
+        if (_catalog.Count == 0)
+        {
+            return "custom";
+        }
+
+        return EmailProviderCatalog.FindBySlug(_catalog, "gmail")?.Slug
+               ?? EmailProviderCatalog.FindBySlug(_catalog, "custom")?.Slug
+               ?? _catalog[0].Slug;
+    }
 
     private EmailProviderDto? SelectedProvider() =>
-        EmailProviderCatalog.FindBySlug(_catalog, _email.ProviderSlug);
+        EmailProviderCatalog.FindBySlug(_catalog, _form.ProviderSlug);
 
     private string SelectedProviderName() =>
         SelectedProvider()?.Name ?? "Select provider";
 
-    private void EnsureProviderSlugInCatalog()
+    private void EnsureProviderSlugInForm()
     {
         if (_catalog.Count == 0)
         {
             return;
         }
 
-        if (EmailProviderCatalog.FindBySlug(_catalog, _email.ProviderSlug) is not null)
+        if (EmailProviderCatalog.FindBySlug(_catalog, _form.ProviderSlug) is not null)
         {
             return;
         }
 
-        var fallback = EmailProviderCatalog.FindBySlug(_catalog, "custom") ?? _catalog[0];
-        _email.ProviderSlug = fallback.Slug;
-    }
-
-    private void ApplySelectedCatalogToEmail()
-    {
-        var row = SelectedProvider();
-        if (row is null)
-        {
-            return;
-        }
-
-        EmailProviderCatalog.ApplyTo(_email, row);
+        _form.ProviderSlug = ResolveInitialProviderSlug();
     }
 
     private void ToggleProviderPicker()
@@ -419,16 +576,74 @@ else
 
     private void SelectProvider(EmailProviderDto provider)
     {
-        if (string.Equals(provider.Slug, _email.ProviderSlug, StringComparison.OrdinalIgnoreCase))
-        {
-            CloseProviderPicker();
-            return;
-        }
-
-        _email.ProviderSlug = provider.Slug;
-        EmailProviderCatalog.ApplyTo(_email, provider);
+        _form.ProviderSlug = provider.Slug;
         CloseProviderPicker();
         SyncDirtyState();
+    }
+
+    private sealed class AccountForm
+    {
+        public Guid? Id { get; set; }
+
+        public string Alias { get; set; } = string.Empty;
+
+        public bool IsDefault { get; set; }
+
+        public bool IsDefaultForced { get; set; }
+
+        public string ProviderSlug { get; set; } = "custom";
+
+        public string EmailAddress { get; set; } = string.Empty;
+
+        public string Username { get; set; } = string.Empty;
+
+        public string Password { get; set; } = string.Empty;
+
+        public bool HasStoredPassword { get; set; }
+
+        public static AccountForm FromDto(EmailAccountDto dto, bool defaultForced) => new()
+        {
+            Id = dto.Id,
+            Alias = dto.Alias,
+            IsDefault = dto.IsDefault,
+            IsDefaultForced = defaultForced,
+            ProviderSlug = dto.ProviderSlug,
+            EmailAddress = dto.EmailAddress,
+            Username = dto.Username,
+            HasStoredPassword = dto.HasStoredPassword
+        };
+
+        public SaveEmailAccountDto ToSaveDto() => new()
+        {
+            Id = Id,
+            Alias = Alias,
+            IsDefault = IsDefault,
+            ProviderSlug = ProviderSlug,
+            EmailAddress = EmailAddress,
+            Username = Username,
+            Password = Password
+        };
+
+        public AccountForm CloneForBaseline() => new()
+        {
+            Id = Id,
+            Alias = Alias,
+            IsDefault = IsDefault,
+            IsDefaultForced = IsDefaultForced,
+            ProviderSlug = ProviderSlug,
+            EmailAddress = EmailAddress,
+            Username = Username,
+            HasStoredPassword = HasStoredPassword
+        };
+
+        public bool ContentEquals(AccountForm other) =>
+            Id == other.Id
+            && string.Equals(Alias, other.Alias, StringComparison.Ordinal)
+            && IsDefault == other.IsDefault
+            && string.Equals(ProviderSlug, other.ProviderSlug, StringComparison.OrdinalIgnoreCase)
+            && string.Equals(EmailAddress, other.EmailAddress, StringComparison.Ordinal)
+            && string.Equals(Username, other.Username, StringComparison.Ordinal)
+            && HasStoredPassword == other.HasStoredPassword;
     }
 
     private enum TabBusy
@@ -436,6 +651,4 @@ else
         None,
         Loading
     }
-
-    #endregion
 }
