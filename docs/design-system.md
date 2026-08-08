@@ -198,14 +198,25 @@ Classes: `ui-list-row-rich-body`, `ui-list-row-rich-actions`, `ui-list-row-meta`
 
 Section list header: `ListTitle`, `ListLead` or `ListLeadContent`, and **`ListHeaderActions`** (toolbar on the right — Add, later search/filter). Implemented via **`SettingsSectionHead.razor`** inside `SettingsEditorHost`; primary add actions use **`SettingsHeadActionButton.razor`** (+ icon + label). At `max-width: 640px`, section head stacks **title → lead → actions**; Add uses full width (`settings-head-action`).
 
-**Provider editor form** (`settings-provider-editor-form` in `EmailProviders.razor`, layout in `SettingsEditorHost.razor.css`):
+**Settings editor form** (`settings-editor-form` — `EmailProviders.razor`, `Email.razor`; layout in `SettingsEditorHost.razor.css`):
+
+**Provider**
 
 | Block | Classes | Notes |
 |--------|---------|--------|
 | Identity | `settings-field` | Name, slug + hint |
 | Mail | `settings-mail-server` | Top border; each protocol is `settings-endpoint-row` |
-| Endpoint row | `settings-endpoint-port-ssl` | **Mobile:** host 100%; port **80%** + SSL **20%** (`4fr 1fr`). **≥641px:** **host 50% \| port 40% \| SSL 10%** (`5fr 4fr 1fr`). SSL: label + centered checkbox in `settings-ssl-control`. |
-| Extras | `settings-provider-extras` | Top border; `settings-provider-extras-row` — sort order + setup help URL |
+| Endpoint row | `settings-endpoint-port-ssl` | **Mobile:** host 100%; port **80%** + SSL **20%** (`4fr 1fr`). **≥641px:** **host 60% \| port 30% \| SSL 10%** (`6fr 3fr 1fr`). SSL: `settings-select` **SSL / Plain** |
+| Extras | `settings-provider-extras` | Help URL first; **mobile** `4fr 1fr`; **desktop** `9fr 1fr` |
+
+**Account**
+
+| Block | Classes | Notes |
+|--------|---------|--------|
+| Provider | `settings-field` | Full width (top) |
+| Alias + default | `settings-extras-row` | **`4fr 1fr`** (mobile + desktop) |
+| Sign-in | `settings-mail-server` | Divider; **email \| username** (`settings-endpoint-row-duo`: mobile `1fr 1fr`, desktop `6fr 3fr`) |
+| Credentials | `settings-provider-extras` | Divider; password + hint (full width) |
 
 **Dialog footer actions** (`settings-editor-dialog-footer`): Save + Cancel stay **side-by-side** (`1fr` + `auto`) at all widths used by the editor dialog; stack full-width only at `max-width: 360px`. Dialog header uses `ui-dialog-header` only (no `settings-editor-header` margin).
 

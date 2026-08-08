@@ -147,6 +147,18 @@ else
     private string EditorTitle =>
         _form.Id is null ? "New provider" : $"Edit {_form.Name}";
 
+    private string ImapSslSelect
+    {
+        get => _form.ImapUseSsl ? "ssl" : "plain";
+        set => _form.ImapUseSsl = string.Equals(value, "ssl", StringComparison.Ordinal);
+    }
+
+    private string SmtpSslSelect
+    {
+        get => _form.SmtpUseSsl ? "ssl" : "plain";
+        set => _form.SmtpUseSsl = string.Equals(value, "ssl", StringComparison.Ordinal);
+    }
+
     protected override async Task OnInitializedAsync()
     {
         _status = new SettingsSectionStatusHandle(() => InvokeAsync(StateHasChanged));
@@ -155,7 +167,7 @@ else
 
     private RenderFragment EditorFields => __builder =>
     {
-        <div class="settings-provider-editor-form">
+        <div class="settings-editor-form">
             <div class="settings-field">
                 <label class="settings-label" for="ep-name">Name</label>
                 <input id="ep-name" type="text" class="settings-input" @bind="_form.Name" disabled="@IsFormBusy" />
@@ -178,9 +190,13 @@ else
                         </div>
                         <div class="settings-field settings-field-ssl">
                             <label class="settings-label" for="ep-imap-ssl">IMAP SSL</label>
-                            <div class="settings-ssl-control">
-                                <input id="ep-imap-ssl" type="checkbox" class="settings-ssl-checkbox" @bind="_form.ImapUseSsl" disabled="@IsFormBusy" title="Use SSL for IMAP" />
-                            </div>
+                            <select id="ep-imap-ssl"
+                                    class="settings-input settings-select settings-ssl-select"
+                                    @bind="ImapSslSelect"
+                                    disabled="@IsFormBusy">
+                                <option value="ssl">SSL</option>
+                                <option value="plain">Plain</option>
+                            </select>
                         </div>
                     </div>
                 </div>
@@ -196,22 +212,26 @@ else
                         </div>
                         <div class="settings-field settings-field-ssl">
                             <label class="settings-label" for="ep-smtp-ssl">SMTP SSL</label>
-                            <div class="settings-ssl-control">
-                                <input id="ep-smtp-ssl" type="checkbox" class="settings-ssl-checkbox" @bind="_form.SmtpUseSsl" disabled="@IsFormBusy" title="Use SSL for SMTP" />
-                            </div>
+                            <select id="ep-smtp-ssl"
+                                    class="settings-input settings-select settings-ssl-select"
+                                    @bind="SmtpSslSelect"
+                                    disabled="@IsFormBusy">
+                                <option value="ssl">SSL</option>
+                                <option value="plain">Plain</option>
+                            </select>
                         </div>
                     </div>
                 </div>
             </div>
             <div class="settings-provider-extras">
-                <div class="settings-name-row settings-provider-extras-row">
-                    <div class="settings-field settings-field-narrow">
-                        <label class="settings-label" for="ep-sort">Sort order</label>
-                        <input id="ep-sort" type="number" class="settings-input" @bind="_form.SortOrder" disabled="@IsFormBusy" />
-                    </div>
-                    <div class="settings-field">
+                <div class="settings-extras-row">
+                    <div class="settings-field settings-field-help">
                         <label class="settings-label" for="ep-help">Setup help URL <span class="settings-label-optional">(optional)</span></label>
                         <input id="ep-help" type="url" class="settings-input" @bind="_form.SetupHelpUrl" disabled="@IsFormBusy" />
+                    </div>
+                    <div class="settings-field settings-field-sort">
+                        <label class="settings-label" for="ep-sort">Sort order</label>
+                        <input id="ep-sort" type="number" class="settings-input" @bind="_form.SortOrder" disabled="@IsFormBusy" />
                     </div>
                 </div>
             </div>

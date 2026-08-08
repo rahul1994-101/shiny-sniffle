@@ -181,6 +181,22 @@ else
     private string EditorTitle =>
         _form.Id is null ? "New account" : "Edit account";
 
+    private string DefaultSelect
+    {
+        get => _form.IsDefault ? "default" : "no";
+        set
+        {
+            var isDefault = string.Equals(value, "default", StringComparison.Ordinal);
+            if (_form.IsDefault == isDefault)
+            {
+                return;
+            }
+
+            _form.IsDefault = isDefault;
+            OnFormEdited();
+        }
+    }
+
     private bool IsFormBusy => _saving || _testing || _deleting;
 
     private bool IsFormDirty =>
@@ -224,121 +240,139 @@ else
 
     private RenderFragment EditorFields => __builder =>
     {
-        <div class="settings-field">
-            <label class="settings-label" for="acc-alias">Alias</label>
-            <input id="acc-alias"
-                   type="text"
-                   class="settings-input"
-                   @bind="_form.Alias"
-                   @bind:after="OnFormEdited"
-                   maxlength="64"
-                   placeholder="Work, Personal, Client A"
-                   disabled="@IsFormBusy" />
-            <p class="settings-hint">A short label so you can tell accounts apart in briefs and settings.</p>
-        </div>
-
-        <label class="settings-checkbox">
-            <input type="checkbox"
-                   @bind="_form.IsDefault"
-                   @bind:after="OnFormEdited"
-                   disabled="@IsFormBusy || _form.IsDefaultForced" />
-            Default account for Email agent
-        </label>
-
-        @if (_catalog.Count == 0)
-        {
-            <p class="settings-hint" role="status">No provider templates found. Add providers first.</p>
-        }
-        else
-        {
-            <label class="settings-label" id="acc-provider-label">Provider</label>
-            <div class="settings-provider-picker">
-                @if (_providerOpen)
-                {
-                    <button type="button"
-                            class="settings-provider-backdrop"
-                            tabindex="-1"
-                            aria-hidden="true"
-                            @onclick="CloseProviderPicker"></button>
-                }
-
-                <button type="button"
-                        id="acc-provider"
-                        class="settings-provider-trigger"
-                        aria-haspopup="listbox"
-                        aria-expanded="@_providerOpen"
-                        aria-labelledby="acc-provider-label acc-provider"
-                        disabled="@IsFormBusy"
-                        @onclick="ToggleProviderPicker">
-                    <span class="settings-provider-trigger-label">@SelectedProviderName()</span>
-                    <svg class="settings-provider-chevron @(_providerOpen ? "settings-provider-chevron-open" : null)"
-                         viewBox="0 0 24 24"
-                         fill="none"
-                         stroke="currentColor"
-                         stroke-width="2"
-                         aria-hidden="true">
-                        <path d="M6 9l6 6 6-6" />
-                    </svg>
-                </button>
-
-                @if (_providerOpen)
-                {
-                    <div class="settings-provider-menu ui-dropdown-menu" role="listbox" aria-labelledby="acc-provider-label">
-                        @foreach (var provider in _catalog)
+        <div class="settings-editor-form">
+            @if (_catalog.Count == 0)
+            {
+                <p class="settings-hint" role="status">No provider templates found. Add providers first.</p>
+            }
+            else
+            {
+                <div class="settings-field">
+                    <label class="settings-label" id="acc-provider-label">Provider</label>
+                    <div class="settings-provider-picker">
+                        @if (_providerOpen)
                         {
-                            var selected = string.Equals(provider.Slug, _form.ProviderSlug, StringComparison.OrdinalIgnoreCase);
                             <button type="button"
-                                    role="option"
-                                    aria-selected="@selected"
-                                    class="settings-provider-option ui-dropdown-option @(selected ? "settings-provider-option-active ui-dropdown-option-active" : null)"
-                                    @onclick="() => SelectProvider(provider)">
-                                @provider.Name
-                            </button>
+                                    class="settings-provider-backdrop"
+                                    tabindex="-1"
+                                    aria-hidden="true"
+                                    @onclick="CloseProviderPicker"></button>
+                        }
+
+                        <button type="button"
+                                id="acc-provider"
+                                class="settings-provider-trigger"
+                                aria-haspopup="listbox"
+                                aria-expanded="@_providerOpen"
+                                aria-labelledby="acc-provider-label acc-provider"
+                                disabled="@IsFormBusy"
+                                @onclick="ToggleProviderPicker">
+                            <span class="settings-provider-trigger-label">@SelectedProviderName()</span>
+                            <svg class="settings-provider-chevron @(_providerOpen ? "settings-provider-chevron-open" : null)"
+                                 viewBox="0 0 24 24"
+                                 fill="none"
+                                 stroke="currentColor"
+                                 stroke-width="2"
+                                 aria-hidden="true">
+                                <path d="M6 9l6 6 6-6" />
+                            </svg>
+                        </button>
+
+                        @if (_providerOpen)
+                        {
+                            <div class="settings-provider-menu ui-dropdown-menu" role="listbox" aria-labelledby="acc-provider-label">
+                                @foreach (var provider in _catalog)
+                                {
+                                    var selected = string.Equals(provider.Slug, _form.ProviderSlug, StringComparison.OrdinalIgnoreCase);
+                                    <button type="button"
+                                            role="option"
+                                            aria-selected="@selected"
+                                            class="settings-provider-option ui-dropdown-option @(selected ? "settings-provider-option-active ui-dropdown-option-active" : null)"
+                                            @onclick="() => SelectProvider(provider)">
+                                        @provider.Name
+                                    </button>
+                                }
+                            </div>
                         }
                     </div>
-                }
+                    <p class="settings-hint">IMAP/SMTP template for this mailbox. Manage templates under <NavLink href="/settings/email/providers">Providers</NavLink>.</p>
+                </div>
+            }
+
+            <div class="settings-extras-row settings-alias-default-row">
+                <div class="settings-field">
+                    <label class="settings-label" for="acc-alias">Alias</label>
+                    <input id="acc-alias"
+                           type="text"
+                           class="settings-input"
+                           @bind="_form.Alias"
+                           @bind:after="OnFormEdited"
+                           maxlength="64"
+                           placeholder="Work, Personal, Client A"
+                           disabled="@IsFormBusy" />
+                    <p class="settings-hint">A short label so you can tell accounts apart in briefs and settings.</p>
+                </div>
+                <div class="settings-field settings-field-ssl">
+                    <label class="settings-label" for="acc-default">Default</label>
+                    <select id="acc-default"
+                            class="settings-input settings-select settings-ssl-select"
+                            @bind="DefaultSelect"
+                            disabled="@(IsFormBusy || _form.IsDefaultForced)">
+                        <option value="default">Yes</option>
+                        <option value="no">No</option>
+                    </select>
+                </div>
             </div>
-        }
 
-        <label class="settings-label" for="acc-email">Email address</label>
-        <input id="acc-email"
-               type="email"
-               class="settings-input"
-               @bind="_form.EmailAddress"
-               @bind:after="OnFormEdited"
-               autocomplete="email"
-               disabled="@IsFormBusy" />
-
-        <label class="settings-label" for="acc-username">Username</label>
-        <input id="acc-username"
-               type="text"
-               class="settings-input"
-               @bind="_form.Username"
-               @bind:after="OnFormEdited"
-               autocomplete="username"
-               disabled="@IsFormBusy" />
-
-        <div class="settings-field">
-            <label class="settings-label" for="acc-password">Password</label>
-            <div class="settings-password-wrap">
-                <input id="acc-password"
-                       type="@(_showPassword ? "text" : "password")"
-                       class="settings-input"
-                       @bind="_form.Password"
-                       @bind:after="OnFormEdited"
-                       autocomplete="new-password"
-                       placeholder="@(_form.HasStoredPassword ? "Saved — leave blank to keep" : "App password or mailbox password")"
-                       disabled="@IsFormBusy" />
-                <button type="button"
-                        class="settings-password-toggle"
-                        aria-label="@(_showPassword ? "Hide password" : "Show password")"
-                        aria-pressed="@_showPassword"
-                        disabled="@IsFormBusy"
-                        @onclick="() => _showPassword = !_showPassword">
-                    @(_showPassword ? "Hide" : "Show")
-                </button>
+            <div class="settings-mail-server">
+                <div class="settings-endpoint-row settings-endpoint-row-duo">
+                    <div class="settings-field">
+                        <label class="settings-label" for="acc-email">Email</label>
+                        <input id="acc-email"
+                               type="email"
+                               class="settings-input"
+                               @bind="_form.EmailAddress"
+                               @bind:after="OnFormEdited"
+                               autocomplete="email"
+                               disabled="@IsFormBusy" />
+                    </div>
+                    <div class="settings-field">
+                        <label class="settings-label" for="acc-username">Username</label>
+                        <input id="acc-username"
+                               type="text"
+                               class="settings-input"
+                               @bind="_form.Username"
+                               @bind:after="OnFormEdited"
+                               autocomplete="username"
+                               disabled="@IsFormBusy" />
+                    </div>
+                </div>
             </div>
-            <p class="settings-hint">Stored encrypted. Leave blank on save to keep the existing password.</p>
+
+            <div class="settings-provider-extras">
+                <div class="settings-field">
+                    <label class="settings-label" for="acc-password">Password</label>
+                    <div class="settings-password-wrap">
+                        <input id="acc-password"
+                               type="@(_showPassword ? "text" : "password")"
+                               class="settings-input"
+                               @bind="_form.Password"
+                               @bind:after="OnFormEdited"
+                               autocomplete="new-password"
+                               placeholder="@(_form.HasStoredPassword ? "Saved — leave blank to keep" : "App password or mailbox password")"
+                               disabled="@IsFormBusy" />
+                        <button type="button"
+                                class="settings-password-toggle"
+                                aria-label="@(_showPassword ? "Hide password" : "Show password")"
+                                aria-pressed="@_showPassword"
+                                disabled="@IsFormBusy"
+                                @onclick="() => _showPassword = !_showPassword">
+                            @(_showPassword ? "Hide" : "Show")
+                        </button>
+                    </div>
+                    <p class="settings-hint">Stored encrypted. Leave blank on save to keep the existing password.</p>
+                </div>
+            </div>
         </div>
     };
 
