@@ -9,7 +9,14 @@
 -- - displayName required; email and phone optional (use-case oriented)
 -- - email unique per user among non-deleted rows when set
 -- - source tracks manual vs future import / from-email promotion
+-- Apply after dbo tables (FK to dbo.User). Creates [workspace] if missing.
 -- =====================================================
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.schemas WHERE name = N'workspace')
+BEGIN
+    EXEC(N'CREATE SCHEMA [workspace]');
+END
 GO
 
 CREATE TABLE [workspace].[Contact] (

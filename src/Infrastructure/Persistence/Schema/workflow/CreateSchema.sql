@@ -1,8 +1,9 @@
 -- =====================================================
--- MIGRATION: workflow schema (rename from automation shell)
+-- WORKFLOW SCHEMA (empty shell for future rules engine)
 -- =====================================================
--- Safe if 20260810 already created [automation] with no tables.
+-- Run once on existing databases. Safe to re-run.
 -- =====================================================
+GO
 
 IF NOT EXISTS (SELECT 1 FROM sys.schemas WHERE name = N'workflow')
 BEGIN

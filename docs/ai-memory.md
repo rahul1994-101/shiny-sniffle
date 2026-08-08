@@ -31,15 +31,7 @@ Current user message
 - **After successful send:** if message count > 12, incrementally summarize messages outside the window via gpt-4o-mini; persist on `ChatThread`.
 - **Short-term window** remains the last 12 `ChatMessage` rows (source of truth for recent turns).
 
-**DB migration** (existing databases):
-
-```sql
-ALTER TABLE [dbo].[ChatThread] ADD
-    [memorySummary] NVARCHAR(MAX) NULL,
-    [memorySummaryThroughMessageId] UNIQUEIDENTIFIER NULL;
-```
-
-Keep `src/Infrastructure/Database/dbo/Tables/ChatThread.sql` in sync.
+Thread memory columns live in `src/Infrastructure/Persistence/Schema/dbo/Tables/ChatThread.sql`. For an older database missing them, apply an idempotent `ALTER TABLE` to match that script.
 
 ### User memory (phase B — next)
 

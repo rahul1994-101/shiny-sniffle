@@ -6,7 +6,7 @@ Blazor Server workspace app: vertical-slice features, custom CQRS (`lib/MediatR`
 
 ```text
 lib/MediatR/              CQRS dispatcher
-src/Infrastructure/       Persistence, Database/, Mailbox, Foundry + AddInfrastructure()
+src/Infrastructure/       Persistence (Schema/), Mailbox, Foundry + AddInfrastructure()
 src/Application/          Features, AI, app services + AddApplication()
 src/WebApp/               Blazor UI, Endpoints, Startup
 ```
@@ -23,5 +23,5 @@ src/WebApp/               Blazor UI, Endpoints, Startup
 ## Quick start
 
 1. Configure connection string and Foundry (`Foundry:Enabled`, `Endpoint`, `ApiKey` in user secrets).
-2. Apply schema from `src/Infrastructure/Database/` (manual SQL; `Migrations/` for ALTERs on existing DBs).
+2. Apply SQL from `src/Infrastructure/Persistence/Schema/` (`dbo` tables first, then `workflow/CreateSchema.sql`, then `workspace/Tables/Contact.sql` as needed).
 3. Run `src/WebApp`.

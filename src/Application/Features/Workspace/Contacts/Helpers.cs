@@ -83,7 +83,7 @@ internal static class ContactMapping
             if (ex.Message.Contains("Invalid object name", StringComparison.OrdinalIgnoreCase)
                 && ex.Message.Contains("workspace.Contact", StringComparison.OrdinalIgnoreCase))
             {
-                return "Contacts storage is not set up. Run database migration 20260810_WorkspaceContact.sql.";
+                return "Contacts storage is not set up. Apply Persistence/Schema/workspace/Tables/Contact.sql on the database.";
             }
 
             if (ex.Message.Contains("IX_Contact_UserId_Email", StringComparison.OrdinalIgnoreCase)
@@ -94,6 +94,6 @@ internal static class ContactMapping
             }
         }
 
-        return "Could not save contact. Check the database connection and migrations.";
+        return "Could not save contact. Check the database connection and schema scripts.";
     }
 }

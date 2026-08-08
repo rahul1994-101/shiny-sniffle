@@ -14,15 +14,13 @@ Persistence + external adapters. Register in `DependencyInjection.AddInfrastruct
 Persistence/
   Entities/           POCOs — namespace Infrastructure.Persistence.Entities
   AppDbContext.cs     EF mapping only
-Database/
-  dbo/Tables/         platform tables (User, EmailAccount, …)
-  workspace/Tables/   user internal data (Contact, …)
-  workflow/         rules engine tables (future)
-  Migrations/         manual ALTER scripts
-  Seed/
+  Schema/
+    dbo/Tables/       platform tables (User, EmailAccount, …)
+    workspace/Tables/ user internal data (Contact, …)
+    workflow/         rules engine (CreateSchema.sql + future Tables/)
 Mailbox/
   Abstractions.cs     IMailboxService
-  DTOs.cs             InboxQuery, MailboxStatusResult, …
+  DTOs.cs               InboxQuery, MailboxStatusResult, …
   Helpers.cs          internal mailbox helpers
   MailKitMailboxService.cs
 Foundry/
@@ -36,23 +34,23 @@ Per concern: **`Abstractions.cs`** + **`DTOs.cs`** + **`Helpers.cs`** + implemen
 
 ## Entities
 
-- No data annotations — limits in `Database/dbo/Tables/` + `AppDbContext.OnModelCreating`
+- No data annotations — limits in `Schema/dbo/Tables/` + `AppDbContext.OnModelCreating`
 - Input validation on `Application` `{UseCase}RequestValidator`, not on entities
 - Entity-owned runtime types (e.g. `EmailSettings` for MailKit) live in `Persistence/Entities/`
 - Per-user mail connections: `EmailAccount` table; catalog: `EmailProvider`
 
 ## EF (`AppDbContext`)
 
-- Map camelCase columns + `HasMaxLength` to match `Database/dbo/Tables/`
+- Map camelCase columns + `HasMaxLength` to match `Schema/dbo/Tables/`
 - Repos and handler private helpers use `IDbContextFactory<AppDbContext>` — not scoped `DbContext` in app code
 
 **Mail connection config** — `EmailSettings` is built in Application from `EmailAccount` + `EmailProvider` catalog; passed to `IMailboxService`. App mapping: `Application/Features/UserSettings/Helpers.cs` (`EmailSettingsMapping`).
 
-## Database workflow
+## Schema workflow
 
 1. Update `Persistence/Entities/`
-2. Update `Database/dbo/Tables/`
-3. Add `Database/Migrations/*.sql` for existing DBs
+2. Update `Persistence/Schema/{schema}/Tables/` (or `CreateSchema.sql` for empty schemas)
+3. Apply scripts on SQL Server — new DBs: run table scripts in dependency order (`dbo` → `workspace` / `workflow`); existing DBs: hand-write idempotent ALTER to match
 4. Update `AppDbContext` fluent config
 
 ## Integration DTOs
