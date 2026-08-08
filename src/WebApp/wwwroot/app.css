@@ -757,6 +757,79 @@ button.ui-segmented-btn-active {
     margin-top: var(--ui-space-2);
 }
 
+/* Dialog — settings editor + future modals */
+.ui-dialog {
+    padding: 0;
+    border: none;
+    max-width: min(36rem, calc(100vw - 2 * var(--app-page-pad-x)));
+    width: 100%;
+    color: var(--app-fg);
+    background: transparent;
+}
+
+.ui-dialog.settings-editor-dialog {
+    max-width: min(52rem, calc(100vw - 2 * var(--app-page-pad-x)));
+}
+
+.ui-dialog::backdrop {
+    background: color-mix(in srgb, var(--app-main-bg) 55%, transparent);
+    -webkit-backdrop-filter: blur(4px);
+    backdrop-filter: blur(4px);
+}
+
+.ui-dialog-panel {
+    display: flex;
+    flex-direction: column;
+    max-height: min(90vh, 42rem);
+    border: 1px solid var(--app-border);
+    border-radius: var(--ui-radius-lg);
+    background: color-mix(in srgb, var(--app-surface) 92%, transparent);
+    box-shadow: var(--app-elev-3);
+    overflow: hidden;
+}
+
+.ui-dialog.settings-editor-dialog .ui-dialog-panel {
+    width: 100%;
+    max-height: min(92dvh, 56rem);
+    height: auto;
+}
+
+.ui-dialog-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--ui-space-3);
+    padding: var(--ui-space-3) var(--ui-space-4);
+    border-bottom: 1px solid var(--app-border);
+    flex-shrink: 0;
+}
+
+.ui-dialog-title {
+    margin: 0;
+    font-size: var(--ui-type-section);
+    font-weight: 600;
+    min-width: 0;
+}
+
+.ui-dialog-close {
+    flex-shrink: 0;
+    min-height: 2.25rem;
+    padding: 0.35rem 0.75rem;
+    font-size: var(--ui-type-caption);
+}
+
+.ui-dialog-body {
+    padding: var(--ui-space-4);
+    overflow-y: auto;
+}
+
+.ui-dialog-footer {
+    flex-shrink: 0;
+    padding: var(--ui-space-3) var(--ui-space-4) var(--ui-space-4);
+    border-top: 1px solid var(--app-border);
+    background: color-mix(in srgb, var(--app-surface) 96%, transparent);
+}
+
 .ui-group .sign-out-form {
     display: block;
     margin: 0;

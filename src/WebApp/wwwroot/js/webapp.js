@@ -335,3 +335,125 @@ window.webAppLogin = {
   loginObs.observe(document.documentElement, { childList: true, subtree: true });
   tryInitLogin();
 })();
+
+window.settingsEditorDialog = {
+  syncOpen: function (el, open) {
+    if (!el || typeof el.showModal !== "function") return;
+    if (open && !el.open) el.showModal();
+    else if (!open && el.open) el.close();
+  },
+  getLayoutPreference: function () {
+    try {
+      return sessionStorage.getItem("settings-editor-layout");
+    } catch (e) {
+      return null;
+    }
+  },
+  setLayoutPreference: function (value) {
+    try {
+      if (value) sessionStorage.setItem("settings-editor-layout", value);
+    } catch (e) {
+      /* private mode */
+    }
+  }
+};
+
+window.settingsEditorSplit = (function () {
+  var storageKey = "settings-editor-split-list-px";
+  var wired = new WeakMap();
+
+  function clamp(value, min, max) {
+    return Math.min(max, Math.max(min, value));
+  }
+
+  function readStoredPx() {
+    try {
+      var raw = localStorage.getItem(storageKey);
+      if (!raw) return null;
+      var n = parseFloat(raw);
+      return Number.isFinite(n) ? n : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function storePx(px) {
+    try {
+      localStorage.setItem(storageKey, String(Math.round(px)));
+    } catch (e) {
+      /* private mode */
+    }
+  }
+
+  function applyListWidth(host, px) {
+    host.style.setProperty("--settings-editor-split-list-px", Math.round(px) + "px");
+  }
+
+  function wire(host) {
+    if (!host || wired.has(host)) return;
+
+    var handle = host.querySelector("[data-split-handle]");
+    if (!handle) return;
+
+    var stored = readStoredPx();
+    if (stored != null) {
+      applyListWidth(host, stored);
+    }
+
+    var dragging = false;
+
+    function onPointerDown(e) {
+      if (e.button !== 0) return;
+      dragging = true;
+      handle.setPointerCapture(e.pointerId);
+      e.preventDefault();
+    }
+
+    function onPointerMove(e) {
+      if (!dragging) return;
+      var rect = host.getBoundingClientRect();
+      var min = 224;
+      var max = Math.max(min, rect.width * 0.55);
+      var next = clamp(e.clientX - rect.left, min, max);
+      applyListWidth(host, next);
+    }
+
+    function onPointerUp(e) {
+      if (!dragging) return;
+      dragging = false;
+      try {
+        handle.releasePointerCapture(e.pointerId);
+      } catch (err) {
+        /* ignore */
+      }
+      var val = host.style.getPropertyValue("--settings-editor-split-list-px");
+      if (val) {
+        var px = parseFloat(val);
+        if (Number.isFinite(px)) storePx(px);
+      }
+    }
+
+    handle.addEventListener("pointerdown", onPointerDown);
+    handle.addEventListener("pointermove", onPointerMove);
+    handle.addEventListener("pointerup", onPointerUp);
+    handle.addEventListener("pointercancel", onPointerUp);
+
+    wired.set(host, function unwire() {
+      handle.removeEventListener("pointerdown", onPointerDown);
+      handle.removeEventListener("pointermove", onPointerMove);
+      handle.removeEventListener("pointerup", onPointerUp);
+      handle.removeEventListener("pointercancel", onPointerUp);
+    });
+  }
+
+  function unwire(host) {
+    if (!host) return;
+    var teardown = wired.get(host);
+    if (teardown) {
+      teardown();
+      wired.delete(host);
+    }
+  }
+
+  return { wire: wire, unwire: unwire };
+})();

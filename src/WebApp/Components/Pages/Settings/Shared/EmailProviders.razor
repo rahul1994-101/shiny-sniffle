@@ -1,6 +1,7 @@
 @inherits BaseComponent
 
 @using WebApp.Components.Pages.Settings
+@using WebApp.Components.Pages.Settings.Shared
 
 @if (_busy == TabBusy.Loading)
 {
@@ -10,13 +11,17 @@
 }
 else
 {
-    <div class="settings-sections">
-        <section class="settings-card" aria-labelledby="providers-catalog-heading">
-            <h2 id="providers-catalog-heading" class="settings-section-title">Provider catalog</h2>
-            <p class="settings-section-lead">
-                Manage provider templates used when connecting mailboxes.
-            </p>
-
+    <SettingsEditorHost Layout="_editorLayout"
+                        LayoutChanged="OnEditorLayoutChangedAsync"
+                        ShowLayoutPicker="true"
+                        EditorOpen="_editorOpen"
+                        EditorTitle="@EditorTitle"
+                        ListTitle="Provider catalog"
+                        ListLead="Manage provider templates used when connecting mailboxes."
+                        BackLabel="Back to providers"
+                        CloseAriaLabel="Close provider editor"
+                        OnRequestClose="CancelEditorAsync">
+        <ListContent>
             @if (_providers.Count == 0)
             {
                 <div class="ui-empty-state">
@@ -35,7 +40,8 @@ else
                 <div class="ui-group" aria-label="Email providers">
                     @foreach (var provider in _providers)
                     {
-                        <div class="ui-group-row ui-group-row-static ui-list-row-rich">
+                        var rowActive = _editorOpen && _form.Id == provider.Id;
+                        <div class="ui-group-row ui-group-row-static ui-list-row-rich @(rowActive ? "settings-editor-row-active" : null)">
                             <div class="ui-list-row-rich-body">
                                 <span class="ui-list-row-meta">
                                     <span class="ui-group-row-title">@provider.Name</span>
@@ -69,7 +75,8 @@ else
                     }
                 </div>
             }
-
+        </ListContent>
+        <ListFooter>
             @if (_providers.Count > 0)
             {
                 <div class="settings-card-footer settings-provider-list-footer">
@@ -81,8 +88,9 @@ else
                     </button>
                 </div>
             }
-
-            @if (_status.Current is not null && !_editorOpen)
+        </ListFooter>
+        <ListStatus>
+            @if (_status.Current is not null)
             {
                 <p class="ui-status-pill @(_status.Current.IsError ? "ui-status-pill-error" : "ui-status-pill-success") @(_status.Current.Fading ? "ui-status-pill-fading" : null)"
                    role="status"
@@ -90,98 +98,36 @@ else
                     <span class="ui-status-pill-label">@_status.Current.Message</span>
                 </p>
             }
-        </section>
+        </ListStatus>
+        <EditorContent>
+            @EditorFields
+        </EditorContent>
+        <EditorFooter>
+            <div class="settings-card-footer settings-actions">
+                <button type="button"
+                        class="ui-btn ui-btn-primary"
+                        disabled="@(!CanSaveEditor)"
+                        @onclick="SaveEditorAsync">
+                    @(_saving ? "Saving…" : "Save provider")
+                </button>
+                <button type="button"
+                        class="ui-btn ui-btn-secondary"
+                        disabled="@IsFormBusy"
+                        @onclick="CancelEditorAsync">
+                    Cancel
+                </button>
+            </div>
 
-        @if (_editorOpen)
-        {
-            <section class="settings-card" aria-labelledby="provider-editor-heading">
-                <h2 id="provider-editor-heading" class="settings-section-title">
-                    @(_form.Id is null ? "New provider" : "Edit provider")
-                </h2>
-
-                <div class="settings-field">
-                    <label class="settings-label" for="ep-name">Name</label>
-                    <input id="ep-name" type="text" class="settings-input" @bind="_form.Name" disabled="@IsFormBusy" />
-                </div>
-
-                <div class="settings-field">
-                    <label class="settings-label" for="ep-slug">Slug</label>
-                    <input id="ep-slug" type="text" class="settings-input" @bind="_form.Slug" disabled="@IsFormBusy" autocomplete="off" />
-                    <p class="settings-hint">Lowercase letters, numbers, and hyphens (e.g. gmail, my-host).</p>
-                </div>
-
-                <div class="settings-field">
-                    <label class="settings-label" for="ep-sort">Sort order</label>
-                    <input id="ep-sort" type="number" class="settings-input" @bind="_form.SortOrder" disabled="@IsFormBusy" />
-                </div>
-
-                <div class="settings-endpoints">
-                    <p class="settings-label">IMAP</p>
-                    <div class="settings-name-row">
-                        <div class="settings-field">
-                            <label class="settings-label" for="ep-imap-host">Host</label>
-                            <input id="ep-imap-host" type="text" class="settings-input" @bind="_form.ImapHost" disabled="@IsFormBusy" />
-                        </div>
-                        <div class="settings-field">
-                            <label class="settings-label" for="ep-imap-port">Port</label>
-                            <input id="ep-imap-port" type="number" class="settings-input" @bind="_form.ImapPort" disabled="@IsFormBusy" />
-                        </div>
-                    </div>
-                    <label class="settings-checkbox">
-                        <input type="checkbox" @bind="_form.ImapUseSsl" disabled="@IsFormBusy" />
-                        Use SSL for IMAP
-                    </label>
-                </div>
-
-                <div class="settings-endpoints">
-                    <p class="settings-label">SMTP</p>
-                    <div class="settings-name-row">
-                        <div class="settings-field">
-                            <label class="settings-label" for="ep-smtp-host">Host</label>
-                            <input id="ep-smtp-host" type="text" class="settings-input" @bind="_form.SmtpHost" disabled="@IsFormBusy" />
-                        </div>
-                        <div class="settings-field">
-                            <label class="settings-label" for="ep-smtp-port">Port</label>
-                            <input id="ep-smtp-port" type="number" class="settings-input" @bind="_form.SmtpPort" disabled="@IsFormBusy" />
-                        </div>
-                    </div>
-                    <label class="settings-checkbox">
-                        <input type="checkbox" @bind="_form.SmtpUseSsl" disabled="@IsFormBusy" />
-                        Use SSL for SMTP
-                    </label>
-                </div>
-
-                <div class="settings-field">
-                    <label class="settings-label" for="ep-help">Setup help URL (optional)</label>
-                    <input id="ep-help" type="url" class="settings-input" @bind="_form.SetupHelpUrl" disabled="@IsFormBusy" />
-                </div>
-
-                <div class="settings-card-footer settings-actions">
-                    <button type="button"
-                            class="ui-btn ui-btn-primary"
-                            disabled="@(!CanSaveEditor)"
-                            @onclick="SaveEditorAsync">
-                        @(_saving ? "Saving…" : "Save provider")
-                    </button>
-                    <button type="button"
-                            class="ui-btn ui-btn-secondary"
-                            disabled="@IsFormBusy"
-                            @onclick="CancelEditor">
-                        Cancel
-                    </button>
-                </div>
-
-                @if (_status.Current is not null)
-                {
-                    <p class="ui-status-pill @(_status.Current.IsError ? "ui-status-pill-error" : "ui-status-pill-success") @(_status.Current.Fading ? "ui-status-pill-fading" : null)"
-                       role="status"
-                       aria-live="polite">
-                        <span class="ui-status-pill-label">@_status.Current.Message</span>
-                    </p>
-                }
-            </section>
-        }
-    </div>
+            @if (_status.Current is not null && _editorOpen)
+            {
+                <p class="ui-status-pill @(_status.Current.IsError ? "ui-status-pill-error" : "ui-status-pill-success") @(_status.Current.Fading ? "ui-status-pill-fading" : null)"
+                   role="status"
+                   aria-live="polite">
+                    <span class="ui-status-pill-label">@_status.Current.Message</span>
+                </p>
+            }
+        </EditorFooter>
+    </SettingsEditorHost>
 }
 
 @code {
@@ -189,6 +135,7 @@ else
     private bool _saving;
     private bool _deleting;
     private bool _editorOpen;
+    private SettingsEditorLayout _editorLayout = SettingsEditorLayout.FullPage;
     private readonly List<EmailProviderDto> _providers = [];
     private ProviderForm _form = new();
     private SettingsSectionStatusHandle _status = null!;
@@ -200,10 +147,98 @@ else
         && !string.IsNullOrWhiteSpace(_form.Name)
         && !string.IsNullOrWhiteSpace(_form.Slug);
 
+    private string EditorTitle =>
+        _form.Id is null ? "New provider" : $"Edit {_form.Name}";
+
     protected override async Task OnInitializedAsync()
     {
         _status = new SettingsSectionStatusHandle(() => InvokeAsync(StateHasChanged));
+        await LoadLayoutPreferenceAsync();
         await LoadAsync();
+    }
+
+    private RenderFragment EditorFields => __builder =>
+    {
+        <div class="settings-field">
+            <label class="settings-label" for="ep-name">Name</label>
+            <input id="ep-name" type="text" class="settings-input" @bind="_form.Name" disabled="@IsFormBusy" />
+        </div>
+        <div class="settings-field">
+            <label class="settings-label" for="ep-slug">Slug</label>
+            <input id="ep-slug" type="text" class="settings-input" @bind="_form.Slug" disabled="@IsFormBusy" autocomplete="off" />
+            <p class="settings-hint">Lowercase letters, numbers, and hyphens (e.g. gmail, my-host).</p>
+        </div>
+        <div class="settings-field">
+            <label class="settings-label" for="ep-sort">Sort order</label>
+            <input id="ep-sort" type="number" class="settings-input" @bind="_form.SortOrder" disabled="@IsFormBusy" />
+        </div>
+        <div class="settings-endpoints">
+            <p class="settings-label">IMAP</p>
+            <div class="settings-name-row">
+                <div class="settings-field">
+                    <label class="settings-label" for="ep-imap-host">Host</label>
+                    <input id="ep-imap-host" type="text" class="settings-input" @bind="_form.ImapHost" disabled="@IsFormBusy" />
+                </div>
+                <div class="settings-field">
+                    <label class="settings-label" for="ep-imap-port">Port</label>
+                    <input id="ep-imap-port" type="number" class="settings-input" @bind="_form.ImapPort" disabled="@IsFormBusy" />
+                </div>
+            </div>
+            <label class="settings-checkbox">
+                <input type="checkbox" @bind="_form.ImapUseSsl" disabled="@IsFormBusy" />
+                Use SSL for IMAP
+            </label>
+        </div>
+        <div class="settings-endpoints">
+            <p class="settings-label">SMTP</p>
+            <div class="settings-name-row">
+                <div class="settings-field">
+                    <label class="settings-label" for="ep-smtp-host">Host</label>
+                    <input id="ep-smtp-host" type="text" class="settings-input" @bind="_form.SmtpHost" disabled="@IsFormBusy" />
+                </div>
+                <div class="settings-field">
+                    <label class="settings-label" for="ep-smtp-port">Port</label>
+                    <input id="ep-smtp-port" type="number" class="settings-input" @bind="_form.SmtpPort" disabled="@IsFormBusy" />
+                </div>
+            </div>
+            <label class="settings-checkbox">
+                <input type="checkbox" @bind="_form.SmtpUseSsl" disabled="@IsFormBusy" />
+                Use SSL for SMTP
+            </label>
+        </div>
+        <div class="settings-field">
+            <label class="settings-label" for="ep-help">Setup help URL (optional)</label>
+            <input id="ep-help" type="url" class="settings-input" @bind="_form.SetupHelpUrl" disabled="@IsFormBusy" />
+        </div>
+    };
+
+    private async Task LoadLayoutPreferenceAsync()
+    {
+        try
+        {
+            var stored = await JsRuntime.InvokeAsync<string?>("settingsEditorDialog.getLayoutPreference");
+            if (Enum.TryParse<SettingsEditorLayout>(stored, ignoreCase: true, out var layout))
+            {
+                _editorLayout = layout;
+            }
+        }
+        catch (JSDisconnectedException)
+        {
+            /* prerender */
+        }
+    }
+
+    private async Task OnEditorLayoutChangedAsync(SettingsEditorLayout layout)
+    {
+        _editorLayout = layout;
+        try
+        {
+            await JsRuntime.InvokeVoidAsync("settingsEditorDialog.setLayoutPreference", layout.ToString());
+        }
+        catch (JSDisconnectedException)
+        {
+            /* prerender */
+        }
     }
 
     private async Task LoadAsync()
@@ -243,11 +278,12 @@ else
         _editorOpen = true;
     }
 
-    private void CancelEditor()
+    private Task CancelEditorAsync()
     {
         _editorOpen = false;
         _form = new ProviderForm();
         _status.Clear();
+        return Task.CompletedTask;
     }
 
     private int NextSortOrder() =>
@@ -303,7 +339,7 @@ else
         {
             if (_form.Id == provider.Id)
             {
-                CancelEditor();
+                await CancelEditorAsync();
             }
 
             await LoadAsync();

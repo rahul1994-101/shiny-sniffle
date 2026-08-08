@@ -1,0 +1,168 @@
+.settings-editor-host {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ui-space-4);
+    min-width: 0;
+    --settings-editor-split-list-px: 22rem;
+}
+
+.settings-editor-body {
+    display: contents;
+    min-width: 0;
+}
+
+/* Split: single full-width list until editing */
+.settings-editor-host.settings-editor-layout-split:not(.is-editing) .settings-editor-body {
+    display: block;
+}
+
+.settings-editor-host.settings-editor-layout-split.is-editing .settings-editor-body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+    align-items: start;
+}
+
+@media (min-width: 900px) {
+    .settings-editor-host.settings-editor-layout-split.is-editing .settings-editor-body {
+        grid-template-columns:
+            minmax(14rem, var(--settings-editor-split-list-px, 22rem))
+            5px
+            minmax(16rem, 1fr);
+        gap: 0 var(--ui-space-4);
+    }
+
+    .settings-editor-host.settings-editor-layout-split.is-editing .settings-editor-split-handle {
+        display: block;
+    }
+}
+
+.settings-editor-split-handle {
+    display: none;
+    width: 5px;
+    margin: 0 -2px;
+    cursor: col-resize;
+    border-radius: var(--ui-radius-xs);
+    background: transparent;
+    touch-action: none;
+    align-self: stretch;
+    min-height: 12rem;
+}
+
+.settings-editor-split-handle:hover,
+.settings-editor-split-handle:focus-visible {
+    background: color-mix(in srgb, var(--app-accent) 35%, transparent);
+    outline: none;
+}
+
+.settings-editor-host.settings-editor-layout-split.is-editing .settings-editor-split-handle:focus-visible {
+    box-shadow: var(--app-focus-ring-shadow);
+}
+
+.settings-editor-host.settings-editor-layout-split.is-editing ::deep .settings-editor-row-active {
+    border-color: color-mix(in srgb, var(--app-accent) 35%, var(--app-border));
+    background: color-mix(in srgb, var(--app-accent) 6%, var(--app-surface-subtle));
+}
+
+.settings-editor-pane-list[aria-hidden="true"] {
+    display: none;
+}
+
+@media (max-width: 899px) {
+    .settings-editor-host.settings-editor-layout-split.is-editing .settings-editor-pane-list {
+        display: none;
+    }
+}
+
+.settings-editor-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--ui-space-3);
+    margin-bottom: var(--ui-space-4);
+    padding-bottom: var(--ui-space-3);
+    border-bottom: 1px solid var(--app-border);
+}
+
+.settings-editor-header-title {
+    margin: 0;
+    min-width: 0;
+}
+
+.settings-editor-close {
+    color: var(--app-muted);
+}
+
+.settings-editor-close:hover:not(:disabled) {
+    color: var(--app-fg);
+}
+
+.settings-editor-close-icon {
+    width: 1.15rem;
+    height: 1.15rem;
+    display: block;
+}
+
+.settings-editor-pane-editor {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    min-width: 0;
+}
+
+.settings-editor-pane-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    min-width: 0;
+}
+
+.settings-editor-pane-footer {
+    flex-shrink: 0;
+    margin-top: var(--ui-space-3);
+    padding-top: var(--ui-space-3);
+    border-top: 1px solid var(--app-border);
+}
+
+.settings-editor-pane-footer ::deep .settings-card-footer.settings-actions {
+    margin-top: 0;
+}
+
+.settings-editor-layout-picker {
+    margin-top: var(--ui-space-2);
+    padding: var(--ui-space-3) 0 0;
+    border-top: 1px dashed color-mix(in srgb, var(--app-border) 80%, transparent);
+}
+
+.settings-editor-layout-picker-label {
+    margin: 0 0 var(--ui-space-2);
+    font-size: var(--ui-type-caption);
+    font-weight: 500;
+    color: var(--app-muted);
+}
+
+.settings-editor-layout-picker-hint {
+    font-weight: 400;
+    opacity: 0.9;
+}
+
+.settings-editor-layout-segmented {
+    max-width: 28rem;
+}
+
+.settings-editor-host ::deep .settings-editor-dialog-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+}
+
+.settings-editor-host ::deep .settings-editor-dialog-footer {
+    flex-shrink: 0;
+}
+
+.settings-editor-host ::deep .settings-editor-dialog-footer .settings-card-footer.settings-actions {
+    margin-top: 0;
+}
+
+.settings-editor-host ::deep .settings-editor-dialog-footer .ui-status-pill {
+    margin-top: var(--ui-space-3);
+}

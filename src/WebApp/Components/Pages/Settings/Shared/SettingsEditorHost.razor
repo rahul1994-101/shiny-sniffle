@@ -1,0 +1,295 @@
+@using Microsoft.AspNetCore.Components.Web
+@implements IAsyncDisposable
+@inject IJSRuntime JsRuntime
+
+<div @ref="_hostRef"
+     class="@RootClass"
+     data-editor-layout="@Layout.ToString()"
+     data-editing="@(EditorOpen ? "true" : "false")">
+    <div class="settings-editor-body" @ref="_bodyRef">
+        @if (ShowListPane)
+        {
+            <section class="settings-editor-pane settings-editor-pane-list settings-card"
+                     aria-labelledby="@ListHeadingId"
+                     aria-hidden="@(HideListFromAccessibility ? true : null)">
+                @if (!string.IsNullOrWhiteSpace(ListTitle))
+                {
+                    <h2 id="@ListHeadingId" class="settings-section-title">@ListTitle</h2>
+                }
+                @if (!string.IsNullOrWhiteSpace(ListLead))
+                {
+                    <p class="settings-section-lead">@ListLead</p>
+                }
+
+                @ListContent
+
+                @if (ListFooter is not null)
+                {
+                    @ListFooter
+                }
+
+                @if (ListStatus is not null && !EditorOpen)
+                {
+                    @ListStatus
+                }
+            </section>
+        }
+
+        @if (ShowSplitResizeHandle)
+        {
+            <div class="settings-editor-split-handle"
+                 data-split-handle
+                 role="separator"
+                 aria-orientation="vertical"
+                 aria-label="Resize panels"
+                 tabindex="0"></div>
+        }
+
+        @if (Layout == SettingsEditorLayout.Dialog)
+        {
+            <dialog @ref="_dialogElement"
+                    class="ui-dialog settings-editor-dialog"
+                    aria-labelledby="@EditorHeadingId"
+                    @onclose="HandleDialogClose">
+                <div class="ui-dialog-panel app-glass-panel">
+                    <header class="ui-dialog-header settings-editor-header">
+                        <h2 id="@EditorHeadingId" class="ui-dialog-title">@EditorTitle</h2>
+                        @EditorCloseButton
+                    </header>
+                    <div class="ui-dialog-body settings-editor-dialog-body">
+                        @EditorContent
+                    </div>
+                    @if (EditorFooter is not null)
+                    {
+                        <div class="ui-dialog-footer settings-editor-dialog-footer">
+                            @EditorFooter
+                        </div>
+                    }
+                </div>
+            </dialog>
+        }
+        else if (ShowInlineEditorPane)
+        {
+            <section class="settings-editor-pane settings-editor-pane-editor settings-card"
+                     aria-labelledby="@EditorHeadingId">
+                <header class="settings-editor-header">
+                    <h2 id="@EditorHeadingId" class="settings-section-title settings-editor-header-title">@EditorTitle</h2>
+                    @EditorCloseButton
+                </header>
+                <div class="settings-editor-pane-scroll">
+                    @EditorContent
+                </div>
+                @if (EditorFooter is not null)
+                {
+                    <div class="settings-editor-pane-footer">
+                        @EditorFooter
+                    </div>
+                }
+            </section>
+        }
+    </div>
+
+    @if (ShowLayoutPicker)
+    {
+        <footer class="settings-editor-layout-picker" role="region" aria-label="Editor layout preview">
+            <p class="settings-editor-layout-picker-label">
+                Editor layout
+                <span class="settings-editor-layout-picker-hint">(preview — pick one for this page later)</span>
+            </p>
+            <div class="ui-segmented settings-editor-layout-segmented" role="group" aria-label="Editor layout mode">
+                <button type="button"
+                        class="ui-segmented-btn @(Layout == SettingsEditorLayout.FullPage ? "ui-segmented-btn-active" : null)"
+                        aria-pressed="@(Layout == SettingsEditorLayout.FullPage)"
+                        @onclick="() => SetLayout(SettingsEditorLayout.FullPage)">
+                    Full page
+                </button>
+                <button type="button"
+                        class="ui-segmented-btn @(Layout == SettingsEditorLayout.Dialog ? "ui-segmented-btn-active" : null)"
+                        aria-pressed="@(Layout == SettingsEditorLayout.Dialog)"
+                        @onclick="() => SetLayout(SettingsEditorLayout.Dialog)">
+                    Dialog
+                </button>
+                <button type="button"
+                        class="ui-segmented-btn @(Layout == SettingsEditorLayout.SplitPane ? "ui-segmented-btn-active" : null)"
+                        aria-pressed="@(Layout == SettingsEditorLayout.SplitPane)"
+                        @onclick="() => SetLayout(SettingsEditorLayout.SplitPane)">
+                    Split pane
+                </button>
+            </div>
+        </footer>
+    }
+</div>
+
+@code {
+    private ElementReference _hostRef;
+    private ElementReference _bodyRef;
+    private ElementReference _dialogElement;
+
+    [Parameter]
+    public SettingsEditorLayout Layout { get; set; } = SettingsEditorLayout.FullPage;
+
+    [Parameter]
+    public bool EditorOpen { get; set; }
+
+    [Parameter]
+    public string EditorTitle { get; set; } = "Edit";
+
+    [Parameter]
+    public string ListTitle { get; set; } = string.Empty;
+
+    [Parameter]
+    public string? ListLead { get; set; }
+
+    [Parameter]
+    public string BackLabel { get; set; } = "Back";
+
+    [Parameter]
+    public string CloseAriaLabel { get; set; } = "Close editor";
+
+    [Parameter]
+    public bool ShowLayoutPicker { get; set; }
+
+    [Parameter]
+    public EventCallback<SettingsEditorLayout> LayoutChanged { get; set; }
+
+    [Parameter]
+    public EventCallback OnRequestClose { get; set; }
+
+    [Parameter]
+    public RenderFragment? ListContent { get; set; }
+
+    [Parameter]
+    public RenderFragment? ListFooter { get; set; }
+
+    [Parameter]
+    public RenderFragment? ListStatus { get; set; }
+
+    [Parameter]
+    public RenderFragment? EditorContent { get; set; }
+
+    [Parameter]
+    public RenderFragment? EditorFooter { get; set; }
+
+    [Parameter]
+    public string? AdditionalHostClass { get; set; }
+
+    private string ListHeadingId { get; } = $"settings-editor-list-{Guid.NewGuid():N}";
+
+    private string EditorHeadingId { get; } = $"settings-editor-form-{Guid.NewGuid():N}";
+
+    private string RootClass =>
+        string.Join(
+            ' ',
+            "settings-editor-host",
+            Layout.ToLayoutClass(),
+            EditorOpen ? "is-editing" : null,
+            AdditionalHostClass);
+
+    private bool ShowListPane =>
+        Layout switch
+        {
+            SettingsEditorLayout.FullPage => !EditorOpen,
+            SettingsEditorLayout.Dialog => true,
+            SettingsEditorLayout.SplitPane => true,
+            _ => true
+        };
+
+    private bool ShowInlineEditorPane =>
+        EditorOpen && Layout is SettingsEditorLayout.FullPage or SettingsEditorLayout.SplitPane;
+
+    private bool ShowSplitResizeHandle =>
+        Layout == SettingsEditorLayout.SplitPane && EditorOpen;
+
+    private bool HideListFromAccessibility =>
+        Layout == SettingsEditorLayout.FullPage && EditorOpen;
+
+    private RenderFragment EditorCloseButton => __builder =>
+    {
+        <button type="button"
+                class="ui-btn ui-btn-secondary ui-btn-icon settings-editor-close"
+                aria-label="@CloseAriaLabel"
+                title="@CloseAriaLabel"
+                @onclick="RequestCloseAsync">
+            <svg class="settings-editor-close-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path d="M18 6L6 18M6 6l12 12" />
+            </svg>
+        </button>
+    };
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        try
+        {
+            if (Layout == SettingsEditorLayout.Dialog)
+            {
+                await SyncDialogAsync();
+            }
+
+            if (Layout == SettingsEditorLayout.SplitPane && EditorOpen)
+            {
+                await JsRuntime.InvokeVoidAsync("settingsEditorSplit.wire", _hostRef);
+            }
+            else
+            {
+                await JsRuntime.InvokeVoidAsync("settingsEditorSplit.unwire", _hostRef);
+            }
+        }
+        catch (JSDisconnectedException)
+        {
+            /* teardown */
+        }
+    }
+
+    private async Task SyncDialogAsync()
+    {
+        if (_dialogElement.Context is null)
+        {
+            return;
+        }
+
+        await JsRuntime.InvokeVoidAsync("settingsEditorDialog.syncOpen", _dialogElement, EditorOpen);
+    }
+
+    private async Task RequestCloseAsync()
+    {
+        if (OnRequestClose.HasDelegate)
+        {
+            await OnRequestClose.InvokeAsync();
+        }
+    }
+
+    private async Task HandleDialogClose()
+    {
+        await RequestCloseAsync();
+    }
+
+    private async Task SetLayout(SettingsEditorLayout layout)
+    {
+        if (Layout == layout)
+        {
+            return;
+        }
+
+        if (LayoutChanged.HasDelegate)
+        {
+            await LayoutChanged.InvokeAsync(layout);
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            if (_dialogElement.Context is not null)
+            {
+                await JsRuntime.InvokeVoidAsync("settingsEditorDialog.syncOpen", _dialogElement, false);
+            }
+
+            await JsRuntime.InvokeVoidAsync("settingsEditorSplit.unwire", _hostRef);
+        }
+        catch (JSDisconnectedException)
+        {
+            /* teardown */
+        }
+    }
+}
