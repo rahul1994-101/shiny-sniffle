@@ -155,56 +155,66 @@ else
 
     private RenderFragment EditorFields => __builder =>
     {
-        <div class="settings-field">
-            <label class="settings-label" for="ep-name">Name</label>
-            <input id="ep-name" type="text" class="settings-input" @bind="_form.Name" disabled="@IsFormBusy" />
-        </div>
-        <div class="settings-field">
-            <label class="settings-label" for="ep-slug">Slug</label>
-            <input id="ep-slug" type="text" class="settings-input" @bind="_form.Slug" disabled="@IsFormBusy" autocomplete="off" />
-            <p class="settings-hint">Lowercase letters, numbers, and hyphens (e.g. gmail, my-host).</p>
-        </div>
-        <div class="settings-field">
-            <label class="settings-label" for="ep-sort">Sort order</label>
-            <input id="ep-sort" type="number" class="settings-input" @bind="_form.SortOrder" disabled="@IsFormBusy" />
-        </div>
-        <div class="settings-endpoints">
-            <p class="settings-label">IMAP</p>
-            <div class="settings-name-row">
-                <div class="settings-field">
-                    <label class="settings-label" for="ep-imap-host">Host</label>
-                    <input id="ep-imap-host" type="text" class="settings-input" @bind="_form.ImapHost" disabled="@IsFormBusy" />
+        <div class="settings-provider-editor-form">
+            <div class="settings-field">
+                <label class="settings-label" for="ep-name">Name</label>
+                <input id="ep-name" type="text" class="settings-input" @bind="_form.Name" disabled="@IsFormBusy" />
+            </div>
+            <div class="settings-field">
+                <label class="settings-label" for="ep-slug">Slug</label>
+                <input id="ep-slug" type="text" class="settings-input" @bind="_form.Slug" disabled="@IsFormBusy" autocomplete="off" />
+                <p class="settings-hint">Lowercase letters, numbers, and hyphens (e.g. gmail, my-host).</p>
+            </div>
+            <div class="settings-mail-server">
+                <div class="settings-endpoint-row">
+                    <div class="settings-field">
+                        <label class="settings-label" for="ep-imap-host">IMAP host</label>
+                        <input id="ep-imap-host" type="text" class="settings-input" @bind="_form.ImapHost" disabled="@IsFormBusy" />
+                    </div>
+                    <div class="settings-endpoint-port-ssl">
+                        <div class="settings-field settings-field-port">
+                            <label class="settings-label" for="ep-imap-port">IMAP port</label>
+                            <input id="ep-imap-port" type="number" class="settings-input" @bind="_form.ImapPort" disabled="@IsFormBusy" />
+                        </div>
+                        <div class="settings-field settings-field-ssl">
+                            <label class="settings-label" for="ep-imap-ssl">IMAP SSL</label>
+                            <div class="settings-ssl-control">
+                                <input id="ep-imap-ssl" type="checkbox" class="settings-ssl-checkbox" @bind="_form.ImapUseSsl" disabled="@IsFormBusy" title="Use SSL for IMAP" />
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="settings-field">
-                    <label class="settings-label" for="ep-imap-port">Port</label>
-                    <input id="ep-imap-port" type="number" class="settings-input" @bind="_form.ImapPort" disabled="@IsFormBusy" />
+                <div class="settings-endpoint-row">
+                    <div class="settings-field">
+                        <label class="settings-label" for="ep-smtp-host">SMTP host</label>
+                        <input id="ep-smtp-host" type="text" class="settings-input" @bind="_form.SmtpHost" disabled="@IsFormBusy" />
+                    </div>
+                    <div class="settings-endpoint-port-ssl">
+                        <div class="settings-field settings-field-port">
+                            <label class="settings-label" for="ep-smtp-port">SMTP port</label>
+                            <input id="ep-smtp-port" type="number" class="settings-input" @bind="_form.SmtpPort" disabled="@IsFormBusy" />
+                        </div>
+                        <div class="settings-field settings-field-ssl">
+                            <label class="settings-label" for="ep-smtp-ssl">SMTP SSL</label>
+                            <div class="settings-ssl-control">
+                                <input id="ep-smtp-ssl" type="checkbox" class="settings-ssl-checkbox" @bind="_form.SmtpUseSsl" disabled="@IsFormBusy" title="Use SSL for SMTP" />
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
-            <label class="settings-checkbox">
-                <input type="checkbox" @bind="_form.ImapUseSsl" disabled="@IsFormBusy" />
-                Use SSL for IMAP
-            </label>
-        </div>
-        <div class="settings-endpoints">
-            <p class="settings-label">SMTP</p>
-            <div class="settings-name-row">
-                <div class="settings-field">
-                    <label class="settings-label" for="ep-smtp-host">Host</label>
-                    <input id="ep-smtp-host" type="text" class="settings-input" @bind="_form.SmtpHost" disabled="@IsFormBusy" />
-                </div>
-                <div class="settings-field">
-                    <label class="settings-label" for="ep-smtp-port">Port</label>
-                    <input id="ep-smtp-port" type="number" class="settings-input" @bind="_form.SmtpPort" disabled="@IsFormBusy" />
+            <div class="settings-provider-extras">
+                <div class="settings-name-row settings-provider-extras-row">
+                    <div class="settings-field settings-field-narrow">
+                        <label class="settings-label" for="ep-sort">Sort order</label>
+                        <input id="ep-sort" type="number" class="settings-input" @bind="_form.SortOrder" disabled="@IsFormBusy" />
+                    </div>
+                    <div class="settings-field">
+                        <label class="settings-label" for="ep-help">Setup help URL <span class="settings-label-optional">(optional)</span></label>
+                        <input id="ep-help" type="url" class="settings-input" @bind="_form.SetupHelpUrl" disabled="@IsFormBusy" />
+                    </div>
                 </div>
             </div>
-            <label class="settings-checkbox">
-                <input type="checkbox" @bind="_form.SmtpUseSsl" disabled="@IsFormBusy" />
-                Use SSL for SMTP
-            </label>
-        </div>
-        <div class="settings-field">
-            <label class="settings-label" for="ep-help">Setup help URL (optional)</label>
-            <input id="ep-help" type="url" class="settings-input" @bind="_form.SetupHelpUrl" disabled="@IsFormBusy" />
         </div>
     };
 

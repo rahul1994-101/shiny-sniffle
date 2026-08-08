@@ -198,6 +198,17 @@ Classes: `ui-list-row-rich-body`, `ui-list-row-rich-actions`, `ui-list-row-meta`
 
 Section list header: `ListTitle`, `ListLead` or `ListLeadContent`, and **`ListHeaderActions`** (toolbar on the right — Add, later search/filter). Implemented via **`SettingsSectionHead.razor`** inside `SettingsEditorHost`; primary add actions use **`SettingsHeadActionButton.razor`** (+ icon + label). At `max-width: 640px`, section head stacks **title → lead → actions**; Add uses full width (`settings-head-action`).
 
+**Provider editor form** (`settings-provider-editor-form` in `EmailProviders.razor`, layout in `SettingsEditorHost.razor.css`):
+
+| Block | Classes | Notes |
+|--------|---------|--------|
+| Identity | `settings-field` | Name, slug + hint |
+| Mail | `settings-mail-server` | Top border; each protocol is `settings-endpoint-row` |
+| Endpoint row | `settings-endpoint-port-ssl` | **Mobile:** host 100%; port **80%** + SSL **20%** (`4fr 1fr`). **≥641px:** **host 50% \| port 40% \| SSL 10%** (`5fr 4fr 1fr`). SSL: label + centered checkbox in `settings-ssl-control`. |
+| Extras | `settings-provider-extras` | Top border; `settings-provider-extras-row` — sort order + setup help URL |
+
+**Dialog footer actions** (`settings-editor-dialog-footer`): Save + Cancel stay **side-by-side** (`1fr` + `auto`) at all widths used by the editor dialog; stack full-width only at `max-width: 360px`. Dialog header uses `ui-dialog-header` only (no `settings-editor-header` margin).
+
 ---
 
 ## Where to put CSS

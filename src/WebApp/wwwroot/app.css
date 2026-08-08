@@ -874,7 +874,7 @@ button.ui-segmented-btn-active {
 }
 
 .ui-dialog-body {
-    padding: var(--ui-space-4);
+    padding: var(--ui-space-3) var(--ui-space-4);
     overflow-y: auto;
 }
 

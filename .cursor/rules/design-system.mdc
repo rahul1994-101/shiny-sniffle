@@ -27,6 +27,7 @@ Full reference: [`docs/design-system.md`](../docs/design-system.md). Implementat
 |------|-----|
 | Page (dashboard, settings) | `app-page` → `app-page-header` + `app-page-body` / `app-page-body-inner` |
 | Settings chrome | `SettingsShell` + `settings-card` / `settings-input` (shell CSS) |
+| Provider/account editor form | `settings-provider-editor-form` + `SettingsEditorHost` CSS — see docs § Settings-only |
 | Primary/secondary/danger action | `ui-btn` + `ui-btn-primary` / `-secondary` / `-danger` |
 | Settings-style list | `ui-group` + `ui-group-row` (+ title/desc/chevron) |
 | Tabs / Dark–Light | `ui-segmented` + `ui-segmented-btn` + `ui-segmented-btn-active` |
