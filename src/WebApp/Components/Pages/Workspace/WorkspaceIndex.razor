@@ -1,0 +1,34 @@
+@page "/workspace"
+@inherits BaseComponent
+
+@using WebApp.Components.Pages.Settings.Shared
+
+@attribute [Authorize]
+
+<PageTitle>Workspace</PageTitle>
+
+<SettingsShell Title="Workspace"
+               Subtitle="Internal data for workflows and product features."
+               UseDirtyGuard="false">
+    <div class="settings-sections">
+        <nav class="ui-group" aria-label="Workspace areas">
+            @foreach (var area in _areas)
+            {
+                <NavLink class="ui-group-row" href="@area.Href">
+                    <span>
+                        <span class="ui-group-row-title">@area.Title</span>
+                        <span class="ui-group-row-desc">@area.Lead</span>
+                    </span>
+                    <span class="ui-group-row-chevron" aria-hidden="true">›</span>
+                </NavLink>
+            }
+        </nav>
+    </div>
+</SettingsShell>
+
+@code {
+    private static readonly (string Href, string Title, string Lead)[] _areas =
+    [
+        ("/workspace/contacts", "Contacts", "People you reference in rules and workflows.")
+    ];
+}

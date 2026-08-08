@@ -104,7 +104,7 @@ Component-level `@media` should be rare; use local flex/grid or container querie
 | Mobile ≤640px | Sidebar drawer + backdrop; shell padding 0 |
 | Chat | `Chat.razor` + `ChatMessageList`; composer tokens `--app-composer-*` (may use a wider local max) |
 
-**Standard content pages** (dashboard, settings, automations): `app-page` → `app-page-header` + `app-page-body` → `app-page-body-inner`.
+**Standard content pages** (dashboard, settings, workflows): `app-page` → `app-page-header` + `app-page-body` → `app-page-body-inner`.
 
 **Settings**: `SettingsShell.razor` wraps title, breadcrumbs, optional `Nav` fragment, and body.
 

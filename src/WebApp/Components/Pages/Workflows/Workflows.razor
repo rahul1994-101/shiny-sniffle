@@ -1,0 +1,34 @@
+@page "/workflows"
+@page "/automations"
+@inherits BaseComponent
+
+@using WebApp.Components.Pages.Settings.Shared
+@inject NavigationManager Navigation
+
+@attribute [Authorize]
+
+<PageTitle>Workflows</PageTitle>
+
+<SettingsShell Title="Workflows"
+               Subtitle="AI-assisted rules, triggers, and actions."
+               UseDirtyGuard="false">
+    <div class="settings-sections">
+        <div class="ui-empty-state" role="status">
+            <p class="ui-empty-state-title">No workflows yet</p>
+            <p class="ui-empty-state-lead">
+                Define triggers and actions for mail and other events. Chat will help draft workflows when this is ready.
+            </p>
+        </div>
+    </div>
+</SettingsShell>
+
+@code {
+    protected override void OnInitialized()
+    {
+        var path = Navigation.ToBaseRelativePath(Navigation.Uri);
+        if (path.StartsWith("automations", StringComparison.OrdinalIgnoreCase))
+        {
+            Navigation.NavigateTo("/workflows", replace: true);
+        }
+    }
+}

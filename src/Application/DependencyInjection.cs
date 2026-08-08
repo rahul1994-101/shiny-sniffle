@@ -10,6 +10,7 @@ using Application.Features.Shared;
 using Application.Features.EmailAccounts;
 using Application.Features.EmailProviders;
 using Application.Features.UserSettings;
+using Application.Features.Workspace.Contacts;
 using Application.Features.Users;
 using MediatR.DependencyInjection;
 using Microsoft.Extensions.Configuration;
@@ -33,6 +34,7 @@ public static class DependencyInjection
         services.AddScoped<UserSettingsRepository>();
         services.AddScoped<EmailProviderRepository>();
         services.AddScoped<EmailAccountRepository>();
+        services.AddScoped<ContactRepository>();
 
         #endregion
 

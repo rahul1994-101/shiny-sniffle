@@ -505,6 +505,12 @@
     background: var(--app-surface-muted);
 }
 
+.settings-content ::deep textarea.settings-input.settings-textarea {
+    min-height: 5.5rem;
+    resize: vertical;
+    line-height: 1.45;
+}
+
 .settings-content ::deep .settings-input[type="number"] {
     appearance: textfield;
     -moz-appearance: textfield;

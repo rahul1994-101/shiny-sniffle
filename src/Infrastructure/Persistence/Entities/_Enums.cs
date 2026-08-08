@@ -18,3 +18,11 @@ public enum EmailProvider
     Custom = 0,
     Gmail = 1
 }
+
+/// <summary>How a <see cref="Contact"/> row was created.</summary>
+public enum ContactSource
+{
+    Manual = 0,
+    Import = 1,
+    FromEmail = 2
+}

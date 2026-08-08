@@ -16,6 +16,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
 
     public DbSet<EmailAccount> EmailAccounts { get; set; }
 
+    public DbSet<Contact> Contacts { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -134,6 +136,29 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             entity.HasIndex(e => new { e.UserId, e.SortOrder })
                 .HasFilter("[isDeleted] = 0");
             entity.HasIndex(e => e.EmailProviderId)
+                .HasFilter("[isDeleted] = 0");
+        });
+        modelBuilder.Entity<Contact>(entity =>
+        {
+            entity.ToTable("Contact", "workspace");
+            entity.Property(e => e.Id).ValueGeneratedOnAdd();
+            entity.Property(e => e.UserId).HasColumnName("userId");
+            entity.Property(e => e.DisplayName).HasColumnName("displayName").HasMaxLength(200);
+            entity.Property(e => e.Email).HasColumnName("email").HasMaxLength(255);
+            entity.Property(e => e.Phone).HasColumnName("phone").HasMaxLength(32);
+            entity.Property(e => e.Notes).HasColumnName("notes").HasMaxLength(2000);
+            entity.Property(e => e.Source).HasColumnName("source");
+            entity.Property(e => e.SortOrder).HasColumnName("sortOrder");
+            entity.Property(e => e.IsActive).HasColumnName("isActive");
+            entity.Property(e => e.IsDeleted).HasColumnName("isDeleted");
+            entity.Property(e => e.CreatedBy).HasColumnName("createdBy");
+            entity.Property(e => e.CreatedAt).HasColumnName("createdAt");
+            entity.Property(e => e.UpdatedBy).HasColumnName("updatedBy");
+            entity.Property(e => e.UpdatedAt).HasColumnName("updatedAt");
+            entity.HasIndex(e => new { e.UserId, e.Email })
+                .IsUnique()
+                .HasFilter("[isDeleted] = 0 AND [email] IS NOT NULL");
+            entity.HasIndex(e => new { e.UserId, e.SortOrder })
                 .HasFilter("[isDeleted] = 0");
         });
     }

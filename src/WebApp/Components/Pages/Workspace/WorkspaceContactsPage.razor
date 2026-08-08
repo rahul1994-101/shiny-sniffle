@@ -1,0 +1,20 @@
+@page "/workspace/contacts"
+@inherits BaseComponent
+
+@using WebApp.Components.Pages.Settings
+@using WebApp.Components.Pages.Settings.Shared
+@using WebApp.Components.Pages.Workspace
+@using WebApp.Components.Pages.Workspace.Shared
+
+@attribute [Authorize]
+
+<PageTitle>Contacts</PageTitle>
+
+<SettingsShell Title="Contacts"
+               Subtitle="People you reference in workflows."
+               Breadcrumbs="WorkspaceBreadcrumbTrails.Contacts"
+               UseDirtyGuard="false">
+    <ChildContent>
+        <Contacts />
+    </ChildContent>
+</SettingsShell>

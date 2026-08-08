@@ -235,7 +235,7 @@ body.shell-sidebar-drawer-open {
     }
 }
 
-/* Standard page chrome (settings, dashboard, automations — not chat). */
+/* Standard page chrome (settings, dashboard, workflows — not chat). */
 .app-page {
     flex: 1 1 0;
     min-height: 0;

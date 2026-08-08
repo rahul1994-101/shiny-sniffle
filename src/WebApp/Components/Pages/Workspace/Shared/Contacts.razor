@@ -1,0 +1,404 @@
+@inherits BaseComponent
+
+@using Application.Features.Workspace.Contacts
+@using Application.Features.Workspace.Contacts.Commands
+@using Application.Features.Workspace.Contacts.Queries
+@using WebApp.Components.Pages.Settings
+@using WebApp.Components.Pages.Settings.Shared
+
+@if (_busy == TabBusy.Loading)
+{
+    <div class="settings-loading" role="status" aria-busy="true" aria-label="Loading contacts">
+        <div class="settings-skeleton settings-skeleton-card"></div>
+    </div>
+}
+else
+{
+    <SettingsEditorHost Layout="_editorLayout"
+                        LayoutChanged="OnEditorLayoutChangedAsync"
+                        LayoutPreferenceKey="workspace-contacts"
+                        EditorOpen="_editorOpen"
+                        EditorTitle="@EditorTitle"
+                        ListTitle="Contacts"
+                        ListLead="Use-case references for rules and AI — not a full address book."
+                        BackLabel="Back to contacts"
+                        CloseAriaLabel="Close contact editor"
+                        ListHeaderActionsAriaLabel="Contact list actions"
+                        OnRequestClose="CancelEditorAsync">
+        <ListHeaderActions>
+            @if (_contacts.Count > 0)
+            {
+                <SettingsHeadActionButton Label="Add contact"
+                                        AriaLabel="Add contact"
+                                        Disabled="@IsFormBusy"
+                                        OnClick="BeginAdd" />
+            }
+        </ListHeaderActions>
+        <ListContent>
+            @if (_contacts.Count == 0)
+            {
+                <div class="ui-empty-state">
+                    <p class="ui-empty-state-title">No contacts yet</p>
+                    <p class="ui-empty-state-lead">Add someone your workflows or agents should recognize by name.</p>
+                    <button type="button"
+                            class="ui-btn ui-btn-primary"
+                            disabled="@IsFormBusy"
+                            @onclick="BeginAdd">
+                        Add contact
+                    </button>
+                </div>
+            }
+            else
+            {
+                <div class="ui-group" aria-label="Contacts">
+                    @foreach (var contact in _contacts)
+                    {
+                        var rowActive = _editorOpen && _form.Id == contact.Id;
+                        <div class="ui-group-row ui-group-row-static ui-list-row-rich @(rowActive ? "settings-editor-row-active" : null)">
+                            <div class="ui-list-row-rich-body">
+                                <span class="ui-list-row-meta">
+                                    <span class="ui-group-row-title">@contact.DisplayName</span>
+                                </span>
+                                <span class="ui-group-row-desc">@FormatReach(contact)</span>
+                            </div>
+                            <div class="ui-list-row-rich-actions">
+                                <button type="button"
+                                        class="ui-btn ui-btn-secondary ui-btn-sm"
+                                        disabled="@IsFormBusy"
+                                        @onclick="() => BeginEditAsync(contact)">
+                                    Edit
+                                </button>
+                                <button type="button"
+                                        class="ui-btn ui-btn-danger ui-btn-sm"
+                                        disabled="@IsFormBusy"
+                                        @onclick="() => DeleteAsync(contact)">
+                                    Delete
+                                </button>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </ListContent>
+        <ListStatus>
+            @if (_status.Current is not null)
+            {
+                <p class="ui-status-pill @(_status.Current.IsError ? "ui-status-pill-error" : "ui-status-pill-success") @(_status.Current.Fading ? "ui-status-pill-fading" : null)"
+                   role="status"
+                   aria-live="polite">
+                    <span class="ui-status-pill-label">@_status.Current.Message</span>
+                </p>
+            }
+        </ListStatus>
+        <EditorContent>
+            @EditorFields
+        </EditorContent>
+        <EditorFooter>
+            <div class="settings-card-footer settings-actions">
+                <button type="button"
+                        class="ui-btn ui-btn-primary"
+                        disabled="@(!CanSaveEditor)"
+                        @onclick="SaveEditorAsync">
+                    @(_saving ? "Saving…" : "Save contact")
+                </button>
+                <button type="button"
+                        class="ui-btn ui-btn-secondary"
+                        disabled="@IsFormBusy"
+                        @onclick="CancelEditorAsync">
+                    Cancel
+                </button>
+            </div>
+
+            @if (_status.Current is not null && _editorOpen)
+            {
+                <p class="ui-status-pill @(_status.Current.IsError ? "ui-status-pill-error" : "ui-status-pill-success") @(_status.Current.Fading ? "ui-status-pill-fading" : null)"
+                   role="status"
+                   aria-live="polite">
+                    <span class="ui-status-pill-label">@_status.Current.Message</span>
+                </p>
+            }
+        </EditorFooter>
+    </SettingsEditorHost>
+}
+
+@code {
+    private TabBusy _busy = TabBusy.Loading;
+    private bool _saving;
+    private bool _deleting;
+    private bool _editorOpen;
+    private SettingsEditorLayout _editorLayout = SettingsEditorLayout.FullPage;
+    private readonly List<ContactSummaryDto> _contacts = [];
+    private ContactForm _form = new();
+    private ContactForm _formBaseline = new();
+    private SettingsSectionStatusHandle _status = null!;
+
+    private bool IsFormBusy => _saving || _deleting;
+
+    private bool IsFormDirty =>
+        !_form.ContentEquals(_formBaseline);
+
+    private bool CanSaveEditor =>
+        !IsFormBusy
+        && !string.IsNullOrWhiteSpace(_form.DisplayName);
+
+    private string EditorTitle =>
+        _form.Id is null ? "New contact" : $"Edit {_form.DisplayName}";
+
+    protected override async Task OnInitializedAsync()
+    {
+        _status = new SettingsSectionStatusHandle(() => InvokeAsync(StateHasChanged));
+        await LoadAsync();
+    }
+
+    private RenderFragment EditorFields => __builder =>
+    {
+        <div class="settings-editor-form">
+            <div class="settings-field">
+                <label class="settings-label" for="contact-display-name">Display name</label>
+                <input id="contact-display-name"
+                       type="text"
+                       class="settings-input"
+                       @bind="_form.DisplayName"
+                       @bind:after="OnFormEdited"
+                       maxlength="200"
+                       placeholder="Vendor billing, On-call eng, …"
+                       disabled="@IsFormBusy" />
+                <p class="settings-hint">How you and workflows refer to this person.</p>
+            </div>
+            <div class="settings-endpoint-row settings-endpoint-row-duo">
+                <div class="settings-field">
+                    <label class="settings-label" for="contact-email">Email</label>
+                    <input id="contact-email"
+                           type="email"
+                           class="settings-input"
+                           @bind="_form.Email"
+                           @bind:after="OnFormEdited"
+                           autocomplete="off"
+                           disabled="@IsFormBusy" />
+                </div>
+                <div class="settings-field">
+                    <label class="settings-label" for="contact-phone">Phone</label>
+                    <input id="contact-phone"
+                           type="tel"
+                           class="settings-input"
+                           @bind="_form.Phone"
+                           @bind:after="OnFormEdited"
+                           autocomplete="off"
+                           disabled="@IsFormBusy" />
+                </div>
+            </div>
+            <div class="settings-provider-extras">
+                <div class="settings-field">
+                    <label class="settings-label" for="contact-notes">Notes</label>
+                    <textarea id="contact-notes"
+                              class="settings-input settings-textarea"
+                              rows="3"
+                              @bind="_form.Notes"
+                              @bind:after="OnFormEdited"
+                              disabled="@IsFormBusy"></textarea>
+                    <p class="settings-hint">Use case, team, or context for rules and AI.</p>
+                </div>
+            </div>
+        </div>
+    };
+
+    private void OnFormEdited()
+    {
+        /* binding refresh */
+    }
+
+    private static string FormatReach(ContactSummaryDto contact)
+    {
+        if (!string.IsNullOrWhiteSpace(contact.Email) && !string.IsNullOrWhiteSpace(contact.Phone))
+        {
+            return $"{contact.Email} · {contact.Phone}";
+        }
+
+        if (!string.IsNullOrWhiteSpace(contact.Email))
+        {
+            return contact.Email;
+        }
+
+        if (!string.IsNullOrWhiteSpace(contact.Phone))
+        {
+            return contact.Phone;
+        }
+
+        return "No email or phone";
+    }
+
+    private Task OnEditorLayoutChangedAsync(SettingsEditorLayout layout)
+    {
+        _editorLayout = layout;
+        return Task.CompletedTask;
+    }
+
+    private async Task LoadAsync()
+    {
+        _busy = TabBusy.Loading;
+        _status.Clear();
+
+        var result = await Mediator.SendAsync(new ListContactsRequest(CurrentUser.Id));
+
+        if (result.HasError)
+        {
+            _status.Set(
+                result.Errors.FirstOrDefault()?.Message ?? "Failed to load contacts.",
+                isError: true);
+            _contacts.Clear();
+        }
+        else if (result.Payload?.Contacts is { } items)
+        {
+            _contacts.Clear();
+            _contacts.AddRange(items);
+        }
+
+        _busy = TabBusy.None;
+    }
+
+    private void BeginAdd()
+    {
+        _status.Clear();
+        _form = new ContactForm();
+        _formBaseline = _form.Clone();
+        _editorOpen = true;
+    }
+
+    private async Task BeginEditAsync(ContactSummaryDto summary)
+    {
+        _status.Clear();
+        var result = await Mediator.SendAsync(new GetContactRequest(CurrentUser.Id, summary.Id));
+
+        if (result.HasError || result.Payload is null)
+        {
+            _status.Set(
+                result.Errors.FirstOrDefault()?.Message ?? "Failed to load contact.",
+                isError: true);
+            return;
+        }
+
+        _form = ContactForm.FromDto(result.Payload);
+        _formBaseline = _form.Clone();
+        _editorOpen = true;
+    }
+
+    private Task CancelEditorAsync()
+    {
+        _editorOpen = false;
+        _form = new ContactForm();
+        _formBaseline = new ContactForm();
+        _status.Clear();
+        return Task.CompletedTask;
+    }
+
+    private async Task SaveEditorAsync()
+    {
+        _saving = true;
+        _status.Clear();
+
+        var result = await Mediator.SendAsync(new SaveContactRequest(CurrentUser.Id, _form.ToSaveDto()));
+
+        if (result.HasError)
+        {
+            _status.Set(
+                result.Errors.FirstOrDefault()?.Message ?? "Failed to save contact.",
+                isError: true);
+        }
+        else
+        {
+            _status.Set("Contact saved.", isError: false, autoClear: true);
+            _editorOpen = false;
+            await LoadAsync();
+        }
+
+        _saving = false;
+    }
+
+    private async Task DeleteAsync(ContactSummaryDto contact)
+    {
+        var confirm = await JsRuntime.InvokeAsync<bool>(
+            "confirm",
+            $"Delete contact \"{contact.DisplayName}\"? This cannot be undone.");
+
+        if (!confirm)
+        {
+            return;
+        }
+
+        _deleting = true;
+        _status.Clear();
+
+        var result = await Mediator.SendAsync(new DeleteContactRequest(CurrentUser.Id, contact.Id));
+
+        if (result.HasError)
+        {
+            _status.Set(
+                result.Errors.FirstOrDefault()?.Message ?? "Failed to delete contact.",
+                isError: true);
+        }
+        else
+        {
+            if (_form.Id == contact.Id)
+            {
+                await CancelEditorAsync();
+            }
+
+            await LoadAsync();
+        }
+
+        _deleting = false;
+    }
+
+    private sealed class ContactForm
+    {
+        public Guid? Id { get; set; }
+
+        public string DisplayName { get; set; } = string.Empty;
+
+        public string? Email { get; set; }
+
+        public string? Phone { get; set; }
+
+        public string? Notes { get; set; }
+
+        public static ContactForm FromDto(ContactDto dto) => new()
+        {
+            Id = dto.Id,
+            DisplayName = dto.DisplayName,
+            Email = dto.Email,
+            Phone = dto.Phone,
+            Notes = dto.Notes
+        };
+
+        public ContactForm Clone() => new()
+        {
+            Id = Id,
+            DisplayName = DisplayName,
+            Email = Email,
+            Phone = Phone,
+            Notes = Notes
+        };
+
+        public bool ContentEquals(ContactForm other) =>
+            Id == other.Id
+            && string.Equals(DisplayName, other.DisplayName, StringComparison.Ordinal)
+            && string.Equals(Email ?? "", other.Email ?? "", StringComparison.OrdinalIgnoreCase)
+            && string.Equals(Phone ?? "", other.Phone ?? "", StringComparison.Ordinal)
+            && string.Equals(Notes ?? "", other.Notes ?? "", StringComparison.Ordinal);
+
+        public SaveContactDto ToSaveDto() => new()
+        {
+            Id = Id,
+            DisplayName = DisplayName,
+            Email = Email,
+            Phone = Phone,
+            Notes = Notes
+        };
+    }
+
+    private enum TabBusy
+    {
+        None,
+        Loading
+    }
+}

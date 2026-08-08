@@ -15,7 +15,9 @@ Persistence/
   Entities/           POCOs — namespace Infrastructure.Persistence.Entities
   AppDbContext.cs     EF mapping only
 Database/
-  dbo/Tables/         current schema (source of truth with entities)
+  dbo/Tables/         platform tables (User, EmailAccount, …)
+  workspace/Tables/   user internal data (Contact, …)
+  workflow/         rules engine tables (future)
   Migrations/         manual ALTER scripts
   Seed/
 Mailbox/
