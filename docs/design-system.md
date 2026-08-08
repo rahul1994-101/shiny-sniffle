@@ -194,7 +194,7 @@ Classes: `ui-list-row-rich-body`, `ui-list-row-rich-actions`, `ui-list-row-meta`
 
 `settings-card`, `settings-section-title`, `settings-section-lead`, `settings-input`, `settings-label`, etc. Keep settings form styling in the shell; use `ui-btn` for actions.
 
-**Settings list editors:** `SettingsEditorHost.razor` composes list + editor (full page, dialog, split). The sticky **layout preview** footer is intentional during UX exploration (`ShowLayoutPicker`, per-page `LayoutPreferenceKey` in `sessionStorage`).
+**Settings list editors:** `SettingsEditorHost.razor` composes list + editor (full page, dialog, split). The sticky **layout picker** is preview UX (`ShowLayoutPicker` default true, per-page `LayoutPreferenceKey` in `sessionStorage`); remove when asked, not a standing cleanup item.
 
 Section list header: `ListTitle`, `ListLead` or `ListLeadContent`, and **`ListHeaderActions`** (toolbar on the right — Add, later search/filter). Implemented via **`SettingsSectionHead.razor`** inside `SettingsEditorHost`; primary add actions use **`SettingsHeadActionButton.razor`** (+ icon + label). At `max-width: 640px`, section head stacks **title → lead → actions**; Add uses full width (`settings-head-action`).
 
