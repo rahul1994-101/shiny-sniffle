@@ -1,0 +1,66 @@
+@inherits BaseComponent
+
+@implements IAsyncDisposable
+
+<section class="settings-card" aria-labelledby="appearance-theme-heading">
+    <h2 id="appearance-theme-heading" class="settings-section-title">Theme</h2>
+    <p class="settings-section-lead">Choose how the app looks on this device. Same as the sun/moon control in the header.</p>
+
+    <div class="ui-segmented" role="radiogroup" aria-label="Color theme">
+        <button type="button"
+                role="radio"
+                class="ui-segmented-btn @(_theme == "dark" ? "ui-segmented-btn-active" : null)"
+                aria-checked="@(_theme == "dark")"
+                @onclick='() => SetThemeAsync("dark")'>
+            Dark
+        </button>
+        <button type="button"
+                role="radio"
+                class="ui-segmented-btn @(_theme == "light" ? "ui-segmented-btn-active" : null)"
+                aria-checked="@(_theme == "light")"
+                @onclick='() => SetThemeAsync("light")'>
+            Light
+        </button>
+    </div>
+</section>
+
+@code {
+    private string _theme = "dark";
+    private DotNetObjectReference<Appearance>? _dotNetRef;
+    private int _themeSubscriptionId;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        _theme = await JsRuntime.InvokeAsync<string>("getAppTheme");
+        _dotNetRef = DotNetObjectReference.Create(this);
+        _themeSubscriptionId = await JsRuntime.InvokeAsync<int>("subscribeAppThemeChanged", _dotNetRef);
+        StateHasChanged();
+    }
+
+    [JSInvokable]
+    public void OnAppThemeChanged(string theme)
+    {
+        _theme = theme is "light" ? "light" : "dark";
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    private async Task SetThemeAsync(string theme)
+    {
+        await JsRuntime.InvokeVoidAsync("setAppTheme", theme);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_themeSubscriptionId != 0)
+        {
+            await JsRuntime.InvokeVoidAsync("unsubscribeAppThemeChanged", _themeSubscriptionId);
+        }
+
+        _dotNetRef?.Dispose();
+    }
+}

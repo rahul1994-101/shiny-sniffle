@@ -1,4 +1,5 @@
 @using Microsoft.AspNetCore.Components.Web
+@using Microsoft.JSInterop
 @implements IAsyncDisposable
 @inject IJSRuntime JsRuntime
 
@@ -6,19 +7,21 @@
      class="@RootClass"
      data-editor-layout="@Layout.ToString()"
      data-editing="@(EditorOpen ? "true" : "false")">
-    <div class="settings-editor-body" @ref="_bodyRef">
+    <div class="settings-editor-main">
+        <div class="settings-editor-body" @ref="_bodyRef">
         @if (ShowListPane)
         {
             <section class="settings-editor-pane settings-editor-pane-list settings-card"
                      aria-labelledby="@ListHeadingId"
                      aria-hidden="@(HideListFromAccessibility ? true : null)">
-                @if (!string.IsNullOrWhiteSpace(ListTitle))
+                @if (ShowListHeader)
                 {
-                    <h2 id="@ListHeadingId" class="settings-section-title">@ListTitle</h2>
-                }
-                @if (!string.IsNullOrWhiteSpace(ListLead))
-                {
-                    <p class="settings-section-lead">@ListLead</p>
+                    <SettingsSectionHead Title="@ListTitle"
+                                         HeadingId="@ListHeadingId"
+                                         Lead="@ListLead"
+                                         LeadContent="@ListLeadContent"
+                                         Actions="@ListHeaderActions"
+                                         ActionsAriaLabel="@ListHeaderActionsAriaLabel" />
                 }
 
                 @ListContent
@@ -88,13 +91,15 @@
             </section>
         }
     </div>
+    </div>
 
     @if (ShowLayoutPicker)
     {
         <footer class="settings-editor-layout-picker" role="region" aria-label="Editor layout preview">
+            <div class="settings-editor-layout-picker-inner">
             <p class="settings-editor-layout-picker-label">
                 Editor layout
-                <span class="settings-editor-layout-picker-hint">(preview — pick one for this page later)</span>
+                <span class="settings-editor-layout-picker-hint">Preview — pick one for this page later</span>
             </p>
             <div class="ui-segmented settings-editor-layout-segmented" role="group" aria-label="Editor layout mode">
                 <button type="button"
@@ -116,6 +121,7 @@
                     Split pane
                 </button>
             </div>
+            </div>
         </footer>
     }
 </div>
@@ -124,6 +130,9 @@
     private ElementReference _hostRef;
     private ElementReference _bodyRef;
     private ElementReference _dialogElement;
+    private bool _layoutPreferenceLoaded;
+    private SettingsEditorLayout _lastSyncedLayout = (SettingsEditorLayout)(-1);
+    private bool _lastSyncedEditorOpen;
 
     [Parameter]
     public SettingsEditorLayout Layout { get; set; } = SettingsEditorLayout.FullPage;
@@ -141,13 +150,26 @@
     public string? ListLead { get; set; }
 
     [Parameter]
+    public RenderFragment? ListLeadContent { get; set; }
+
+    [Parameter]
+    public RenderFragment? ListHeaderActions { get; set; }
+
+    [Parameter]
+    public string ListHeaderActionsAriaLabel { get; set; } = "Section actions";
+
+    [Parameter]
     public string BackLabel { get; set; } = "Back";
 
     [Parameter]
     public string CloseAriaLabel { get; set; } = "Close editor";
 
     [Parameter]
-    public bool ShowLayoutPicker { get; set; }
+    public bool ShowLayoutPicker { get; set; } = true;
+
+    /// <summary>Per-page sessionStorage key for layout preview (e.g. <c>email-providers</c>).</summary>
+    [Parameter]
+    public string? LayoutPreferenceKey { get; set; }
 
     [Parameter]
     public EventCallback<SettingsEditorLayout> LayoutChanged { get; set; }
@@ -183,6 +205,7 @@
             "settings-editor-host",
             Layout.ToLayoutClass(),
             EditorOpen ? "is-editing" : null,
+            ShowLayoutPicker ? "settings-editor-host--layout-preview" : null,
             AdditionalHostClass);
 
     private bool ShowListPane =>
@@ -203,6 +226,12 @@
     private bool HideListFromAccessibility =>
         Layout == SettingsEditorLayout.FullPage && EditorOpen;
 
+    private bool ShowListHeader =>
+        !string.IsNullOrWhiteSpace(ListTitle)
+        || ListLeadContent is not null
+        || !string.IsNullOrWhiteSpace(ListLead)
+        || ListHeaderActions is not null;
+
     private RenderFragment EditorCloseButton => __builder =>
     {
         <button type="button"
@@ -218,11 +247,58 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        if (firstRender)
+        {
+            await LoadLayoutPreferenceAsync();
+        }
+
+        if (_lastSyncedLayout != Layout || _lastSyncedEditorOpen != EditorOpen)
+        {
+            await SyncEditorChromeAsync();
+            _lastSyncedLayout = Layout;
+            _lastSyncedEditorOpen = EditorOpen;
+        }
+    }
+
+    private async Task LoadLayoutPreferenceAsync()
+    {
+        if (_layoutPreferenceLoaded || !ShowLayoutPicker || string.IsNullOrWhiteSpace(LayoutPreferenceKey))
+        {
+            return;
+        }
+
+        _layoutPreferenceLoaded = true;
+
+        try
+        {
+            var stored = await JsRuntime.InvokeAsync<string?>(
+                "settingsEditorDialog.getLayoutPreference",
+                LayoutPreferenceKey);
+
+            if (Enum.TryParse<SettingsEditorLayout>(stored, ignoreCase: true, out var layout)
+                && layout != Layout
+                && LayoutChanged.HasDelegate)
+            {
+                await LayoutChanged.InvokeAsync(layout);
+            }
+        }
+        catch (Exception ex) when (IsBenignJsInterop(ex))
+        {
+            /* prerender / disconnect */
+        }
+    }
+
+    private async Task SyncEditorChromeAsync()
+    {
         try
         {
             if (Layout == SettingsEditorLayout.Dialog)
             {
                 await SyncDialogAsync();
+            }
+            else
+            {
+                await JsRuntime.InvokeVoidAsync("settingsEditorDialog.closeOpenDialogs");
             }
 
             if (Layout == SettingsEditorLayout.SplitPane && EditorOpen)
@@ -234,11 +310,14 @@
                 await JsRuntime.InvokeVoidAsync("settingsEditorSplit.unwire", _hostRef);
             }
         }
-        catch (JSDisconnectedException)
+        catch (Exception ex) when (IsBenignJsInterop(ex))
         {
-            /* teardown */
+            /* teardown or transient element refs */
         }
     }
+
+    private static bool IsBenignJsInterop(Exception ex) =>
+        ex is JSDisconnectedException or ObjectDisposedException or JSException or InvalidOperationException;
 
     private async Task SyncDialogAsync()
     {
@@ -247,7 +326,14 @@
             return;
         }
 
-        await JsRuntime.InvokeVoidAsync("settingsEditorDialog.syncOpen", _dialogElement, EditorOpen);
+        try
+        {
+            await JsRuntime.InvokeVoidAsync("settingsEditorDialog.syncOpen", _dialogElement, EditorOpen);
+        }
+        catch (Exception ex) when (IsBenignJsInterop(ex))
+        {
+            /* dialog unmounted mid-transition */
+        }
     }
 
     private async Task RequestCloseAsync()
@@ -270,9 +356,36 @@
             return;
         }
 
+        try
+        {
+            await JsRuntime.InvokeVoidAsync("settingsEditorDialog.closeOpenDialogs");
+            await JsRuntime.InvokeVoidAsync("settingsEditorSplit.unwire", _hostRef);
+        }
+        catch (Exception ex) when (IsBenignJsInterop(ex))
+        {
+            /* ignore */
+        }
+
         if (LayoutChanged.HasDelegate)
         {
             await LayoutChanged.InvokeAsync(layout);
+        }
+
+        _lastSyncedLayout = (SettingsEditorLayout)(-1);
+
+        if (ShowLayoutPicker && !string.IsNullOrWhiteSpace(LayoutPreferenceKey))
+        {
+            try
+            {
+                await JsRuntime.InvokeVoidAsync(
+                    "settingsEditorDialog.setLayoutPreference",
+                    LayoutPreferenceKey,
+                    layout.ToString());
+            }
+            catch (Exception ex) when (IsBenignJsInterop(ex))
+            {
+                /* prerender */
+            }
         }
     }
 
@@ -280,14 +393,10 @@
     {
         try
         {
-            if (_dialogElement.Context is not null)
-            {
-                await JsRuntime.InvokeVoidAsync("settingsEditorDialog.syncOpen", _dialogElement, false);
-            }
-
+            await JsRuntime.InvokeVoidAsync("settingsEditorDialog.closeOpenDialogs");
             await JsRuntime.InvokeVoidAsync("settingsEditorSplit.unwire", _hostRef);
         }
-        catch (JSDisconnectedException)
+        catch (Exception ex) when (IsBenignJsInterop(ex))
         {
             /* teardown */
         }

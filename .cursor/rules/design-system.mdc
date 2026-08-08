@@ -8,6 +8,10 @@ alwaysApply: false
 
 Full reference: [`docs/design-system.md`](../docs/design-system.md). Implementation: `src/WebApp/wwwroot/app.css`.
 
+**Responsive:** shell at **641px**; global content width **`--app-page-max`** (fluid clamp in `app.css`); avoid extra viewport breakpoints unless local layout needs them (`--app-bp-lg` = 992px for split settings editor).
+
+**List rows:** nav (`NavLink`) vs `ui-list-row-rich` vs `ui-group-row-static` — different hover/active; see `docs/design-system.md` § List row interaction.
+
 ## Non‑negotiables
 
 - **No new UI libraries.** Use `ui-*` / `app-page-*` primitives and CSS variables.
@@ -41,4 +45,4 @@ Match existing motion: `--ui-duration*`, `--ui-ease-out` for enter; honor `prefe
 
 ## Theme
 
-Dark default on `:root`; light via `[data-theme="light"]`. New semantic tokens → **both** theme blocks.
+Dark default on `:root`; light via `[data-theme="light"]`. New semantic tokens → **both** theme blocks. Navbar + Appearance stay in sync via `app-theme-changed` in `webapp.js`.

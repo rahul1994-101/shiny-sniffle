@@ -23,7 +23,10 @@ One UI–inspired, **no external UI library**. Tokens and shared components live
 |-----------|----------|
 | Default dark tokens | `:root`, `[data-theme="dark"]` in `app.css` |
 | Light overrides | `[data-theme="light"]` in `app.css` |
-| Toggle / persist | Navbar, Settings → Appearance; `getAppTheme` / `setAppTheme` |
+| Toggle / persist | Navbar, Settings → Appearance; `getAppTheme` / `setAppTheme` in `webapp.js` |
+| Blazor sync | `app-theme-changed` DOM event; `subscribeAppThemeChanged` / `unsubscribeAppThemeChanged` (see `Appearance.razor`) |
+
+When any code calls `webAppTheme.set()` (navbar toggle or Settings → Appearance), the document dispatches **`app-theme-changed`** with `{ theme: "dark" | "light" }`. Components that mirror theme UI should subscribe on first render and unsubscribe on dispose.
 
 When adding a new semantic color, define it in **both** dark and light blocks.
 
@@ -48,6 +51,7 @@ When adding a new semantic color, define it in **both** dark and light blocks.
 | `--app-glass-blur-chrome` | Navbar, page header, sidebar |
 | `--app-glass-blur-panel` | Cards, `ui-group`, main stack panel, composer |
 | `--app-glass-blur-float` | Dropdowns, menus |
+| `--app-dialog-backdrop-blur` | Native `<dialog>` backdrop (theme-agnostic, `:root`) |
 | `--app-glass-saturate`, `--app-glass-saturate-soft` | Backdrop saturation |
 | `--app-glass-highlight` | Inset top edge on glass surfaces |
 | `--app-glass-scrim` | Mixed into `background` for legibility |
@@ -77,7 +81,17 @@ Shadow **containers**, not every list row.
 | `--app-accent`, `--app-accent-hover`, `--app-on-accent` | Primary actions |
 | `--app-focus-ring`, `--app-focus-ring-shadow` | Focus (always 2px ring) |
 
-Page width: `--app-page-max`, horizontal padding `--app-page-pad-x`.
+Page width: **`--app-page-max`** (fluid `clamp(56rem, 42vw + 14rem, 80rem)` capped at 100%), horizontal padding **`--app-page-pad-x`**. Header and body use the same max so chrome aligns with content.
+
+Reference breakpoints (document only; prefer tokens over ad-hoc px):
+
+| Token / name | Value | Use |
+|--------------|-------|-----|
+| Shell (desktop) | **641px** (`--app-bp-shell`) | Drawer vs inset sidebar + glass main stack |
+| sm | **576px** (`--app-bp-sm`) | Large phone tweaks (e.g. login card padding) |
+| lg | **992px** (`--app-bp-lg`) | Settings split editor two-column + resize gutter |
+
+Component-level `@media` should be rare; use local flex/grid or container queries when a panel—not the viewport—should drive layout.
 
 ---
 
@@ -88,7 +102,7 @@ Page width: `--app-page-max`, horizontal padding `--app-page-pad-x`.
 | `#app-shell.app-shell-sidebar-inset` | Desktop: padded shell, inset sidebar + main stack panel |
 | `.main-stack` | Navbar + `main`; `gap: var(--ui-space-2)`; panel glass on ≥641px |
 | Mobile ≤640px | Sidebar drawer + backdrop; shell padding 0 |
-| Chat | `Chat.razor` + `ChatMessageList`; composer tokens `--app-composer-*` |
+| Chat | `Chat.razor` + `ChatMessageList`; composer tokens `--app-composer-*` (may use a wider local max) |
 
 **Standard content pages** (dashboard, settings, automations): `app-page` → `app-page-header` + `app-page-body` → `app-page-body-inner`.
 
@@ -109,7 +123,7 @@ Use these before inventing new patterns.
 <a class="ui-btn ui-btn-primary" href="...">Link as button</a>
 ```
 
-Modifiers: `ui-btn-icon`, `ui-btn-block`, `ui-btn-lg`.
+Modifiers: `ui-btn-icon`, `ui-btn-block`, `ui-btn-lg`, `ui-btn-sm` (compact row actions in rich lists).
 
 ### Grouped lists (One UI rows)
 
@@ -126,6 +140,16 @@ Modifiers: `ui-btn-icon`, `ui-btn-block`, `ui-btn-lg`.
 ```
 
 Static row: add `ui-group-row-static`. Danger row: `ui-group-row-danger`.
+
+#### List row interaction (hover & active)
+
+| Row type | Classes | Hover | Active / current |
+|----------|---------|--------|------------------|
+| **Navigation** | `ui-group-row` + `NavLink` (+ chevron) | `--app-overlay-hover` + whole row slides 2px (motion on) | `.active` → `--app-overlay-active` (no slide) |
+| **Rich** (metadata + buttons) | `ui-group-row` + `ui-group-row-static` + `ui-list-row-rich` | Row background hover; **only** `.ui-list-row-rich-body` slides | `settings-editor-row-active` when editing (dialog/split) |
+| **Static** (placeholders, non-nav) | `ui-group-row-static` only | No background slide | — |
+
+Sign-out and other **button** rows styled as `ui-group-row-static` do not slide. Respect `prefers-reduced-motion` for transforms.
 
 ### Segmented control (tabs / Dark–Light)
 
@@ -155,11 +179,24 @@ Used by provider picker and `ChatAgentSelector`.
 
 ### Rich rows inside groups
 
-`ui-list-row-rich`, `ui-list-row-rich-body`, `ui-list-row-rich-actions`, `ui-list-row-meta`, `ui-list-row-badge`.
+Use for provider/account catalog rows (actions on the right, no chevron):
+
+```html
+<div class="ui-group-row ui-group-row-static ui-list-row-rich">
+  <div class="ui-list-row-rich-body">...</div>
+  <div class="ui-list-row-rich-actions">...</div>
+</div>
+```
+
+Classes: `ui-list-row-rich-body`, `ui-list-row-rich-actions`, `ui-list-row-meta`, `ui-list-row-badge`. See **List row interaction** above for motion rules.
 
 ### Settings-only (scoped CSS in `SettingsShell.razor.css`)
 
 `settings-card`, `settings-section-title`, `settings-section-lead`, `settings-input`, `settings-label`, etc. Keep settings form styling in the shell; use `ui-btn` for actions.
+
+**Settings list editors:** `SettingsEditorHost.razor` composes list + editor (full page, dialog, split). The sticky **layout preview** footer is intentional during UX exploration (`ShowLayoutPicker`, per-page `LayoutPreferenceKey` in `sessionStorage`).
+
+Section list header: `ListTitle`, `ListLead` or `ListLeadContent`, and **`ListHeaderActions`** (toolbar on the right — Add, later search/filter). Implemented via **`SettingsSectionHead.razor`** inside `SettingsEditorHost`; primary add actions use **`SettingsHeadActionButton.razor`** (+ icon + label). At `max-width: 640px`, section head stacks **title → lead → actions**; Add uses full width (`settings-head-action`).
 
 ---
 
@@ -183,7 +220,8 @@ Bootstrap is loaded for reboot/forms only; **do not** use Bootstrap button/card 
 - [ ] Uses `app-page` or existing shell (chat/settings)  
 - [ ] Colors/spacing from tokens  
 - [ ] Primary actions: `ui-btn-primary`  
-- [ ] Lists: `ui-group` rows  
+- [ ] Lists: `ui-group` rows — correct **nav / rich / static** hover (see design-system.md)  
+- [ ] Editor lists: `settings-editor-row-active` when row is being edited (dialog/split)  
 - [ ] Floating panels: `ui-dropdown-menu` + elev-2  
 - [ ] Focus: `--app-focus-ring-shadow`  
 - [ ] Glass: tiered blur tokens, not one-off `blur(12px)`  
@@ -200,4 +238,7 @@ Bootstrap is loaded for reboot/forms only; **do not** use Bootstrap button/card 
 | `Components/Layout/MainLayout.razor` | Inset shell |
 | `Components/Shared/Navbar.razor` | Theme toggle |
 | `Components/Pages/Settings/Shared/SettingsShell.razor` | Settings chrome |
-| `Components/Pages/Settings/Shared/General.razor` | Appearance control |
+| `Components/Pages/Settings/Shared/Appearance.razor` | Theme control |
+| `Components/Pages/Settings/Shared/General.razor` | Profile and password |
+| `Components/Pages/Settings/Shared/SettingsEditorHost.razor` | List + editor layouts + layout preview footer |
+| `wwwroot/js/webapp.js` | Theme + settings editor JS interop |

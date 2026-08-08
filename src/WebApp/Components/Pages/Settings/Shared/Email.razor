@@ -6,6 +6,7 @@
 @using Application.Features.EmailProviders
 @using Application.Features.EmailProviders.Queries
 @using WebApp.Components.Pages.Settings
+@using WebApp.Components.Pages.Settings.Shared
 
 @implements IDisposable
 
@@ -28,215 +29,103 @@ else
             </p>
         </div>
 
-        <section class="settings-card" aria-labelledby="accounts-heading">
-            <h2 id="accounts-heading" class="settings-section-title">Connected accounts</h2>
-            <p class="settings-section-lead">
+        <SettingsEditorHost Layout="_editorLayout"
+                            LayoutChanged="OnEditorLayoutChangedAsync"
+                            LayoutPreferenceKey="email-accounts"
+                            EditorOpen="_editorOpen"
+                            EditorTitle="@EditorTitle"
+                            ListTitle="Connected accounts"
+                            CloseAriaLabel="Close account editor"
+                            ListHeaderActionsAriaLabel="Connected accounts actions"
+                            OnRequestClose="CancelEditorAsync">
+            <ListLeadContent>
                 Connect one or more inboxes for the Email agent. The <strong>default</strong> account is used when no account is specified.
                 IMAP/SMTP templates are under <NavLink href="/settings/email/providers">Providers</NavLink>.
-            </p>
-
-            @if (_accounts.Count == 0)
-            {
-                <div class="ui-empty-state">
-                    <p class="ui-empty-state-title">No accounts yet</p>
-                    <p class="ui-empty-state-lead">Add an account with your address and mailbox password.</p>
-                    <button type="button"
-                            class="ui-btn ui-btn-primary"
-                            disabled="@IsFormBusy"
-                            @onclick="BeginAdd">
-                        Add account
-                    </button>
-                </div>
-            }
-            else
-            {
-                <div class="ui-group" aria-label="Email accounts">
-                    @foreach (var account in _accounts)
-                    {
-                        <div class="ui-group-row ui-group-row-static ui-list-row-rich">
-                            <div class="ui-list-row-rich-body">
-                                <span class="ui-list-row-meta">
-                                    <span class="ui-group-row-title">@account.Alias</span>
-                                    @if (account.IsDefault)
-                                    {
-                                        <span class="ui-list-row-badge">Default</span>
-                                    }
-                                </span>
-                                <span class="ui-group-row-desc">
-                                    @account.ProviderName · @account.EmailAddress
-                                </span>
-                            </div>
-                            <div class="ui-list-row-rich-actions">
-                                @if (!account.IsDefault)
-                                {
-                                    <button type="button"
-                                            class="ui-btn ui-btn-secondary settings-provider-row-btn"
-                                            disabled="@IsFormBusy"
-                                            @onclick="() => SetDefaultAsync(account)">
-                                        Make default
-                                    </button>
-                                }
-                                <button type="button"
-                                        class="ui-btn ui-btn-secondary settings-provider-row-btn"
-                                        disabled="@IsFormBusy"
-                                        @onclick="() => BeginEditAsync(account)">
-                                    Edit
-                                </button>
-                                <button type="button"
-                                        class="ui-btn ui-btn-danger settings-provider-row-btn"
-                                        disabled="@IsFormBusy"
-                                        @onclick="() => DeleteAsync(account)">
-                                    Delete
-                                </button>
-                            </div>
-                        </div>
-                    }
-                </div>
-
-                <div class="settings-card-footer settings-provider-list-footer">
-                    <button type="button"
-                            class="ui-btn ui-btn-secondary"
-                            disabled="@IsFormBusy"
-                            @onclick="BeginAdd">
-                        Add account
-                    </button>
-                </div>
-            }
-
-            @if (_status.Current is not null && !_editorOpen)
-            {
-                <p class="ui-status-pill @(_status.Current.IsError ? "ui-status-pill-error" : "ui-status-pill-success") @(_status.Current.Fading ? "ui-status-pill-fading" : null)"
-                   role="status"
-                   aria-live="polite">
-                    <span class="ui-status-pill-label">@_status.Current.Message</span>
-                </p>
-            }
-        </section>
-
-        @if (_editorOpen)
-        {
-            <section class="settings-card" aria-labelledby="account-editor-heading">
-                <h2 id="account-editor-heading" class="settings-section-title">
-                    @(_form.Id is null ? "New account" : "Edit account")
-                </h2>
-
-                <div class="settings-field">
-                    <label class="settings-label" for="acc-alias">Alias</label>
-                    <input id="acc-alias"
-                           type="text"
-                           class="settings-input"
-                           @bind="_form.Alias"
-                           @bind:after="OnFormEdited"
-                           maxlength="64"
-                           placeholder="Work, Personal, Client A"
-                           disabled="@IsFormBusy" />
-                    <p class="settings-hint">A short label so you can tell accounts apart in briefs and settings.</p>
-                </div>
-
-                <label class="settings-checkbox">
-                    <input type="checkbox"
-                           @bind="_form.IsDefault"
-                           @bind:after="OnFormEdited"
-                           disabled="@IsFormBusy || _form.IsDefaultForced" />
-                    Default account for Email agent
-                </label>
-
-                @if (_catalog.Count == 0)
+            </ListLeadContent>
+            <ListHeaderActions>
+                @if (_accounts.Count > 0)
                 {
-                    <p class="settings-hint" role="status">No provider templates found. Add providers first.</p>
+                    <SettingsHeadActionButton Label="Add account"
+                                            AriaLabel="Add account"
+                                            Disabled="@IsFormBusy"
+                                            OnClick="BeginAdd" />
+                }
+            </ListHeaderActions>
+            <ListContent>
+                @if (_accounts.Count == 0)
+                {
+                    <div class="ui-empty-state">
+                        <p class="ui-empty-state-title">No accounts yet</p>
+                        <p class="ui-empty-state-lead">Add an account with your address and mailbox password.</p>
+                        <button type="button"
+                                class="ui-btn ui-btn-primary"
+                                disabled="@IsFormBusy"
+                                @onclick="BeginAdd">
+                            Add account
+                        </button>
+                    </div>
                 }
                 else
                 {
-                    <label class="settings-label" id="acc-provider-label">Provider</label>
-                    <div class="settings-provider-picker">
-                        @if (_providerOpen)
+                    <div class="ui-group" aria-label="Email accounts">
+                        @foreach (var account in _accounts)
                         {
-                            <button type="button"
-                                    class="settings-provider-backdrop"
-                                    tabindex="-1"
-                                    aria-hidden="true"
-                                    @onclick="CloseProviderPicker"></button>
-                        }
-
-                        <button type="button"
-                                id="acc-provider"
-                                class="settings-provider-trigger"
-                                aria-haspopup="listbox"
-                                aria-expanded="@_providerOpen"
-                                aria-labelledby="acc-provider-label acc-provider"
-                                disabled="@IsFormBusy"
-                                @onclick="ToggleProviderPicker">
-                            <span class="settings-provider-trigger-label">@SelectedProviderName()</span>
-                            <svg class="settings-provider-chevron @(_providerOpen ? "settings-provider-chevron-open" : null)"
-                                 viewBox="0 0 24 24"
-                                 fill="none"
-                                 stroke="currentColor"
-                                 stroke-width="2"
-                                 aria-hidden="true">
-                                <path d="M6 9l6 6 6-6" />
-                            </svg>
-                        </button>
-
-                        @if (_providerOpen)
-                        {
-                            <div class="settings-provider-menu ui-dropdown-menu" role="listbox" aria-labelledby="acc-provider-label">
-                                @foreach (var provider in _catalog)
-                                {
-                                    var selected = string.Equals(provider.Slug, _form.ProviderSlug, StringComparison.OrdinalIgnoreCase);
+                            var rowActive = _editorOpen && _form.Id == account.Id;
+                            <div class="ui-group-row ui-group-row-static ui-list-row-rich @(rowActive ? "settings-editor-row-active" : null)">
+                                <div class="ui-list-row-rich-body">
+                                    <span class="ui-list-row-meta">
+                                        <span class="ui-group-row-title">@account.Alias</span>
+                                        @if (account.IsDefault)
+                                        {
+                                            <span class="ui-list-row-badge">Default</span>
+                                        }
+                                    </span>
+                                    <span class="ui-group-row-desc">
+                                        @account.ProviderName · @account.EmailAddress
+                                    </span>
+                                </div>
+                                <div class="ui-list-row-rich-actions">
+                                    @if (!account.IsDefault)
+                                    {
+                                        <button type="button"
+                                                class="ui-btn ui-btn-secondary ui-btn-sm"
+                                                disabled="@IsFormBusy"
+                                                @onclick="() => SetDefaultAsync(account)">
+                                            Make default
+                                        </button>
+                                    }
                                     <button type="button"
-                                            role="option"
-                                            aria-selected="@selected"
-                                            class="settings-provider-option ui-dropdown-option @(selected ? "settings-provider-option-active ui-dropdown-option-active" : null)"
-                                            @onclick="() => SelectProvider(provider)">
-                                        @provider.Name
+                                            class="ui-btn ui-btn-secondary ui-btn-sm"
+                                            disabled="@IsFormBusy"
+                                            @onclick="() => BeginEditAsync(account)">
+                                        Edit
                                     </button>
-                                }
+                                    <button type="button"
+                                            class="ui-btn ui-btn-danger ui-btn-sm"
+                                            disabled="@IsFormBusy"
+                                            @onclick="() => DeleteAsync(account)">
+                                        Delete
+                                    </button>
+                                </div>
                             </div>
                         }
                     </div>
                 }
-
-                <label class="settings-label" for="acc-email">Email address</label>
-                <input id="acc-email"
-                       type="email"
-                       class="settings-input"
-                       @bind="_form.EmailAddress"
-                       @bind:after="OnFormEdited"
-                       autocomplete="email"
-                       disabled="@IsFormBusy" />
-
-                <label class="settings-label" for="acc-username">Username</label>
-                <input id="acc-username"
-                       type="text"
-                       class="settings-input"
-                       @bind="_form.Username"
-                       @bind:after="OnFormEdited"
-                       autocomplete="username"
-                       disabled="@IsFormBusy" />
-
-                <div class="settings-field">
-                    <label class="settings-label" for="acc-password">Password</label>
-                    <div class="settings-password-wrap">
-                        <input id="acc-password"
-                               type="@(_showPassword ? "text" : "password")"
-                               class="settings-input"
-                               @bind="_form.Password"
-                               @bind:after="OnFormEdited"
-                               autocomplete="new-password"
-                               placeholder="@(_form.HasStoredPassword ? "Saved — leave blank to keep" : "App password or mailbox password")"
-                               disabled="@IsFormBusy" />
-                        <button type="button"
-                                class="settings-password-toggle"
-                                aria-label="@(_showPassword ? "Hide password" : "Show password")"
-                                aria-pressed="@_showPassword"
-                                disabled="@IsFormBusy"
-                                @onclick="() => _showPassword = !_showPassword">
-                            @(_showPassword ? "Hide" : "Show")
-                        </button>
-                    </div>
-                    <p class="settings-hint">Stored encrypted. Leave blank on save to keep the existing password.</p>
-                </div>
-
+            </ListContent>
+            <ListStatus>
+                @if (_status.Current is not null)
+                {
+                    <p class="ui-status-pill @(_status.Current.IsError ? "ui-status-pill-error" : "ui-status-pill-success") @(_status.Current.Fading ? "ui-status-pill-fading" : null)"
+                       role="status"
+                       aria-live="polite">
+                        <span class="ui-status-pill-label">@_status.Current.Message</span>
+                    </p>
+                }
+            </ListStatus>
+            <EditorContent>
+                @EditorFields
+            </EditorContent>
+            <EditorFooter>
                 <div class="settings-card-footer settings-actions">
                     <button type="button"
                             class="ui-btn ui-btn-primary"
@@ -253,12 +142,12 @@ else
                     <button type="button"
                             class="ui-btn ui-btn-secondary"
                             disabled="@IsFormBusy"
-                            @onclick="CancelEditor">
+                            @onclick="CancelEditorAsync">
                         Cancel
                     </button>
                 </div>
 
-                @if (_status.Current is not null)
+                @if (_status.Current is not null && _editorOpen)
                 {
                     <p class="ui-status-pill @(_status.Current.IsError ? "ui-status-pill-error" : "ui-status-pill-success") @(_status.Current.Fading ? "ui-status-pill-fading" : null)"
                        role="status"
@@ -266,8 +155,8 @@ else
                         <span class="ui-status-pill-label">@_status.Current.Message</span>
                     </p>
                 }
-            </section>
-        }
+            </EditorFooter>
+        </SettingsEditorHost>
     </div>
 }
 
@@ -286,7 +175,11 @@ else
     private bool _editorOpen;
     private bool _providerOpen;
     private bool _showPassword;
+    private SettingsEditorLayout _editorLayout = SettingsEditorLayout.FullPage;
     private SettingsSectionStatusHandle _status = null!;
+
+    private string EditorTitle =>
+        _form.Id is null ? "New account" : "Edit account";
 
     private bool IsFormBusy => _saving || _testing || _deleting;
 
@@ -327,6 +220,132 @@ else
     {
         _status = new SettingsSectionStatusHandle(() => InvokeAsync(StateHasChanged));
         await LoadAsync();
+    }
+
+    private RenderFragment EditorFields => __builder =>
+    {
+        <div class="settings-field">
+            <label class="settings-label" for="acc-alias">Alias</label>
+            <input id="acc-alias"
+                   type="text"
+                   class="settings-input"
+                   @bind="_form.Alias"
+                   @bind:after="OnFormEdited"
+                   maxlength="64"
+                   placeholder="Work, Personal, Client A"
+                   disabled="@IsFormBusy" />
+            <p class="settings-hint">A short label so you can tell accounts apart in briefs and settings.</p>
+        </div>
+
+        <label class="settings-checkbox">
+            <input type="checkbox"
+                   @bind="_form.IsDefault"
+                   @bind:after="OnFormEdited"
+                   disabled="@IsFormBusy || _form.IsDefaultForced" />
+            Default account for Email agent
+        </label>
+
+        @if (_catalog.Count == 0)
+        {
+            <p class="settings-hint" role="status">No provider templates found. Add providers first.</p>
+        }
+        else
+        {
+            <label class="settings-label" id="acc-provider-label">Provider</label>
+            <div class="settings-provider-picker">
+                @if (_providerOpen)
+                {
+                    <button type="button"
+                            class="settings-provider-backdrop"
+                            tabindex="-1"
+                            aria-hidden="true"
+                            @onclick="CloseProviderPicker"></button>
+                }
+
+                <button type="button"
+                        id="acc-provider"
+                        class="settings-provider-trigger"
+                        aria-haspopup="listbox"
+                        aria-expanded="@_providerOpen"
+                        aria-labelledby="acc-provider-label acc-provider"
+                        disabled="@IsFormBusy"
+                        @onclick="ToggleProviderPicker">
+                    <span class="settings-provider-trigger-label">@SelectedProviderName()</span>
+                    <svg class="settings-provider-chevron @(_providerOpen ? "settings-provider-chevron-open" : null)"
+                         viewBox="0 0 24 24"
+                         fill="none"
+                         stroke="currentColor"
+                         stroke-width="2"
+                         aria-hidden="true">
+                        <path d="M6 9l6 6 6-6" />
+                    </svg>
+                </button>
+
+                @if (_providerOpen)
+                {
+                    <div class="settings-provider-menu ui-dropdown-menu" role="listbox" aria-labelledby="acc-provider-label">
+                        @foreach (var provider in _catalog)
+                        {
+                            var selected = string.Equals(provider.Slug, _form.ProviderSlug, StringComparison.OrdinalIgnoreCase);
+                            <button type="button"
+                                    role="option"
+                                    aria-selected="@selected"
+                                    class="settings-provider-option ui-dropdown-option @(selected ? "settings-provider-option-active ui-dropdown-option-active" : null)"
+                                    @onclick="() => SelectProvider(provider)">
+                                @provider.Name
+                            </button>
+                        }
+                    </div>
+                }
+            </div>
+        }
+
+        <label class="settings-label" for="acc-email">Email address</label>
+        <input id="acc-email"
+               type="email"
+               class="settings-input"
+               @bind="_form.EmailAddress"
+               @bind:after="OnFormEdited"
+               autocomplete="email"
+               disabled="@IsFormBusy" />
+
+        <label class="settings-label" for="acc-username">Username</label>
+        <input id="acc-username"
+               type="text"
+               class="settings-input"
+               @bind="_form.Username"
+               @bind:after="OnFormEdited"
+               autocomplete="username"
+               disabled="@IsFormBusy" />
+
+        <div class="settings-field">
+            <label class="settings-label" for="acc-password">Password</label>
+            <div class="settings-password-wrap">
+                <input id="acc-password"
+                       type="@(_showPassword ? "text" : "password")"
+                       class="settings-input"
+                       @bind="_form.Password"
+                       @bind:after="OnFormEdited"
+                       autocomplete="new-password"
+                       placeholder="@(_form.HasStoredPassword ? "Saved — leave blank to keep" : "App password or mailbox password")"
+                       disabled="@IsFormBusy" />
+                <button type="button"
+                        class="settings-password-toggle"
+                        aria-label="@(_showPassword ? "Hide password" : "Show password")"
+                        aria-pressed="@_showPassword"
+                        disabled="@IsFormBusy"
+                        @onclick="() => _showPassword = !_showPassword">
+                    @(_showPassword ? "Hide" : "Show")
+                </button>
+            </div>
+            <p class="settings-hint">Stored encrypted. Leave blank on save to keep the existing password.</p>
+        </div>
+    };
+
+    private Task OnEditorLayoutChangedAsync(SettingsEditorLayout layout)
+    {
+        _editorLayout = layout;
+        return Task.CompletedTask;
     }
 
     public void Dispose() => _status.Dispose();
@@ -408,6 +427,12 @@ else
         _showPassword = false;
         _busy = TabBusy.None;
         SyncDirtyState();
+    }
+
+    private Task CancelEditorAsync()
+    {
+        CancelEditor();
+        return Task.CompletedTask;
     }
 
     private void CancelEditor()

@@ -26,6 +26,9 @@ window.webAppTheme = (function () {
       /* private mode */
     }
     syncToggleUi(next);
+    document.dispatchEvent(
+      new CustomEvent("app-theme-changed", { detail: { theme: next } })
+    );
   }
 
   function toggle() {
@@ -59,6 +62,31 @@ window.getAppTheme = function () {
 window.setAppTheme = function (theme) {
   window.webAppTheme.set(theme);
 };
+
+(function () {
+  var themeChangeSubs = new Map();
+  var themeChangeSubId = 0;
+
+  window.subscribeAppThemeChanged = function (dotNetRef) {
+    var id = ++themeChangeSubId;
+    var handler = function (e) {
+      var theme = e.detail && e.detail.theme;
+      if (theme) {
+        dotNetRef.invokeMethodAsync("OnAppThemeChanged", theme);
+      }
+    };
+    themeChangeSubs.set(id, handler);
+    document.addEventListener("app-theme-changed", handler);
+    return id;
+  };
+
+  window.unsubscribeAppThemeChanged = function (id) {
+    var handler = themeChangeSubs.get(id);
+    if (!handler) return;
+    document.removeEventListener("app-theme-changed", handler);
+    themeChangeSubs.delete(id);
+  };
+})();
 
 window.webAppShell = (function () {
   var mq = window.matchMedia ? window.matchMedia("(max-width: 640px)") : null;
@@ -342,16 +370,34 @@ window.settingsEditorDialog = {
     if (open && !el.open) el.showModal();
     else if (!open && el.open) el.close();
   },
-  getLayoutPreference: function () {
+  closeOpenDialogs: function () {
+    document.querySelectorAll("dialog.settings-editor-dialog").forEach(function (el) {
+      if (el.open && typeof el.close === "function") {
+        el.close();
+      }
+    });
+  },
+  getLayoutPreference: function (pageKey) {
     try {
-      return sessionStorage.getItem("settings-editor-layout");
+      var storageKey = pageKey
+        ? "settings-editor-layout:" + pageKey
+        : "settings-editor-layout";
+      return sessionStorage.getItem(storageKey);
     } catch (e) {
       return null;
     }
   },
-  setLayoutPreference: function (value) {
+  setLayoutPreference: function (pageKey, value) {
     try {
-      if (value) sessionStorage.setItem("settings-editor-layout", value);
+      if (arguments.length === 1 && typeof pageKey === "string") {
+        value = pageKey;
+        pageKey = null;
+      }
+      if (!value) return;
+      var storageKey = pageKey
+        ? "settings-editor-layout:" + pageKey
+        : "settings-editor-layout";
+      sessionStorage.setItem(storageKey, value);
     } catch (e) {
       /* private mode */
     }
@@ -455,5 +501,9 @@ window.settingsEditorSplit = (function () {
     }
   }
 
-  return { wire: wire, unwire: unwire };
+  function unwireElement(el) {
+    if (el) unwire(el);
+  }
+
+  return { wire: wire, unwire: unwire, unwireElement: unwireElement };
 })();

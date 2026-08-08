@@ -1,0 +1,15 @@
+@page "/settings/appearance"
+@inherits BaseComponent
+
+@attribute [Authorize]
+
+<PageTitle>Appearance</PageTitle>
+
+<SettingsShell Title="Appearance"
+               Subtitle="Color theme for this device."
+               UseDirtyGuard="false"
+               Breadcrumbs="SettingsBreadcrumbTrails.Appearance">
+<div class="settings-sections">
+    <Appearance />
+</div>
+</SettingsShell>

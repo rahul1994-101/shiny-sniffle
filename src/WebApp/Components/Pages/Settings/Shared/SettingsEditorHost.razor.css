@@ -1,9 +1,21 @@
 .settings-editor-host {
     display: flex;
     flex-direction: column;
-    gap: var(--ui-space-4);
+    gap: 0;
     min-width: 0;
     --settings-editor-split-list-px: 22rem;
+}
+
+.settings-editor-main {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ui-space-4);
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+.settings-editor-host--layout-preview .settings-editor-main {
+    padding-bottom: var(--ui-space-2);
 }
 
 .settings-editor-body {
@@ -23,7 +35,7 @@
     align-items: start;
 }
 
-@media (min-width: 900px) {
+@media (min-width: 992px) {
     .settings-editor-host.settings-editor-layout-split.is-editing .settings-editor-body {
         grid-template-columns:
             minmax(14rem, var(--settings-editor-split-list-px, 22rem))
@@ -59,7 +71,7 @@
     box-shadow: var(--app-focus-ring-shadow);
 }
 
-.settings-editor-host.settings-editor-layout-split.is-editing ::deep .settings-editor-row-active {
+.settings-editor-host.is-editing ::deep .settings-editor-row-active {
     border-color: color-mix(in srgb, var(--app-accent) 35%, var(--app-border));
     background: color-mix(in srgb, var(--app-accent) 6%, var(--app-surface-subtle));
 }
@@ -68,7 +80,7 @@
     display: none;
 }
 
-@media (max-width: 899px) {
+@media (max-width: 991px) {
     .settings-editor-host.settings-editor-layout-split.is-editing .settings-editor-pane-list {
         display: none;
     }
@@ -128,25 +140,81 @@
 }
 
 .settings-editor-layout-picker {
-    margin-top: var(--ui-space-2);
-    padding: var(--ui-space-3) 0 0;
+    position: sticky;
+    bottom: 0;
+    z-index: 5;
+    flex-shrink: 0;
+    margin-top: var(--ui-space-3);
+    padding: var(--ui-space-3) 0 calc(var(--ui-space-3) + env(safe-area-inset-bottom, 0px));
     border-top: 1px dashed color-mix(in srgb, var(--app-border) 80%, transparent);
+    background: color-mix(in srgb, var(--app-main-bg) 88%, transparent);
+    -webkit-backdrop-filter: blur(var(--app-glass-blur-panel)) saturate(var(--app-glass-saturate-soft));
+    backdrop-filter: blur(var(--app-glass-blur-panel)) saturate(var(--app-glass-saturate-soft));
+    box-shadow: 0 -8px 24px color-mix(in srgb, var(--app-main-bg) 65%, transparent);
+}
+
+.settings-editor-layout-picker-inner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--ui-space-2) var(--ui-space-3);
 }
 
 .settings-editor-layout-picker-label {
-    margin: 0 0 var(--ui-space-2);
+    margin: 0;
+    flex: 1 1 11rem;
+    min-width: 0;
     font-size: var(--ui-type-caption);
     font-weight: 500;
     color: var(--app-muted);
+    line-height: 1.45;
 }
 
 .settings-editor-layout-picker-hint {
+    display: block;
     font-weight: 400;
-    opacity: 0.9;
+    opacity: 0.85;
+    margin-top: 0.15rem;
 }
 
 .settings-editor-layout-segmented {
-    max-width: 28rem;
+    flex: 0 0 auto;
+    width: auto;
+    max-width: 100%;
+}
+
+@media (max-width: 640px) {
+    .settings-editor-host--layout-preview .settings-editor-main {
+        padding-bottom: 0;
+    }
+
+    .settings-editor-layout-picker {
+        margin-top: var(--ui-space-2);
+        padding-top: var(--ui-space-2);
+        padding-bottom: calc(var(--ui-space-2) + env(safe-area-inset-bottom, 0px));
+    }
+
+    .settings-editor-layout-picker-inner {
+        flex-direction: column;
+        align-items: stretch;
+        gap: var(--ui-space-2);
+    }
+
+    .settings-editor-layout-picker-label {
+        font-size: 0.75rem;
+    }
+
+    .settings-editor-layout-segmented {
+        display: flex;
+        width: 100%;
+    }
+
+    .settings-editor-layout-segmented .ui-segmented-btn {
+        flex: 1 1 0;
+        min-width: 0;
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
+    }
 }
 
 .settings-editor-host ::deep .settings-editor-dialog-body {

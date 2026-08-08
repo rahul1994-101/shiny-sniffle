@@ -147,3 +147,28 @@
         opacity: 0;
     }
 }
+
+@media (prefers-reduced-motion: reduce) {
+    #components-reconnect-modal {
+        animation: none;
+        opacity: 1;
+        transition: none;
+    }
+
+    #components-reconnect-modal[open] {
+        animation: none;
+    }
+
+    #components-reconnect-modal::backdrop {
+        animation: none;
+    }
+
+    .components-rejoining-animation div {
+        animation: none;
+        top: 20px;
+        left: 20px;
+        width: 40px;
+        height: 40px;
+        opacity: 0.35;
+    }
+}

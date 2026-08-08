@@ -3,6 +3,7 @@ namespace WebApp.Components.Pages.Settings.Shared;
 /// <summary>
 /// How list + editor are composed on settings catalog pages (Providers, Accounts, …).
 /// Set on <see cref="SettingsEditorHost"/> via <c>Layout</c> or host class <c>settings-editor-layout-{mode}</c>.
+/// Layout preview footer is on by default; pass <c>LayoutPreferenceKey</c> per page and <c>ShowLayoutPicker="false"</c> when finalized.
 /// </summary>
 public enum SettingsEditorLayout
 {

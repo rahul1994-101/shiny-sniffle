@@ -1,8 +1,9 @@
 ﻿namespace WebApp.Models;
 
-/// <summary>Top-level settings hub areas (<c>/settings/general</c>, <c>/settings/email/…</c>).</summary>
+/// <summary>Top-level settings hub areas (<c>/settings/general</c>, <c>/settings/appearance</c>, <c>/settings/email/…</c>).</summary>
 public enum SettingsSection
 {
     General = 0,
-    Email = 1
+    Appearance = 1,
+    Email = 2
 }

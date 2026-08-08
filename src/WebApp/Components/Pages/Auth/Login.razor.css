@@ -187,7 +187,7 @@
     display: inline !important;
 }
 
-@media (max-width: 480px) {
+@media (max-width: 576px) {
     .login-card {
         padding: 1.5rem;
     }

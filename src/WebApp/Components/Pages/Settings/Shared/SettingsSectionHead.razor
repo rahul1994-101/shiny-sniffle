@@ -1,0 +1,44 @@
+<header class="settings-section-head">
+    <div class="settings-section-head-text">
+        @if (!string.IsNullOrWhiteSpace(Title))
+        {
+            <h2 id="@HeadingId" class="settings-section-title">@Title</h2>
+        }
+        @if (LeadContent is not null)
+        {
+            <div class="settings-section-lead">@LeadContent</div>
+        }
+        else if (!string.IsNullOrWhiteSpace(Lead))
+        {
+            <p class="settings-section-lead">@Lead</p>
+        }
+    </div>
+    @if (Actions is not null)
+    {
+        <div class="settings-section-head-actions"
+             role="toolbar"
+             aria-label="@ActionsAriaLabel">
+            @Actions
+        </div>
+    }
+</header>
+
+@code {
+    [Parameter]
+    public string? Title { get; set; }
+
+    [Parameter]
+    public string HeadingId { get; set; } = $"settings-section-{Guid.NewGuid():N}";
+
+    [Parameter]
+    public string? Lead { get; set; }
+
+    [Parameter]
+    public RenderFragment? LeadContent { get; set; }
+
+    [Parameter]
+    public RenderFragment? Actions { get; set; }
+
+    [Parameter]
+    public string ActionsAriaLabel { get; set; } = "Section actions";
+}

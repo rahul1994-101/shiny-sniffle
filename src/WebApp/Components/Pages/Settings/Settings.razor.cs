@@ -44,6 +44,11 @@ public static class SettingsBreadcrumbTrails
         new("Settings", "/settings")
     ];
 
+    public static readonly IReadOnlyList<SettingsBreadcrumbItem> Appearance =
+    [
+        new("Settings", "/settings")
+    ];
+
     public static readonly IReadOnlyList<SettingsBreadcrumbItem> Email =
     [
         new("Settings", "/settings"),

@@ -34,6 +34,7 @@ body.shell-sidebar-drawer-open {
     --ui-type-section: 0.9375rem;
     --ui-type-body: 0.875rem;
     --ui-type-caption: 0.8125rem;
+    --app-dialog-backdrop-blur: 4px;
 }
 
 :root,
@@ -115,8 +116,12 @@ body.shell-sidebar-drawer-open {
     --app-composer-shadow: var(--app-elev-1);
     --app-composer-focus-border: color-mix(in srgb, var(--app-accent) 55%, transparent);
     --app-composer-focus-shadow: var(--app-elev-2), 0 0 0 1px color-mix(in srgb, var(--app-accent) 22%, transparent);
-    --app-page-max: min(100%, 56rem);
+    /* Fluid content column: ~56rem on narrow desktop → 80rem cap on ultra-wide. Shell flip: 641px. */
+    --app-page-max: min(100%, clamp(56rem, 42vw + 14rem, 80rem));
     --app-page-pad-x: 1rem;
+    --app-bp-shell: 641px;
+    --app-bp-sm: 576px;
+    --app-bp-lg: 992px;
     --app-page-header-bg: rgba(36, 36, 38, 0.58);
     --app-page-header-border: var(--app-border);
     --app-scrollbar-thumb: rgba(255, 255, 255, 0.16);
@@ -244,7 +249,10 @@ body.shell-sidebar-drawer-open {
 
 .app-page-header {
     flex-shrink: 0;
-    margin: var(--ui-space-2) var(--app-page-pad-x) var(--ui-space-3);
+    width: 100%;
+    max-width: var(--app-page-max);
+    margin: var(--ui-space-2) auto var(--ui-space-3);
+    box-sizing: border-box;
     border: 1px solid var(--app-page-header-border);
     border-radius: var(--ui-radius-md);
     background: color-mix(in srgb, var(--app-page-header-bg) 88%, var(--app-glass-scrim));
@@ -255,8 +263,6 @@ body.shell-sidebar-drawer-open {
 
 .app-page-header-inner {
     width: 100%;
-    max-width: var(--app-page-max);
-    margin: 0 auto;
     padding: 0.85rem var(--app-page-pad-x);
     box-sizing: border-box;
 }
@@ -431,6 +437,36 @@ body.shell-sidebar-drawer-open {
     color: var(--app-fg-subtle);
 }
 
+@media (max-width: 640px) {
+    .app-page-header {
+        margin-bottom: var(--ui-space-2);
+    }
+
+    .app-page-header-inner {
+        padding-top: 0.75rem;
+        padding-bottom: 0.75rem;
+    }
+
+    .app-page-head-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--ui-space-2);
+    }
+
+    .app-page-breadcrumb {
+        width: 100%;
+    }
+
+    .app-page-breadcrumb-list {
+        justify-content: flex-start;
+    }
+
+    .app-page-body-inner {
+        padding-top: var(--ui-space-4);
+        padding-bottom: var(--ui-space-5);
+    }
+}
+
 @media (min-width: 641px) {
     .app-page-title {
         font-size: clamp(1.375rem, 2.5vw, 1.625rem);
@@ -472,15 +508,15 @@ h1:focus {
 }
 
 .valid.modified:not([type=checkbox]) {
-    outline: 1px solid #26b050;
+    outline: 1px solid color-mix(in srgb, var(--app-accent) 55%, transparent);
 }
 
 .invalid {
-    outline: 1px solid #e50000;
+    outline: 1px solid var(--app-danger-border);
 }
 
 .validation-message {
-    color: #e50000;
+    color: var(--app-danger-fg);
 }
 
 .blazor-error-boundary {
@@ -545,9 +581,13 @@ body.app-login-page {
         box-shadow var(--ui-duration) var(--ui-ease);
 }
 
-.ui-group-row:hover,
-.ui-group-row.active {
+.ui-group-row:hover {
     background: var(--app-overlay-hover);
+}
+
+.ui-group-row.active,
+.ui-group-row.active:hover {
+    background: var(--app-overlay-active);
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -558,8 +598,13 @@ body.app-login-page {
             transform var(--ui-duration-fast) var(--ui-ease-out);
     }
 
-    .ui-group-row:hover {
+    .ui-group-row:hover:not(.active) {
         transform: translateX(2px);
+    }
+
+    .ui-group-row.ui-group-row-static:hover,
+    .ui-group-row.ui-group-row-static:active {
+        transform: none;
     }
 
     .ui-group-row:active {
@@ -575,6 +620,10 @@ body.app-login-page {
 .ui-group-row-static:hover {
     cursor: default;
     background: transparent;
+}
+
+.ui-group-row.ui-list-row-rich:hover {
+    background: var(--app-overlay-hover);
 }
 
 .ui-group-row-title {
@@ -726,6 +775,12 @@ button.ui-segmented-btn-active {
     transition: opacity var(--ui-duration-slow) var(--ui-ease);
 }
 
+@media (prefers-reduced-motion: reduce) {
+    .ui-status-pill-fading {
+        transition: none;
+    }
+}
+
 .ui-empty-state {
     display: grid;
     gap: var(--ui-space-2);
@@ -773,8 +828,8 @@ button.ui-segmented-btn-active {
 
 .ui-dialog::backdrop {
     background: color-mix(in srgb, var(--app-main-bg) 55%, transparent);
-    -webkit-backdrop-filter: blur(4px);
-    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(var(--app-dialog-backdrop-blur));
+    backdrop-filter: blur(var(--app-dialog-backdrop-blur));
 }
 
 .ui-dialog-panel {
@@ -966,6 +1021,13 @@ button.ui-segmented-btn-active {
     font-size: 1rem;
 }
 
+.ui-btn-sm {
+    min-height: 2.25rem;
+    padding: 0.4rem 0.75rem;
+    font-size: var(--ui-type-caption);
+    min-width: 5rem;
+}
+
 /* Rich static rows inside ui-group (metadata + actions). */
 .ui-list-row-rich {
     flex-wrap: wrap;
@@ -976,6 +1038,21 @@ button.ui-segmented-btn-active {
 .ui-list-row-rich-body {
     flex: 1 1 12rem;
     min-width: 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .ui-list-row-rich-body {
+        transition: transform var(--ui-duration-fast) var(--ui-ease-out);
+    }
+
+    /* Rich rows: slide label column only; keep action buttons stable. */
+    .ui-group-row.ui-list-row-rich:hover {
+        transform: none;
+    }
+
+    .ui-group-row.ui-list-row-rich:hover .ui-list-row-rich-body {
+        transform: translateX(2px);
+    }
 }
 
 .ui-list-row-rich-actions {

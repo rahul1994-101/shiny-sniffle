@@ -13,14 +13,24 @@ else
 {
     <SettingsEditorHost Layout="_editorLayout"
                         LayoutChanged="OnEditorLayoutChangedAsync"
-                        ShowLayoutPicker="true"
+                        LayoutPreferenceKey="email-providers"
                         EditorOpen="_editorOpen"
                         EditorTitle="@EditorTitle"
                         ListTitle="Provider catalog"
                         ListLead="Manage provider templates used when connecting mailboxes."
                         BackLabel="Back to providers"
                         CloseAriaLabel="Close provider editor"
+                        ListHeaderActionsAriaLabel="Provider catalog actions"
                         OnRequestClose="CancelEditorAsync">
+        <ListHeaderActions>
+            @if (_providers.Count > 0)
+            {
+                <SettingsHeadActionButton Label="Add provider"
+                                        AriaLabel="Add provider"
+                                        Disabled="@IsFormBusy"
+                                        OnClick="BeginAdd" />
+            }
+        </ListHeaderActions>
         <ListContent>
             @if (_providers.Count == 0)
             {
@@ -56,7 +66,7 @@ else
                             </div>
                             <div class="ui-list-row-rich-actions">
                                 <button type="button"
-                                        class="ui-btn ui-btn-secondary settings-provider-row-btn"
+                                        class="ui-btn ui-btn-secondary ui-btn-sm"
                                         disabled="@IsFormBusy"
                                         @onclick="() => BeginEdit(provider)">
                                     Edit
@@ -64,7 +74,7 @@ else
                                 @if (!provider.IsSystem)
                                 {
                                     <button type="button"
-                                            class="ui-btn ui-btn-danger settings-provider-row-btn"
+                                            class="ui-btn ui-btn-danger ui-btn-sm"
                                             disabled="@IsFormBusy"
                                             @onclick="() => DeleteAsync(provider)">
                                         Delete
@@ -76,19 +86,6 @@ else
                 </div>
             }
         </ListContent>
-        <ListFooter>
-            @if (_providers.Count > 0)
-            {
-                <div class="settings-card-footer settings-provider-list-footer">
-                    <button type="button"
-                            class="ui-btn ui-btn-secondary"
-                            disabled="@IsFormBusy"
-                            @onclick="BeginAdd">
-                        Add provider
-                    </button>
-                </div>
-            }
-        </ListFooter>
         <ListStatus>
             @if (_status.Current is not null)
             {
@@ -153,7 +150,6 @@ else
     protected override async Task OnInitializedAsync()
     {
         _status = new SettingsSectionStatusHandle(() => InvokeAsync(StateHasChanged));
-        await LoadLayoutPreferenceAsync();
         await LoadAsync();
     }
 
@@ -212,33 +208,10 @@ else
         </div>
     };
 
-    private async Task LoadLayoutPreferenceAsync()
-    {
-        try
-        {
-            var stored = await JsRuntime.InvokeAsync<string?>("settingsEditorDialog.getLayoutPreference");
-            if (Enum.TryParse<SettingsEditorLayout>(stored, ignoreCase: true, out var layout))
-            {
-                _editorLayout = layout;
-            }
-        }
-        catch (JSDisconnectedException)
-        {
-            /* prerender */
-        }
-    }
-
-    private async Task OnEditorLayoutChangedAsync(SettingsEditorLayout layout)
+    private Task OnEditorLayoutChangedAsync(SettingsEditorLayout layout)
     {
         _editorLayout = layout;
-        try
-        {
-            await JsRuntime.InvokeVoidAsync("settingsEditorDialog.setLayoutPreference", layout.ToString());
-        }
-        catch (JSDisconnectedException)
-        {
-            /* prerender */
-        }
+        return Task.CompletedTask;
     }
 
     private async Task LoadAsync()
