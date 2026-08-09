@@ -1,4 +1,5 @@
 using Infrastructure.Persistence;
+using Infrastructure.Persistence.Entities.dbo;
 using Microsoft.EntityFrameworkCore;
 
 namespace Application.Features.EmailProviders;

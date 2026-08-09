@@ -192,7 +192,6 @@ else
             }
 
             _form.IsDefault = isDefault;
-            OnFormEdited();
         }
     }
 
@@ -305,7 +304,6 @@ else
                                type="email"
                                class="settings-input"
                                @bind="_form.EmailAddress"
-                               @bind:after="OnFormEdited"
                                autocomplete="email"
                                disabled="@IsFormBusy" />
                     </div>
@@ -315,7 +313,6 @@ else
                                type="text"
                                class="settings-input"
                                @bind="_form.Username"
-                               @bind:after="OnFormEdited"
                                autocomplete="username"
                                disabled="@IsFormBusy" />
                     </div>
@@ -328,7 +325,6 @@ else
                                    type="@(_showPassword ? "text" : "password")"
                                    class="settings-input"
                                    @bind="_form.Password"
-                                   @bind:after="OnFormEdited"
                                    autocomplete="new-password"
                                    placeholder="@(_form.HasStoredPassword ? "Saved — leave blank to keep" : "App password or mailbox password")"
                                    disabled="@IsFormBusy" />
@@ -361,7 +357,6 @@ else
                            type="text"
                            class="settings-input"
                            @bind="_form.Alias"
-                           @bind:after="OnFormEdited"
                            maxlength="64"
                            placeholder="@EntityAliasFieldCopy.PlaceholderAutoFromEmail"
                            disabled="@IsFormBusy" />
@@ -380,7 +375,6 @@ else
                               class="settings-input settings-textarea"
                               rows="3"
                               @bind="_form.Context"
-                              @bind:after="OnFormEdited"
                               maxlength="2000"
                               disabled="@IsFormBusy"></textarea>
                     <p class="settings-hint">@EntityContextFieldCopy.Hint</p>
@@ -588,10 +582,6 @@ else
             _status.Set($"Default account set to \"{account.Alias}\".", isError: false, autoClear: true);
             await LoadAsync();
         }
-    }
-
-    private void OnFormEdited()
-    {
     }
 
     private void CaptureFormBaseline() => _formBaseline = _form.CloneForBaseline();

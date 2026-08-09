@@ -32,7 +32,7 @@ public sealed class UpdateChatThreadAgentRequestHandler(ChatThreadRepository cha
 
         if (request.ChatAgent == ChatAgent.Email && !await mailboxService.IsConfiguredAsync(request.UserId, cancellationToken))
         {
-            result.Failure(ErrorCode.BadRequest, "Connect your mailbox in Settings → Email before using the Email agent.");
+            result.Failure(ErrorCode.BadRequest, "Connect your mailbox in Workspace → Email accounts before using the Email agent.");
             return result;
         }
 

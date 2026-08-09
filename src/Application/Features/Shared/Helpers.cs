@@ -26,22 +26,22 @@ internal static class EmailReadConstants
 
     internal const int SnippetMaxLength = 120;
 
-    internal const string SettingsEmailHint = "Connect your mailbox in Settings → Email.";
+    internal const string WorkspaceEmailHint = "Connect your mailbox in Workspace → Email accounts.";
 
     internal const string NotConfiguredForAgent =
-        $"Mailbox is not configured. {SettingsEmailHint}";
+        $"Mailbox is not configured. {WorkspaceEmailHint}";
 
     internal const string NotConfiguredForList =
-        $"Mailbox is not configured. {SettingsEmailHint} Then ask again to list mail.";
+        $"Mailbox is not configured. {WorkspaceEmailHint} Then ask again to list mail.";
 
     internal const string NotConfiguredForSend =
-        $"Mailbox is not configured. {SettingsEmailHint} Before sending mail.";
+        $"Mailbox is not configured. {WorkspaceEmailHint} Before sending mail.";
 
     internal const string NotConfiguredForGet =
-        $"Mailbox is not configured. {SettingsEmailHint} Then ask again to read a message.";
+        $"Mailbox is not configured. {WorkspaceEmailHint} Then ask again to read a message.";
 
     internal const string NotConfiguredForFolders =
-        $"Mailbox is not configured. {SettingsEmailHint} Then ask again to list folders.";
+        $"Mailbox is not configured. {WorkspaceEmailHint} Then ask again to list folders.";
 
     internal const int MaxMessageBodyLength = 12_000;
 

@@ -28,7 +28,7 @@ Work **one layer at a time**. Within a layer, pick **one dimension slice** (e.g.
 
 ### Layer 0 — Foundation ✅ (reviewed)
 
-- Mailbox configured / reachable (`get_mailbox_status`, Settings → Email guard on agent switch)
+- Mailbox configured / reachable (`get_mailbox_status`, Workspace → Email accounts guard on agent switch)
 - List inbox by `since` + `limit` (`list_inbox_messages`)
 - Snippet list (preview up to 120 chars; not full bodies)
 - Shared limits/copy in `EmailReadConstants`
@@ -274,7 +274,7 @@ When you implement actions, they should accept **`(folder, uid)`** from Layer 6 
 ## Out of scope (this doc)
 
 - **Send** scenarios (separate pass)
-- Settings UI (except “go to Settings → Email” messaging)
+- Mailbox connection UI (Workspace → Email accounts; provider templates stay under Settings → Email → Providers)
 - Assistant agent routing
 
 ---

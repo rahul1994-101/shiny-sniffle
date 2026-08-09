@@ -1,6 +1,6 @@
 using Application.Features.EmailProviders;
 using Infrastructure.Persistence;
-using Infrastructure.Persistence.Entities;
+using Infrastructure.Persistence.Entities.workspace;
 using Microsoft.EntityFrameworkCore;
 
 namespace Application.Features.Workspace.EmailAccounts;

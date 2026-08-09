@@ -1,21 +1,18 @@
 namespace WebApp.Components.Pages.Settings;
 
-/// <summary>Tracks unsaved edits across General / Email tabs for navigation guards.</summary>
+/// <summary>Tracks unsaved edits on General settings for navigation guards.</summary>
 public sealed class SettingsPageContext : IDisposable
 {
     private bool _profileDirty;
     private bool _passwordDirty;
-    private bool _emailDirty;
 
     public event Action? Changed;
 
-    public bool IsDirty => _profileDirty || _passwordDirty || _emailDirty;
+    public bool IsDirty => _profileDirty || _passwordDirty;
 
     public void SetProfileDirty(bool dirty) => Set(ref _profileDirty, dirty);
 
     public void SetPasswordDirty(bool dirty) => Set(ref _passwordDirty, dirty);
-
-    public void SetEmailDirty(bool dirty) => Set(ref _emailDirty, dirty);
 
     public void Dispose() => Changed = null;
 

@@ -1,3 +1,6 @@
+using Infrastructure.Persistence.Entities.dbo;
+using Infrastructure.Persistence.Entities.workspace;
+
 namespace Infrastructure.Persistence.Entities;
 
 /// <summary>

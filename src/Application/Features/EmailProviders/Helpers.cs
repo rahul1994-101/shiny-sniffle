@@ -1,3 +1,4 @@
+using Infrastructure.Persistence.Entities.dbo;
 using System.Text.RegularExpressions;
 
 namespace Application.Features.EmailProviders;

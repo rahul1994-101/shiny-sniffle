@@ -1,3 +1,5 @@
+using Infrastructure.Persistence.Entities.dbo;
+using Infrastructure.Persistence.Entities.workspace;
 using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.Persistence;

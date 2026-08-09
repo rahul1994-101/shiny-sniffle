@@ -1,4 +1,4 @@
-namespace Infrastructure.Persistence.Entities;
+namespace Infrastructure.Persistence.Entities.dbo;
 
 public class ChatThread : BaseAuditableEntity
 {

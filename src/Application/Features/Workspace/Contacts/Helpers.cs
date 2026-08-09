@@ -1,5 +1,5 @@
 using Application.Features.Shared;
-using Infrastructure.Persistence.Entities;
+using Infrastructure.Persistence.Entities.workspace;
 
 namespace Application.Features.Workspace.Contacts;
 

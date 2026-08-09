@@ -1,3 +1,5 @@
+using Infrastructure.Persistence.Entities.dbo;
+
 namespace Application.Features.ChatThreads;
 
 public sealed record ThreadMemoryState(string? Summary, Guid? SummaryThroughMessageId);

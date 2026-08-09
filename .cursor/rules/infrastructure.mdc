@@ -12,12 +12,15 @@ Persistence + external adapters. Register in `DependencyInjection.AddInfrastruct
 
 ```text
 Persistence/
-  Entities/           POCOs — namespace Infrastructure.Persistence.Entities
+  Entities/           POCOs — namespace Infrastructure.Persistence.Entities (same for all files)
+    _Common.cs, _Enums.cs   shared bases / enums
+    dbo/                mirrors Schema/dbo/Tables (User, EmailProvider, ChatThread, …)
+    workspace/          mirrors Schema/workspace/Tables (Contact, EmailAccount, …)
+    workflow/           future — mirrors Schema/workflow/Tables when added
   AppDbContext.cs     EF mapping only
   Schema/
     dbo/Tables/       platform tables (User, EmailProvider, …)
     workspace/Tables/ user-owned data (Contact, EmailAccount, …); mailboxes are not workflow schema
-    workspace/          CreateSchema.sql + Tables/ (Contact, …)
     workflow/         rules engine (CreateSchema.sql + future Tables/)
 Mailbox/
   Abstractions.cs     IMailboxService
