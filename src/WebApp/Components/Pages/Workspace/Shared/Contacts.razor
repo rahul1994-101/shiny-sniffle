@@ -179,27 +179,6 @@ else
                            disabled="@IsFormBusy" />
                 </div>
             </div>
-            <div class="settings-field">
-                <label class="settings-label" for="contact-alias">
-                    Alias <span class="settings-label-optional">@EntityAliasFieldCopy.OptionalMarker</span>
-                </label>
-                <input id="contact-alias"
-                       type="text"
-                       class="settings-input"
-                       @bind="_form.Alias"
-                       @bind:after="OnFormEdited"
-                       maxlength="64"
-                       placeholder="@EntityAliasFieldCopy.PlaceholderAutoFromName"
-                       disabled="@IsFormBusy" />
-                @if (_form.CanPreviewEntityRef)
-                {
-                    <p class="settings-hint">@EntityAliasFieldCopy.EntityRefLead @EntityRefs.Format(EntityRefs.Kind.Contact, _form.EffectiveAlias)</p>
-                }
-                else
-                {
-                    <p class="settings-hint">@EntityAliasFieldCopy.EmptyFieldHint("first and last name", "contacts")</p>
-                }
-            </div>
             <div class="settings-endpoint-row settings-endpoint-row-duo">
                 <div class="settings-field">
                     <label class="settings-label" for="contact-email">Email</label>
@@ -223,15 +202,38 @@ else
                 </div>
             </div>
             <div class="settings-provider-extras">
+                <p class="settings-label">@EntityContextFieldCopy.SectionTitle</p>
                 <div class="settings-field">
-                    <label class="settings-label" for="contact-notes">Notes</label>
-                    <textarea id="contact-notes"
+                    <label class="settings-label" for="contact-alias">
+                        Alias <span class="settings-label-optional">@EntityAliasFieldCopy.OptionalMarker</span>
+                    </label>
+                    <input id="contact-alias"
+                           type="text"
+                           class="settings-input"
+                           @bind="_form.Alias"
+                           @bind:after="OnFormEdited"
+                           maxlength="64"
+                           placeholder="@EntityAliasFieldCopy.PlaceholderAutoFromName"
+                           disabled="@IsFormBusy" />
+                    @if (_form.CanPreviewEntityRef)
+                    {
+                        <p class="settings-hint">@EntityAliasFieldCopy.EntityRefLead @EntityRefs.Format(EntityRefs.Kind.Contact, _form.EffectiveAlias)</p>
+                    }
+                    else
+                    {
+                        <p class="settings-hint">@EntityAliasFieldCopy.EmptyFieldHint("first and last name", "contacts")</p>
+                    }
+                </div>
+                <div class="settings-field">
+                    <label class="settings-label" for="contact-context">@EntityContextFieldCopy.Label</label>
+                    <textarea id="contact-context"
                               class="settings-input settings-textarea"
                               rows="3"
-                              @bind="_form.Notes"
+                              @bind="_form.Context"
                               @bind:after="OnFormEdited"
+                              maxlength="2000"
                               disabled="@IsFormBusy"></textarea>
-                    <p class="settings-hint">Use case, team, or context for rules and AI.</p>
+                    <p class="settings-hint">@EntityContextFieldCopy.Hint</p>
                 </div>
             </div>
         </div>
@@ -399,7 +401,7 @@ else
 
         public string? Phone { get; set; }
 
-        public string? Notes { get; set; }
+        public string? Context { get; set; }
 
         /// <summary>Alias entered in the form, or slug preview when blank.</summary>
         public string EffectiveAlias =>
@@ -423,7 +425,7 @@ else
             Alias = dto.Alias,
             Email = dto.Email,
             Phone = dto.Phone,
-            Notes = dto.Notes
+            Context = dto.Context
         };
 
         public ContactForm Clone() => new()
@@ -434,7 +436,7 @@ else
             Alias = Alias,
             Email = Email,
             Phone = Phone,
-            Notes = Notes
+            Context = Context
         };
 
         public bool ContentEquals(ContactForm other) =>
@@ -444,7 +446,7 @@ else
             && string.Equals(Alias ?? "", other.Alias ?? "", StringComparison.Ordinal)
             && string.Equals(Email ?? "", other.Email ?? "", StringComparison.OrdinalIgnoreCase)
             && string.Equals(Phone ?? "", other.Phone ?? "", StringComparison.Ordinal)
-            && string.Equals(Notes ?? "", other.Notes ?? "", StringComparison.Ordinal);
+            && string.Equals(Context ?? "", other.Context ?? "", StringComparison.Ordinal);
 
         public SaveContactDto ToSaveDto() => new()
         {
@@ -454,7 +456,7 @@ else
             Alias = Alias,
             Email = Email,
             Phone = Phone,
-            Notes = Notes
+            Context = Context
         };
     }
 

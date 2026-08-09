@@ -57,6 +57,8 @@ public class EmailAccountDto
 
     public bool HasStoredPassword { get; init; }
 
+    public string? Context { get; init; }
+
     public T AsResponse<T>() where T : EmailAccountDto, new() => new()
     {
         Id = Id,
@@ -73,7 +75,8 @@ public class EmailAccountDto
         SmtpPort = SmtpPort,
         SmtpUseSsl = SmtpUseSsl,
         Username = Username,
-        HasStoredPassword = HasStoredPassword
+        HasStoredPassword = HasStoredPassword,
+        Context = Context
     };
 }
 
@@ -93,6 +96,8 @@ public sealed class SaveEmailAccountDto
     public string Username { get; init; } = string.Empty;
 
     public string Password { get; init; } = string.Empty;
+
+    public string? Context { get; init; }
 }
 
 public class EmailSettingsDto

@@ -19,6 +19,9 @@ public class EmailAccount : BaseAuditableEntity
 
     public string Password { get; set; } = string.Empty;
 
+    /// <summary>Optional facts for UI, rules, and agent prompts.</summary>
+    public string? Context { get; set; }
+
     public bool IsDefault { get; set; }
 
     public int SortOrder { get; set; }

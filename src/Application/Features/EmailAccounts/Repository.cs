@@ -77,14 +77,15 @@ public sealed class EmailAccountRepository(IDbContextFactory<AppDbContext> _dbCo
         await using var ctx = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
         var now = DateTime.UtcNow;
         var emailAddress = builtSettings.EmailAddress.Trim();
-        var alias = EmailAccountMapping.NormalizeAlias(dto.Alias);
-        alias = await ResolveAliasAsync(ctx, userId, dto.Id, alias, emailAddress, cancellationToken);
+        var resolvedAlias = await ResolveAliasAsync(
+            ctx, userId, dto.Id, EmailAccountMapping.NormalizeAlias(dto.Alias), emailAddress, cancellationToken);
+        var context = string.IsNullOrWhiteSpace(dto.Context) ? null : dto.Context.Trim();
 
         var aliasTaken = await ctx.EmailAccounts.AnyAsync(
             x =>
                 x.UserId == userId &&
                 !x.IsDeleted &&
-                x.Alias == alias &&
+                x.Alias == resolvedAlias &&
                 x.Id != dto.Id,
             cancellationToken);
 
@@ -133,11 +134,12 @@ public sealed class EmailAccountRepository(IDbContextFactory<AppDbContext> _dbCo
             }
 
             entity = existing;
-            entity.Alias = alias;
+            entity.Alias = resolvedAlias;
             entity.EmailProviderId = provider.Id;
             entity.EmailAddress = emailAddress;
             entity.Username = builtSettings.Username.Trim();
             entity.Password = builtSettings.Password;
+            entity.Context = context;
             entity.UpdatedBy = updatedBy;
             entity.UpdatedAt = now;
 
@@ -157,10 +159,11 @@ public sealed class EmailAccountRepository(IDbContextFactory<AppDbContext> _dbCo
             {
                 UserId = userId,
                 EmailProviderId = provider.Id,
-                Alias = alias,
+                Alias = resolvedAlias,
                 EmailAddress = emailAddress,
                 Username = builtSettings.Username.Trim(),
                 Password = builtSettings.Password,
+                Context = context,
                 IsDefault = false,
                 SortOrder = sortOrder + 10,
                 CreatedBy = updatedBy,

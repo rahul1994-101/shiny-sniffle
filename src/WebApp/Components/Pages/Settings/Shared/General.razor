@@ -107,14 +107,9 @@ else
                            readonly="@_blockPasswordAutofill"
                            @onfocus="OnPasswordFieldFocus"
                            disabled="@IsPasswordSaving" />
-                    <button type="button"
-                            class="settings-password-toggle"
-                            aria-label="@(_showCurrentPassword ? "Hide password" : "Show password")"
-                            aria-pressed="@_showCurrentPassword"
-                            disabled="@IsPasswordSaving"
-                            @onclick="() => _showCurrentPassword = !_showCurrentPassword">
-                        @(_showCurrentPassword ? "Hide" : "Show")
-                    </button>
+                    <PasswordVisibilityButton Visible="_showCurrentPassword"
+                                              Disabled="@IsPasswordSaving"
+                                              OnToggle="@(() => _showCurrentPassword = !_showCurrentPassword)" />
                 </div>
                 @if (_currentPasswordError is not null)
                 {
@@ -135,14 +130,9 @@ else
                            readonly="@_blockPasswordAutofill"
                            @onfocus="OnPasswordFieldFocus"
                            disabled="@IsPasswordSaving" />
-                    <button type="button"
-                            class="settings-password-toggle"
-                            aria-label="@(_showNewPassword ? "Hide password" : "Show password")"
-                            aria-pressed="@_showNewPassword"
-                            disabled="@IsPasswordSaving"
-                            @onclick="() => _showNewPassword = !_showNewPassword">
-                        @(_showNewPassword ? "Hide" : "Show")
-                    </button>
+                    <PasswordVisibilityButton Visible="_showNewPassword"
+                                              Disabled="@IsPasswordSaving"
+                                              OnToggle="@(() => _showNewPassword = !_showNewPassword)" />
                 </div>
                 <p class="settings-hint">Must be between 6 and 255 characters.</p>
                 @if (_newPasswordError is not null)
@@ -164,14 +154,9 @@ else
                            readonly="@_blockPasswordAutofill"
                            @onfocus="OnPasswordFieldFocus"
                            disabled="@IsPasswordSaving" />
-                    <button type="button"
-                            class="settings-password-toggle"
-                            aria-label="@(_showConfirmPassword ? "Hide password" : "Show password")"
-                            aria-pressed="@_showConfirmPassword"
-                            disabled="@IsPasswordSaving"
-                            @onclick="() => _showConfirmPassword = !_showConfirmPassword">
-                        @(_showConfirmPassword ? "Hide" : "Show")
-                    </button>
+                    <PasswordVisibilityButton Visible="_showConfirmPassword"
+                                              Disabled="@IsPasswordSaving"
+                                              OnToggle="@(() => _showConfirmPassword = !_showConfirmPassword)" />
                 </div>
                 @if (_confirmPasswordError is not null)
                 {

@@ -24,7 +24,7 @@ internal static class ContactMapping
         ListLabel = ResolveListLabel(entity),
         Email = entity.Email,
         Phone = entity.Phone,
-        Notes = entity.Notes,
+        Context = entity.Context,
         Source = entity.Source,
         SortOrder = entity.SortOrder
     };
@@ -82,9 +82,9 @@ internal static class ContactMapping
             return "Phone must be 32 characters or fewer.";
         }
 
-        if (dto.Notes is not null && dto.Notes.Trim().Length > 2000)
+        if (dto.Context is not null && dto.Context.Trim().Length > 2000)
         {
-            return "Notes must be 2000 characters or fewer.";
+            return "Context must be 2000 characters or fewer.";
         }
 
         return null;

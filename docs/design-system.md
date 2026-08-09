@@ -214,9 +214,8 @@ Section list header: `ListTitle`, `ListLead` or `ListLeadContent`, and **`ListHe
 | Block | Classes | Notes |
 |--------|---------|--------|
 | Provider | `settings-field` | Full width (top) |
-| Alias + default | `settings-extras-row` | **`4fr 1fr`** (mobile + desktop) |
-| Sign-in | `settings-mail-server` | Divider; **email \| username** (`settings-endpoint-row-duo`: mobile `1fr 1fr`, desktop `6fr 3fr`) |
-| Credentials | `settings-provider-extras` | Divider; password + hint (full width) |
+| Sign-in + credentials | `settings-mail-server` | Divider; **email \| username** (`settings-endpoint-row-duo`: `1fr 1fr` at all breakpoints); then **password \| default** (`settings-extras-row` **`settings-password-default-row`**: `4fr 1fr` mobile, `9fr 1fr` ≥641px) |
+| Agent reference | `settings-provider-extras` | Divider; alias + context (same pattern as workspace contacts) |
 
 **Dialog footer actions** (`settings-editor-dialog-footer`): Save + Cancel stay **side-by-side** (`1fr` + `auto`) at all widths used by the editor dialog; stack full-width only at `max-width: 360px`. Dialog header uses `ui-dialog-header` only (no `settings-editor-header` margin).
 

@@ -255,37 +255,50 @@
 }
 
 .settings-content ::deep .settings-password-wrap {
-    display: flex;
-    align-items: stretch;
-    gap: 0.35rem;
+    position: relative;
+    display: block;
 }
 
 .settings-content ::deep .settings-password-wrap .settings-input {
-    flex: 1 1 auto;
-    min-width: 0;
+    width: 100%;
+    padding-right: 2.75rem;
+    box-sizing: border-box;
 }
 
 .settings-content ::deep .settings-password-toggle {
-    flex-shrink: 0;
-    align-self: stretch;
-    padding: 0 0.75rem;
-    border: 1px solid var(--app-border);
-    border-radius: var(--ui-radius-sm);
-    background: var(--app-control-bg);
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 2.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: none;
+    border-radius: 0 var(--ui-radius-sm) var(--ui-radius-sm) 0;
+    background: transparent;
     color: var(--app-muted);
-    font: inherit;
-    font-size: 0.75rem;
-    font-weight: 600;
     cursor: pointer;
     transition:
-        background var(--ui-duration) var(--ui-ease),
         color var(--ui-duration) var(--ui-ease),
-        border-color var(--ui-duration) var(--ui-ease);
+        background var(--ui-duration) var(--ui-ease);
+}
+
+.settings-content ::deep .settings-password-toggle-icon {
+    display: flex;
+    width: 1.125rem;
+    height: 1.125rem;
+}
+
+.settings-content ::deep .settings-password-toggle-icon svg {
+    width: 100%;
+    height: 100%;
 }
 
 .settings-content ::deep .settings-password-toggle:hover:not(:disabled) {
     color: var(--app-fg);
-    background: var(--app-overlay-hover);
+    background: color-mix(in srgb, var(--app-overlay-hover) 65%, transparent);
 }
 
 .settings-content ::deep .settings-password-toggle:disabled {

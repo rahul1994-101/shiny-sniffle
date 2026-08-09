@@ -11,7 +11,6 @@ public sealed class ContactSummaryDto
 
     public string Alias { get; init; } = string.Empty;
 
-    /// <summary>Typed handle for AI/tools (e.g. <c>contact:jane-smith</c>).</summary>
     public string EntityRef => EntityRefs.Format(EntityRefs.Kind.Contact, Alias);
 
     public string? Email { get; init; }
@@ -31,7 +30,6 @@ public class ContactDto
 
     public string Alias { get; init; } = string.Empty;
 
-    /// <summary>Typed handle for AI/tools (e.g. <c>contact:jane-smith</c>).</summary>
     public string EntityRef => EntityRefs.Format(EntityRefs.Kind.Contact, Alias);
 
     public string ListLabel { get; init; } = string.Empty;
@@ -40,7 +38,7 @@ public class ContactDto
 
     public string? Phone { get; init; }
 
-    public string? Notes { get; init; }
+    public string? Context { get; init; }
 
     public ContactSource Source { get; init; }
 
@@ -55,7 +53,7 @@ public class ContactDto
         ListLabel = ListLabel,
         Email = Email,
         Phone = Phone,
-        Notes = Notes,
+        Context = Context,
         Source = Source,
         SortOrder = SortOrder
     };
@@ -76,5 +74,5 @@ public sealed class SaveContactDto
 
     public string? Phone { get; init; }
 
-    public string? Notes { get; init; }
+    public string? Context { get; init; }
 }

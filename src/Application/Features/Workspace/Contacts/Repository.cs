@@ -40,7 +40,7 @@ public sealed class ContactRepository(IDbContextFactory<AppDbContext> _dbContext
             ctx, userId, dto.Id, ContactMapping.NormalizeAlias(dto.Alias), firstName, lastName, cancellationToken);
         var email = ContactMapping.NormalizeEmail(dto.Email);
         var phone = ContactMapping.NormalizePhone(dto.Phone);
-        var notes = string.IsNullOrWhiteSpace(dto.Notes) ? null : dto.Notes.Trim();
+        var context = string.IsNullOrWhiteSpace(dto.Context) ? null : dto.Context.Trim();
 
         if (email is not null)
         {
@@ -87,7 +87,7 @@ public sealed class ContactRepository(IDbContextFactory<AppDbContext> _dbContext
             entity.Alias = resolvedAlias;
             entity.Email = email;
             entity.Phone = phone;
-            entity.Notes = notes;
+            entity.Context = context;
             entity.UpdatedBy = updatedBy;
             entity.UpdatedAt = now;
         }
@@ -107,7 +107,7 @@ public sealed class ContactRepository(IDbContextFactory<AppDbContext> _dbContext
                 Alias = resolvedAlias,
                 Email = email,
                 Phone = phone,
-                Notes = notes,
+                Context = context,
                 Source = ContactSource.Manual,
                 SortOrder = sortOrder + 10,
                 CreatedBy = updatedBy,

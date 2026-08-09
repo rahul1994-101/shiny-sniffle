@@ -6,7 +6,7 @@
 --
 -- Business Rules:
 -- - Scoped to userId; soft delete via isDeleted
--- - alias: NOT NULL, unique per user among non-deleted rows; optional in UI; auto-generated from first and last name when blank
+-- - alias + context: see Agent reference section (alias NOT NULL; optional in UI with auto-generate)
 -- - email and phone optional (use-case oriented)
 -- - email unique per user among non-deleted rows when set
 -- - source (ContactSource): system-set provenance — manual, import, from-email, agent, api; default 0
@@ -23,12 +23,14 @@ CREATE TABLE [workspace].[Contact] (
     -- Data fields
     [firstName]                              NVARCHAR(50) NOT NULL,                     -- Given name; mail greetings (Hi {firstName})
     [lastName]                               NVARCHAR(50) NOT NULL DEFAULT N'',         -- Family name; optional formal salutations
-    [alias]                                  NVARCHAR(64) NOT NULL,                     -- Per-user handle (NOT NULL); optional in UI; auto-generated from name when blank
     [email]                                  NVARCHAR(255) NULL,                        -- Optional; unique per user when set
     [phone]                                  NVARCHAR(32) NULL,                         -- Optional contact phone
-    [notes]                                  NVARCHAR(2000) NULL,                       -- Optional free-form context
     [source]                                 TINYINT NOT NULL DEFAULT 0,                -- ContactSource enum; app-set on create (not user-edited)
     [sortOrder]                              INT NOT NULL DEFAULT 0,                    -- List order in Workspace UI
+
+    -- Agent reference (alias + context for tools and prompts)
+    [alias]                                  NVARCHAR(64) NOT NULL,                     -- Per-user handle (NOT NULL); optional in UI; auto-generated from name when blank
+    [context]                                NVARCHAR(2000) NULL,                       -- Optional facts for UI, rules, and agent prompts
 
     -- Status and lifecycle management
     [isActive]                               BIT DEFAULT 1,                            -- Whether the contact row is active
@@ -99,17 +101,4 @@ GO
 -- SEED DATA (optional — uncomment on new databases)
 -- =====================================================
 -- No default rows; contacts are user-created in Workspace.
--- GO
-
--- =====================================================
--- EXISTING DATABASE (optional — alias NOT NULL)
--- =====================================================
--- IF EXISTS (SELECT 1 FROM [workspace].[Contact] WHERE [alias] IS NULL)
--- BEGIN
---     UPDATE c SET [alias] = LEFT(LOWER(REPLACE(LTRIM(RTRIM([firstName])), N' ', N'-')), 64)
---     FROM [workspace].[Contact] c WHERE c.[alias] IS NULL AND LTRIM(RTRIM(c.[firstName])) <> N'';
---     UPDATE [workspace].[Contact] SET [alias] = N'contact' WHERE [alias] IS NULL;
--- END
--- IF COL_LENGTH(N'workspace.Contact', N'alias') IS NOT NULL
---     ALTER TABLE [workspace].[Contact] ALTER COLUMN [alias] NVARCHAR(64) NOT NULL;
 -- GO

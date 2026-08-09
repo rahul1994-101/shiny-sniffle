@@ -300,40 +300,6 @@ else
                 </div>
             }
 
-            <div class="settings-extras-row settings-alias-default-row">
-                <div class="settings-field">
-                    <label class="settings-label" for="acc-alias">
-                        Alias <span class="settings-label-optional">@EntityAliasFieldCopy.OptionalMarker</span>
-                    </label>
-                    <input id="acc-alias"
-                           type="text"
-                           class="settings-input"
-                           @bind="_form.Alias"
-                           @bind:after="OnFormEdited"
-                           maxlength="64"
-                           placeholder="@EntityAliasFieldCopy.PlaceholderAutoFromEmail"
-                           disabled="@IsFormBusy" />
-                    @if (_form.CanPreviewEntityRef)
-                    {
-                        <p class="settings-hint">@EntityAliasFieldCopy.EntityRefLead @EntityRefs.Format(EntityRefs.Kind.Mailbox, _form.EffectiveAlias)</p>
-                    }
-                    else
-                    {
-                        <p class="settings-hint">@EntityAliasFieldCopy.EmptyFieldHint("email address", "mailboxes")</p>
-                    }
-                </div>
-                <div class="settings-field settings-field-ssl">
-                    <label class="settings-label" for="acc-default">Default</label>
-                    <select id="acc-default"
-                            class="settings-input settings-select settings-ssl-select"
-                            @bind="DefaultSelect"
-                            disabled="@(IsFormBusy || _form.IsDefaultForced)">
-                        <option value="default">Yes</option>
-                        <option value="no">No</option>
-                    </select>
-                </div>
-            </div>
-
             <div class="settings-mail-server">
                 <div class="settings-endpoint-row settings-endpoint-row-duo">
                     <div class="settings-field">
@@ -357,30 +323,70 @@ else
                                disabled="@IsFormBusy" />
                     </div>
                 </div>
+                <div class="settings-extras-row settings-password-default-row">
+                    <div class="settings-field">
+                        <label class="settings-label" for="acc-password">Password</label>
+                        <div class="settings-password-wrap">
+                            <input id="acc-password"
+                                   type="@(_showPassword ? "text" : "password")"
+                                   class="settings-input"
+                                   @bind="_form.Password"
+                                   @bind:after="OnFormEdited"
+                                   autocomplete="new-password"
+                                   placeholder="@(_form.HasStoredPassword ? "Saved — leave blank to keep" : "App password or mailbox password")"
+                                   disabled="@IsFormBusy" />
+                            <PasswordVisibilityButton Visible="_showPassword"
+                                                      Disabled="@IsFormBusy"
+                                                      OnToggle="@(() => _showPassword = !_showPassword)" />
+                        </div>
+                        <p class="settings-hint">Stored encrypted. Leave blank on save to keep the existing password.</p>
+                    </div>
+                    <div class="settings-field settings-field-ssl">
+                        <label class="settings-label" for="acc-default">Default</label>
+                        <select id="acc-default"
+                                class="settings-input settings-select settings-ssl-select"
+                                @bind="DefaultSelect"
+                                disabled="@(IsFormBusy || _form.IsDefaultForced)">
+                            <option value="default">Yes</option>
+                            <option value="no">No</option>
+                        </select>
+                    </div>
+                </div>
             </div>
 
             <div class="settings-provider-extras">
+                <p class="settings-label">@EntityContextFieldCopy.SectionTitle</p>
                 <div class="settings-field">
-                    <label class="settings-label" for="acc-password">Password</label>
-                    <div class="settings-password-wrap">
-                        <input id="acc-password"
-                               type="@(_showPassword ? "text" : "password")"
-                               class="settings-input"
-                               @bind="_form.Password"
-                               @bind:after="OnFormEdited"
-                               autocomplete="new-password"
-                               placeholder="@(_form.HasStoredPassword ? "Saved — leave blank to keep" : "App password or mailbox password")"
-                               disabled="@IsFormBusy" />
-                        <button type="button"
-                                class="settings-password-toggle"
-                                aria-label="@(_showPassword ? "Hide password" : "Show password")"
-                                aria-pressed="@_showPassword"
-                                disabled="@IsFormBusy"
-                                @onclick="() => _showPassword = !_showPassword">
-                            @(_showPassword ? "Hide" : "Show")
-                        </button>
-                    </div>
-                    <p class="settings-hint">Stored encrypted. Leave blank on save to keep the existing password.</p>
+                    <label class="settings-label" for="acc-alias">
+                        Alias <span class="settings-label-optional">@EntityAliasFieldCopy.OptionalMarker</span>
+                    </label>
+                    <input id="acc-alias"
+                           type="text"
+                           class="settings-input"
+                           @bind="_form.Alias"
+                           @bind:after="OnFormEdited"
+                           maxlength="64"
+                           placeholder="@EntityAliasFieldCopy.PlaceholderAutoFromEmail"
+                           disabled="@IsFormBusy" />
+                    @if (_form.CanPreviewEntityRef)
+                    {
+                        <p class="settings-hint">@EntityAliasFieldCopy.EntityRefLead @EntityRefs.Format(EntityRefs.Kind.Mailbox, _form.EffectiveAlias)</p>
+                    }
+                    else
+                    {
+                        <p class="settings-hint">@EntityAliasFieldCopy.EmptyFieldHint("email address", "mailboxes")</p>
+                    }
+                </div>
+                <div class="settings-field">
+                    <label class="settings-label" for="acc-context">@EntityContextFieldCopy.Label</label>
+                    <textarea id="acc-context"
+                              class="settings-input settings-textarea"
+                              rows="3"
+                              @bind="_form.Context"
+                              @bind:after="OnFormEdited"
+                              maxlength="2000"
+                              disabled="@IsFormBusy"></textarea>
+                    <p class="settings-hint">@EntityContextFieldCopy.Hint</p>
                 </div>
             </div>
         </div>
@@ -676,6 +682,8 @@ else
 
         public string Password { get; set; } = string.Empty;
 
+        public string? Context { get; set; }
+
         public bool HasStoredPassword { get; set; }
 
         public static AccountForm FromDto(EmailAccountDto dto, bool defaultForced) => new()
@@ -687,7 +695,8 @@ else
             ProviderSlug = dto.ProviderSlug,
             EmailAddress = dto.EmailAddress,
             Username = dto.Username,
-            HasStoredPassword = dto.HasStoredPassword
+            HasStoredPassword = dto.HasStoredPassword,
+            Context = dto.Context
         };
 
         public SaveEmailAccountDto ToSaveDto() => new()
@@ -698,7 +707,8 @@ else
             ProviderSlug = ProviderSlug,
             EmailAddress = EmailAddress,
             Username = Username,
-            Password = Password
+            Password = Password,
+            Context = Context
         };
 
         public AccountForm CloneForBaseline() => new()
@@ -710,7 +720,8 @@ else
             ProviderSlug = ProviderSlug,
             EmailAddress = EmailAddress,
             Username = Username,
-            HasStoredPassword = HasStoredPassword
+            HasStoredPassword = HasStoredPassword,
+            Context = Context
         };
 
         public bool ContentEquals(AccountForm other) =>
@@ -720,6 +731,7 @@ else
             && string.Equals(ProviderSlug, other.ProviderSlug, StringComparison.OrdinalIgnoreCase)
             && string.Equals(EmailAddress, other.EmailAddress, StringComparison.Ordinal)
             && string.Equals(Username, other.Username, StringComparison.Ordinal)
+            && string.Equals(Context ?? "", other.Context ?? "", StringComparison.Ordinal)
             && HasStoredPassword == other.HasStoredPassword;
     }
 

@@ -18,7 +18,8 @@ public class Contact : BaseAuditableEntity
 
     public string? Phone { get; set; }
 
-    public string? Notes { get; set; }
+    /// <summary>Optional facts for UI, rules, and agent prompts.</summary>
+    public string? Context { get; set; }
 
     /// <summary>Creation provenance (<see cref="ContactSource"/>). Set on insert by the feature that creates the row.</summary>
     public ContactSource Source { get; set; } = ContactSource.Manual;

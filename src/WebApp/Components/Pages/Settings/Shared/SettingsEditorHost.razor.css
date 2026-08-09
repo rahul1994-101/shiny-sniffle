@@ -242,7 +242,8 @@
     margin-top: var(--ui-space-3);
 }
 
-.settings-editor-host ::deep .settings-alias-default-row > .settings-field {
+.settings-editor-host ::deep .settings-alias-default-row > .settings-field,
+.settings-editor-host ::deep .settings-password-default-row > .settings-field {
     margin-top: 0;
 }
 
@@ -308,16 +309,23 @@
 
 .settings-editor-host ::deep .settings-endpoint-row-duo > .settings-field {
     margin-top: 0;
+    min-width: 0;
 }
 
-@media (min-width: 641px) {
-    .settings-editor-host ::deep .settings-endpoint-row-duo {
-        grid-template-columns: 6fr 3fr;
-    }
+.settings-editor-host ::deep .settings-endpoint-row-duo .settings-input {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 .settings-editor-host ::deep .settings-endpoint-row > .settings-field {
     margin-top: 0;
+}
+
+@media (min-width: 641px) {
+    .settings-editor-host ::deep .settings-endpoint-row-duo {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    }
 }
 
 .settings-editor-host ::deep .settings-endpoint-port-ssl {
@@ -356,7 +364,7 @@
 }
 
 @media (min-width: 641px) {
-    .settings-editor-host ::deep .settings-endpoint-row {
+    .settings-editor-host ::deep .settings-endpoint-row:not(.settings-endpoint-row-duo) {
         display: grid;
         grid-template-columns: 6fr 3fr 1fr;
         gap: var(--ui-space-2) var(--ui-space-3);

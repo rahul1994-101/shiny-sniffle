@@ -37,7 +37,8 @@ internal static class EmailAccountMapping
             SmtpPort = settings.SmtpPort,
             SmtpUseSsl = settings.SmtpUseSsl,
             Username = settings.Username,
-            HasStoredPassword = !string.IsNullOrWhiteSpace(settings.Password)
+            HasStoredPassword = !string.IsNullOrWhiteSpace(settings.Password),
+            Context = account.Context
         };
     }
 
@@ -105,6 +106,11 @@ internal static class EmailAccountMapping
         if (alias is not null && alias.Length > EntityAliasRules.MaxLength)
         {
             return "Alias must be 64 characters or fewer.";
+        }
+
+        if (dto.Context is not null && dto.Context.Trim().Length > 2000)
+        {
+            return "Context must be 2000 characters or fewer.";
         }
 
         return null;
