@@ -76,8 +76,9 @@ public sealed class EmailAccountRepository(IDbContextFactory<AppDbContext> _dbCo
     {
         await using var ctx = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
         var now = DateTime.UtcNow;
-        var alias = dto.Alias.Trim();
         var emailAddress = builtSettings.EmailAddress.Trim();
+        var alias = EmailAccountMapping.NormalizeAlias(dto.Alias);
+        alias = await ResolveAliasAsync(ctx, userId, dto.Id, alias, emailAddress, cancellationToken);
 
         var aliasTaken = await ctx.EmailAccounts.AnyAsync(
             x =>
@@ -315,5 +316,39 @@ public sealed class EmailAccountRepository(IDbContextFactory<AppDbContext> _dbCo
             row.UpdatedBy = updatedBy;
             row.UpdatedAt = now;
         }
+    }
+
+    private static async Task<string> ResolveAliasAsync(
+        AppDbContext ctx,
+        Guid userId,
+        Guid? excludeAccountId,
+        string? normalizedAlias,
+        string emailAddress,
+        CancellationToken cancellationToken)
+    {
+        if (normalizedAlias is not null)
+        {
+            return normalizedAlias;
+        }
+
+        var stem = EmailAccountMapping.BuildAliasStem(emailAddress);
+        for (var index = 1; index < 10_000; index++)
+        {
+            var candidate = EmailAccountMapping.AliasWithNumericSuffix(stem, index);
+            var taken = await ctx.EmailAccounts.AnyAsync(
+                x =>
+                    x.UserId == userId &&
+                    !x.IsDeleted &&
+                    x.Alias == candidate &&
+                    x.Id != excludeAccountId,
+                cancellationToken);
+
+            if (!taken)
+            {
+                return candidate;
+            }
+        }
+
+        return EmailAccountMapping.AliasWithNumericSuffix(stem, Random.Shared.Next(1000, 9999));
     }
 }

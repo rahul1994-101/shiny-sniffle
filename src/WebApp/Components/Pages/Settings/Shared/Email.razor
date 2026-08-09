@@ -5,8 +5,10 @@
 @using Application.Features.EmailAccounts.Queries
 @using Application.Features.EmailProviders
 @using Application.Features.EmailProviders.Queries
+@using Application.Features.Shared
 @using WebApp.Components.Pages.Settings
 @using WebApp.Components.Pages.Settings.Shared
+@using WebApp.Components.Shared
 
 @implements IDisposable
 
@@ -81,7 +83,7 @@ else
                                         }
                                     </span>
                                     <span class="ui-group-row-desc">
-                                        @account.ProviderName · @account.EmailAddress
+                                        @account.EntityRef · @account.ProviderName · @account.EmailAddress
                                     </span>
                                 </div>
                                 <div class="ui-list-row-rich-actions">
@@ -205,7 +207,6 @@ else
     private bool CanSaveEditor =>
         !IsFormBusy
         && _catalog.Count > 0
-        && !string.IsNullOrWhiteSpace(_form.Alias)
         && !string.IsNullOrWhiteSpace(_form.EmailAddress)
         && !string.IsNullOrWhiteSpace(_form.Username)
         && IsFormDirty;
@@ -301,16 +302,25 @@ else
 
             <div class="settings-extras-row settings-alias-default-row">
                 <div class="settings-field">
-                    <label class="settings-label" for="acc-alias">Alias</label>
+                    <label class="settings-label" for="acc-alias">
+                        Alias <span class="settings-label-optional">@EntityAliasFieldCopy.OptionalMarker</span>
+                    </label>
                     <input id="acc-alias"
                            type="text"
                            class="settings-input"
                            @bind="_form.Alias"
                            @bind:after="OnFormEdited"
                            maxlength="64"
-                           placeholder="Work, Personal, Client A"
+                           placeholder="@EntityAliasFieldCopy.PlaceholderAutoFromEmail"
                            disabled="@IsFormBusy" />
-                    <p class="settings-hint">A short label so you can tell accounts apart in briefs and settings.</p>
+                    @if (_form.CanPreviewEntityRef)
+                    {
+                        <p class="settings-hint">@EntityAliasFieldCopy.EntityRefLead @EntityRefs.Format(EntityRefs.Kind.Mailbox, _form.EffectiveAlias)</p>
+                    }
+                    else
+                    {
+                        <p class="settings-hint">@EntityAliasFieldCopy.EmptyFieldHint("email address", "mailboxes")</p>
+                    }
                 </div>
                 <div class="settings-field settings-field-ssl">
                     <label class="settings-label" for="acc-default">Default</label>
@@ -645,6 +655,14 @@ else
         public Guid? Id { get; set; }
 
         public string Alias { get; set; } = string.Empty;
+
+        public string EffectiveAlias =>
+            !string.IsNullOrWhiteSpace(Alias)
+                ? Alias.Trim()
+                : EmailAccountAliases.StemFromEmailAddress(EmailAddress);
+
+        public bool CanPreviewEntityRef =>
+            !string.IsNullOrWhiteSpace(Alias) || !string.IsNullOrWhiteSpace(EmailAddress);
 
         public bool IsDefault { get; set; }
 

@@ -73,3 +73,9 @@ GO
 -- Index for finding records by last update time
 -- CREATE INDEX [IX_ChatThread_UpdatedAt] ON [dbo].[ChatThread] ([updatedAt] DESC);
 -- GO
+
+-- =====================================================
+-- SEED DATA (optional — uncomment on new databases)
+-- =====================================================
+-- No default rows; threads are created in Chat.
+-- GO

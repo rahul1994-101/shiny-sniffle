@@ -20,7 +20,7 @@ Utilities/      technical cross-cutting only (crypto) — not slice business log
 | | `{Slice}/Helpers.cs` or `Shared/Helpers.cs` | `Application/Utilities/` |
 |---|---------------------------------------------|---------------------------|
 | **What** | Slice or cross-slice **business** logic | **Technical** plumbing with no slice owner |
-| **Examples** | `EmailSettingsMapping`, inbox date parsing for AI tools | `CryptographyHelpers`, `Encrypt()` extensions |
+| **Examples** | `EmailSettingsMapping` in `EmailAccounts/Helpers.cs`, inbox date parsing for AI tools | `CryptographyHelpers`, `Encrypt()` extensions |
 | **Uses entities/DTOs?** | Yes — maps, presets, domain rules | No — algorithms, formats, extensions |
 | **Promote** | Handler → slice `Helpers` → `Shared/Helpers` | Add here only when 2+ slices need same technical helper and it is not domain mapping |
 
@@ -35,7 +35,9 @@ Utilities/      technical cross-cutting only (crypto) — not slice business log
 | `Users/` | `UserRepository` (wired; promote when reused) | `User` |
 | `ChatThreads/` | `ChatThreadRepository` | `ChatThread` |
 | `ChatMessages/` | `ChatMessageRepository` (wired; promote when reused) | `ChatMessage` |
-| `UserSettings/` | `UserSettingsRepository` | `UserSetting` |
+| `UserSettings/` | `UserSettingsRepository` | `UserSetting` (+ General on `User` today) |
+| `EmailAccounts/` | `EmailAccountRepository` | `EmailAccount` |
+| `EmailProviders/` | `EmailProviderRepository` | `EmailProvider` |
 | `Workspace/Contacts/` | `ContactRepository` | `workspace.Contact` |
 | `Shared/` | `SharedRepository`, `Helpers.cs`, `Services.cs` | — |
 
@@ -85,7 +87,7 @@ Promote **logic** and **data access** on separate tracks. Do not mix EF in `Help
 | **2 — Slice helpers** | 2+ handlers, or handler + repo/UI | `{Slice}/Helpers.cs` |
 | **3 — Cross-slice** | Multiple slices | `Features/Shared/Helpers.cs` |
 
-Start in the handler. Move to `{Slice}/Helpers.cs` when reused within the slice. Example: `UserSettings/Helpers.cs` (`EmailSettingsMapping`, `EmailProviderPresets`).
+Start in the handler. Move to `{Slice}/Helpers.cs` when reused within the slice. Example: `EmailAccounts/Helpers.cs` (`EmailSettingsMapping`, `EmailProviderPresets`).
 
 #### Services escalation
 
@@ -223,7 +225,7 @@ public sealed class GetChatThreadByIdRequestHandler(ChatThreadRepository chatThr
 |-----------|-------|
 | `ChatOrchestrator` | `ChatMessageRepository` (history) |
 | `ThreadMemoryService` | `ChatThreadRepository`, `ChatMessageRepository` |
-| `UserMailboxService` | `UserSettingsRepository` |
+| `UserMailboxService` | `EmailAccountRepository` |
 
 ### Handler rules
 

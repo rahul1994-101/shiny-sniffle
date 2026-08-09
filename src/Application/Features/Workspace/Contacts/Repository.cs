@@ -12,7 +12,8 @@ public sealed class ContactRepository(IDbContextFactory<AppDbContext> _dbContext
             .AsNoTracking()
             .Where(x => x.UserId == userId && x.IsActive && !x.IsDeleted)
             .OrderBy(x => x.SortOrder)
-            .ThenBy(x => x.DisplayName)
+            .ThenBy(x => x.FirstName)
+            .ThenBy(x => x.LastName)
             .ToListAsync(cancellationToken);
 
         return rows.ConvertAll(ContactMapping.ToSummary);
@@ -33,7 +34,10 @@ public sealed class ContactRepository(IDbContextFactory<AppDbContext> _dbContext
     {
         await using var ctx = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
         var now = DateTime.UtcNow;
-        var displayName = dto.DisplayName.Trim();
+        var firstName = dto.FirstName.Trim();
+        var lastName = dto.LastName.Trim();
+        var resolvedAlias = await ResolveAliasAsync(
+            ctx, userId, dto.Id, ContactMapping.NormalizeAlias(dto.Alias), firstName, lastName, cancellationToken);
         var email = ContactMapping.NormalizeEmail(dto.Email);
         var phone = ContactMapping.NormalizePhone(dto.Phone);
         var notes = string.IsNullOrWhiteSpace(dto.Notes) ? null : dto.Notes.Trim();
@@ -54,6 +58,19 @@ public sealed class ContactRepository(IDbContextFactory<AppDbContext> _dbContext
             }
         }
 
+        var aliasTaken = await ctx.Contacts.AnyAsync(
+            x =>
+                x.UserId == userId &&
+                !x.IsDeleted &&
+                x.Alias == resolvedAlias &&
+                x.Id != dto.Id,
+            cancellationToken);
+
+        if (aliasTaken)
+        {
+            return (null, "A contact with this alias already exists.", false);
+        }
+
         Contact entity;
 
         if (dto.Id is { } id)
@@ -65,7 +82,9 @@ public sealed class ContactRepository(IDbContextFactory<AppDbContext> _dbContext
             }
 
             entity = existing;
-            entity.DisplayName = displayName;
+            entity.FirstName = firstName;
+            entity.LastName = lastName;
+            entity.Alias = resolvedAlias;
             entity.Email = email;
             entity.Phone = phone;
             entity.Notes = notes;
@@ -83,7 +102,9 @@ public sealed class ContactRepository(IDbContextFactory<AppDbContext> _dbContext
             {
                 Id = Guid.NewGuid(),
                 UserId = userId,
-                DisplayName = displayName,
+                FirstName = firstName,
+                LastName = lastName,
+                Alias = resolvedAlias,
                 Email = email,
                 Phone = phone,
                 Notes = notes,
@@ -149,5 +170,43 @@ public sealed class ContactRepository(IDbContextFactory<AppDbContext> _dbContext
         }
 
         return await query.FirstOrDefaultAsync(cancellationToken);
+    }
+
+    private static async Task<string> ResolveAliasAsync(
+        AppDbContext ctx,
+        Guid userId,
+        Guid? excludeContactId,
+        string? normalizedAlias,
+        string firstName,
+        string lastName,
+        CancellationToken cancellationToken)
+    {
+        if (normalizedAlias is not null)
+        {
+            return normalizedAlias;
+        }
+
+        var stem = ContactMapping.BuildAliasStem(firstName, lastName);
+        for (var index = 1; index < 10_000; index++)
+        {
+            var candidate = ContactMapping.AliasWithNumericSuffix(stem, index);
+            var taken = await ctx.Contacts.AnyAsync(
+                x =>
+                    x.UserId == userId &&
+                    !x.IsDeleted &&
+                    x.Alias == candidate &&
+                    x.Id != excludeContactId,
+                cancellationToken);
+
+            if (!taken)
+            {
+                return candidate;
+            }
+        }
+
+        var fallback = ContactMapping.AliasWithNumericSuffix(
+            stem,
+            Random.Shared.Next(1000, 9999));
+        return fallback;
     }
 }

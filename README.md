@@ -23,5 +23,5 @@ src/WebApp/               Blazor UI, Endpoints, Startup
 ## Quick start
 
 1. Configure connection string and Foundry (`Foundry:Enabled`, `Endpoint`, `ApiKey` in user secrets).
-2. Apply SQL from `src/Infrastructure/Persistence/Schema/` (`dbo` tables first, then `workflow/CreateSchema.sql`, then `workspace/Tables/Contact.sql` as needed).
+2. Apply SQL from `src/Infrastructure/Persistence/Schema/` (`dbo` tables first, then `workflow/CreateSchema.sql` and `workspace/CreateSchema.sql`, then `workspace/Tables/Contact.sql` as needed). Uncomment **SEED DATA** in `EmailProvider.sql` (and other table scripts) when bootstrapping a new database.
 3. Run `src/WebApp`.

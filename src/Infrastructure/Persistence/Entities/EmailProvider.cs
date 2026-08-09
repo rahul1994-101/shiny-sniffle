@@ -2,9 +2,9 @@ namespace Infrastructure.Persistence.Entities;
 
 /// <summary>
 /// Row in <c>dbo.EmailProvider</c> — IMAP/SMTP catalog for Settings → Email providers.
-/// Not the same as <see cref="EmailProvider"/> enum on <see cref="EmailSettings"/> (runtime mail config).
+/// Not the same as <see cref="EmailProviderPreset"/> on <see cref="Infrastructure.Mailbox.EmailSettings"/> (runtime mail config).
 /// </summary>
-public class EmailProviderDefinition : BaseAuditableEntity
+public class EmailProvider : BaseAuditableEntity
 {
     public string Name { get; set; } = string.Empty;
 

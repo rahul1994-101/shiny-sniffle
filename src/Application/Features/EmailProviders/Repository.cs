@@ -36,7 +36,7 @@ public sealed class EmailProviderRepository(IDbContextFactory<AppDbContext> _dbC
         await using var ctx = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
         var slug = dto.Slug.Trim().ToLowerInvariant();
         var now = DateTime.UtcNow;
-        EmailProviderDefinition entity;
+        EmailProvider entity;
 
         if (dto.Id is { } id)
         {
@@ -67,7 +67,7 @@ public sealed class EmailProviderRepository(IDbContextFactory<AppDbContext> _dbC
         }
         else
         {
-            entity = new EmailProviderDefinition
+            entity = new EmailProvider
             {
                 Name = dto.Name.Trim(),
                 Slug = slug,

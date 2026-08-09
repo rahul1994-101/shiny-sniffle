@@ -10,7 +10,7 @@ public class EmailAccount : BaseAuditableEntity
 
     public Guid EmailProviderId { get; set; }
 
-    /// <summary>User-defined label (e.g. Work, Primary).</summary>
+    /// <summary>Per-user handle for agents and settings (required; app auto-generates when omitted on save).</summary>
     public string Alias { get; set; } = string.Empty;
 
     public string EmailAddress { get; set; } = string.Empty;
@@ -23,5 +23,5 @@ public class EmailAccount : BaseAuditableEntity
 
     public int SortOrder { get; set; }
 
-    public EmailProviderDefinition? EmailProvider { get; set; }
+    public EmailProvider? EmailProvider { get; set; }
 }

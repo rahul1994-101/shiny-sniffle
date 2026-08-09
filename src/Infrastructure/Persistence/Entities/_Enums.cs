@@ -12,17 +12,28 @@ public enum ChatAgent
     Email = 1
 }
 
-/// <summary>Legacy provider preset on DTOs; endpoints come from <see cref="EmailProviderDefinition"/> catalog.</summary>
-public enum EmailProvider
+/// <summary>Legacy provider preset on DTOs; endpoints come from <see cref="EmailProvider"/> catalog table.</summary>
+public enum EmailProviderPreset
 {
     Custom = 0,
     Gmail = 1
 }
 
-/// <summary>How a <see cref="Contact"/> row was created.</summary>
+/// <summary>How a <see cref="Contact"/> row was created. Set by the app, not the contact editor.</summary>
 public enum ContactSource
 {
+    /// <summary>User created or edited in Workspace → Contacts.</summary>
     Manual = 0,
+
+    /// <summary>Bulk or file import (future).</summary>
     Import = 1,
-    FromEmail = 2
+
+    /// <summary>Promoted from email/triage (e.g. “save as contact”) (future).</summary>
+    FromEmail = 2,
+
+    /// <summary>Created by the in-app assistant / agent tool (future).</summary>
+    Agent = 3,
+
+    /// <summary>External API or integration (future).</summary>
+    Api = 4
 }

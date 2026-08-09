@@ -5,7 +5,7 @@
 -- Not the same as dbo.User.email (app login identity).
 --
 -- Business Rules:
--- - User may have many active rows; alias is unique per user among non-deleted rows
+-- - alias NOT NULL; unique per user among non-deleted rows; optional in UI (auto-generated from email when blank)
 -- - At most one row per user with isDefault = 1 among non-deleted rows
 -- - IMAP/SMTP hosts come from dbo.EmailProvider via emailProviderId (not stored here in v1)
 -- - Password is encrypted at rest
@@ -20,7 +20,7 @@ CREATE TABLE [dbo].[EmailAccount] (
     [emailProviderId]                        UNIQUEIDENTIFIER NOT NULL,                 -- Catalog row (FK to EmailProvider)
 
     -- Data fields
-    [alias]                                  NVARCHAR(64) NOT NULL,                     -- User label (e.g. Work, Primary)
+    [alias]                                  NVARCHAR(64) NOT NULL,                     -- Required; optional in UI (auto-generated from email when blank)
     [emailAddress]                           NVARCHAR(255) NOT NULL,                    -- Connected mailbox address
     [username]                               NVARCHAR(255) NOT NULL,                    -- IMAP/SMTP login
     [password]                               NVARCHAR(512) NOT NULL,                    -- Encrypted mailbox password
@@ -70,3 +70,9 @@ CREATE INDEX [IX_EmailAccount_EmailProviderId]
     ON [dbo].[EmailAccount] ([emailProviderId])
     WHERE [isDeleted] = 0;
 GO
+
+-- =====================================================
+-- SEED DATA (optional — uncomment on new databases)
+-- =====================================================
+-- No default rows; connections are created in Settings → Email → Accounts.
+-- GO

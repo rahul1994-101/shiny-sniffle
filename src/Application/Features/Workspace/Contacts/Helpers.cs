@@ -1,3 +1,4 @@
+using Application.Features.Shared;
 using Infrastructure.Persistence.Entities;
 
 namespace Application.Features.Workspace.Contacts;
@@ -7,7 +8,8 @@ internal static class ContactMapping
     internal static ContactSummaryDto ToSummary(Contact entity) => new()
     {
         Id = entity.Id,
-        DisplayName = entity.DisplayName,
+        ListLabel = ResolveListLabel(entity),
+        Alias = entity.Alias,
         Email = entity.Email,
         Phone = entity.Phone,
         SortOrder = entity.SortOrder
@@ -16,7 +18,10 @@ internal static class ContactMapping
     internal static ContactDto ToDto(Contact entity) => new()
     {
         Id = entity.Id,
-        DisplayName = entity.DisplayName,
+        FirstName = entity.FirstName,
+        LastName = entity.LastName,
+        Alias = entity.Alias,
+        ListLabel = ResolveListLabel(entity),
         Email = entity.Email,
         Phone = entity.Phone,
         Notes = entity.Notes,
@@ -24,16 +29,45 @@ internal static class ContactMapping
         SortOrder = entity.SortOrder
     };
 
+    internal static string ResolveListLabel(Contact entity) =>
+        FormatFullName(entity.FirstName, entity.LastName);
+
+    internal static string FormatFullName(string firstName, string lastName)
+    {
+        var first = firstName.Trim();
+        var last = lastName.Trim();
+        return string.IsNullOrEmpty(last) ? first : $"{first} {last}";
+    }
+
+    internal static string? NormalizeAlias(string? value) => EntityAliasRules.NormalizeOptional(value);
+
+    internal static string BuildAliasStem(string firstName, string lastName) =>
+        EntityAliasRules.StemFromPersonName(firstName, lastName);
+
+    internal static string AliasWithNumericSuffix(string stem, int index) =>
+        EntityAliasRules.WithNumericSuffix(stem, index, "contact");
+
     internal static string? ValidateSave(SaveContactDto dto)
     {
-        if (string.IsNullOrWhiteSpace(dto.DisplayName))
+        if (string.IsNullOrWhiteSpace(dto.FirstName))
         {
-            return "Display name is required.";
+            return "First name is required.";
         }
 
-        if (dto.DisplayName.Trim().Length > 200)
+        if (dto.FirstName.Trim().Length > 50)
         {
-            return "Display name must be 200 characters or fewer.";
+            return "First name must be 50 characters or fewer.";
+        }
+
+        if (dto.LastName.Trim().Length > 50)
+        {
+            return "Last name must be 50 characters or fewer.";
+        }
+
+        var alias = NormalizeAlias(dto.Alias);
+        if (alias is not null && alias.Length > EntityAliasRules.MaxLength)
+        {
+            return "Alias must be 64 characters or fewer.";
         }
 
         var email = NormalizeEmail(dto.Email);
@@ -83,14 +117,23 @@ internal static class ContactMapping
             if (ex.Message.Contains("Invalid object name", StringComparison.OrdinalIgnoreCase)
                 && ex.Message.Contains("workspace.Contact", StringComparison.OrdinalIgnoreCase))
             {
-                return "Contacts storage is not set up. Apply Persistence/Schema/workspace/Tables/Contact.sql on the database.";
+                return "Contacts storage is not set up. Apply workspace/CreateSchema.sql and workspace/Tables/Contact.sql on the database.";
             }
 
             if (ex.Message.Contains("IX_Contact_UserId_Email", StringComparison.OrdinalIgnoreCase)
                 || (ex.Message.Contains("duplicate key", StringComparison.OrdinalIgnoreCase)
-                    && ex.Message.Contains("Contact", StringComparison.OrdinalIgnoreCase)))
+                    && ex.Message.Contains("Contact", StringComparison.OrdinalIgnoreCase)
+                    && ex.Message.Contains("Email", StringComparison.OrdinalIgnoreCase)))
             {
                 return "A contact with this email already exists.";
+            }
+
+            if (ex.Message.Contains("IX_Contact_UserId_Alias", StringComparison.OrdinalIgnoreCase)
+                || (ex.Message.Contains("duplicate key", StringComparison.OrdinalIgnoreCase)
+                    && ex.Message.Contains("Contact", StringComparison.OrdinalIgnoreCase)
+                    && ex.Message.Contains("Alias", StringComparison.OrdinalIgnoreCase)))
+            {
+                return "A contact with this alias already exists.";
             }
         }
 

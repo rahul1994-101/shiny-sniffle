@@ -1,12 +1,13 @@
 -- =====================================================
 -- USER SETTING TABLE
 -- =====================================================
--- Per-user workspace settings (one active row per user).
--- Connected mail credentials live in dbo.EmailAccount.
+-- Per-user app preferences (Settings UI). One active row per user.
+-- Login identity lives in dbo.User; connected mail in dbo.EmailAccount;
+-- Workspace module data (contacts, etc.) lives in workspace schema.
 --
 -- Business Rules:
 -- - Each user has at most one active settings row
--- - Additional settings areas can be added as columns later
+-- - Add preference columns here as the product grows (timezone, defaults, UI prefs)
 -- - All records include audit fields for tracking changes
 -- =====================================================
 GO
@@ -38,3 +39,9 @@ GO
 -- Unique index: one active settings row per user
 CREATE UNIQUE INDEX [IX_UserSetting_UserId] ON [dbo].[UserSetting] ([userId]) WHERE [isDeleted] = 0;
 GO
+
+-- =====================================================
+-- SEED DATA (optional — uncomment on new databases)
+-- =====================================================
+-- No default rows; one row per user when prefs are added in app.
+-- GO

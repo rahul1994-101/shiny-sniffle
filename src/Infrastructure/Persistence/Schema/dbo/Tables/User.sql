@@ -5,7 +5,7 @@
 -- 
 -- Business Rules:
 -- - Each user has a unique email address
--- - Password is stored AES-encrypted (Base64), same as mailbox password in UserSetting JSON
+-- - Login password is stored AES-encrypted (Base64); mailbox passwords live in dbo.EmailAccount
 -- - All records include audit fields for tracking changes
 -- =====================================================
 GO
@@ -75,4 +75,10 @@ GO
 
 -- Index for finding records by last update time
 -- CREATE INDEX [IX_User_UpdatedAt] ON [dbo].[User] ([updatedAt] DESC);
+-- GO
+
+-- =====================================================
+-- SEED DATA (optional — uncomment on new databases)
+-- =====================================================
+-- No default rows; users are created via app sign-up.
 -- GO

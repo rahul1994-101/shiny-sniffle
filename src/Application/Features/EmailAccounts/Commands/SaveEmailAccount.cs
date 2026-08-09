@@ -1,5 +1,4 @@
 using Application.Features.EmailProviders;
-using Application.Features.UserSettings;
 using FluentValidation;
 
 namespace Application.Features.EmailAccounts.Commands;

@@ -1,4 +1,4 @@
-using Application.Features.UserSettings;
+using Application.Features.EmailAccounts;
 using Infrastructure.Persistence.Entities;
 
 namespace Application.Features.EmailProviders;
@@ -39,10 +39,10 @@ public static class EmailProviderCatalog
         settings.SmtpUseSsl = catalog.SmtpUseSsl;
     }
 
-    public static EmailProvider ToLegacyProvider(string slug) =>
+    public static EmailProviderPreset ToLegacyProvider(string slug) =>
         string.Equals(NormalizeSlug(slug), "gmail", StringComparison.OrdinalIgnoreCase)
-            ? EmailProvider.Gmail
-            : EmailProvider.Custom;
+            ? EmailProviderPreset.Gmail
+            : EmailProviderPreset.Custom;
 
     public static string? ValidateCatalogEndpoints(EmailProviderDto catalog)
     {

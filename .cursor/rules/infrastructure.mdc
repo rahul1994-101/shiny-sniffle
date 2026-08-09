@@ -16,7 +16,7 @@ Persistence/
   AppDbContext.cs     EF mapping only
   Schema/
     dbo/Tables/       platform tables (User, EmailAccount, …)
-    workspace/Tables/ user internal data (Contact, …)
+    workspace/          CreateSchema.sql + Tables/ (Contact, …)
     workflow/         rules engine (CreateSchema.sql + future Tables/)
 Mailbox/
   Abstractions.cs     IMailboxService
@@ -35,8 +35,9 @@ Per concern: **`Abstractions.cs`** + **`DTOs.cs`** + **`Helpers.cs`** + implemen
 ## Entities
 
 - No data annotations — limits in `Schema/dbo/Tables/` + `AppDbContext.OnModelCreating`
+- Entity POCOs map to SQL tables only — no `DbSet` types live elsewhere
 - Input validation on `Application` `{UseCase}RequestValidator`, not on entities
-- Entity-owned runtime types (e.g. `EmailSettings` for MailKit) live in `Persistence/Entities/`
+- Mail runtime config: `Infrastructure/Mailbox/DTOs.cs` (`EmailSettings`), built in Application from `EmailAccount` + catalog
 - Per-user mail connections: `EmailAccount` table; catalog: `EmailProvider`
 
 ## EF (`AppDbContext`)
@@ -44,14 +45,15 @@ Per concern: **`Abstractions.cs`** + **`DTOs.cs`** + **`Helpers.cs`** + implemen
 - Map camelCase columns + `HasMaxLength` to match `Schema/dbo/Tables/`
 - Repos and handler private helpers use `IDbContextFactory<AppDbContext>` — not scoped `DbContext` in app code
 
-**Mail connection config** — `EmailSettings` is built in Application from `EmailAccount` + `EmailProvider` catalog; passed to `IMailboxService`. App mapping: `Application/Features/UserSettings/Helpers.cs` (`EmailSettingsMapping`).
+**Mail connection config** — `EmailSettings` is built in Application from `EmailAccount` + `EmailProvider` catalog; passed to `IMailboxService`. App mapping: `Application/Features/EmailAccounts/Helpers.cs` (`EmailSettingsMapping`).
 
 ## Schema workflow
 
 1. Update `Persistence/Entities/`
 2. Update `Persistence/Schema/{schema}/Tables/` (or `CreateSchema.sql` for empty schemas)
-3. Apply scripts on SQL Server — new DBs: run table scripts in dependency order (`dbo` → `workspace` / `workflow`); existing DBs: hand-write idempotent ALTER to match
-4. Update `AppDbContext` fluent config
+3. Apply scripts on SQL Server — new DBs: run table scripts in dependency order (`dbo` → `workflow/CreateSchema.sql` → `workspace/CreateSchema.sql` → workspace tables); existing DBs: hand-write idempotent ALTER to match
+4. Optional seed: each `Tables/*.sql` file has a **SEED DATA** section after indexes (commented `INSERT` / `IF NOT EXISTS` — uncomment on new databases where needed)
+5. Update `AppDbContext` fluent config
 
 ## Integration DTOs
 

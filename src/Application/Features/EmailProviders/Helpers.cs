@@ -4,7 +4,7 @@ namespace Application.Features.EmailProviders;
 
 internal static partial class EmailProviderMapping
 {
-    internal static EmailProviderDto FromEntity(EmailProviderDefinition entity) => new()
+    internal static EmailProviderDto FromEntity(EmailProvider entity) => new()
     {
         Id = entity.Id,
         Name = entity.Name,

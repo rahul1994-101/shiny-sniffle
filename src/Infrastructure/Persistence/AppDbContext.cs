@@ -12,7 +12,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
 
     public DbSet<UserSetting> UserSettings { get; set; }
 
-    public DbSet<EmailProviderDefinition> EmailProviders { get; set; }
+    public DbSet<EmailProvider> EmailProviders { get; set; }
 
     public DbSet<EmailAccount> EmailAccounts { get; set; }
 
@@ -77,7 +77,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             entity.Property(e => e.UpdatedAt).HasColumnName("updatedAt");
             entity.HasIndex(e => e.UserId).IsUnique();
         });
-        modelBuilder.Entity<EmailProviderDefinition>(entity =>
+        modelBuilder.Entity<EmailProvider>(entity =>
         {
             entity.ToTable("EmailProvider", "dbo");
             entity.Property(e => e.Name).HasColumnName("name").HasMaxLength(100);
@@ -108,7 +108,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             entity.ToTable("EmailAccount", "dbo");
             entity.Property(e => e.UserId).HasColumnName("userId");
             entity.Property(e => e.EmailProviderId).HasColumnName("emailProviderId");
-            entity.Property(e => e.Alias).HasColumnName("alias").HasMaxLength(64);
+            entity.Property(e => e.Alias).HasColumnName("alias").HasMaxLength(64).IsRequired();
             entity.Property(e => e.EmailAddress).HasColumnName("emailAddress").HasMaxLength(255);
             entity.Property(e => e.Username).HasColumnName("username").HasMaxLength(255);
             entity.Property(e => e.Password).HasColumnName("password").HasMaxLength(512);
@@ -143,7 +143,9 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             entity.ToTable("Contact", "workspace");
             entity.Property(e => e.Id).ValueGeneratedOnAdd();
             entity.Property(e => e.UserId).HasColumnName("userId");
-            entity.Property(e => e.DisplayName).HasColumnName("displayName").HasMaxLength(200);
+            entity.Property(e => e.FirstName).HasColumnName("firstName").HasMaxLength(50);
+            entity.Property(e => e.LastName).HasColumnName("lastName").HasMaxLength(50);
+            entity.Property(e => e.Alias).HasColumnName("alias").HasMaxLength(64).IsRequired();
             entity.Property(e => e.Email).HasColumnName("email").HasMaxLength(255);
             entity.Property(e => e.Phone).HasColumnName("phone").HasMaxLength(32);
             entity.Property(e => e.Notes).HasColumnName("notes").HasMaxLength(2000);
@@ -158,6 +160,9 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             entity.HasIndex(e => new { e.UserId, e.Email })
                 .IsUnique()
                 .HasFilter("[isDeleted] = 0 AND [email] IS NOT NULL");
+            entity.HasIndex(e => new { e.UserId, e.Alias })
+                .IsUnique()
+                .HasFilter("[isDeleted] = 0");
             entity.HasIndex(e => new { e.UserId, e.SortOrder })
                 .HasFilter("[isDeleted] = 0");
         });

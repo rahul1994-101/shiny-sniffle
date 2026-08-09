@@ -1,5 +1,7 @@
 namespace Infrastructure.Mailbox;
 
+using Infrastructure.Persistence.Entities;
+
 public sealed class InboxMessageSummary
 {
     public uint Uid { get; init; }
@@ -103,4 +105,33 @@ public sealed class SendMailResult
     public bool Success { get; init; }
 
     public string Message { get; init; } = string.Empty;
+}
+
+/// <summary>
+/// Resolved IMAP/SMTP connection config passed to <see cref="IMailboxService"/>
+/// (built in Application from <c>dbo.EmailAccount</c> + <c>dbo.EmailProvider</c>).
+/// </summary>
+public class EmailSettings
+{
+    public EmailProviderPreset Provider { get; set; } = EmailProviderPreset.Custom;
+
+    public string ProviderSlug { get; set; } = "custom";
+
+    public string EmailAddress { get; set; } = string.Empty;
+
+    public string ImapHost { get; set; } = string.Empty;
+
+    public int ImapPort { get; set; } = 993;
+
+    public bool ImapUseSsl { get; set; } = true;
+
+    public string SmtpHost { get; set; } = string.Empty;
+
+    public int SmtpPort { get; set; } = 587;
+
+    public bool SmtpUseSsl { get; set; } = true;
+
+    public string Username { get; set; } = string.Empty;
+
+    public string Password { get; set; } = string.Empty;
 }

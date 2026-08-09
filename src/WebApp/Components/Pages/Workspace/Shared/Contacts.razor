@@ -1,5 +1,7 @@
 @inherits BaseComponent
 
+@using WebApp.Components.Shared
+@using Application.Features.Shared
 @using Application.Features.Workspace.Contacts
 @using Application.Features.Workspace.Contacts.Commands
 @using Application.Features.Workspace.Contacts.Queries
@@ -57,7 +59,7 @@ else
                         <div class="ui-group-row ui-group-row-static ui-list-row-rich @(rowActive ? "settings-editor-row-active" : null)">
                             <div class="ui-list-row-rich-body">
                                 <span class="ui-list-row-meta">
-                                    <span class="ui-group-row-title">@contact.DisplayName</span>
+                                    <span class="ui-group-row-title">@contact.ListLabel</span>
                                 </span>
                                 <span class="ui-group-row-desc">@FormatReach(contact)</span>
                             </div>
@@ -139,10 +141,10 @@ else
 
     private bool CanSaveEditor =>
         !IsFormBusy
-        && !string.IsNullOrWhiteSpace(_form.DisplayName);
+        && !string.IsNullOrWhiteSpace(_form.FirstName);
 
     private string EditorTitle =>
-        _form.Id is null ? "New contact" : $"Edit {_form.DisplayName}";
+        _form.Id is null ? "New contact" : $"Edit {_form.ListLabel}";
 
     protected override async Task OnInitializedAsync()
     {
@@ -153,17 +155,50 @@ else
     private RenderFragment EditorFields => __builder =>
     {
         <div class="settings-editor-form">
+            <div class="settings-endpoint-row settings-endpoint-row-duo">
+                <div class="settings-field">
+                    <label class="settings-label" for="contact-first-name">First name</label>
+                    <input id="contact-first-name"
+                           type="text"
+                           class="settings-input"
+                           @bind="_form.FirstName"
+                           @bind:after="OnFormEdited"
+                           maxlength="50"
+                           autocomplete="given-name"
+                           disabled="@IsFormBusy" />
+                </div>
+                <div class="settings-field">
+                    <label class="settings-label" for="contact-last-name">Last name</label>
+                    <input id="contact-last-name"
+                           type="text"
+                           class="settings-input"
+                           @bind="_form.LastName"
+                           @bind:after="OnFormEdited"
+                           maxlength="50"
+                           autocomplete="family-name"
+                           disabled="@IsFormBusy" />
+                </div>
+            </div>
             <div class="settings-field">
-                <label class="settings-label" for="contact-display-name">Display name</label>
-                <input id="contact-display-name"
+                <label class="settings-label" for="contact-alias">
+                    Alias <span class="settings-label-optional">@EntityAliasFieldCopy.OptionalMarker</span>
+                </label>
+                <input id="contact-alias"
                        type="text"
                        class="settings-input"
-                       @bind="_form.DisplayName"
+                       @bind="_form.Alias"
                        @bind:after="OnFormEdited"
-                       maxlength="200"
-                       placeholder="Vendor billing, On-call eng, …"
+                       maxlength="64"
+                       placeholder="@EntityAliasFieldCopy.PlaceholderAutoFromName"
                        disabled="@IsFormBusy" />
-                <p class="settings-hint">How you and workflows refer to this person.</p>
+                @if (_form.CanPreviewEntityRef)
+                {
+                    <p class="settings-hint">@EntityAliasFieldCopy.EntityRefLead @EntityRefs.Format(EntityRefs.Kind.Contact, _form.EffectiveAlias)</p>
+                }
+                else
+                {
+                    <p class="settings-hint">@EntityAliasFieldCopy.EmptyFieldHint("first and last name", "contacts")</p>
+                }
             </div>
             <div class="settings-endpoint-row settings-endpoint-row-duo">
                 <div class="settings-field">
@@ -209,22 +244,23 @@ else
 
     private static string FormatReach(ContactSummaryDto contact)
     {
-        if (!string.IsNullOrWhiteSpace(contact.Email) && !string.IsNullOrWhiteSpace(contact.Phone))
+        var parts = new List<string>(3);
+        if (!string.IsNullOrWhiteSpace(contact.EntityRef))
         {
-            return $"{contact.Email} · {contact.Phone}";
+            parts.Add(contact.EntityRef);
         }
 
         if (!string.IsNullOrWhiteSpace(contact.Email))
         {
-            return contact.Email;
+            parts.Add(contact.Email);
         }
 
         if (!string.IsNullOrWhiteSpace(contact.Phone))
         {
-            return contact.Phone;
+            parts.Add(contact.Phone);
         }
 
-        return "No email or phone";
+        return parts.Count > 0 ? string.Join(" · ", parts) : "No alias, email, or phone";
     }
 
     private Task OnEditorLayoutChangedAsync(SettingsEditorLayout layout)
@@ -318,7 +354,7 @@ else
     {
         var confirm = await JsRuntime.InvokeAsync<bool>(
             "confirm",
-            $"Delete contact \"{contact.DisplayName}\"? This cannot be undone.");
+            $"Delete contact \"{contact.ListLabel}\"? This cannot be undone.");
 
         if (!confirm)
         {
@@ -353,7 +389,11 @@ else
     {
         public Guid? Id { get; set; }
 
-        public string DisplayName { get; set; } = string.Empty;
+        public string FirstName { get; set; } = string.Empty;
+
+        public string LastName { get; set; } = string.Empty;
+
+        public string? Alias { get; set; }
 
         public string? Email { get; set; }
 
@@ -361,10 +401,26 @@ else
 
         public string? Notes { get; set; }
 
+        /// <summary>Alias entered in the form, or slug preview when blank.</summary>
+        public string EffectiveAlias =>
+            !string.IsNullOrWhiteSpace(Alias)
+                ? Alias.Trim()
+                : ContactAliases.StemFromName(FirstName, LastName);
+
+        public bool CanPreviewEntityRef =>
+            !string.IsNullOrWhiteSpace(Alias) || !string.IsNullOrWhiteSpace(FirstName);
+
+        public string ListLabel =>
+            string.IsNullOrWhiteSpace(LastName)
+                ? FirstName.Trim()
+                : $"{FirstName.Trim()} {LastName.Trim()}";
+
         public static ContactForm FromDto(ContactDto dto) => new()
         {
             Id = dto.Id,
-            DisplayName = dto.DisplayName,
+            FirstName = dto.FirstName,
+            LastName = dto.LastName,
+            Alias = dto.Alias,
             Email = dto.Email,
             Phone = dto.Phone,
             Notes = dto.Notes
@@ -373,7 +429,9 @@ else
         public ContactForm Clone() => new()
         {
             Id = Id,
-            DisplayName = DisplayName,
+            FirstName = FirstName,
+            LastName = LastName,
+            Alias = Alias,
             Email = Email,
             Phone = Phone,
             Notes = Notes
@@ -381,7 +439,9 @@ else
 
         public bool ContentEquals(ContactForm other) =>
             Id == other.Id
-            && string.Equals(DisplayName, other.DisplayName, StringComparison.Ordinal)
+            && string.Equals(FirstName, other.FirstName, StringComparison.Ordinal)
+            && string.Equals(LastName, other.LastName, StringComparison.Ordinal)
+            && string.Equals(Alias ?? "", other.Alias ?? "", StringComparison.Ordinal)
             && string.Equals(Email ?? "", other.Email ?? "", StringComparison.OrdinalIgnoreCase)
             && string.Equals(Phone ?? "", other.Phone ?? "", StringComparison.Ordinal)
             && string.Equals(Notes ?? "", other.Notes ?? "", StringComparison.Ordinal);
@@ -389,7 +449,9 @@ else
         public SaveContactDto ToSaveDto() => new()
         {
             Id = Id,
-            DisplayName = DisplayName,
+            FirstName = FirstName,
+            LastName = LastName,
+            Alias = Alias,
             Email = Email,
             Phone = Phone,
             Notes = Notes
