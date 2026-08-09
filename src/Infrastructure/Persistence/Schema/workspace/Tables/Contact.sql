@@ -6,7 +6,7 @@
 --
 -- Business Rules:
 -- - Scoped to userId; soft delete via isDeleted
--- - alias NOT NULL; unique per user among non-deleted rows; optional in UI (auto-generated from name when blank)
+-- - alias: NOT NULL, unique per user among non-deleted rows; optional in UI; auto-generated from first and last name when blank
 -- - email and phone optional (use-case oriented)
 -- - email unique per user among non-deleted rows when set
 -- - source (ContactSource): system-set provenance — manual, import, from-email, agent, api; default 0
@@ -23,7 +23,7 @@ CREATE TABLE [workspace].[Contact] (
     -- Data fields
     [firstName]                              NVARCHAR(50) NOT NULL,                     -- Given name; mail greetings (Hi {firstName})
     [lastName]                               NVARCHAR(50) NOT NULL DEFAULT N'',         -- Family name; optional formal salutations
-    [alias]                                  NVARCHAR(64) NOT NULL,                     -- Per-user handle; app fills when user leaves blank
+    [alias]                                  NVARCHAR(64) NOT NULL,                     -- Per-user handle (NOT NULL); optional in UI; auto-generated from name when blank
     [email]                                  NVARCHAR(255) NULL,                        -- Optional; unique per user when set
     [phone]                                  NVARCHAR(32) NULL,                         -- Optional contact phone
     [notes]                                  NVARCHAR(2000) NULL,                       -- Optional free-form context

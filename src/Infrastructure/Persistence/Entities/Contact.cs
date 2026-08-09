@@ -11,7 +11,7 @@ public class Contact : BaseAuditableEntity
 
     public string LastName { get; set; } = string.Empty;
 
-    /// <summary>Per-user handle for agents and settings (required; app auto-generates when omitted on save).</summary>
+    /// <summary>Per-user handle (NOT NULL in DB); optional in UI; auto-generated from name when blank on save.</summary>
     public string Alias { get; set; } = string.Empty;
 
     public string? Email { get; set; }

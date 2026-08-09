@@ -76,14 +76,14 @@ else
                             <div class="ui-group-row ui-group-row-static ui-list-row-rich @(rowActive ? "settings-editor-row-active" : null)">
                                 <div class="ui-list-row-rich-body">
                                     <span class="ui-list-row-meta">
-                                        <span class="ui-group-row-title">@account.Alias</span>
+                                        <span class="ui-group-row-title">@account.EmailAddress</span>
                                         @if (account.IsDefault)
                                         {
                                             <span class="ui-list-row-badge">Default</span>
                                         }
                                     </span>
                                     <span class="ui-group-row-desc">
-                                        @account.EntityRef · @account.ProviderName · @account.EmailAddress
+                                        @account.EntityRef · @account.ProviderName
                                     </span>
                                 </div>
                                 <div class="ui-list-row-rich-actions">

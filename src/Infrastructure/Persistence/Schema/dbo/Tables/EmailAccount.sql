@@ -5,7 +5,7 @@
 -- Not the same as dbo.User.email (app login identity).
 --
 -- Business Rules:
--- - alias NOT NULL; unique per user among non-deleted rows; optional in UI (auto-generated from email when blank)
+-- - alias: NOT NULL, unique per user among non-deleted rows; optional in UI; auto-generated from email address when blank
 -- - At most one row per user with isDefault = 1 among non-deleted rows
 -- - IMAP/SMTP hosts come from dbo.EmailProvider via emailProviderId (not stored here in v1)
 -- - Password is encrypted at rest
@@ -20,7 +20,7 @@ CREATE TABLE [dbo].[EmailAccount] (
     [emailProviderId]                        UNIQUEIDENTIFIER NOT NULL,                 -- Catalog row (FK to EmailProvider)
 
     -- Data fields
-    [alias]                                  NVARCHAR(64) NOT NULL,                     -- Required; optional in UI (auto-generated from email when blank)
+    [alias]                                  NVARCHAR(64) NOT NULL,                     -- Per-user handle (NOT NULL); optional in UI; auto-generated from email address when blank
     [emailAddress]                           NVARCHAR(255) NOT NULL,                    -- Connected mailbox address
     [username]                               NVARCHAR(255) NOT NULL,                    -- IMAP/SMTP login
     [password]                               NVARCHAR(512) NOT NULL,                    -- Encrypted mailbox password

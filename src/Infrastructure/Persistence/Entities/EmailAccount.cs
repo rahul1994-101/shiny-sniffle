@@ -10,7 +10,7 @@ public class EmailAccount : BaseAuditableEntity
 
     public Guid EmailProviderId { get; set; }
 
-    /// <summary>Per-user handle for agents and settings (required; app auto-generates when omitted on save).</summary>
+    /// <summary>Per-user handle (NOT NULL in DB); optional in UI; auto-generated from email address when blank on save.</summary>
     public string Alias { get; set; } = string.Empty;
 
     public string EmailAddress { get; set; } = string.Empty;
