@@ -52,7 +52,7 @@ public static class SettingsBreadcrumbTrails
     public static readonly IReadOnlyList<SettingsBreadcrumbItem> Email =
     [
         new("Settings", "/settings"),
-        new("Email", "/settings/email/accounts")
+        new("Email", "/settings/email/providers")
     ];
 }
 

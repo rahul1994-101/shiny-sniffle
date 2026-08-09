@@ -6,7 +6,7 @@
 -- Business Rules:
 -- - Each provider has a unique slug among non-deleted rows
 -- - System rows (isSystem = 1) are seeded and cannot be deleted in app
--- - Does not store mailbox passwords; per-user credentials live in dbo.EmailAccount
+-- - Does not store mailbox passwords; per-user credentials live in workspace.EmailAccount
 -- - All records include audit fields for tracking changes
 -- =====================================================
 GO

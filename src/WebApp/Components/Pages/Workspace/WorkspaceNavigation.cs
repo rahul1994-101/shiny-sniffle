@@ -8,4 +8,9 @@ public static class WorkspaceBreadcrumbTrails
     [
         new("Workspace", "/workspace")
     ];
+
+    public static readonly IReadOnlyList<SettingsBreadcrumbItem> EmailAccounts =
+    [
+        new("Workspace", "/workspace")
+    ];
 }

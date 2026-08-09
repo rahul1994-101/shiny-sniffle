@@ -3,7 +3,7 @@ using Application.Features.Shared;
 using Application.Utilities.Extensions;
 using Infrastructure.Persistence.Entities;
 
-namespace Application.Features.EmailAccounts;
+namespace Application.Features.Workspace.EmailAccounts;
 
 internal static class EmailAccountMapping
 {

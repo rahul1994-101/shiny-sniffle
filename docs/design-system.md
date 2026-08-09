@@ -160,7 +160,7 @@ Sign-out and other **button** rows styled as `ui-group-row-static` do not slide.
 </div>
 ```
 
-Email **Accounts | Providers** uses `SettingsEmailNav.razor` inside `ui-segmented settings-section-nav`.
+Settings → **Email** is **Providers** only (no sub-nav). Connected mailboxes are under **Workspace → Email accounts**; the account editor links to Providers when needed.
 
 ### Status, empty state
 
@@ -198,7 +198,7 @@ Classes: `ui-list-row-rich-body`, `ui-list-row-rich-actions`, `ui-list-row-meta`
 
 Section list header: `ListTitle`, `ListLead` or `ListLeadContent`, and **`ListHeaderActions`** (toolbar on the right — Add, later search/filter). Implemented via **`SettingsSectionHead.razor`** inside `SettingsEditorHost`; primary add actions use **`SettingsHeadActionButton.razor`** (+ icon + label). At `max-width: 640px`, section head stacks **title → lead → actions**; Add uses full width (`settings-head-action`).
 
-**Settings editor form** (`settings-editor-form` — `EmailProviders.razor`, `Email.razor`; layout in `SettingsEditorHost.razor.css`):
+**Settings editor form** (`settings-editor-form` — `EmailProviders.razor`, `EmailAccounts.razor`; layout in `SettingsEditorHost.razor.css`):
 
 **Provider**
 

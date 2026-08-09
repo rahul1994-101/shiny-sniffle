@@ -1,4 +1,4 @@
-namespace Application.Features.EmailAccounts;
+namespace Application.Features.Workspace.EmailAccounts;
 
 using Application.Features.Shared;
 

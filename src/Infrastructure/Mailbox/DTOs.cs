@@ -109,7 +109,7 @@ public sealed class SendMailResult
 
 /// <summary>
 /// Resolved IMAP/SMTP connection config passed to <see cref="IMailboxService"/>
-/// (built in Application from <c>dbo.EmailAccount</c> + <c>dbo.EmailProvider</c>).
+/// (built in Application from <c>workspace.EmailAccount</c> + <c>dbo.EmailProvider</c>).
 /// </summary>
 public class EmailSettings
 {

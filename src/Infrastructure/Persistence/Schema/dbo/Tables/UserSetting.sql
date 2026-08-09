@@ -2,7 +2,7 @@
 -- USER SETTING TABLE
 -- =====================================================
 -- Per-user app preferences (Settings UI). One active row per user.
--- Login identity lives in dbo.User; connected mail in dbo.EmailAccount;
+-- Login identity lives in dbo.User; connected mail in workspace.EmailAccount;
 -- Workspace module data (contacts, etc.) lives in workspace schema.
 --
 -- Business Rules:

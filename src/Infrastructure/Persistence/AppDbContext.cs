@@ -105,7 +105,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         });
         modelBuilder.Entity<EmailAccount>(entity =>
         {
-            entity.ToTable("EmailAccount", "dbo");
+            entity.ToTable("EmailAccount", "workspace");
             entity.Property(e => e.UserId).HasColumnName("userId");
             entity.Property(e => e.EmailProviderId).HasColumnName("emailProviderId");
             entity.Property(e => e.EmailAddress).HasColumnName("emailAddress").HasMaxLength(255);

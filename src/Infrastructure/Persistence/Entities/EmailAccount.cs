@@ -1,7 +1,7 @@
 namespace Infrastructure.Persistence.Entities;
 
 /// <summary>
-/// Row in <c>dbo.EmailAccount</c> — user-connected external inbox (Settings → Email → Accounts).
+/// Row in <c>workspace.EmailAccount</c> — connected mailbox for the Email agent (IMAP/SMTP). Not workflow data.
 /// Not the same as <see cref="User.Email"/> (app login).
 /// </summary>
 public class EmailAccount : BaseAuditableEntity
@@ -19,7 +19,7 @@ public class EmailAccount : BaseAuditableEntity
 
     public string Password { get; set; } = string.Empty;
 
-    /// <summary>Optional facts for UI, rules, and agent prompts.</summary>
+    /// <summary>Optional facts for the UI and agent prompts.</summary>
     public string? Context { get; set; }
 
     public bool IsDefault { get; set; }

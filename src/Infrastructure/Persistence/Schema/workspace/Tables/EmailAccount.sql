@@ -1,19 +1,20 @@
 -- =====================================================
 -- EMAIL ACCOUNT TABLE
 -- =====================================================
--- Per-user connected external inbox (Settings → Email → Accounts).
--- Not the same as dbo.User.email (app login identity).
+-- Per-user connected external inbox (Workspace → Email accounts; Email agent / IMAP).
+-- Not workflow data. Not the same as dbo.User.email (app login identity).
 --
 -- Business Rules:
 -- - alias + context: see Agent reference section (alias NOT NULL; optional in UI with auto-generate)
 -- - At most one row per user with isDefault = 1 among non-deleted rows
 -- - IMAP/SMTP hosts come from dbo.EmailProvider via emailProviderId (not stored here in v1)
 -- - Password is encrypted at rest
+-- - Apply after dbo.User, dbo.EmailProvider, and workspace/CreateSchema.sql
 -- - All records include audit fields for tracking changes
 -- =====================================================
 GO
 
-CREATE TABLE [dbo].[EmailAccount] (
+CREATE TABLE [workspace].[EmailAccount] (
     -- Primary key with auto-generated sequential UUID
     [id]                                     UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWSEQUENTIALID(),
     [userId]                                 UNIQUEIDENTIFIER NOT NULL,                 -- Owner (FK to User)
@@ -23,12 +24,12 @@ CREATE TABLE [dbo].[EmailAccount] (
     [emailAddress]                           NVARCHAR(255) NOT NULL,                    -- Connected mailbox address
     [username]                               NVARCHAR(255) NOT NULL,                    -- IMAP/SMTP login
     [password]                               NVARCHAR(512) NOT NULL,                    -- Encrypted mailbox password
-    [isDefault]                              BIT NOT NULL DEFAULT 0,                    -- Default for Email agent / settings
+    [isDefault]                              BIT NOT NULL DEFAULT 0,                    -- Default for Email agent
     [sortOrder]                              INT NOT NULL DEFAULT 0,                    -- List order in UI
 
     -- Agent reference (alias + context for tools and prompts)
     [alias]                                  NVARCHAR(64) NOT NULL,                     -- Per-user handle (NOT NULL); optional in UI; auto-generated from email address when blank
-    [context]                                NVARCHAR(2000) NULL,                       -- Optional facts for UI, rules, and agent prompts
+    [context]                                NVARCHAR(2000) NULL,                       -- Optional facts for the UI and agent prompts
 
     -- Status and lifecycle management
     [isActive]                               BIT DEFAULT 1,
@@ -50,32 +51,32 @@ GO
 -- =====================================================
 
 CREATE UNIQUE INDEX [IX_EmailAccount_UserId_Alias]
-    ON [dbo].[EmailAccount] ([userId], [alias])
+    ON [workspace].[EmailAccount] ([userId], [alias])
     WHERE [isDeleted] = 0;
 GO
 
 CREATE UNIQUE INDEX [IX_EmailAccount_UserId_IsDefault]
-    ON [dbo].[EmailAccount] ([userId])
+    ON [workspace].[EmailAccount] ([userId])
     WHERE [isDefault] = 1 AND [isDeleted] = 0;
 GO
 
 CREATE UNIQUE INDEX [IX_EmailAccount_UserId_EmailAddress]
-    ON [dbo].[EmailAccount] ([userId], [emailAddress])
+    ON [workspace].[EmailAccount] ([userId], [emailAddress])
     WHERE [isDeleted] = 0;
 GO
 
 CREATE INDEX [IX_EmailAccount_UserId_SortOrder]
-    ON [dbo].[EmailAccount] ([userId], [sortOrder])
+    ON [workspace].[EmailAccount] ([userId], [sortOrder])
     WHERE [isDeleted] = 0;
 GO
 
 CREATE INDEX [IX_EmailAccount_EmailProviderId]
-    ON [dbo].[EmailAccount] ([emailProviderId])
+    ON [workspace].[EmailAccount] ([emailProviderId])
     WHERE [isDeleted] = 0;
 GO
 
 -- =====================================================
 -- SEED DATA (optional — uncomment on new databases)
 -- =====================================================
--- No default rows; connections are created in Settings → Email → Accounts.
+-- No default rows; connections are created in Workspace.
 -- GO

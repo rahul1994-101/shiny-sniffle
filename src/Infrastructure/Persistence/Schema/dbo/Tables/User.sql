@@ -5,7 +5,7 @@
 -- 
 -- Business Rules:
 -- - Each user has a unique email address
--- - Login password is stored AES-encrypted (Base64); mailbox passwords live in dbo.EmailAccount
+-- - Login password is stored AES-encrypted (Base64); mailbox passwords live in workspace.EmailAccount
 -- - All records include audit fields for tracking changes
 -- =====================================================
 GO

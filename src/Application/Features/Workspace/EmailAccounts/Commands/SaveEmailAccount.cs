@@ -1,7 +1,7 @@
 using Application.Features.EmailProviders;
 using FluentValidation;
 
-namespace Application.Features.EmailAccounts.Commands;
+namespace Application.Features.Workspace.EmailAccounts.Commands;
 
 public sealed record SaveEmailAccountRequest(Guid UserId, SaveEmailAccountDto Account)
     : ICommand<SaveEmailAccountResponse>;

@@ -8,7 +8,7 @@
 <PageTitle>Workspace</PageTitle>
 
 <SettingsShell Title="Workspace"
-               Subtitle="Internal data for workflows and product features."
+               Subtitle="User-owned data for agents and the product."
                UseDirtyGuard="false">
     <div class="settings-sections">
         <nav class="ui-group" aria-label="Workspace areas">
@@ -29,6 +29,7 @@
 @code {
     private static readonly (string Href, string Title, string Lead)[] _areas =
     [
-        ("/workspace/contacts", "Contacts", "People you reference in rules and workflows.")
+        ("/workspace/contacts", "Contacts", "People you reference in rules and workflows."),
+        ("/workspace/email/accounts", "Email accounts", "Connected inboxes for the Email agent.")
     ];
 }

@@ -1,0 +1,19 @@
+@page "/workspace/email/accounts"
+@inherits BaseComponent
+
+@using WebApp.Components.Pages.Settings.Shared
+@using WebApp.Components.Pages.Workspace
+@using WebApp.Components.Pages.Workspace.Shared
+
+@attribute [Authorize]
+
+<PageTitle>Email accounts</PageTitle>
+
+<SettingsShell Title="Email accounts"
+               Subtitle="Connect IMAP/SMTP for the Email agent."
+               Breadcrumbs="WorkspaceBreadcrumbTrails.EmailAccounts"
+               UseDirtyGuard="false">
+    <ChildContent>
+        <EmailAccounts />
+    </ChildContent>
+</SettingsShell>

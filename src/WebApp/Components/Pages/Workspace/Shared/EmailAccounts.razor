@@ -1,8 +1,8 @@
 @inherits BaseComponent
 
-@using Application.Features.EmailAccounts
-@using Application.Features.EmailAccounts.Commands
-@using Application.Features.EmailAccounts.Queries
+@using Application.Features.Workspace.EmailAccounts
+@using Application.Features.Workspace.EmailAccounts.Commands
+@using Application.Features.Workspace.EmailAccounts.Queries
 @using Application.Features.EmailProviders
 @using Application.Features.EmailProviders.Queries
 @using Application.Features.Shared
@@ -163,9 +163,6 @@ else
 }
 
 @code {
-    [CascadingParameter]
-    public SettingsPageContext PageContext { get; set; } = null!;
-
     private readonly List<EmailAccountSummaryDto> _accounts = [];
     private readonly List<EmailProviderDto> _catalog = [];
     private AccountForm _form = new();
@@ -435,7 +432,6 @@ else
         }
 
         _busy = TabBusy.None;
-        SyncDirtyState();
     }
 
     private void BeginAdd()
@@ -451,7 +447,6 @@ else
         CaptureFormBaseline();
         _editorOpen = true;
         _showPassword = false;
-        SyncDirtyState();
     }
 
     private async Task BeginEditAsync(EmailAccountSummaryDto summary)
@@ -476,7 +471,6 @@ else
         _editorOpen = true;
         _showPassword = false;
         _busy = TabBusy.None;
-        SyncDirtyState();
     }
 
     private Task CancelEditorAsync()
@@ -492,7 +486,6 @@ else
         _formBaseline = new AccountForm();
         _providerOpen = false;
         _status.Clear();
-        SyncDirtyState();
     }
 
     private async Task SaveEditorAsync()
@@ -516,7 +509,6 @@ else
         }
 
         _saving = false;
-        SyncDirtyState();
     }
 
     private async Task TestEditorAsync()
@@ -598,11 +590,11 @@ else
         }
     }
 
-    private void OnFormEdited() => SyncDirtyState();
+    private void OnFormEdited()
+    {
+    }
 
     private void CaptureFormBaseline() => _formBaseline = _form.CloneForBaseline();
-
-    private void SyncDirtyState() => PageContext.SetEmailDirty(_editorOpen && IsFormDirty);
 
     private string ResolveInitialProviderSlug()
     {
@@ -653,7 +645,6 @@ else
     {
         _form.ProviderSlug = provider.Slug;
         CloseProviderPicker();
-        SyncDirtyState();
     }
 
     private sealed class AccountForm

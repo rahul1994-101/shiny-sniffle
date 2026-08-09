@@ -1,5 +1,5 @@
 using System.Net.Mail;
-using Application.Features.EmailAccounts;
+using Application.Features.Workspace.EmailAccounts;
 
 namespace Application.Features.Shared;
 

@@ -2,7 +2,7 @@
 -- WORKSPACE SCHEMA (user-owned internal reference data)
 -- =====================================================
 -- Run once on existing databases. Safe to re-run.
--- Apply before workspace/Tables/*.sql (e.g. Contact).
+-- Apply before workspace/Tables/*.sql (e.g. Contact, EmailAccount).
 -- =====================================================
 GO
 

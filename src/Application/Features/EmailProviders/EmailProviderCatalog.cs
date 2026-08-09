@@ -1,4 +1,4 @@
-using Application.Features.EmailAccounts;
+using Application.Features.Workspace.EmailAccounts;
 using Infrastructure.Persistence.Entities;
 
 namespace Application.Features.EmailProviders;

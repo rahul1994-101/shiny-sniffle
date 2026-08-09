@@ -1,6 +1,6 @@
 using FluentValidation;
 
-namespace Application.Features.EmailAccounts.Queries;
+namespace Application.Features.Workspace.EmailAccounts.Queries;
 
 public sealed record GetEmailAccountRequest(Guid UserId, Guid AccountId)
     : IQuery<GetEmailAccountResponse>;

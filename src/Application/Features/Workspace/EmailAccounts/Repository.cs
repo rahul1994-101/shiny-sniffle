@@ -3,7 +3,7 @@ using Infrastructure.Persistence;
 using Infrastructure.Persistence.Entities;
 using Microsoft.EntityFrameworkCore;
 
-namespace Application.Features.EmailAccounts;
+namespace Application.Features.Workspace.EmailAccounts;
 
 public sealed class EmailAccountRepository(IDbContextFactory<AppDbContext> _dbContextFactory)
 {

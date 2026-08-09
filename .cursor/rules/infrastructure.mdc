@@ -15,7 +15,8 @@ Persistence/
   Entities/           POCOs — namespace Infrastructure.Persistence.Entities
   AppDbContext.cs     EF mapping only
   Schema/
-    dbo/Tables/       platform tables (User, EmailAccount, …)
+    dbo/Tables/       platform tables (User, EmailProvider, …)
+    workspace/Tables/ user-owned data (Contact, EmailAccount, …); mailboxes are not workflow schema
     workspace/          CreateSchema.sql + Tables/ (Contact, …)
     workflow/         rules engine (CreateSchema.sql + future Tables/)
 Mailbox/
@@ -45,7 +46,7 @@ Per concern: **`Abstractions.cs`** + **`DTOs.cs`** + **`Helpers.cs`** + implemen
 - Map camelCase columns + `HasMaxLength` to match `Schema/dbo/Tables/`
 - Repos and handler private helpers use `IDbContextFactory<AppDbContext>` — not scoped `DbContext` in app code
 
-**Mail connection config** — `EmailSettings` is built in Application from `EmailAccount` + `EmailProvider` catalog; passed to `IMailboxService`. App mapping: `Application/Features/EmailAccounts/Helpers.cs` (`EmailSettingsMapping`).
+**Mail connection config** — `EmailSettings` is built in Application from `EmailAccount` + `EmailProvider` catalog; passed to `IMailboxService`. App mapping: `Application/Features/Workspace/EmailAccounts/Helpers.cs` (`EmailSettingsMapping`).
 
 ## Schema workflow
 
