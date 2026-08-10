@@ -51,23 +51,23 @@ These apply to **Email Triage** first and define the long-term platform—not a 
 ### 5.1 Connected accounts
 
 - User may connect **multiple email accounts**.
-- Each account has a **user-defined alias** (e.g. “Work”, “Client A”).
+- Each account has a **user-defined alias** (e.g. “Work”, “Client A”)—required; see **mailbox** ER in §5.5.
 - **Schedules** control when mail is read / triage runs (per account or per saved preset).
 - Briefs can be **per account** or **merged** into one queue (product decision when designing UX).
 
 ### 5.2 Categorization
 
 - Users need a **durable organization model** for messages and related objects.
-- **v1 direction:** start with **flat tags/labels**; evolve to **hybrid** if needed:
-  - **Tags** — fast filtering, automation triggers, triage output (`needs-reply`, `invoice`, …).
-  - **Category / subcategory** (optional later) — navigation, reporting, grouping contacts.
-- Triage **suggests** categories; individual users **confirm**. Pro users add **rules** that apply categories when patterns match.
+- **Workspace taxonomy (v1):** **tags** and **buckets** on **referable objects** (contacts and mailboxes first)—see **§5.5**. Mail and triage output use the same tag vocabulary later.
+- **v1 direction:** flat **tags** on ERs; **buckets** for named groups (including user-named “organizations” with no separate Org entity).
+- Triage **suggests** labels on mail/contacts; users **confirm**. Pro users add **rules** that apply tags when patterns match.
+- **Category / subcategory** tree remains **optional later** if hybrid navigation is needed beyond buckets.
 
 ### 5.3 Contacts
 
 - **Manual only**—no bulk auto-import from Google, LinkedIn, or address books at launch.
 - User creates contacts for **easy recall** and stable rules (priority, tone, default tags).
-- Contacts participate in the same **categorization** model as mail (tags, optional category).
+- Each contact is a **referable object** (§5.5): `contact:{alias}` for AI and tools.
 - **“Save as contact”** from a triage item is allowed; **silent harvest** of all correspondents is not.
 
 ### 5.4 Other shared concepts (names flexible)
@@ -80,6 +80,68 @@ These apply to **Email Triage** first and define the long-term platform—not a 
 | **Schedule** | When to run a preset; timezone; where to deliver (in-app first). |
 
 **Actions** run against **labeled/categorized items** and **contacts** (e.g. reply, forward, call webhook)—Pro territory when automated.
+
+### 5.5 Referable objects (ER), tags, and buckets
+
+Shared **workspace taxonomy** for things the product (and AI) can point at consistently. Engineering uses handle prefixes `contact:` and `mailbox:`; this section is the business rules.
+
+#### Referable objects (ER)
+
+| ER (v1) | Role | AI handle |
+|---------|------|-----------|
+| **Contact** | Person or role the user maintains for recall and rules | `contact:{alias}` |
+| **Mailbox** | Connected email account (Workspace → Email accounts) | `mailbox:{alias}` |
+
+- Every ER **must** have a user-scoped **alias** (stable for tools and prompts).
+- Additional ER kinds (e.g. message, thread) may be added later using the same tags/buckets pattern—not a single generic “entity” table.
+- All ER rows, tags, buckets, and memberships are **scoped to one user** (solo/pro v1; not shared across seats).
+
+#### Tags — *describe*
+
+- **Job:** facets, flags, workflow hints (e.g. `vip`, `invoice`, `slow-payer`).
+- **Fields:** **name** (unique per user, case-insensitive) + **color** (UI only; optional default palette). AI and rules use **name**, not color.
+- **Cardinality:** many tags per ER; same tag on many ERs.
+- **Not in v1:** tagging a bucket (only ERs are tagged).
+
+#### Buckets — *place*
+
+- **Job:** simple named groups with clear membership (e.g. “Organizations”, “XYZ Inc”, “Client work”).
+- **Fields:** **name** only—no bucket types or Org table in v1. A company is whatever the user names a bucket.
+- **Cardinality:** many-to-many—an ER can sit in **many** buckets; a bucket holds **many** ERs.
+- AI and triage can **scope** to “everything in bucket X” by expanding membership to handles.
+
+#### Example — organizing contacts
+
+User-defined dictionaries (names are illustrative):
+
+- **Contacts (ER):** Sarah, Molly, Marta, Sam, Tom, John — each with a stable alias for AI (e.g. `contact:sarah`).
+- **Buckets:** `XYZ Inc`, `Family`, `Friends`
+- **Tags:** `Sales`, `Marketing`, `Wife`, `Dad`, `Gaming`, `Dad Jokes`, …
+
+**Membership and tags** (read as *Name* *[bucket(s)]* *[tag(s)]*):
+
+| Contact | Buckets | Tags |
+|---------|---------|------|
+| Sarah | XYZ Inc | Sales |
+| Molly | XYZ Inc | Marketing |
+| Marta | Family | Wife |
+| Sam | Family | Dad |
+| Tom | Friends | Gaming |
+| John | XYZ Inc, Friends | Marketing, Dad Jokes |
+
+John shows **many buckets and many tags** on one person—work and social overlap without a separate “Organization” entity (`XYZ Inc` is just a bucket name).
+
+**What the user gets:** filter by bucket (“everyone at XYZ Inc”), by tag (“all `Marketing`”), or combined; later, triage/AI can scope to the same groups (e.g. mail tied to contacts in `XYZ Inc`).
+
+#### Lifecycle
+
+- **Soft-delete an ER** (contact or mailbox): remove or hide **tag and bucket memberships** for that ER; tag and bucket definitions remain.
+- **Rename** tag or bucket name: UI and AI-facing lists use the new name; aliases on ERs are unchanged.
+
+#### Relation to mail triage
+
+- v1 implements tags/buckets on **contacts and mailboxes** first.
+- Triage **suggestions** on mail reuse the same tag **names** once message-level assignment exists; until then, triage output can reference ERs and buckets already in workspace.
 
 ---
 
@@ -206,7 +268,7 @@ Invest in: **morning habit**, **multi-account**, **manual contacts + tags**, **a
 1. **Brand name** — Email Triage vs broader “Triage platform” public story (Email first either way).
 2. **Free tier** — Trial length vs forever-free with caps.
 3. **First delivery channel after in-app** — digest email vs Slack vs stay in-app only.
-4. **Tag-only v1 vs hybrid** category tree on day one.
+4. **Tag-only v1 vs hybrid** — ER tags + name-only buckets on contacts/mailboxes (§5.5); hybrid category tree deferred.
 5. **Contact promotion** — only explicit “add contact” vs “save from this message” (recommend latter, still manual save).
 
 ---
@@ -221,4 +283,4 @@ For technical work, use **`docs/README.md`** and the engineering roadmaps listed
 
 ---
 
-*Last updated: platform + solo/pro/volume model; business doc separated from technical plans.*
+*Last updated: §5.5 example (contacts, buckets, tags).*
