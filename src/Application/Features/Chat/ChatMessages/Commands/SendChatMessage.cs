@@ -1,10 +1,10 @@
 using FluentValidation;
 using Application.AI;
 using Application.AI.Memory;
-using Application.Features.Chat.ChatMessages;
-using Application.Features.Chat.ChatThreads;
+using Application.Features.chat.ChatMessages;
+using Application.Features.chat.ChatThreads;
 
-namespace Application.Features.Chat.ChatMessages.Commands;
+namespace Application.Features.chat.ChatMessages.Commands;
 
 public sealed record SendChatMessageRequest(Guid ChatThreadId, Guid UserId, ChatAgent ChatAgent, string Message)
     : ICommand<SendChatMessageResponse>;

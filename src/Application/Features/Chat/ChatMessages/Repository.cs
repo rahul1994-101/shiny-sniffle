@@ -1,8 +1,8 @@
 using Infrastructure.Persistence;
-using Infrastructure.Persistence.Entities.chat;
+using Infrastructure.Persistence.chat;
 using Microsoft.EntityFrameworkCore;
 
-namespace Application.Features.Chat.ChatMessages;
+namespace Application.Features.chat.ChatMessages;
 
 public sealed class ChatMessageRepository(IDbContextFactory<AppDbContext> _dbContextFactory)
 {

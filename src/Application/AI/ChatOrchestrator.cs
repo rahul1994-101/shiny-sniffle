@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Options;
 using Application.AI.Agents;
 using Application.AI.Memory;
-using Application.Features.Chat.ChatMessages;
+using Application.Features.chat.ChatMessages;
 using AiChatRole = Microsoft.Extensions.AI.ChatRole;
 
 namespace Application.AI;

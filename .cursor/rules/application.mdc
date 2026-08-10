@@ -9,7 +9,7 @@ alwaysApply: false
 Product logic. Register everything in `DependencyInjection.AddApplication()`.
 
 ```text
-Features/       vertical slices + Shared/; group by domain (e.g. Workspace/Contacts, Workflows/…)
+Features/       vertical slices + Shared/; mirror SQL schema folders (dbo/, chat/, workspace/)
 AI/             ChatOrchestrator, Agents, Tools, Memory, Workflows
 Models/         AI turn shapes, ChatMessageRoles
 Utilities/      technical cross-cutting only (crypto) — not slice business logic
@@ -30,16 +30,18 @@ Utilities/      technical cross-cutting only (crypto) — not slice business log
 
 ## Features — vertical slices
 
-| Folder | Repository | Entity |
-|--------|------------|--------|
-| `Users/` | `UserRepository` (wired; promote when reused) | `User` |
-| `Chat/ChatThreads/` | `ChatThreadRepository` | `chat.ChatThread` |
-| `Chat/ChatMessages/` | `ChatMessageRepository` (wired; promote when reused) | `chat.ChatMessage` |
-| `UserSettings/` | `UserSettingsRepository` | `UserSetting` (+ General on `User` today) |
-| `Workspace/EmailAccounts/` | `EmailAccountRepository` | `workspace.EmailAccount` |
-| `EmailProviders/` | `EmailProviderRepository` | `EmailProvider` |
-| `Workspace/Contacts/` | `ContactRepository` | `workspace.Contact` |
-| `Shared/` | `SharedRepository`, `Helpers.cs`, `Services.cs` | — |
+| Folder | Namespace segment | Repository | Entity |
+|--------|-------------------|------------|--------|
+| `dbo/Users/` | `Application.Features.dbo.Users` | `UserRepository` | `dbo.User` |
+| `dbo/UserSettings/` | `…dbo.UserSettings` | `UserSettingsRepository` | `dbo.UserSetting` (+ General on `User`) |
+| `dbo/EmailProviders/` | `…dbo.EmailProviders` | `EmailProviderRepository` | `dbo.EmailProvider` |
+| `chat/ChatThreads/` | `Application.Features.chat.ChatThreads` | `ChatThreadRepository` | `chat.ChatThread` |
+| `chat/ChatMessages/` | `…chat.ChatMessages` | `ChatMessageRepository` | `chat.ChatMessage` |
+| `workspace/EmailAccounts/` | `Application.Features.workspace.EmailAccounts` | `EmailAccountRepository` | `workspace.EmailAccount` |
+| `workspace/Contacts/` | `…workspace.Contacts` | `ContactRepository` | `workspace.Contact` |
+| `Shared/` | `Application.Features.Shared` | `SharedRepository`, `Helpers.cs`, `Services.cs` | — |
+
+Physical folders may be `Chat/` / `Workspace/` on Windows; namespaces use lowercase `chat` / `workspace` to match `Infrastructure.Persistence.*`.
 
 Each slice and `Shared/` use the **same file names** where needed: `DTOs.cs`, `Repository.cs`, `Helpers.cs`, `Services.cs`. **All DI** in **`Application/DependencyInjection.cs`**.
 

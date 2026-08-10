@@ -1,4 +1,4 @@
-namespace Infrastructure.Persistence.Entities.dbo;
+namespace Infrastructure.Persistence.dbo;
 
 public class User : BaseAuditableEntity
 {

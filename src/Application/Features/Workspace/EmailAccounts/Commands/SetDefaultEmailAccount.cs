@@ -1,6 +1,6 @@
 using FluentValidation;
 
-namespace Application.Features.Workspace.EmailAccounts.Commands;
+namespace Application.Features.workspace.EmailAccounts.Commands;
 
 public sealed record SetDefaultEmailAccountRequest(Guid UserId, Guid AccountId)
     : ICommand<SetDefaultEmailAccountResponse>;

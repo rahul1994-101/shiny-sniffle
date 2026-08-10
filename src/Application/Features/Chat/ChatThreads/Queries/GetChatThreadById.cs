@@ -1,7 +1,7 @@
 using FluentValidation;
 
 
-namespace Application.Features.Chat.ChatThreads.Queries;
+namespace Application.Features.chat.ChatThreads.Queries;
 
 public sealed record GetChatThreadByIdRequest(Guid Id)
     : IQuery<GetChatThreadByIdResponse>;

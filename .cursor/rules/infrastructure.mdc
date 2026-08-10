@@ -13,9 +13,9 @@ Persistence + external adapters. Register in `DependencyInjection.AddInfrastruct
 ```text
 Persistence/
   AppDbContext.cs         EF mapping only
-  Shared/                 _Common.cs, _Enums.cs → namespace …Entities (shared)
+  Shared/                 _Common.cs, _Enums.cs → `Infrastructure.Persistence.Shared`
   {schema}/               dbo | chat | workspace | workflow
-    *.cs                  POCOs → …Entities.{schema}  (workflow: SQL only until entities exist)
+    *.cs                  POCOs → `Infrastructure.Persistence.{schema}` (workflow: SQL only until entities exist)
     CreateSchema.sql      when the SQL schema must be created first
     Tables/               table scripts
     Views/                (dbo today; same pattern per schema when needed)
@@ -44,7 +44,7 @@ Per concern: **`Abstractions.cs`** + **`DTOs.cs`** + **`Helpers.cs`** + implemen
 - Map camelCase columns + `HasMaxLength` to match `{schema}/Tables/` scripts
 - Repos and handler private helpers use `IDbContextFactory<AppDbContext>` — not scoped `DbContext` in app code
 
-**Mail connection config** — `EmailSettings` is built in Application from `EmailAccount` + `EmailProvider` catalog; passed to `IMailboxService`. App mapping: `Application/Features/Workspace/EmailAccounts/Helpers.cs` (`EmailSettingsMapping`).
+**Mail connection config** — `EmailSettings` is built in Application from `EmailAccount` + `EmailProvider` catalog; passed to `IMailboxService`. App mapping: `Application/Features/workspace/EmailAccounts/Helpers.cs` (`EmailSettingsMapping`).
 
 ## Schema workflow
 

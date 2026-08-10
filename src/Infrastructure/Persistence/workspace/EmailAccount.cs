@@ -1,6 +1,6 @@
-using Infrastructure.Persistence.Entities.dbo;
+using Infrastructure.Persistence.dbo;
 
-namespace Infrastructure.Persistence.Entities.workspace;
+namespace Infrastructure.Persistence.workspace;
 
 /// <summary>
 /// Row in <c>workspace.EmailAccount</c> — connected mailbox for the Email agent (IMAP/SMTP). Not workflow data.

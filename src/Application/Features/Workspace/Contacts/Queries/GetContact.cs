@@ -1,6 +1,6 @@
-namespace Application.Features.Workspace.Contacts.Queries;
+namespace Application.Features.workspace.Contacts.Queries;
 
-using Application.Features.Workspace.Contacts;
+using Application.Features.workspace.Contacts;
 using FluentValidation;
 
 public sealed record GetContactRequest(Guid UserId, Guid ContactId) : IQuery<GetContactResponse>;

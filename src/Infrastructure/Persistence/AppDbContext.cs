@@ -1,6 +1,6 @@
-using Infrastructure.Persistence.Entities.dbo;
-using Infrastructure.Persistence.Entities.chat;
-using Infrastructure.Persistence.Entities.workspace;
+using Infrastructure.Persistence.dbo;
+using Infrastructure.Persistence.chat;
+using Infrastructure.Persistence.workspace;
 using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.Persistence;

@@ -1,6 +1,6 @@
-namespace Application.Features.Workspace.Contacts.Commands;
+namespace Application.Features.workspace.Contacts.Commands;
 
-using Application.Features.Workspace.Contacts;
+using Application.Features.workspace.Contacts;
 using FluentValidation;
 
 public sealed record SaveContactRequest(Guid UserId, SaveContactDto Contact) : ICommand<SaveContactResponse>;

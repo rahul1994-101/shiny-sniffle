@@ -1,7 +1,7 @@
-using Application.Features.EmailProviders;
+using Application.Features.dbo.EmailProviders;
 using FluentValidation;
 
-namespace Application.Features.Workspace.EmailAccounts.Commands;
+namespace Application.Features.workspace.EmailAccounts.Commands;
 
 public sealed record TestEmailAccountConnectionRequest(
     Guid UserId,

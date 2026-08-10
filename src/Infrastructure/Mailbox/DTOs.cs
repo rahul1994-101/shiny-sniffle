@@ -1,6 +1,6 @@
 namespace Infrastructure.Mailbox;
 
-using Infrastructure.Persistence.Entities;
+using Infrastructure.Persistence.Shared;
 
 public sealed class InboxMessageSummary
 {

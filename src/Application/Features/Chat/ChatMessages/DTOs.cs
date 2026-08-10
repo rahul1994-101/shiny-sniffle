@@ -1,4 +1,4 @@
-namespace Application.Features.Chat.ChatMessages;
+namespace Application.Features.chat.ChatMessages;
 
 public class ChatMessageDto
 {

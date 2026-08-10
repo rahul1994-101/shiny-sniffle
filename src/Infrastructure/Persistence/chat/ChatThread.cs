@@ -1,4 +1,4 @@
-namespace Infrastructure.Persistence.Entities.chat;
+namespace Infrastructure.Persistence.chat;
 
 public class ChatThread : BaseAuditableEntity
 {

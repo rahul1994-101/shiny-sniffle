@@ -1,7 +1,7 @@
 using Application.Features.Shared;
-using Infrastructure.Persistence.Entities.workspace;
+using Infrastructure.Persistence.workspace;
 
-namespace Application.Features.Workspace.Contacts;
+namespace Application.Features.workspace.Contacts;
 
 internal static class ContactMapping
 {

@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
 
 using MediatR.Abstractions;
-using Application.Features.Users.Commands;
+using Application.Features.dbo.Users.Commands;
 using WebApp.Utilities.Extensions;
 using WebApp.Utilities.Helpers;
 

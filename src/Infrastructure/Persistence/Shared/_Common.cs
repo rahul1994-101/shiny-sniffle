@@ -1,4 +1,4 @@
-namespace Infrastructure.Persistence.Entities;
+namespace Infrastructure.Persistence.Shared;
 
 public abstract class BaseEntity
 {

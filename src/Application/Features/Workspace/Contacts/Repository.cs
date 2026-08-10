@@ -1,7 +1,7 @@
 using Infrastructure.Persistence;
-using Infrastructure.Persistence.Entities.workspace;
+using Infrastructure.Persistence.workspace;
 using Microsoft.EntityFrameworkCore;
-namespace Application.Features.Workspace.Contacts;
+namespace Application.Features.workspace.Contacts;
 
 public sealed class ContactRepository(IDbContextFactory<AppDbContext> _dbContextFactory)
 {

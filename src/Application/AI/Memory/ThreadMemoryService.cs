@@ -1,8 +1,8 @@
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Options;
-using Application.Features.Chat.ChatMessages;
-using Application.Features.Chat.ChatThreads;
+using Application.Features.chat.ChatMessages;
+using Application.Features.chat.ChatThreads;
 using AiChatMessage = Microsoft.Extensions.AI.ChatMessage;
 using AiChatRole = Microsoft.Extensions.AI.ChatRole;
 

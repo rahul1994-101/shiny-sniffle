@@ -1,7 +1,7 @@
-namespace Application.Features.Workspace.Contacts;
+namespace Application.Features.workspace.Contacts;
 
 using Application.Features.Shared;
-using Infrastructure.Persistence.Entities;
+using Infrastructure.Persistence.Shared;
 
 public sealed class ContactSummaryDto
 {

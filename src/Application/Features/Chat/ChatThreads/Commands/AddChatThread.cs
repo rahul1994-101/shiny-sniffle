@@ -1,9 +1,9 @@
 using FluentValidation;
 using Infrastructure.Persistence;
-using Infrastructure.Persistence.Entities.chat;
+using Infrastructure.Persistence.chat;
 using Microsoft.EntityFrameworkCore;
 
-namespace Application.Features.Chat.ChatThreads.Commands;
+namespace Application.Features.chat.ChatThreads.Commands;
 
 public sealed record AddChatThreadRequest(string Title, Guid UserId, ChatAgent ChatAgent = default)
     : ICommand<AddChatThreadResponse>;

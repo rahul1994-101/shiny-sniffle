@@ -1,8 +1,8 @@
-using Infrastructure.Persistence.Entities.dbo;
-using Infrastructure.Persistence.Entities.chat;
-using Infrastructure.Persistence.Entities.workspace;
+using Infrastructure.Persistence.dbo;
+using Infrastructure.Persistence.chat;
+using Infrastructure.Persistence.workspace;
 
-namespace Infrastructure.Persistence.Entities;
+namespace Infrastructure.Persistence.Shared;
 
 /// <summary>
 /// Chat thread agent selection. Stored on <see cref="ChatThread.ChatAgent"/> (not a lookup table).

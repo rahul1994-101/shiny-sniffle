@@ -2,7 +2,7 @@ using FluentValidation;
 using Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
-namespace Application.Features.Chat.ChatThreads.Queries;
+namespace Application.Features.chat.ChatThreads.Queries;
 
 public sealed record GetChatThreadsByUserIdRequest(Guid UserId)
     : IQuery<GetChatThreadsByUserIdResponse>;

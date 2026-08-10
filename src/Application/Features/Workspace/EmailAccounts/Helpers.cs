@@ -1,10 +1,10 @@
-using Application.Features.EmailProviders;
+using Application.Features.dbo.EmailProviders;
 using Application.Features.Shared;
 using Application.Utilities.Extensions;
-using Infrastructure.Persistence.Entities.dbo;
-using Infrastructure.Persistence.Entities.workspace;
+using Infrastructure.Persistence.dbo;
+using Infrastructure.Persistence.workspace;
 
-namespace Application.Features.Workspace.EmailAccounts;
+namespace Application.Features.workspace.EmailAccounts;
 
 internal static class EmailAccountMapping
 {

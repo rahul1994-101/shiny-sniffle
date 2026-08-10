@@ -1,8 +1,8 @@
 using Infrastructure.Persistence;
-using Infrastructure.Persistence.Entities.chat;
+using Infrastructure.Persistence.chat;
 using Microsoft.EntityFrameworkCore;
 
-namespace Application.Features.Chat.ChatThreads;
+namespace Application.Features.chat.ChatThreads;
 
 public sealed class ChatThreadRepository(IDbContextFactory<AppDbContext> _dbContextFactory)
 {

@@ -1,4 +1,4 @@
-namespace Infrastructure.Persistence.Entities.dbo;
+namespace Infrastructure.Persistence.dbo;
 
 /// <summary>Per-user app preferences row (Settings UI; one active row per user). Login: <see cref="User"/>. Mail and contacts: workspace schema.</summary>
 public class UserSetting : BaseAuditableEntity

@@ -1,4 +1,4 @@
-namespace Infrastructure.Persistence.Entities.dbo;
+namespace Infrastructure.Persistence.dbo;
 
 /// <summary>
 /// Row in <c>dbo.EmailProvider</c> — IMAP/SMTP catalog for Settings → Email providers.

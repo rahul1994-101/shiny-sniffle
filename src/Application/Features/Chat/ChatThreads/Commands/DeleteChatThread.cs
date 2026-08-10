@@ -1,6 +1,6 @@
 using FluentValidation;
 
-namespace Application.Features.Chat.ChatThreads.Commands;
+namespace Application.Features.chat.ChatThreads.Commands;
 
 public sealed record DeleteChatThreadRequest(Guid Id, Guid UserId) : ICommand;
 

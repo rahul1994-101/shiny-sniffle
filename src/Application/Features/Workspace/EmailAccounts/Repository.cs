@@ -1,9 +1,9 @@
-using Application.Features.EmailProviders;
+using Application.Features.dbo.EmailProviders;
 using Infrastructure.Persistence;
-using Infrastructure.Persistence.Entities.workspace;
+using Infrastructure.Persistence.workspace;
 using Microsoft.EntityFrameworkCore;
 
-namespace Application.Features.Workspace.EmailAccounts;
+namespace Application.Features.workspace.EmailAccounts;
 
 public sealed class EmailAccountRepository(IDbContextFactory<AppDbContext> _dbContextFactory)
 {

@@ -1,4 +1,4 @@
-namespace Infrastructure.Persistence.Entities.workspace;
+namespace Infrastructure.Persistence.workspace;
 
 /// <summary>
 /// Row in <c>workspace.Contact</c> — user-owned reference person for workflows and features.
