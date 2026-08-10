@@ -1,4 +1,4 @@
-namespace Application.Features.ChatThreads;
+namespace Application.Features.Chat.ChatThreads;
 
 public static class ChatAgentHelpers
 {

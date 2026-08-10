@@ -1,4 +1,4 @@
-namespace Infrastructure.Persistence.Entities.dbo;
+namespace Infrastructure.Persistence.Entities.chat;
 
 public class ChatMessage : BaseAuditableEntity
 {

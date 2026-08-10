@@ -1,4 +1,5 @@
 using Infrastructure.Persistence.Entities.dbo;
+using Infrastructure.Persistence.Entities.chat;
 using Infrastructure.Persistence.Entities.workspace;
 
 namespace Infrastructure.Persistence.Entities;

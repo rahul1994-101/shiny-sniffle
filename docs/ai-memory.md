@@ -62,7 +62,7 @@ Do **not** put user or working memory on `ChatThread`.
 src/Application/AI/ChatOrchestrator.cs
 src/Application/AI/Memory/ThreadMemoryService.cs
 src/Application/AI/Memory/ChatMemoryLimits.cs
-src/Application/Features/ChatMessages/Commands/SendChatMessage.cs
+src/Application/Features/Chat/ChatMessages/Commands/SendChatMessage.cs
 src/Infrastructure/Persistence/Entities/ChatThread.cs
 ```
 

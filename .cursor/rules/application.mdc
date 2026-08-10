@@ -33,8 +33,8 @@ Utilities/      technical cross-cutting only (crypto) — not slice business log
 | Folder | Repository | Entity |
 |--------|------------|--------|
 | `Users/` | `UserRepository` (wired; promote when reused) | `User` |
-| `ChatThreads/` | `ChatThreadRepository` | `ChatThread` |
-| `ChatMessages/` | `ChatMessageRepository` (wired; promote when reused) | `ChatMessage` |
+| `Chat/ChatThreads/` | `ChatThreadRepository` | `chat.ChatThread` |
+| `Chat/ChatMessages/` | `ChatMessageRepository` (wired; promote when reused) | `chat.ChatMessage` |
 | `UserSettings/` | `UserSettingsRepository` | `UserSetting` (+ General on `User` today) |
 | `Workspace/EmailAccounts/` | `EmailAccountRepository` | `workspace.EmailAccount` |
 | `EmailProviders/` | `EmailProviderRepository` | `EmailProvider` |
@@ -145,7 +145,7 @@ Do **not** put use-case types or slice DTOs in Infrastructure or WebApp.
 3. `{UseCase}RequestValidator`
 4. `{UseCase}RequestHandler`
 
-**References:** `Users/Commands/SignIn.cs` (level 1), `ChatThreads/Queries/GetChatThreadById.cs` (level 2), `ChatMessages/Commands/SendChatMessage.cs` (slice repos + level 1).
+**References:** `Users/Commands/SignIn.cs` (level 1), `Chat/ChatThreads/Queries/GetChatThreadById.cs` (level 2), `Chat/ChatMessages/Commands/SendChatMessage.cs` (slice repos + level 1).
 
 ### Template A — command (level 1, default)
 

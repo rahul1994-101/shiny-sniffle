@@ -15,11 +15,13 @@ Persistence/
   Entities/
     _Common.cs, _Enums.cs   → namespace …Entities (shared)
     dbo/                    → …Entities.dbo
+    chat/                   → …Entities.chat
     workspace/              → …Entities.workspace
   AppDbContext.cs     EF mapping only
   Schema/
-    dbo/Tables/       platform tables (User, EmailProvider, …)
-    workspace/Tables/ user-owned data (Contact, EmailAccount, …); mailboxes are not workflow schema
+    dbo/Tables/       platform (User, EmailProvider, UserSetting, …)
+    chat/Tables/      conversation (ChatThread, ChatMessage)
+    workspace/Tables/ user-owned reference data (Contact, EmailAccount, …)
     workflow/         rules engine (CreateSchema.sql + future Tables/)
 Mailbox/
   Abstractions.cs     IMailboxService
@@ -54,7 +56,7 @@ Per concern: **`Abstractions.cs`** + **`DTOs.cs`** + **`Helpers.cs`** + implemen
 
 1. Update `Persistence/Entities/`
 2. Update `Persistence/Schema/{schema}/Tables/` (or `CreateSchema.sql` for empty schemas)
-3. Apply scripts on SQL Server — new DBs: run table scripts in dependency order (`dbo` → `workflow/CreateSchema.sql` → `workspace/CreateSchema.sql` → workspace tables); existing DBs: hand-write idempotent ALTER to match
+3. Apply scripts on SQL Server — new DBs: run in dependency order (`dbo` → `chat/CreateSchema.sql` → `chat/Tables/` → `workflow/CreateSchema.sql` → `workspace/CreateSchema.sql` → workspace tables); existing DBs: idempotent ALTER / `ALTER SCHEMA` to match
 4. Optional seed: each `Tables/*.sql` file has a **SEED DATA** section after indexes (commented `INSERT` / `IF NOT EXISTS` — uncomment on new databases where needed)
 5. Update `AppDbContext` fluent config
 

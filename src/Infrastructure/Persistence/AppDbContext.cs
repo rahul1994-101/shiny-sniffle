@@ -1,4 +1,5 @@
 using Infrastructure.Persistence.Entities.dbo;
+using Infrastructure.Persistence.Entities.chat;
 using Infrastructure.Persistence.Entities.workspace;
 using Microsoft.EntityFrameworkCore;
 
@@ -41,7 +42,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         });
         modelBuilder.Entity<ChatThread>(entity =>
         {
-            entity.ToTable("ChatThread", "dbo");
+            entity.ToTable("ChatThread", "chat");
             entity.Property(e => e.UserId).HasColumnName("userId");
             entity.Property(e => e.Title).HasColumnName("title").HasMaxLength(200);
             entity.Property(e => e.ChatAgent).HasColumnName("chatAgent");
@@ -56,7 +57,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         });
         modelBuilder.Entity<ChatMessage>(entity =>
         {
-            entity.ToTable("ChatMessage", "dbo");
+            entity.ToTable("ChatMessage", "chat");
             entity.Property(e => e.ChatThreadId).HasColumnName("chatThreadId");
             entity.Property(e => e.Role).HasColumnName("role").HasMaxLength(20);
             entity.Property(e => e.Content).HasColumnName("content");

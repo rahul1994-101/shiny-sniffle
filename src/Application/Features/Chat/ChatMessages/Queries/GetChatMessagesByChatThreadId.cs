@@ -1,9 +1,9 @@
 using FluentValidation;
-using Application.Features.ChatMessages;
+using Application.Features.Chat.ChatMessages;
 using Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
-namespace Application.Features.ChatMessages.Queries;
+namespace Application.Features.Chat.ChatMessages.Queries;
 
 public sealed record GetChatMessagesByChatThreadIdRequest(Guid ChatThreadId)
     : IQuery<GetChatMessagesByChatThreadIdResponse>;

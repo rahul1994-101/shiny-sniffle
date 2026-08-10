@@ -1,6 +1,6 @@
 using FluentValidation;
 
-namespace Application.Features.ChatThreads.Commands;
+namespace Application.Features.Chat.ChatThreads.Commands;
 
 public sealed record UpdateChatThreadTitleRequest(Guid Id, string Title, Guid UserId)
     : ICommand<UpdateChatThreadTitleResponse>;

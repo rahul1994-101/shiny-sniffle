@@ -1,6 +1,4 @@
-using Infrastructure.Persistence.Entities.dbo;
-
-namespace Application.Features.ChatMessages;
+namespace Application.Features.Chat.ChatMessages;
 
 public class ChatMessageDto
 {
