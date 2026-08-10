@@ -85,7 +85,7 @@
             </div>
 
             <footer class="sidebar-footer">
-                <nav class="sidebar-footer-nav" aria-label="Workspace">
+                <nav class="sidebar-footer-nav" aria-label="App">
                     <NavLink class="sidebar-footer-link" href="workspace" ActiveClass="sidebar-footer-link-active" @onclick="FooterNavAsync" Match="NavLinkMatch.Prefix">
                         <svg class="sidebar-footer-link-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                             <rect x="3" y="3" width="7" height="7" rx="1" />
@@ -102,6 +102,11 @@
                         </svg>
                         <span>Workflows</span>
                     </NavLink>
+                </nav>
+
+                <div class="sidebar-footer-divider" role="separator"></div>
+
+                <nav class="sidebar-footer-nav" aria-label="Account">
                     <NavLink class="sidebar-footer-link" href="settings" ActiveClass="sidebar-footer-link-active" @onclick="FooterNavAsync">
                         <svg class="sidebar-footer-link-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                             <circle cx="12" cy="12" r="3" />

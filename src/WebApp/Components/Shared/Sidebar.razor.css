@@ -18,6 +18,15 @@
     padding: 0.5rem 0.75rem 0.85rem;
     border-top: 1px solid var(--app-border);
     background: var(--app-sidebar-chrome);
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.sidebar-footer-divider {
+    flex-shrink: 0;
+    margin: 0.15rem 0;
+    border-top: 1px solid var(--app-border);
 }
 
 .sidebar-footer-nav {

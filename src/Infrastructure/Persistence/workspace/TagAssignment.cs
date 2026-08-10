@@ -1,0 +1,18 @@
+using Infrastructure.Persistence.Shared;
+
+namespace Infrastructure.Persistence.workspace;
+
+public class TagAssignment
+{
+    public Guid Id { get; set; }
+
+    public Guid UserId { get; set; }
+
+    public Guid TagId { get; set; }
+
+    public ReferableKind ReferableKind { get; set; }
+
+    public Guid ReferableId { get; set; }
+
+    public Tag? Tag { get; set; }
+}

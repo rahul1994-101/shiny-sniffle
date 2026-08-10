@@ -13,4 +13,14 @@ public static class WorkspaceBreadcrumbTrails
     [
         new("Workspace", "/workspace")
     ];
+
+    public static readonly IReadOnlyList<SettingsBreadcrumbItem> Tags =
+    [
+        new("Workspace", "/workspace")
+    ];
+
+    public static readonly IReadOnlyList<SettingsBreadcrumbItem> Buckets =
+    [
+        new("Workspace", "/workspace")
+    ];
 }

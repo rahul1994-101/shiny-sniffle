@@ -1,9 +1,13 @@
+using Application.Features.Shared;
 using Infrastructure.Persistence;
+using Infrastructure.Persistence.Shared;
 using Infrastructure.Persistence.workspace;
 using Microsoft.EntityFrameworkCore;
 namespace Application.Features.workspace.Contacts;
 
-public sealed class ContactRepository(IDbContextFactory<AppDbContext> _dbContextFactory)
+public sealed class ContactRepository(
+    IDbContextFactory<AppDbContext> _dbContextFactory,
+    ErTaxonomyRepository _taxonomyRepo)
 {
     public async Task<IReadOnlyList<ContactSummaryDto>> ListAsync(Guid userId, CancellationToken cancellationToken = default)
     {
@@ -16,14 +20,38 @@ public sealed class ContactRepository(IDbContextFactory<AppDbContext> _dbContext
             .ThenBy(x => x.LastName)
             .ToListAsync(cancellationToken);
 
-        return rows.ConvertAll(ContactMapping.ToSummary);
+        var ids = rows.ConvertAll(x => x.Id);
+        var taxonomy = await _taxonomyRepo.LoadForReferablesAsync(
+            ctx,
+            userId,
+            ReferableKind.Contact,
+            ids,
+            cancellationToken);
+
+        return rows.ConvertAll(entity =>
+        {
+            taxonomy.TryGetValue(entity.Id, out var tax);
+            return ContactMapping.ToSummary(entity, tax);
+        });
     }
 
     public async Task<ContactDto?> GetByIdAsync(Guid userId, Guid contactId, CancellationToken cancellationToken = default)
     {
         await using var ctx = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
         var row = await FindActiveAsync(ctx, userId, contactId, asNoTracking: true, cancellationToken);
-        return row is null ? null : ContactMapping.ToDto(row);
+        if (row is null)
+        {
+            return null;
+        }
+
+        var taxonomy = await _taxonomyRepo.LoadForReferablesAsync(
+            ctx,
+            userId,
+            ReferableKind.Contact,
+            [row.Id],
+            cancellationToken);
+        taxonomy.TryGetValue(row.Id, out var tax);
+        return ContactMapping.ToDto(row, tax);
     }
 
     public async Task<(ContactDto? Saved, string? Error, bool NotFound)> SaveAsync(
@@ -127,7 +155,30 @@ public sealed class ContactRepository(IDbContextFactory<AppDbContext> _dbContext
             return (null, ContactMapping.MapSaveError(ex), false);
         }
 
-        return (ContactMapping.ToDto(entity), null, false);
+        var (syncOk, syncError) = await _taxonomyRepo.SyncAsync(
+            ctx,
+            userId,
+            ReferableKind.Contact,
+            entity.Id,
+            dto.TagIds.ToList(),
+            dto.BucketIds.ToList(),
+            cancellationToken);
+
+        if (!syncOk)
+        {
+            return (null, syncError, false);
+        }
+
+        await ctx.SaveChangesAsync(cancellationToken);
+
+        var taxonomy = await _taxonomyRepo.LoadForReferablesAsync(
+            ctx,
+            userId,
+            ReferableKind.Contact,
+            [entity.Id],
+            cancellationToken);
+        taxonomy.TryGetValue(entity.Id, out var tax);
+        return (ContactMapping.ToDto(entity, tax), null, false);
     }
 
     public async Task<bool> SoftDeleteAsync(
@@ -147,6 +198,8 @@ public sealed class ContactRepository(IDbContextFactory<AppDbContext> _dbContext
         entity.IsActive = false;
         entity.UpdatedBy = updatedBy;
         entity.UpdatedAt = DateTime.UtcNow;
+
+        await _taxonomyRepo.RemoveForReferableAsync(ctx, userId, ReferableKind.Contact, contactId, cancellationToken);
         await ctx.SaveChangesAsync(cancellationToken);
         return true;
     }

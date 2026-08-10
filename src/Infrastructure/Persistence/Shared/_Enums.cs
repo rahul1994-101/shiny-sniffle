@@ -41,3 +41,10 @@ public enum ContactSource
     /// <summary>External API or integration (future).</summary>
     Api = 4
 }
+
+/// <summary>Workspace referable object kind for tag/bucket membership (Contact = 0, Mailbox = 1).</summary>
+public enum ReferableKind : byte
+{
+    Contact = 0,
+    Mailbox = 1
+}

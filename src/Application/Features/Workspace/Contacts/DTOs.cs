@@ -18,6 +18,10 @@ public sealed class ContactSummaryDto
     public string? Phone { get; init; }
 
     public int SortOrder { get; init; }
+
+    public IReadOnlyList<TagRefDto> Tags { get; init; } = [];
+
+    public IReadOnlyList<BucketRefDto> Buckets { get; init; } = [];
 }
 
 public class ContactDto
@@ -44,6 +48,10 @@ public class ContactDto
 
     public int SortOrder { get; init; }
 
+    public IReadOnlyList<TagRefDto> Tags { get; init; } = [];
+
+    public IReadOnlyList<BucketRefDto> Buckets { get; init; } = [];
+
     public T AsResponse<T>() where T : ContactDto, new() => new()
     {
         Id = Id,
@@ -55,7 +63,9 @@ public class ContactDto
         Phone = Phone,
         Context = Context,
         Source = Source,
-        SortOrder = SortOrder
+        SortOrder = SortOrder,
+        Tags = Tags,
+        Buckets = Buckets
     };
 }
 
@@ -75,4 +85,8 @@ public sealed class SaveContactDto
     public string? Phone { get; init; }
 
     public string? Context { get; init; }
+
+    public IReadOnlyList<Guid> TagIds { get; init; } = [];
+
+    public IReadOnlyList<Guid> BucketIds { get; init; } = [];
 }

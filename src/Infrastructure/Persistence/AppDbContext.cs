@@ -21,6 +21,14 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
 
     public DbSet<Contact> Contacts { get; set; }
 
+    public DbSet<Tag> Tags { get; set; }
+
+    public DbSet<Bucket> Buckets { get; set; }
+
+    public DbSet<TagAssignment> TagAssignments { get; set; }
+
+    public DbSet<BucketMember> BucketMembers { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -169,6 +177,67 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
                 .HasFilter("[isDeleted] = 0");
             entity.HasIndex(e => new { e.UserId, e.SortOrder })
                 .HasFilter("[isDeleted] = 0");
+        });
+        modelBuilder.Entity<Tag>(entity =>
+        {
+            entity.ToTable("Tag", "workspace");
+            entity.Property(e => e.UserId).HasColumnName("userId");
+            entity.Property(e => e.Name).HasColumnName("name").HasMaxLength(64);
+            entity.Property(e => e.Color).HasColumnName("color").HasMaxLength(9);
+            entity.Property(e => e.SortOrder).HasColumnName("sortOrder");
+            entity.Property(e => e.IsActive).HasColumnName("isActive");
+            entity.Property(e => e.IsDeleted).HasColumnName("isDeleted");
+            entity.Property(e => e.CreatedBy).HasColumnName("createdBy");
+            entity.Property(e => e.CreatedAt).HasColumnName("createdAt");
+            entity.Property(e => e.UpdatedBy).HasColumnName("updatedBy");
+            entity.Property(e => e.UpdatedAt).HasColumnName("updatedAt");
+            entity.HasIndex(e => new { e.UserId, e.Name })
+                .IsUnique()
+                .HasFilter("[isDeleted] = 0");
+        });
+        modelBuilder.Entity<Bucket>(entity =>
+        {
+            entity.ToTable("Bucket", "workspace");
+            entity.Property(e => e.UserId).HasColumnName("userId");
+            entity.Property(e => e.Name).HasColumnName("name").HasMaxLength(128);
+            entity.Property(e => e.SortOrder).HasColumnName("sortOrder");
+            entity.Property(e => e.IsActive).HasColumnName("isActive");
+            entity.Property(e => e.IsDeleted).HasColumnName("isDeleted");
+            entity.Property(e => e.CreatedBy).HasColumnName("createdBy");
+            entity.Property(e => e.CreatedAt).HasColumnName("createdAt");
+            entity.Property(e => e.UpdatedBy).HasColumnName("updatedBy");
+            entity.Property(e => e.UpdatedAt).HasColumnName("updatedAt");
+            entity.HasIndex(e => new { e.UserId, e.Name })
+                .IsUnique()
+                .HasFilter("[isDeleted] = 0");
+        });
+        modelBuilder.Entity<TagAssignment>(entity =>
+        {
+            entity.ToTable("TagAssignment", "workspace");
+            entity.Property(e => e.UserId).HasColumnName("userId");
+            entity.Property(e => e.TagId).HasColumnName("tagId");
+            entity.Property(e => e.ReferableKind).HasColumnName("referableKind").HasConversion<byte>();
+            entity.Property(e => e.ReferableId).HasColumnName("referableId");
+            entity.HasOne(e => e.Tag)
+                .WithMany()
+                .HasForeignKey(e => e.TagId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasIndex(e => new { e.TagId, e.ReferableKind, e.ReferableId }).IsUnique();
+            entity.HasIndex(e => new { e.UserId, e.ReferableKind, e.ReferableId });
+        });
+        modelBuilder.Entity<BucketMember>(entity =>
+        {
+            entity.ToTable("BucketMember", "workspace");
+            entity.Property(e => e.UserId).HasColumnName("userId");
+            entity.Property(e => e.BucketId).HasColumnName("bucketId");
+            entity.Property(e => e.ReferableKind).HasColumnName("referableKind").HasConversion<byte>();
+            entity.Property(e => e.ReferableId).HasColumnName("referableId");
+            entity.HasOne(e => e.Bucket)
+                .WithMany()
+                .HasForeignKey(e => e.BucketId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasIndex(e => new { e.BucketId, e.ReferableKind, e.ReferableId }).IsUnique();
+            entity.HasIndex(e => new { e.UserId, e.ReferableKind, e.ReferableId });
         });
     }
 }

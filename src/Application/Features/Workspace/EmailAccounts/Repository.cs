@@ -1,11 +1,15 @@
 using Application.Features.dbo.EmailProviders;
+using Application.Features.Shared;
 using Infrastructure.Persistence;
+using Infrastructure.Persistence.Shared;
 using Infrastructure.Persistence.workspace;
 using Microsoft.EntityFrameworkCore;
 
 namespace Application.Features.workspace.EmailAccounts;
 
-public sealed class EmailAccountRepository(IDbContextFactory<AppDbContext> _dbContextFactory)
+public sealed class EmailAccountRepository(
+    IDbContextFactory<AppDbContext> _dbContextFactory,
+    ErTaxonomyRepository _taxonomyRepo)
 {
     public async Task<IReadOnlyList<EmailAccountSummaryDto>> ListAsync(Guid userId, CancellationToken cancellationToken = default)
     {
@@ -18,9 +22,21 @@ public sealed class EmailAccountRepository(IDbContextFactory<AppDbContext> _dbCo
             .ThenBy(x => x.Alias)
             .ToListAsync(cancellationToken);
 
-        return rows
-            .Where(x => x.EmailProvider is not null)
-            .Select(x => EmailAccountMapping.ToSummary(x, x.EmailProvider!))
+        var accounts = rows.Where(x => x.EmailProvider is not null).ToList();
+        var ids = accounts.ConvertAll(x => x.Id);
+        var taxonomy = await _taxonomyRepo.LoadForReferablesAsync(
+            ctx,
+            userId,
+            ReferableKind.Mailbox,
+            ids,
+            cancellationToken);
+
+        return accounts
+            .Select(x =>
+            {
+                taxonomy.TryGetValue(x.Id, out var tax);
+                return EmailAccountMapping.ToSummary(x, x.EmailProvider!, tax);
+            })
             .ToList();
     }
 
@@ -28,7 +44,19 @@ public sealed class EmailAccountRepository(IDbContextFactory<AppDbContext> _dbCo
     {
         await using var ctx = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
         var row = await FindActiveAccountAsync(ctx, userId, accountId, asNoTracking: true, cancellationToken);
-        return row?.EmailProvider is null ? null : EmailAccountMapping.ToDto(row, row.EmailProvider);
+        if (row?.EmailProvider is null)
+        {
+            return null;
+        }
+
+        var taxonomy = await _taxonomyRepo.LoadForReferablesAsync(
+            ctx,
+            userId,
+            ReferableKind.Mailbox,
+            [row.Id],
+            cancellationToken);
+        taxonomy.TryGetValue(row.Id, out var tax);
+        return EmailAccountMapping.ToDto(row, row.EmailProvider, tax);
     }
 
     public async Task<EmailSettings?> GetEmailSettingsAsync(
@@ -193,7 +221,31 @@ public sealed class EmailAccountRepository(IDbContextFactory<AppDbContext> _dbCo
 
         await ctx.Entry(entity).Reference(x => x.EmailProvider).LoadAsync(cancellationToken);
         var providerEntity = entity.EmailProvider ?? provider;
-        return (EmailAccountMapping.ToDto(entity, providerEntity), null, false);
+
+        var (syncOk, syncError) = await _taxonomyRepo.SyncAsync(
+            ctx,
+            userId,
+            ReferableKind.Mailbox,
+            entity.Id,
+            dto.TagIds.ToList(),
+            dto.BucketIds.ToList(),
+            cancellationToken);
+
+        if (!syncOk)
+        {
+            return (null, syncError, false);
+        }
+
+        await ctx.SaveChangesAsync(cancellationToken);
+
+        var taxonomy = await _taxonomyRepo.LoadForReferablesAsync(
+            ctx,
+            userId,
+            ReferableKind.Mailbox,
+            [entity.Id],
+            cancellationToken);
+        taxonomy.TryGetValue(entity.Id, out var tax);
+        return (EmailAccountMapping.ToDto(entity, providerEntity, tax), null, false);
     }
 
     public async Task<(bool Found, string? Error)> SoftDeleteAsync(
@@ -235,6 +287,7 @@ public sealed class EmailAccountRepository(IDbContextFactory<AppDbContext> _dbCo
             }
         }
 
+        await _taxonomyRepo.RemoveForReferableAsync(ctx, userId, ReferableKind.Mailbox, accountId, cancellationToken);
         await ctx.SaveChangesAsync(cancellationToken);
         return (true, null);
     }

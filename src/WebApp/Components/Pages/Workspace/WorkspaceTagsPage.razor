@@ -1,0 +1,19 @@
+@page "/workspace/tags"
+@inherits BaseComponent
+
+@using WebApp.Components.Pages.Settings.Shared
+@using WebApp.Components.Pages.Workspace
+@using WebApp.Components.Pages.Workspace.Shared
+
+@attribute [Authorize]
+
+<PageTitle>Tags</PageTitle>
+
+<SettingsShell Title="Tags"
+               Subtitle="Labels for contacts and mailboxes (AI uses tag names)."
+               Breadcrumbs="WorkspaceBreadcrumbTrails.Tags"
+               UseDirtyGuard="false">
+    <ChildContent>
+        <TagsEditor />
+    </ChildContent>
+</SettingsShell>

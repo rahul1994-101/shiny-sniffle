@@ -1,0 +1,110 @@
+@namespace WebApp.Components.Pages.Workspace.Shared
+
+@using Application.Features.Shared
+
+<div class="settings-field">
+    <p class="settings-label">Buckets</p>
+    @if (Buckets.Count == 0)
+    {
+        <p class="settings-hint">No buckets yet. Add them under Workspace → Buckets.</p>
+    }
+    else
+    {
+        <div class="ui-group" role="group" aria-label="Buckets">
+            @foreach (var bucket in Buckets)
+            {
+                var selected = SelectedBucketIds.Contains(bucket.Id);
+                <label class="ui-group-row">
+                    <input type="checkbox"
+                           checked="@selected"
+                           disabled="@Disabled"
+                           @onchange="e => ToggleBucket(bucket.Id, e)" />
+                    <span>@bucket.Name</span>
+                </label>
+            }
+        </div>
+    }
+</div>
+
+<div class="settings-field">
+    <p class="settings-label">Tags</p>
+    @if (Tags.Count == 0)
+    {
+        <p class="settings-hint">No tags yet. Add them under Workspace → Tags.</p>
+    }
+    else
+    {
+        <div class="ui-group" role="group" aria-label="Tags">
+            @foreach (var tag in Tags)
+            {
+                var selected = SelectedTagIds.Contains(tag.Id);
+                <label class="ui-group-row">
+                    <input type="checkbox"
+                           checked="@selected"
+                           disabled="@Disabled"
+                           @onchange="e => ToggleTag(tag.Id, e)" />
+                    <span class="ui-tag-label">
+                        @if (!string.IsNullOrWhiteSpace(tag.Color))
+                        {
+                            <span class="ui-tag-swatch" style="background-color: @tag.Color" aria-hidden="true"></span>
+                        }
+                        @tag.Name
+                    </span>
+                </label>
+            }
+        </div>
+    }
+</div>
+
+<style>
+    .ui-tag-label { display: inline-flex; align-items: center; gap: 0.35rem; }
+    .ui-tag-swatch { width: 0.75rem; height: 0.75rem; border-radius: 999px; border: 1px solid var(--ui-border, #ccc); }
+</style>
+
+@code {
+    [Parameter] public IReadOnlyList<BucketRefDto> Buckets { get; set; } = [];
+
+    [Parameter] public IReadOnlyList<TagRefDto> Tags { get; set; } = [];
+
+    [Parameter] public HashSet<Guid> SelectedBucketIds { get; set; } = [];
+
+    [Parameter] public HashSet<Guid> SelectedTagIds { get; set; } = [];
+
+    [Parameter] public bool Disabled { get; set; }
+
+    [Parameter] public EventCallback SelectionChanged { get; set; }
+
+    private async Task ToggleBucket(Guid id, ChangeEventArgs e)
+    {
+        if (e.Value is bool on)
+        {
+            if (on)
+            {
+                SelectedBucketIds.Add(id);
+            }
+            else
+            {
+                SelectedBucketIds.Remove(id);
+            }
+
+            await SelectionChanged.InvokeAsync();
+        }
+    }
+
+    private async Task ToggleTag(Guid id, ChangeEventArgs e)
+    {
+        if (e.Value is bool on)
+        {
+            if (on)
+            {
+                SelectedTagIds.Add(id);
+            }
+            else
+            {
+                SelectedTagIds.Remove(id);
+            }
+
+            await SelectionChanged.InvokeAsync();
+        }
+    }
+}

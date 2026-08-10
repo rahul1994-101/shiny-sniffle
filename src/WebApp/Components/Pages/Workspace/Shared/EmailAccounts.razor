@@ -9,6 +9,11 @@
 @using WebApp.Components.Pages.Settings
 @using WebApp.Components.Pages.Settings.Shared
 @using WebApp.Components.Shared
+@using WebApp.Components.Pages.Workspace.Shared
+@using Application.Features.workspace.Tags
+@using Application.Features.workspace.Tags.Queries
+@using Application.Features.workspace.Buckets
+@using Application.Features.workspace.Buckets.Queries
 
 @implements IDisposable
 
@@ -85,6 +90,10 @@ else
                                     <span class="ui-group-row-desc">
                                         @account.EntityRef · @account.ProviderName
                                     </span>
+                                    @if (account.Buckets.Count > 0 || account.Tags.Count > 0)
+                                    {
+                                        <span class="ui-group-row-desc">@FormatAccountTaxonomy(account)</span>
+                                    }
                                 </div>
                                 <div class="ui-list-row-rich-actions">
                                     @if (!account.IsDefault)
@@ -165,6 +174,10 @@ else
 @code {
     private readonly List<EmailAccountSummaryDto> _accounts = [];
     private readonly List<EmailProviderDto> _catalog = [];
+    private readonly List<TagDto> _allTags = [];
+    private readonly List<BucketDto> _allBuckets = [];
+    private IReadOnlyList<BucketRefDto> _bucketRefs = [];
+    private IReadOnlyList<TagRefDto> _tagRefs = [];
     private AccountForm _form = new();
     private AccountForm _formBaseline = new();
     private TabBusy _busy = TabBusy.Loading;
@@ -380,6 +393,13 @@ else
                     <p class="settings-hint">@EntityContextFieldCopy.Hint</p>
                 </div>
             </div>
+
+            <ErTaxonomyPicker Buckets="_bucketRefs"
+                              Tags="_tagRefs"
+                              SelectedBucketIds="_form.SelectedBucketIds"
+                              SelectedTagIds="_form.SelectedTagIds"
+                              Disabled="@IsFormBusy"
+                              SelectionChanged="@(() => { })" />
         </div>
     };
 
@@ -398,6 +418,23 @@ else
 
         var accountsResult = await Mediator.SendAsync(new ListEmailAccountsRequest(CurrentUser.Id));
         var catalogResult = await Mediator.SendAsync(new ListEmailProvidersRequest());
+        var tagsResult = await Mediator.SendAsync(new ListTagsRequest(CurrentUser.Id));
+        var bucketsResult = await Mediator.SendAsync(new ListBucketsRequest(CurrentUser.Id));
+
+        _allTags.Clear();
+        if (!tagsResult.HasError && tagsResult.Payload?.Tags is { } tagItems)
+        {
+            _allTags.AddRange(tagItems);
+        }
+
+        _allBuckets.Clear();
+        if (!bucketsResult.HasError && bucketsResult.Payload?.Buckets is { } bucketItems)
+        {
+            _allBuckets.AddRange(bucketItems);
+        }
+
+        _tagRefs = _allTags.ConvertAll(t => t.AsRef());
+        _bucketRefs = _allBuckets.ConvertAll(b => b.AsRef());
 
         if (catalogResult.HasError)
         {
@@ -426,6 +463,22 @@ else
         }
 
         _busy = TabBusy.None;
+    }
+
+    private static string FormatAccountTaxonomy(EmailAccountSummaryDto account)
+    {
+        var parts = new List<string>();
+        if (account.Buckets.Count > 0)
+        {
+            parts.Add(string.Join(", ", account.Buckets.Select(b => b.Name)));
+        }
+
+        if (account.Tags.Count > 0)
+        {
+            parts.Add(string.Join(", ", account.Tags.Select(t => t.Name)));
+        }
+
+        return string.Join(" · ", parts);
     }
 
     private void BeginAdd()
@@ -667,18 +720,36 @@ else
 
         public bool HasStoredPassword { get; set; }
 
-        public static AccountForm FromDto(EmailAccountDto dto, bool defaultForced) => new()
+        public HashSet<Guid> SelectedTagIds { get; } = [];
+
+        public HashSet<Guid> SelectedBucketIds { get; } = [];
+
+        public static AccountForm FromDto(EmailAccountDto dto, bool defaultForced)
         {
-            Id = dto.Id,
-            Alias = dto.Alias,
-            IsDefault = dto.IsDefault,
-            IsDefaultForced = defaultForced,
-            ProviderSlug = dto.ProviderSlug,
-            EmailAddress = dto.EmailAddress,
-            Username = dto.Username,
-            HasStoredPassword = dto.HasStoredPassword,
-            Context = dto.Context
-        };
+            var form = new AccountForm
+            {
+                Id = dto.Id,
+                Alias = dto.Alias,
+                IsDefault = dto.IsDefault,
+                IsDefaultForced = defaultForced,
+                ProviderSlug = dto.ProviderSlug,
+                EmailAddress = dto.EmailAddress,
+                Username = dto.Username,
+                HasStoredPassword = dto.HasStoredPassword,
+                Context = dto.Context
+            };
+            foreach (var t in dto.Tags)
+            {
+                form.SelectedTagIds.Add(t.Id);
+            }
+
+            foreach (var b in dto.Buckets)
+            {
+                form.SelectedBucketIds.Add(b.Id);
+            }
+
+            return form;
+        }
 
         public SaveEmailAccountDto ToSaveDto() => new()
         {
@@ -689,21 +760,37 @@ else
             EmailAddress = EmailAddress,
             Username = Username,
             Password = Password,
-            Context = Context
+            Context = Context,
+            TagIds = SelectedTagIds.ToList(),
+            BucketIds = SelectedBucketIds.ToList()
         };
 
-        public AccountForm CloneForBaseline() => new()
+        public AccountForm CloneForBaseline()
         {
-            Id = Id,
-            Alias = Alias,
-            IsDefault = IsDefault,
-            IsDefaultForced = IsDefaultForced,
-            ProviderSlug = ProviderSlug,
-            EmailAddress = EmailAddress,
-            Username = Username,
-            HasStoredPassword = HasStoredPassword,
-            Context = Context
-        };
+            var c = new AccountForm
+            {
+                Id = Id,
+                Alias = Alias,
+                IsDefault = IsDefault,
+                IsDefaultForced = IsDefaultForced,
+                ProviderSlug = ProviderSlug,
+                EmailAddress = EmailAddress,
+                Username = Username,
+                HasStoredPassword = HasStoredPassword,
+                Context = Context
+            };
+            foreach (var id in SelectedTagIds)
+            {
+                c.SelectedTagIds.Add(id);
+            }
+
+            foreach (var id in SelectedBucketIds)
+            {
+                c.SelectedBucketIds.Add(id);
+            }
+
+            return c;
+        }
 
         public bool ContentEquals(AccountForm other) =>
             Id == other.Id
@@ -713,7 +800,9 @@ else
             && string.Equals(EmailAddress, other.EmailAddress, StringComparison.Ordinal)
             && string.Equals(Username, other.Username, StringComparison.Ordinal)
             && string.Equals(Context ?? "", other.Context ?? "", StringComparison.Ordinal)
-            && HasStoredPassword == other.HasStoredPassword;
+            && HasStoredPassword == other.HasStoredPassword
+            && SelectedTagIds.SetEquals(other.SelectedTagIds)
+            && SelectedBucketIds.SetEquals(other.SelectedBucketIds);
     }
 
     private enum TabBusy

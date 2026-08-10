@@ -11,8 +11,21 @@
                Subtitle="User-owned data for agents and the product."
                UseDirtyGuard="false">
     <div class="settings-sections">
-        <nav class="ui-group" aria-label="Workspace areas">
-            @foreach (var area in _areas)
+        <nav class="ui-group" aria-label="Data">
+            @foreach (var area in _dataAreas)
+            {
+                <NavLink class="ui-group-row" href="@area.Href">
+                    <span>
+                        <span class="ui-group-row-title">@area.Title</span>
+                        <span class="ui-group-row-desc">@area.Lead</span>
+                    </span>
+                    <span class="ui-group-row-chevron" aria-hidden="true">›</span>
+                </NavLink>
+            }
+        </nav>
+
+        <nav class="ui-group" aria-label="Organization">
+            @foreach (var area in _organizationAreas)
             {
                 <NavLink class="ui-group-row" href="@area.Href">
                     <span>
@@ -27,9 +40,15 @@
 </SettingsShell>
 
 @code {
-    private static readonly (string Href, string Title, string Lead)[] _areas =
+    private static readonly (string Href, string Title, string Lead)[] _dataAreas =
     [
         ("/workspace/contacts", "Contacts", "People you reference in rules and workflows."),
         ("/workspace/email/accounts", "Email accounts", "Connected inboxes for the Email agent.")
+    ];
+
+    private static readonly (string Href, string Title, string Lead)[] _organizationAreas =
+    [
+        ("/workspace/buckets", "Buckets", "Named groups for contacts and mailboxes."),
+        ("/workspace/tags", "Tags", "Labels for contacts and mailboxes.")
     ];
 }

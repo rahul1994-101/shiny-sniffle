@@ -5,17 +5,19 @@ namespace Application.Features.workspace.Contacts;
 
 internal static class ContactMapping
 {
-    internal static ContactSummaryDto ToSummary(Contact entity) => new()
+    internal static ContactSummaryDto ToSummary(Contact entity, ErTaxonomyDto? taxonomy = null) => new()
     {
         Id = entity.Id,
         ListLabel = ResolveListLabel(entity),
         Alias = entity.Alias,
         Email = entity.Email,
         Phone = entity.Phone,
-        SortOrder = entity.SortOrder
+        SortOrder = entity.SortOrder,
+        Tags = taxonomy?.Tags ?? [],
+        Buckets = taxonomy?.Buckets ?? []
     };
 
-    internal static ContactDto ToDto(Contact entity) => new()
+    internal static ContactDto ToDto(Contact entity, ErTaxonomyDto? taxonomy = null) => new()
     {
         Id = entity.Id,
         FirstName = entity.FirstName,
@@ -26,7 +28,9 @@ internal static class ContactMapping
         Phone = entity.Phone,
         Context = entity.Context,
         Source = entity.Source,
-        SortOrder = entity.SortOrder
+        SortOrder = entity.SortOrder,
+        Tags = taxonomy?.Tags ?? [],
+        Buckets = taxonomy?.Buckets ?? []
     };
 
     internal static string ResolveListLabel(Contact entity) =>

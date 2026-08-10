@@ -20,6 +20,10 @@ public sealed class EmailAccountSummaryDto
     public bool IsDefault { get; init; }
 
     public int SortOrder { get; init; }
+
+    public IReadOnlyList<TagRefDto> Tags { get; init; } = [];
+
+    public IReadOnlyList<BucketRefDto> Buckets { get; init; } = [];
 }
 
 public class EmailAccountDto
@@ -59,6 +63,10 @@ public class EmailAccountDto
 
     public string? Context { get; init; }
 
+    public IReadOnlyList<TagRefDto> Tags { get; init; } = [];
+
+    public IReadOnlyList<BucketRefDto> Buckets { get; init; } = [];
+
     public T AsResponse<T>() where T : EmailAccountDto, new() => new()
     {
         Id = Id,
@@ -76,7 +84,9 @@ public class EmailAccountDto
         SmtpUseSsl = SmtpUseSsl,
         Username = Username,
         HasStoredPassword = HasStoredPassword,
-        Context = Context
+        Context = Context,
+        Tags = Tags,
+        Buckets = Buckets
     };
 }
 
@@ -98,6 +108,10 @@ public sealed class SaveEmailAccountDto
     public string Password { get; init; } = string.Empty;
 
     public string? Context { get; init; }
+
+    public IReadOnlyList<Guid> TagIds { get; init; } = [];
+
+    public IReadOnlyList<Guid> BucketIds { get; init; } = [];
 }
 
 public class EmailSettingsDto

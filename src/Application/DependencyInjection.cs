@@ -11,6 +11,8 @@ using Application.Features.dbo.EmailProviders;
 using Application.Features.dbo.UserSettings;
 using Application.Features.workspace.Contacts;
 using Application.Features.workspace.EmailAccounts;
+using Application.Features.workspace.Tags;
+using Application.Features.workspace.Buckets;
 using Application.Features.dbo.Users;
 using MediatR.DependencyInjection;
 using Microsoft.Extensions.Configuration;
@@ -28,6 +30,7 @@ public static class DependencyInjection
         #region Feature repositories
 
         services.AddScoped<SharedRepository>();
+        services.AddScoped<ErTaxonomyRepository>();
         services.AddScoped<UserRepository>();
         services.AddScoped<ChatThreadRepository>();
         services.AddScoped<ChatMessageRepository>();
@@ -35,6 +38,8 @@ public static class DependencyInjection
         services.AddScoped<EmailProviderRepository>();
         services.AddScoped<EmailAccountRepository>();
         services.AddScoped<ContactRepository>();
+        services.AddScoped<TagRepository>();
+        services.AddScoped<BucketRepository>();
 
         #endregion
 

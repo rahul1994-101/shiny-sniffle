@@ -1,0 +1,19 @@
+@page "/workspace/buckets"
+@inherits BaseComponent
+
+@using WebApp.Components.Pages.Settings.Shared
+@using WebApp.Components.Pages.Workspace
+@using WebApp.Components.Pages.Workspace.Shared
+
+@attribute [Authorize]
+
+<PageTitle>Buckets</PageTitle>
+
+<SettingsShell Title="Buckets"
+               Subtitle="Named groups for contacts and mailboxes."
+               Breadcrumbs="WorkspaceBreadcrumbTrails.Buckets"
+               UseDirtyGuard="false">
+    <ChildContent>
+        <BucketsEditor />
+    </ChildContent>
+</SettingsShell>

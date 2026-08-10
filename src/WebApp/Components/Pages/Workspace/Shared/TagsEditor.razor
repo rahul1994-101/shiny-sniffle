@@ -1,0 +1,197 @@
+@inherits BaseComponent
+
+@using WebApp.Components.Pages.Settings
+@using WebApp.Components.Pages.Settings.Shared
+@using Application.Features.workspace.Tags
+@using Application.Features.workspace.Tags.Commands
+@using Application.Features.workspace.Tags.Queries
+
+@if (_busy == TabBusy.Loading)
+{
+    <div class="settings-loading" role="status" aria-busy="true"><div class="settings-skeleton settings-skeleton-card"></div></div>
+}
+else
+{
+    <SettingsEditorHost Layout="_editorLayout"
+                        LayoutChanged="OnEditorLayoutChangedAsync"
+                        LayoutPreferenceKey="workspace-tags"
+                        EditorOpen="_editorOpen"
+                        EditorTitle="@EditorTitle"
+                        ListTitle="Tags"
+                        ListLead="Describe contacts and mailboxes (facets, roles, topics)."
+                        BackLabel="Back to tags"
+                        CloseAriaLabel="Close tag editor"
+                        ListHeaderActionsAriaLabel="Tag list actions"
+                        OnRequestClose="CancelEditorAsync">
+        <ListHeaderActions>
+            @if (_tags.Count > 0)
+            {
+                <SettingsHeadActionButton Label="Add tag" AriaLabel="Add tag" Disabled="@IsFormBusy" OnClick="BeginAdd" />
+            }
+        </ListHeaderActions>
+        <ListContent>
+            @if (_tags.Count == 0)
+            {
+                <div class="ui-empty-state">
+                    <p class="ui-empty-state-title">No tags yet</p>
+                    <button type="button" class="ui-btn ui-btn-primary" disabled="@IsFormBusy" @onclick="BeginAdd">Add tag</button>
+                </div>
+            }
+            else
+            {
+                <div class="ui-group" aria-label="Tags">
+                    @foreach (var tag in _tags)
+                    {
+                        <div class="ui-group-row ui-group-row-static ui-list-row-rich">
+                            <div class="ui-list-row-rich-body">
+                                <span class="ui-group-row-title">
+                                    @if (!string.IsNullOrWhiteSpace(tag.Color))
+                                    {
+                                        <span class="ui-tag-swatch-inline" style="background-color: @tag.Color"></span>
+                                    }
+                                    @tag.Name
+                                </span>
+                            </div>
+                            <div class="ui-list-row-rich-actions">
+                                <button type="button" class="ui-btn ui-btn-secondary ui-btn-sm" disabled="@IsFormBusy" @onclick="() => BeginEdit(tag)">Edit</button>
+                                <button type="button" class="ui-btn ui-btn-danger ui-btn-sm" disabled="@IsFormBusy" @onclick="() => DeleteAsync(tag)">Delete</button>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </ListContent>
+        <ListStatus>
+            @if (_status.Current is not null)
+            {
+                <p class="ui-status-pill @(_status.Current.IsError ? "ui-status-pill-error" : "ui-status-pill-success")" role="status">@_status.Current.Message</p>
+            }
+        </ListStatus>
+        <EditorContent>
+            <div class="settings-editor-form">
+                <div class="settings-field">
+                    <label class="settings-label" for="tag-name">Name</label>
+                    <input id="tag-name" class="settings-input" maxlength="64" @bind="_form.Name" disabled="@IsFormBusy" />
+                </div>
+                <div class="settings-field">
+                    <label class="settings-label" for="tag-color">Color <span class="settings-label-optional">(optional)</span></label>
+                    <input id="tag-color" type="color" class="settings-input" @bind="_form.Color" disabled="@IsFormBusy" />
+                </div>
+            </div>
+        </EditorContent>
+        <EditorFooter>
+            <div class="settings-card-footer settings-actions">
+                <button type="button" class="ui-btn ui-btn-primary" disabled="@(!CanSave)" @onclick="SaveAsync">@(_saving ? "Saving…" : "Save tag")</button>
+                <button type="button" class="ui-btn ui-btn-secondary" disabled="@IsFormBusy" @onclick="CancelEditorAsync">Cancel</button>
+            </div>
+        </EditorFooter>
+    </SettingsEditorHost>
+}
+
+<style>.ui-tag-swatch-inline { display:inline-block;width:.75rem;height:.75rem;border-radius:999px;margin-right:.35rem;vertical-align:middle;border:1px solid var(--ui-border,#ccc);}</style>
+
+@code {
+    private TabBusy _busy = TabBusy.Loading;
+    private bool _saving;
+    private bool _deleting;
+    private bool _editorOpen;
+    private SettingsEditorLayout _editorLayout = SettingsEditorLayout.FullPage;
+    private readonly List<TagDto> _tags = [];
+    private TagForm _form = new();
+    private SettingsSectionStatusHandle _status = null!;
+
+    private bool IsFormBusy => _saving || _deleting;
+    private bool CanSave => !IsFormBusy && !string.IsNullOrWhiteSpace(_form.Name);
+    private string EditorTitle => _form.Id is null ? "New tag" : $"Edit {_form.Name}";
+
+    protected override async Task OnInitializedAsync()
+    {
+        _status = new SettingsSectionStatusHandle(() => InvokeAsync(StateHasChanged));
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _busy = TabBusy.Loading;
+        var result = await Mediator.SendAsync(new ListTagsRequest(CurrentUser.Id));
+        _tags.Clear();
+        if (!result.HasError && result.Payload?.Tags is { } items)
+        {
+            _tags.AddRange(items);
+        }
+
+        _busy = TabBusy.None;
+    }
+
+    private void BeginAdd()
+    {
+        _form = new TagForm { Color = "#6366f1" };
+        _editorOpen = true;
+    }
+
+    private void BeginEdit(TagDto tag)
+    {
+        _form = TagForm.FromDto(tag);
+        _editorOpen = true;
+    }
+
+    private Task CancelEditorAsync()
+    {
+        _editorOpen = false;
+        _form = new();
+        return Task.CompletedTask;
+    }
+
+    private Task OnEditorLayoutChangedAsync(SettingsEditorLayout layout)
+    {
+        _editorLayout = layout;
+        return Task.CompletedTask;
+    }
+
+    private async Task SaveAsync()
+    {
+        _saving = true;
+        var result = await Mediator.SendAsync(new SaveTagRequest(CurrentUser.Id, _form.ToDto()));
+        if (result.HasError)
+        {
+            _status.Set(result.Errors.FirstOrDefault()?.Message ?? "Save failed.", isError: true);
+        }
+        else
+        {
+            _editorOpen = false;
+            await LoadAsync();
+        }
+
+        _saving = false;
+    }
+
+    private async Task DeleteAsync(TagDto tag)
+    {
+        if (!await JsRuntime.InvokeAsync<bool>("confirm", $"Delete tag \"{tag.Name}\"?"))
+        {
+            return;
+        }
+
+        _deleting = true;
+        var result = await Mediator.SendAsync(new DeleteTagRequest(CurrentUser.Id, tag.Id));
+        if (!result.HasError)
+        {
+            await LoadAsync();
+        }
+
+        _deleting = false;
+    }
+
+    private sealed class TagForm
+    {
+        public Guid? Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string? Color { get; set; }
+
+        public static TagForm FromDto(TagDto dto) => new() { Id = dto.Id, Name = dto.Name, Color = dto.Color ?? "#6366f1" };
+
+        public SaveTagDto ToDto() => new() { Id = Id, Name = Name.Trim(), Color = Color };
+    }
+
+    private enum TabBusy { None, Loading }
+}

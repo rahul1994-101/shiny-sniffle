@@ -8,7 +8,10 @@ namespace Application.Features.workspace.EmailAccounts;
 
 internal static class EmailAccountMapping
 {
-    internal static EmailAccountSummaryDto ToSummary(EmailAccount account, EmailProvider provider) => new()
+    internal static EmailAccountSummaryDto ToSummary(
+        EmailAccount account,
+        EmailProvider provider,
+        ErTaxonomyDto? taxonomy = null) => new()
     {
         Id = account.Id,
         Alias = account.Alias,
@@ -16,10 +19,15 @@ internal static class EmailAccountMapping
         ProviderSlug = provider.Slug,
         EmailAddress = account.EmailAddress,
         IsDefault = account.IsDefault,
-        SortOrder = account.SortOrder
+        SortOrder = account.SortOrder,
+        Tags = taxonomy?.Tags ?? [],
+        Buckets = taxonomy?.Buckets ?? []
     };
 
-    internal static EmailAccountDto ToDto(EmailAccount account, EmailProvider provider)
+    internal static EmailAccountDto ToDto(
+        EmailAccount account,
+        EmailProvider provider,
+        ErTaxonomyDto? taxonomy = null)
     {
         var settings = ToEmailSettings(account, provider);
         return new EmailAccountDto
@@ -39,7 +47,9 @@ internal static class EmailAccountMapping
             SmtpUseSsl = settings.SmtpUseSsl,
             Username = settings.Username,
             HasStoredPassword = !string.IsNullOrWhiteSpace(settings.Password),
-            Context = account.Context
+            Context = account.Context,
+            Tags = taxonomy?.Tags ?? [],
+            Buckets = taxonomy?.Buckets ?? []
         };
     }
 
