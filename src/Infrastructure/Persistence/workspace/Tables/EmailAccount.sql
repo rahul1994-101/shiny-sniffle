@@ -9,7 +9,7 @@
 -- - At most one row per user with isDefault = 1 among non-deleted rows
 -- - IMAP/SMTP hosts come from dbo.EmailProvider via emailProviderId (not stored here in v1)
 -- - Password is encrypted at rest
--- - Apply after dbo.User, dbo.EmailProvider, and workspace/CreateSchema.sql
+-- - Apply after dbo.User, dbo.EmailProvider, and CreateSchema.sql in this folder
 -- - All records include audit fields for tracking changes
 -- =====================================================
 GO

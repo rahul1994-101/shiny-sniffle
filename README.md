@@ -6,7 +6,7 @@ Blazor Server workspace app: vertical-slice features, custom CQRS (`lib/MediatR`
 
 ```text
 lib/MediatR/              CQRS dispatcher
-src/Infrastructure/       Persistence (Schema/), Mailbox, Foundry + AddInfrastructure()
+src/Infrastructure/       Persistence, Mailbox, Foundry + AddInfrastructure()
 src/Application/          Features, AI, app services + AddApplication()
 src/WebApp/               Blazor UI, Endpoints, Startup
 ```
@@ -23,5 +23,5 @@ src/WebApp/               Blazor UI, Endpoints, Startup
 ## Quick start
 
 1. Configure connection string and Foundry (`Foundry:Enabled`, `Endpoint`, `ApiKey` in user secrets).
-2. Apply SQL from `src/Infrastructure/Persistence/Schema/` (`dbo` tables first, then `workflow/CreateSchema.sql` and `workspace/CreateSchema.sql`, then `workspace/Tables/Contact.sql` as needed). Uncomment **SEED DATA** in `EmailProvider.sql` (and other table scripts) when bootstrapping a new database.
+2. Apply SQL from `src/Infrastructure/Persistence/` (`dbo/Tables/` first, then `chat/CreateSchema.sql` + `chat/Tables/`, `workflow/CreateSchema.sql`, `workspace/CreateSchema.sql` + `workspace/Tables/` as needed). Uncomment **SEED DATA** in `dbo/Tables/EmailProvider.sql` when bootstrapping a new database.
 3. Run `src/WebApp`.

@@ -1,13 +1,13 @@
 -- =====================================================
--- CHAT SCHEMA (per-user conversation threads and messages)
+-- WORKSPACE SCHEMA (user-owned internal reference data)
 -- =====================================================
 -- Run once on existing databases. Safe to re-run.
--- Apply after dbo.User; before chat/Tables/*.sql
+-- Apply before workspace/Tables/*.sql (e.g. Contact).
 -- =====================================================
 GO
 
-IF NOT EXISTS (SELECT 1 FROM sys.schemas WHERE name = N'chat')
+IF NOT EXISTS (SELECT 1 FROM sys.schemas WHERE name = N'workspace')
 BEGIN
-    EXEC(N'CREATE SCHEMA [chat]');
+    EXEC(N'CREATE SCHEMA [workspace]');
 END
 GO

@@ -46,8 +46,8 @@ Project-specific escalation detail: `application.mdc`, `infrastructure.mdc`.
 
 | Question | Place |
 |----------|--------|
-| DB entity / SQL table | `Infrastructure/Persistence/Entities/` + `Infrastructure/Persistence/Schema/{schema}/Tables/` |
-| SQL schema scripts | `Infrastructure/Persistence/Schema/` — apply on SQL Server; idempotent ALTERs for existing DBs |
+| DB entity / SQL table | `Infrastructure/Persistence/{schema}/` — `{Entity}.cs` + `Tables/{Entity}.sql` (Views, Procedures, … as needed) |
+| SQL schema scripts | Same tree under `Persistence/` — apply on SQL Server; idempotent ALTERs for existing DBs |
 | EF mapping | `Infrastructure/Persistence/AppDbContext.cs` |
 | External adapter (mail, AI) | `Infrastructure/{Concern}/` |
 | Use case | `Application/Features/{Slice}/Commands\|Queries/` |

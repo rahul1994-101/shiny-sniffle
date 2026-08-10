@@ -6,7 +6,7 @@
 --
 -- Business Rules:
 -- - Each chat thread belongs to exactly one user
--- - Apply after dbo.User and chat/CreateSchema.sql
+-- - Apply after dbo.User and CreateSchema.sql in this folder
 -- - All records include audit fields for tracking changes
 -- =====================================================
 GO

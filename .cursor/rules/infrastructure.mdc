@@ -12,53 +12,46 @@ Persistence + external adapters. Register in `DependencyInjection.AddInfrastruct
 
 ```text
 Persistence/
-  Entities/
-    _Common.cs, _Enums.cs   → namespace …Entities (shared)
-    dbo/                    → …Entities.dbo
-    chat/                   → …Entities.chat
-    workspace/              → …Entities.workspace
-  AppDbContext.cs     EF mapping only
-  Schema/
-    dbo/Tables/       platform (User, EmailProvider, UserSetting, …)
-    chat/Tables/      conversation (ChatThread, ChatMessage)
-    workspace/Tables/ user-owned reference data (Contact, EmailAccount, …)
-    workflow/         rules engine (CreateSchema.sql + future Tables/)
+  AppDbContext.cs         EF mapping only
+  Shared/                 _Common.cs, _Enums.cs → namespace …Entities (shared)
+  {schema}/               dbo | chat | workspace | workflow
+    *.cs                  POCOs → …Entities.{schema}  (workflow: SQL only until entities exist)
+    CreateSchema.sql      when the SQL schema must be created first
+    Tables/               table scripts
+    Views/                (dbo today; same pattern per schema when needed)
+    Procedures/           …
+    Functions/            …
+    Triggers/             …
 Mailbox/
   Abstractions.cs     IMailboxService
-  DTOs.cs               InboxQuery, MailboxStatusResult, …
-  Helpers.cs          internal mailbox helpers
-  MailKitMailboxService.cs
+  …
 Foundry/
-  Abstractions.cs     IFoundryAgentFactory, FoundryDeployments
-  DTOs.cs             FoundryOptions
-  Helpers.cs
-  FoundryAgentFactory.cs
+  …
 ```
 
 Per concern: **`Abstractions.cs`** + **`DTOs.cs`** + **`Helpers.cs`** + implementation.
 
 ## Entities
 
-- No data annotations — limits in `Schema/dbo/Tables/` + `AppDbContext.OnModelCreating`
-- Entity POCOs map to SQL tables only — no `DbSet` types live elsewhere
+- No data annotations — limits in `{schema}/Tables/*.sql` + `AppDbContext.OnModelCreating`
+- Entity POCOs live next to their schema SQL under `Persistence/{schema}/`
 - Input validation on `Application` `{UseCase}RequestValidator`, not on entities
 - Mail runtime config: `Infrastructure/Mailbox/DTOs.cs` (`EmailSettings`), built in Application from `EmailAccount` + catalog
-- Per-user mail connections: `EmailAccount` table; catalog: `EmailProvider`
+- Per-user mail connections: `workspace.EmailAccount`; catalog: `dbo.EmailProvider`
 
 ## EF (`AppDbContext`)
 
-- Map camelCase columns + `HasMaxLength` to match `Schema/dbo/Tables/`
+- Map camelCase columns + `HasMaxLength` to match `{schema}/Tables/` scripts
 - Repos and handler private helpers use `IDbContextFactory<AppDbContext>` — not scoped `DbContext` in app code
 
 **Mail connection config** — `EmailSettings` is built in Application from `EmailAccount` + `EmailProvider` catalog; passed to `IMailboxService`. App mapping: `Application/Features/Workspace/EmailAccounts/Helpers.cs` (`EmailSettingsMapping`).
 
 ## Schema workflow
 
-1. Update `Persistence/Entities/`
-2. Update `Persistence/Schema/{schema}/Tables/` (or `CreateSchema.sql` for empty schemas)
-3. Apply scripts on SQL Server — new DBs: run in dependency order (`dbo` → `chat/CreateSchema.sql` → `chat/Tables/` → `workflow/CreateSchema.sql` → `workspace/CreateSchema.sql` → workspace tables); existing DBs: idempotent ALTER / `ALTER SCHEMA` to match
-4. Optional seed: each `Tables/*.sql` file has a **SEED DATA** section after indexes (commented `INSERT` / `IF NOT EXISTS` — uncomment on new databases where needed)
-5. Update `AppDbContext` fluent config
+1. Update `Persistence/{schema}/` entity `.cs` and `Tables/` (or `Views/`, etc.) SQL
+2. Apply scripts on SQL Server — new DBs: `dbo/Tables/` first, then `{schema}/CreateSchema.sql` + that schema’s scripts (`chat` → `workflow` → `workspace` as dependencies require); existing DBs: idempotent ALTER / `ALTER SCHEMA` to match
+3. Optional seed: **SEED DATA** sections in table scripts (commented `INSERT` / `IF NOT EXISTS`)
+4. Update `AppDbContext` fluent config
 
 ## Integration DTOs
 
