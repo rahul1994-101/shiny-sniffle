@@ -16,8 +16,7 @@ Persistence/
   Shared/                 _Common.cs, _Enums.cs → `Infrastructure.Persistence.Shared`
   {schema}/               dbo | chat | workspace | workflow
     *.cs                  POCOs → `Infrastructure.Persistence.{schema}` (workflow: SQL only until entities exist)
-    CreateSchema.sql      when the SQL schema must be created first
-    Tables/               table scripts
+    Tables/               table scripts (assume SQL schemas already exist)
     Views/                (dbo today; same pattern per schema when needed)
     Procedures/           …
     Functions/            …
@@ -49,7 +48,7 @@ Per concern: **`Abstractions.cs`** + **`DTOs.cs`** + **`Helpers.cs`** + implemen
 ## Schema workflow
 
 1. Update `Persistence/{schema}/` entity `.cs` and `Tables/` (or `Views/`, etc.) SQL
-2. Apply scripts on SQL Server — new DBs: `dbo/Tables/` first, then `{schema}/CreateSchema.sql` + that schema’s scripts (`chat` → `workflow` → `workspace` as dependencies require); existing DBs: idempotent ALTER / `ALTER SCHEMA` to match
+2. Apply scripts on SQL Server — table/view/proc scripts only; create or move SQL schemas manually. Suggested order: `dbo/Tables/` first, then `{schema}/Tables/` (`chat`, `workspace`, …). Existing DBs: idempotent ALTER / `ALTER SCHEMA` to match
 3. Optional seed: **SEED DATA** sections in table scripts (commented `INSERT` / `IF NOT EXISTS`)
 4. Update `AppDbContext` fluent config
 

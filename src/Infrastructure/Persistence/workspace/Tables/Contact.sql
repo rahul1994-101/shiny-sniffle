@@ -10,7 +10,7 @@
 -- - email and phone optional (use-case oriented)
 -- - email unique per user among non-deleted rows when set
 -- - source (ContactSource): system-set provenance — manual, import, from-email, agent, api; default 0
--- - Apply after dbo.User; run CreateSchema.sql in this folder first on new databases
+-- - Apply after dbo.User ([workspace] schema must already exist)
 -- - All records include audit fields for tracking changes
 -- =====================================================
 GO

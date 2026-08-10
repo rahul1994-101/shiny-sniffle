@@ -117,7 +117,7 @@ internal static class ContactMapping
             if (ex.Message.Contains("Invalid object name", StringComparison.OrdinalIgnoreCase)
                 && ex.Message.Contains("workspace.Contact", StringComparison.OrdinalIgnoreCase))
             {
-                return "Contacts storage is not set up. Apply workspace/CreateSchema.sql and workspace/Tables/Contact.sql on the database.";
+                return "Contacts storage is not set up. Apply workspace/Tables/Contact.sql on the database.";
             }
 
             if (ex.Message.Contains("IX_Contact_UserId_Email", StringComparison.OrdinalIgnoreCase)

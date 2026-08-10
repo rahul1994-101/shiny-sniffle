@@ -58,11 +58,13 @@ Do **not** put user or working memory on `ChatThread`.
 
 ## Key files
 
+Paths use Windows folder names (`Chat/`, `Workspace/`); C# namespaces use lowercase schema segments (`Application.Features.chat.*`, `Application.Features.workspace.*`).
+
 ```text
 src/Application/AI/ChatOrchestrator.cs
 src/Application/AI/Memory/ThreadMemoryService.cs
 src/Application/AI/Memory/ChatMemoryLimits.cs
-src/Application/Features/Chat/ChatMessages/Commands/SendChatMessage.cs
+src/Application/Features/Chat/ChatMessages/Commands/SendChatMessage.cs  (namespace Application.Features.chat.ChatMessages)
 src/Infrastructure/Persistence/chat/ChatThread.cs
 ```
 

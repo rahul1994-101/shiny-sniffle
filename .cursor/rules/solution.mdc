@@ -7,7 +7,7 @@ alwaysApply: true
 
 ```text
 lib/MediatR/            CQRS — see mediatr.mdc + lib/MediatR/README.md
-src/Infrastructure/     Persistence (Schema), Mailbox, Foundry — infrastructure.mdc
+src/Infrastructure/     Persistence/{schema}, Mailbox, Foundry — infrastructure.mdc
 src/Application/        Features, AI, Models — application.mdc; DI in `DependencyInjection.cs`
 src/WebApp/             Blazor UI, Endpoints — webapp.mdc
 ```
@@ -50,7 +50,7 @@ Project-specific escalation detail: `application.mdc`, `infrastructure.mdc`.
 | SQL schema scripts | Same tree under `Persistence/` — apply on SQL Server; idempotent ALTERs for existing DBs |
 | EF mapping | `Infrastructure/Persistence/AppDbContext.cs` |
 | External adapter (mail, AI) | `Infrastructure/{Concern}/` |
-| Use case | `Application/Features/{Slice}/Commands\|Queries/` |
+| Use case | `Application/Features/{schema}/{Area}/Commands\|Queries/` (e.g. `dbo/EmailProviders`, `chat/ChatThreads`, `workspace/Contacts`) |
 | LLM / agents / memory | `Application/AI/` |
 | Blazor UI | `WebApp/Components/` |
 | HTTP API | `WebApp/Endpoints/` |

@@ -46,7 +46,7 @@ Physical folders may be `Chat/` / `Workspace/` on Windows; namespaces use lowerc
 Each slice and `Shared/` use the **same file names** where needed: `DTOs.cs`, `Repository.cs`, `Helpers.cs`, `Services.cs`. **All DI** in **`Application/DependencyInjection.cs`**.
 
 ```text
-Features/{Slice}/
+Features/{schema}/{Area}/     e.g. dbo/Users, chat/ChatThreads, workspace/Contacts
   DTOs.cs
   Repository.cs
   Helpers.cs        when needed
@@ -89,7 +89,7 @@ Promote **logic** and **data access** on separate tracks. Do not mix EF in `Help
 | **2 — Slice helpers** | 2+ handlers, or handler + repo/UI | `{Slice}/Helpers.cs` |
 | **3 — Cross-slice** | Multiple slices | `Features/Shared/Helpers.cs` |
 
-Start in the handler. Move to `{Slice}/Helpers.cs` when reused within the slice. Example: `Workspace/EmailAccounts/Helpers.cs` (`EmailSettingsMapping`, `EmailProviderPresets`).
+Start in the handler. Move to `{Slice}/Helpers.cs` when reused within the slice. Example: `workspace/EmailAccounts/Helpers.cs` (`EmailSettingsMapping`, `EmailProviderPresets`).
 
 #### Services escalation
 
@@ -128,7 +128,7 @@ If AI/Services need a method that does not exist yet, add it to the **slice repo
 
 | Kind | Place |
 |------|--------|
-| Slice read shape | `Features/{Slice}/DTOs.cs` — `FromEntity`, `AsResponse<T>()` |
+| Slice read shape | `Features/{schema}/{Area}/DTOs.cs` — `FromEntity`, `AsResponse<T>()` |
 | Cross-slice read shape | `Features/Shared/DTOs.cs` |
 | Use-case message | `{UseCase}Request` : `ICommand<>` / `IQuery<>` |
 | Use-case result | `{UseCase}Response` (may extend slice DTO) |
