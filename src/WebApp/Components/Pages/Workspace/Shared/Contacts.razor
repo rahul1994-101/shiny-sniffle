@@ -120,6 +120,9 @@ else
 }
 
 @code {
+    [CascadingParameter]
+    public SettingsPageContext PageContext { get; set; } = null!;
+
     private TabBusy _busy = TabBusy.Loading;
     private bool _saving;
     private bool _deleting;
@@ -141,7 +144,8 @@ else
 
     private bool CanSaveEditor =>
         !IsFormBusy
-        && !string.IsNullOrWhiteSpace(_form.FirstName);
+        && !string.IsNullOrWhiteSpace(_form.FirstName)
+        && IsFormDirty;
 
     private string EditorTitle =>
         _form.Id is null ? "New contact" : $"Edit {_form.ListLabel}";
@@ -253,10 +257,10 @@ else
         </div>
     };
 
-    private void OnFormEdited()
-    {
-        /* binding refresh */
-    }
+    private void OnFormEdited() => SyncDirtyState();
+
+    private void SyncDirtyState() =>
+        PageContext.SetEditorDirty(_editorOpen && IsFormDirty);
 
     private static string FormatReach(ContactSummaryDto contact)
     {
@@ -353,6 +357,7 @@ else
         _form = new ContactForm();
         _formBaseline = _form.Clone();
         _editorOpen = true;
+        SyncDirtyState();
     }
 
     private async Task BeginEditAsync(ContactSummaryDto summary)
@@ -371,15 +376,27 @@ else
         _form = ContactForm.FromDto(result.Payload);
         _formBaseline = _form.Clone();
         _editorOpen = true;
+        SyncDirtyState();
     }
 
-    private Task CancelEditorAsync()
+    private async Task CancelEditorAsync()
+    {
+        if (_editorOpen && IsFormDirty
+            && !await JsRuntime.InvokeAsync<bool>("confirm", SettingsDirtyGuard.DiscardMessage))
+        {
+            return;
+        }
+
+        CloseEditor();
+    }
+
+    private void CloseEditor()
     {
         _editorOpen = false;
         _form = new ContactForm();
         _formBaseline = new ContactForm();
         _status.Clear();
-        return Task.CompletedTask;
+        SyncDirtyState();
     }
 
     private async Task SaveEditorAsync()
@@ -398,7 +415,7 @@ else
         else
         {
             _status.Set("Contact saved.", isError: false, autoClear: true);
-            _editorOpen = false;
+            CloseEditor();
             await LoadAsync();
         }
 
@@ -431,7 +448,7 @@ else
         {
             if (_form.Id == contact.Id)
             {
-                await CancelEditorAsync();
+                CloseEditor();
             }
 
             await LoadAsync();

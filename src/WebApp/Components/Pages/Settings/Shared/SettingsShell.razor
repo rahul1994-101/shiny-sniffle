@@ -99,9 +99,7 @@
             return;
         }
 
-        var leave = await JsRuntime.InvokeAsync<bool>(
-            "confirm",
-            "You have unsaved changes. Leave without saving?");
+        var leave = await JsRuntime.InvokeAsync<bool>("confirm", SettingsDirtyGuard.LeaveMessage);
 
         if (!leave)
         {

@@ -5,6 +5,7 @@
                class="settings-input"
                maxlength="@NameMaxLength"
                @bind="Name"
+               @bind:after="NotifyEditedAsync"
                disabled="@Disabled" />
     </div>
     <div class="settings-field">
@@ -13,6 +14,7 @@
         </label>
         <ColorPicker Id="@($"{IdPrefix}-color")"
                      @bind-Value="Color"
+                     @bind-Value:after="NotifyEditedAsync"
                      Disabled="@Disabled" />
     </div>
     <div class="settings-provider-extras">
@@ -27,6 +29,7 @@
                    maxlength="64"
                    placeholder="@EntityAliasFieldCopy.PlaceholderAutoFromName"
                    @bind="Alias"
+                   @bind:after="NotifyEditedAsync"
                    disabled="@Disabled"
                    autocomplete="off" />
             @if (CanPreviewEntityRef)
@@ -47,6 +50,7 @@
                       rows="3"
                       maxlength="2000"
                       @bind="Context"
+                      @bind:after="NotifyEditedAsync"
                       disabled="@Disabled"></textarea>
             <p class="settings-hint">@EntityContextFieldCopy.Hint</p>
         </div>
@@ -98,4 +102,9 @@
 
     [Parameter]
     public bool CanPreviewEntityRef { get; set; }
+
+    [Parameter]
+    public EventCallback Edited { get; set; }
+
+    private Task NotifyEditedAsync() => Edited.InvokeAsync();
 }
