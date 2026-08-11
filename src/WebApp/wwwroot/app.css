@@ -440,18 +440,18 @@ body.shell-sidebar-drawer-open {
 
 @media (max-width: 640px) {
     .app-page-header {
+        margin-top: 0;
         margin-bottom: var(--ui-space-2);
     }
 
     .app-page-header-inner {
-        padding-top: 0.75rem;
-        padding-bottom: 0.75rem;
+        padding: 0.65rem var(--app-page-pad-x);
     }
 
     .app-page-head-row {
         flex-direction: column;
         align-items: flex-start;
-        gap: var(--ui-space-2);
+        gap: var(--ui-space-1);
     }
 
     .app-page-breadcrumb {
@@ -462,9 +462,13 @@ body.shell-sidebar-drawer-open {
         justify-content: flex-start;
     }
 
+    .app-page-subtitle {
+        margin-top: var(--ui-space-1);
+    }
+
     .app-page-body-inner {
-        padding-top: var(--ui-space-4);
-        padding-bottom: var(--ui-space-5);
+        padding-top: var(--ui-space-3);
+        padding-bottom: var(--ui-space-4);
     }
 }
 
