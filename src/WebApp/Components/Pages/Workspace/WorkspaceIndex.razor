@@ -2,6 +2,7 @@
 @inherits BaseComponent
 
 @using WebApp.Components.Pages.Settings.Shared
+@using WebApp.Components.Shared
 
 @attribute [Authorize]
 
@@ -15,9 +16,12 @@
             @foreach (var area in _dataAreas)
             {
                 <NavLink class="ui-group-row" href="@area.Href">
-                    <span>
-                        <span class="ui-group-row-title">@area.Title</span>
-                        <span class="ui-group-row-desc">@area.Lead</span>
+                    <span class="ui-group-row-leading">
+                        <NavIcon Name="@area.Icon" CssClass="ui-group-row-icon" />
+                        <span>
+                            <span class="ui-group-row-title">@area.Title</span>
+                            <span class="ui-group-row-desc">@area.Lead</span>
+                        </span>
                     </span>
                     <span class="ui-group-row-chevron" aria-hidden="true">›</span>
                 </NavLink>
@@ -28,9 +32,12 @@
             @foreach (var area in _organizationAreas)
             {
                 <NavLink class="ui-group-row" href="@area.Href">
-                    <span>
-                        <span class="ui-group-row-title">@area.Title</span>
-                        <span class="ui-group-row-desc">@area.Lead</span>
+                    <span class="ui-group-row-leading">
+                        <NavIcon Name="@area.Icon" CssClass="ui-group-row-icon" />
+                        <span>
+                            <span class="ui-group-row-title">@area.Title</span>
+                            <span class="ui-group-row-desc">@area.Lead</span>
+                        </span>
                     </span>
                     <span class="ui-group-row-chevron" aria-hidden="true">›</span>
                 </NavLink>
@@ -40,15 +47,17 @@
 </SettingsShell>
 
 @code {
-    private static readonly (string Href, string Title, string Lead)[] _dataAreas =
+    private static readonly WorkspaceArea[] _dataAreas =
     [
-        ("/workspace/contacts", "Contacts", "People you reference in rules and workflows."),
-        ("/workspace/email/accounts", "Email accounts", "Connected inboxes for the Email agent.")
+        new("/workspace/contacts", "Contacts", "People you reference in rules and workflows.", NavIconName.Contacts),
+        new("/workspace/email/accounts", "Email accounts", "Connected inboxes for the Email agent.", NavIconName.EmailAccounts)
     ];
 
-    private static readonly (string Href, string Title, string Lead)[] _organizationAreas =
+    private static readonly WorkspaceArea[] _organizationAreas =
     [
-        ("/workspace/buckets", "Buckets", "Named groups for contacts and mailboxes."),
-        ("/workspace/tags", "Tags", "Labels for contacts and mailboxes.")
+        new("/workspace/buckets", "Buckets", "Named groups for contacts and mailboxes.", NavIconName.Buckets),
+        new("/workspace/tags", "Tags", "Labels for contacts and mailboxes.", NavIconName.Tags)
     ];
+
+    private sealed record WorkspaceArea(string Href, string Title, string Lead, NavIconName Icon);
 }

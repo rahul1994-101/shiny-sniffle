@@ -645,6 +645,27 @@ body.app-login-page {
     font-size: 1rem;
 }
 
+.ui-group-row-leading {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    min-width: 0;
+    flex: 1;
+}
+
+.nav-icon,
+.ui-group-row-icon {
+    width: 1.25rem;
+    height: 1.25rem;
+    flex-shrink: 0;
+    color: var(--app-muted);
+}
+
+.ui-group-row:hover .ui-group-row-icon,
+.ui-group-row.active .ui-group-row-icon {
+    color: var(--app-fg);
+}
+
 .ui-type-section {
     font-size: var(--ui-type-section);
     font-weight: 600;
