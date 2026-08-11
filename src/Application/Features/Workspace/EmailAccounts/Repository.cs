@@ -9,7 +9,7 @@ namespace Application.Features.workspace.EmailAccounts;
 
 public sealed class EmailAccountRepository(
     IDbContextFactory<AppDbContext> _dbContextFactory,
-    ErTaxonomyRepository _taxonomyRepo)
+    SharedRepository _sharedRepo)
 {
     public async Task<IReadOnlyList<EmailAccountSummaryDto>> ListAsync(Guid userId, CancellationToken cancellationToken = default)
     {
@@ -24,7 +24,7 @@ public sealed class EmailAccountRepository(
 
         var accounts = rows.Where(x => x.EmailProvider is not null).ToList();
         var ids = accounts.ConvertAll(x => x.Id);
-        var taxonomy = await _taxonomyRepo.LoadForReferablesAsync(
+        var taxonomy = await _sharedRepo.LoadTaxonomyForReferablesAsync(
             ctx,
             userId,
             ReferableKind.Mailbox,
@@ -49,7 +49,7 @@ public sealed class EmailAccountRepository(
             return null;
         }
 
-        var taxonomy = await _taxonomyRepo.LoadForReferablesAsync(
+        var taxonomy = await _sharedRepo.LoadTaxonomyForReferablesAsync(
             ctx,
             userId,
             ReferableKind.Mailbox,
@@ -222,7 +222,7 @@ public sealed class EmailAccountRepository(
         await ctx.Entry(entity).Reference(x => x.EmailProvider).LoadAsync(cancellationToken);
         var providerEntity = entity.EmailProvider ?? provider;
 
-        var (syncOk, syncError) = await _taxonomyRepo.SyncAsync(
+        var (syncOk, syncError) = await _sharedRepo.SyncTaxonomyAsync(
             ctx,
             userId,
             ReferableKind.Mailbox,
@@ -238,7 +238,7 @@ public sealed class EmailAccountRepository(
 
         await ctx.SaveChangesAsync(cancellationToken);
 
-        var taxonomy = await _taxonomyRepo.LoadForReferablesAsync(
+        var taxonomy = await _sharedRepo.LoadTaxonomyForReferablesAsync(
             ctx,
             userId,
             ReferableKind.Mailbox,
@@ -287,7 +287,7 @@ public sealed class EmailAccountRepository(
             }
         }
 
-        await _taxonomyRepo.RemoveForReferableAsync(ctx, userId, ReferableKind.Mailbox, accountId, cancellationToken);
+        await _sharedRepo.RemoveTaxonomyForReferableAsync(ctx, userId, ReferableKind.Mailbox, accountId, cancellationToken);
         await ctx.SaveChangesAsync(cancellationToken);
         return (true, null);
     }

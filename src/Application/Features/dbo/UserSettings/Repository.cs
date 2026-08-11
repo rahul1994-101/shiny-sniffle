@@ -1,3 +1,4 @@
+using Application.Features.dbo.Users;
 using Application.Utilities.Extensions;
 using Infrastructure.Persistence;
 using Infrastructure.Persistence.dbo;
@@ -36,7 +37,7 @@ public sealed class UserSettingsRepository(IDbContextFactory<AppDbContext> _dbCo
             .Select(x => x.Password)
             .FirstOrDefaultAsync(cancellationToken);
 
-        return storedPassword is not null && storedPassword.MatchesStoredPassword(password);
+        return storedPassword is not null && UserPasswordHelpers.MatchesStoredPassword(storedPassword, password);
     }
 
     public async Task<bool> UpdateUserPasswordAsync(Guid userId, string newPassword, Guid updatedBy, CancellationToken cancellationToken = default)

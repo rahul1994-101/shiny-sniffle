@@ -7,7 +7,7 @@ namespace Application.Features.workspace.Buckets;
 
 public sealed class BucketRepository(
     IDbContextFactory<AppDbContext> dbContextFactory,
-    ErTaxonomyRepository taxonomyRepo)
+    SharedRepository sharedRepo)
 {
     public async Task<IReadOnlyList<BucketDto>> ListAsync(Guid userId, CancellationToken cancellationToken = default)
     {
@@ -114,7 +114,7 @@ public sealed class BucketRepository(
         entity.UpdatedBy = updatedBy;
         entity.UpdatedAt = DateTime.UtcNow;
 
-        await taxonomyRepo.RemoveAssignmentsForBucketAsync(ctx, userId, bucketId, cancellationToken);
+        await sharedRepo.RemoveBucketAssignmentsAsync(ctx, userId, bucketId, cancellationToken);
         await ctx.SaveChangesAsync(cancellationToken);
         return true;
     }

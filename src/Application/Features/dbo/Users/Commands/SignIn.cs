@@ -1,6 +1,5 @@
 using FluentValidation;
 using Application.Features.dbo.Users;
-using Application.Utilities.Extensions;
 using Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -71,7 +70,7 @@ public sealed class SignInRequestHandler(IDbContextFactory<AppDbContext> dbConte
                 !x.IsDeleted)
             .FirstOrDefaultAsync(cancellationToken);
 
-        if (user is null || !user.Password.MatchesStoredPassword(password))
+        if (user is null || !UserPasswordHelpers.MatchesStoredPassword(user.Password, password))
         {
             return null;
         }

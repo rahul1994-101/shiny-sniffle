@@ -39,7 +39,9 @@ Utilities/      technical cross-cutting only (crypto) — not slice business log
 | `chat/ChatMessages/` | `…chat.ChatMessages` | `ChatMessageRepository` | `chat.ChatMessage` |
 | `workspace/EmailAccounts/` | `Application.Features.workspace.EmailAccounts` | `EmailAccountRepository` | `workspace.EmailAccount` |
 | `workspace/Contacts/` | `…workspace.Contacts` | `ContactRepository` | `workspace.Contact` |
-| `Shared/` | `Application.Features.Shared` | `SharedRepository`, `Helpers.cs`, `Services.cs` | — |
+| `workspace/Tags/` | `…workspace.Tags` | `TagRepository` | `workspace.Tag` (+ `TagAssignment`) |
+| `workspace/Buckets/` | `…workspace.Buckets` | `BucketRepository` | `workspace.Bucket` (+ `BucketAssignment`) |
+| `Shared/` | `Application.Features.Shared` | `SharedRepository` (cross-slice taxonomy), `Helpers.cs`, `DTOs.cs`, `Services.cs` | — |
 
 Physical folders may be `Chat/` / `Workspace/` on Windows; namespaces use lowercase `chat` / `workspace` to match `Infrastructure.Persistence.*`.
 
@@ -243,6 +245,11 @@ public sealed class GetChatThreadByIdRequestHandler(ChatThreadRepository chatThr
 | `UserSettingsRepository` | `userSettingsRepo` |
 | `ChatThreadRepository` | `chatThreadRepo` |
 | `ChatMessageRepository` | `chatMessageRepo` |
+| `EmailAccountRepository` | `emailAccountRepo` |
+| `ContactRepository` | `contactRepo` |
+| `TagRepository` | `tagRepo` |
+| `BucketRepository` | `bucketRepo` |
+| `SharedRepository` | `sharedRepo` |
 
 Inject slice repo only for **promoted** methods; handlers still use `IDbContextFactory` for level-1 access.
 
@@ -268,7 +275,7 @@ Roadmaps: `docs/ai-memory.md`, `docs/email-read-implementation-plan.md`.
 | **AI/** root | `ChatOrchestrator.RunChatAgentAsync` | Turn routing |
 | **Agents/** | `RunAsync` | `{Domain}TriageAgent` or `{Role}Agent` — see `AI/Agents/README.md` |
 | **Tools/** | `CreateTools` | `{Domain}TriageTools` for triage; MAF tools, no LLM |
-| **Memory/** | `EnrichHistoryAsync` / `RefreshAsync` | No LLM — see `docs/ai-memory.md` |
+| **Memory/** | `EnrichHistoryAsync` / `RefreshAsync` | Enrich = DB only; Refresh summarizes via Foundry when over window — see `docs/ai-memory.md` |
 | **Workflows/** | `RunAsync` | Cross-cutting multi-step (not single agent turn) |
 
 Register in `AddApplication()` only. Foundry factory in Infrastructure.
@@ -287,7 +294,8 @@ Constructor: underscore prefix on injected params (`_agentFactory`).
 
 - **Agents** — LLM only; no DB
 - **Orchestrator** — routing; `ChatMessageRepository` for history
-- **Tools / Memory** — slice repos; no LLM; no `IDbContextFactory`
+- **Tools** — slice repos; no LLM; no `IDbContextFactory`
+- **Memory** — `EnrichHistoryAsync` DB only; `RefreshAsync` calls Foundry to summarize; no `IDbContextFactory`
 - **Features** — `SendChatMessage` saves via repos, calls orchestrator, saves reply
 
 ### Supported User Prompts (agents only)

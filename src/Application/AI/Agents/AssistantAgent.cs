@@ -19,7 +19,7 @@ public sealed class AssistantAgent(IFoundryAgentFactory _agentFactory)
 
         return new RunChatAgentResponse
         {
-            AssistantContent = ExtractAssistantText(response)
+            AssistantContent = AgentResponseHelpers.ExtractAssistantText(response)
         };
 
         #endregion
@@ -139,14 +139,6 @@ public sealed class AssistantAgent(IFoundryAgentFactory _agentFactory)
         return builder.ToString();
 
         #endregion
-    }
-
-    private static string ExtractAssistantText(Microsoft.Agents.AI.AgentResponse response)
-    {
-        var text = response.Messages.LastOrDefault(m => m.Role == Microsoft.Extensions.AI.ChatRole.Assistant)?.Text;
-        return string.IsNullOrWhiteSpace(text)
-            ? "I could not generate a response."
-            : text.Trim();
     }
 
     #endregion

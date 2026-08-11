@@ -26,6 +26,16 @@ public class TagDto
         Color = Color,
         Context = Context
     };
+
+    public T AsResponse<T>() where T : TagDto, new() => new()
+    {
+        Id = Id,
+        Name = Name,
+        Alias = Alias,
+        Color = Color,
+        Context = Context,
+        SortOrder = SortOrder
+    };
 }
 
 public sealed class SaveTagDto

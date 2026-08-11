@@ -437,3 +437,10 @@ internal static class EmailSettingsCatalog
         return null;
     }
 }
+
+/// <summary>Public surface for mailbox alias preview (UI).</summary>
+public static class EmailAccountAliases
+{
+    public static string StemFromEmailAddress(string emailAddress) =>
+        EntityAliasRules.StemFromEmailAddress(emailAddress);
+}

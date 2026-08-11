@@ -53,7 +53,7 @@ public sealed class SendChatMessageRequestHandler(
 
         if (thread is not null && thread.UserId == request.UserId)
         {
-            var chatAgent = request.ChatAgent == thread.ChatAgent ? request.ChatAgent : thread.ChatAgent;
+            var chatAgent = thread.ChatAgent;
 
             userMessage = await chatMessageRepo.AddAsync(new ChatMessage
             {
@@ -71,7 +71,7 @@ public sealed class SendChatMessageRequestHandler(
                     ChatThreadId = request.ChatThreadId,
                     UserId = request.UserId,
                     ChatAgent = chatAgent
-                });
+                }, cancellationToken);
 
                 assistantMessage = await chatMessageRepo.AddAsync(new ChatMessage
                 {

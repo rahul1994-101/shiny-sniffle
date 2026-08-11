@@ -30,7 +30,6 @@ public static class DependencyInjection
         #region Feature repositories
 
         services.AddScoped<SharedRepository>();
-        services.AddScoped<ErTaxonomyRepository>();
         services.AddScoped<UserRepository>();
         services.AddScoped<ChatThreadRepository>();
         services.AddScoped<ChatMessageRepository>();

@@ -10,13 +10,15 @@ public sealed class EmailTriageTools(UserMailboxService _mailboxService)
     {
         _ = chatThreadId;
         var sinceHint = EmailReadDateContext.SinceToolHint();
+        var limitHint =
+            $"{MailboxReadLimits.MinListLimit}-{MailboxReadLimits.MaxListLimit}, default {MailboxReadLimits.DefaultListLimit}";
 
         return
         [
             AIFunctionFactory.Create(
                 ([Description("Start of date range — see tool description. For explicit user ranges use yyyy-MM-dd or today/yesterday/etc.")] string since,
                     [Description("End date yyyy-MM-dd (inclusive). Use with since start when user gives a from/to range; empty if since is already a full range.")] string until,
-                    [Description("Max messages to return (1-50, default 20). Ignored when count_only is true.")] int limit,
+                    [Description("Max messages to return; see tool description for allowed range. Ignored when count_only is true.")] int limit,
                     [Description("When true, return only the message count for the range (no message list).")] bool countOnly,
                     [Description("When true, only unread messages. Combines with since and other filters.")] bool unreadOnly,
                     [Description("Filter by sender name or email substring. Empty means no sender filter.")] string fromSender,
@@ -27,6 +29,7 @@ public sealed class EmailTriageTools(UserMailboxService _mailboxService)
                 description:
                     "Lists or counts messages (#N, Uid, from, subject, date, preview) in a mailbox folder. " +
                     $"Since: {sinceHint} " +
+                    $"Limit: {limitHint}. " +
                     "Optional filters: unread_only, from_sender, subject_contains (combine with since). " +
                     "Set count_only for how-many questions. Use get_inbox_message with folder + Uid for full body."),
             AIFunctionFactory.Create(
@@ -34,7 +37,7 @@ public sealed class EmailTriageTools(UserMailboxService _mailboxService)
                     [Description("1-based list row (#1, #2, …). Use 0 when using uid. Requires since and matching list filters.")] int listIndex,
                     [Description("Same since rules as list_inbox_messages. Empty means today.")] string since,
                     [Description("Same until as list_inbox_messages when using list_index on a date range. Empty if not a range.")] string until,
-                    [Description("Same limit as list_inbox_messages when using list_index (1-50, default 20).")] int limit,
+                    [Description("Same limit as list_inbox_messages when using list_index; see tool description for allowed range.")] int limit,
                     [Description("Same as list_inbox_messages when using list_index.")] bool unreadOnly,
                     [Description("Same as list_inbox_messages when using list_index.")] string fromSender,
                     [Description("Same as list_inbox_messages when using list_index.")] string subjectContains,
@@ -43,6 +46,7 @@ public sealed class EmailTriageTools(UserMailboxService _mailboxService)
                 name: "get_inbox_message",
                 description:
                     $"Fetches one message by UID or list row with full plain-text body and attachment names. Since: {sinceHint} " +
+                    $"List limit when using list_index: {limitHint}. " +
                     "Use the same folder as the list call. Prefer uid from list_inbox_messages."),
             AIFunctionFactory.Create(
                 () => ListMailboxFoldersAsync(userId),
@@ -58,7 +62,7 @@ public sealed class EmailTriageTools(UserMailboxService _mailboxService)
                 () => GetMailboxStatusAsync(userId),
                 name: "get_mailbox_status",
                 description:
-                    "Checks whether the mailbox is configured and IMAP is reachable. " +
+                    "Checks whether the mailbox is configured and IMAP/SMTP are reachable. " +
                     "Use before listing mail when setup or connectivity is uncertain.")
         ];
     }

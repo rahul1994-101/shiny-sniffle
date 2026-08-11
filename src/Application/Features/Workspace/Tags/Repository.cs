@@ -7,7 +7,7 @@ namespace Application.Features.workspace.Tags;
 
 public sealed class TagRepository(
     IDbContextFactory<AppDbContext> dbContextFactory,
-    ErTaxonomyRepository taxonomyRepo)
+    SharedRepository sharedRepo)
 {
     public async Task<IReadOnlyList<TagDto>> ListAsync(Guid userId, CancellationToken cancellationToken = default)
     {
@@ -114,7 +114,7 @@ public sealed class TagRepository(
         entity.UpdatedBy = updatedBy;
         entity.UpdatedAt = DateTime.UtcNow;
 
-        await taxonomyRepo.RemoveAssignmentsForTagAsync(ctx, userId, tagId, cancellationToken);
+        await sharedRepo.RemoveTagAssignmentsAsync(ctx, userId, tagId, cancellationToken);
         await ctx.SaveChangesAsync(cancellationToken);
         return true;
     }

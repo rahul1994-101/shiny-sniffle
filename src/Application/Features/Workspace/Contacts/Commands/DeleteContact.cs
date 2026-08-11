@@ -27,11 +27,18 @@ public sealed class DeleteContactRequestHandler(ContactRepository contactRepo)
         CancellationToken cancellationToken = default)
     {
         var result = new Result<DeleteContactResponse>();
+
+        #region # Execute
+
         var deleted = await contactRepo.SoftDeleteAsync(
             request.UserId,
             request.ContactId,
             request.UserId,
             cancellationToken);
+
+        #endregion
+
+        #region # Handle Result
 
         if (!deleted)
         {
@@ -41,6 +48,8 @@ public sealed class DeleteContactRequestHandler(ContactRepository contactRepo)
         {
             result.Success(new DeleteContactResponse { Deleted = true });
         }
+
+        #endregion
 
         return result;
     }

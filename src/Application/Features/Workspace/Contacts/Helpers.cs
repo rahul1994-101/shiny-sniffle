@@ -144,3 +144,10 @@ internal static class ContactMapping
         return "Could not save contact. Check the database connection and schema scripts.";
     }
 }
+
+/// <summary>Public surface for contact alias preview (UI).</summary>
+public static class ContactAliases
+{
+    public static string StemFromName(string firstName, string lastName) =>
+        EntityAliasRules.StemFromPersonName(firstName, lastName);
+}

@@ -7,7 +7,7 @@ namespace Application.Features.workspace.Contacts;
 
 public sealed class ContactRepository(
     IDbContextFactory<AppDbContext> _dbContextFactory,
-    ErTaxonomyRepository _taxonomyRepo)
+    SharedRepository _sharedRepo)
 {
     public async Task<IReadOnlyList<ContactSummaryDto>> ListAsync(Guid userId, CancellationToken cancellationToken = default)
     {
@@ -21,7 +21,7 @@ public sealed class ContactRepository(
             .ToListAsync(cancellationToken);
 
         var ids = rows.ConvertAll(x => x.Id);
-        var taxonomy = await _taxonomyRepo.LoadForReferablesAsync(
+        var taxonomy = await _sharedRepo.LoadTaxonomyForReferablesAsync(
             ctx,
             userId,
             ReferableKind.Contact,
@@ -44,7 +44,7 @@ public sealed class ContactRepository(
             return null;
         }
 
-        var taxonomy = await _taxonomyRepo.LoadForReferablesAsync(
+        var taxonomy = await _sharedRepo.LoadTaxonomyForReferablesAsync(
             ctx,
             userId,
             ReferableKind.Contact,
@@ -155,7 +155,7 @@ public sealed class ContactRepository(
             return (null, ContactMapping.MapSaveError(ex), false);
         }
 
-        var (syncOk, syncError) = await _taxonomyRepo.SyncAsync(
+        var (syncOk, syncError) = await _sharedRepo.SyncTaxonomyAsync(
             ctx,
             userId,
             ReferableKind.Contact,
@@ -171,7 +171,7 @@ public sealed class ContactRepository(
 
         await ctx.SaveChangesAsync(cancellationToken);
 
-        var taxonomy = await _taxonomyRepo.LoadForReferablesAsync(
+        var taxonomy = await _sharedRepo.LoadTaxonomyForReferablesAsync(
             ctx,
             userId,
             ReferableKind.Contact,
@@ -199,7 +199,7 @@ public sealed class ContactRepository(
         entity.UpdatedBy = updatedBy;
         entity.UpdatedAt = DateTime.UtcNow;
 
-        await _taxonomyRepo.RemoveForReferableAsync(ctx, userId, ReferableKind.Contact, contactId, cancellationToken);
+        await _sharedRepo.RemoveTaxonomyForReferableAsync(ctx, userId, ReferableKind.Contact, contactId, cancellationToken);
         await ctx.SaveChangesAsync(cancellationToken);
         return true;
     }

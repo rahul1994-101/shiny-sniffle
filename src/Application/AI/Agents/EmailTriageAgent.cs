@@ -22,7 +22,7 @@ public sealed class EmailTriageAgent(IFoundryAgentFactory _agentFactory, EmailTr
 
         return new RunChatAgentResponse
         {
-            AssistantContent = ExtractAssistantText(response)
+            AssistantContent = AgentResponseHelpers.ExtractAssistantText(response)
         };
 
         #endregion
@@ -235,14 +235,6 @@ public sealed class EmailTriageAgent(IFoundryAgentFactory _agentFactory, EmailTr
             """;
 
         return _agentFactory.CreateAgent(modelDeployment, name, description, instructions, tools);
-    }
-
-    private static string ExtractAssistantText(Microsoft.Agents.AI.AgentResponse response)
-    {
-        var text = response.Messages.LastOrDefault(m => m.Role == Microsoft.Extensions.AI.ChatRole.Assistant)?.Text;
-        return string.IsNullOrWhiteSpace(text)
-            ? "I could not generate a response."
-            : text.Trim();
     }
 
     #endregion

@@ -26,9 +26,10 @@ public sealed class SaveContactRequestHandler(ContactRepository contactRepo)
         CancellationToken cancellationToken = default)
     {
         var result = new Result<SaveContactResponse>();
-        var dto = request.Contact;
 
-        var validation = ContactMapping.ValidateSave(dto);
+        #region # Execute
+
+        var validation = ContactMapping.ValidateSave(request.Contact);
         if (validation is not null)
         {
             result.Failure(ErrorCode.BadRequest, validation);
@@ -37,9 +38,13 @@ public sealed class SaveContactRequestHandler(ContactRepository contactRepo)
 
         var (saved, error, notFound) = await contactRepo.SaveAsync(
             request.UserId,
-            dto,
+            request.Contact,
             request.UserId,
             cancellationToken);
+
+        #endregion
+
+        #region # Handle Result
 
         if (notFound)
         {
@@ -57,6 +62,8 @@ public sealed class SaveContactRequestHandler(ContactRepository contactRepo)
         {
             result.Success(saved.AsResponse<SaveContactResponse>());
         }
+
+        #endregion
 
         return result;
     }

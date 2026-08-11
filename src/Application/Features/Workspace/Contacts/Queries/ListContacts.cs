@@ -26,8 +26,19 @@ public sealed class ListContactsRequestHandler(ContactRepository contactRepo)
         CancellationToken cancellationToken = default)
     {
         var result = new Result<ListContactsResponse>();
+
+        #region # Execute
+
         var contacts = await contactRepo.ListAsync(request.UserId, cancellationToken);
+
+        #endregion
+
+        #region # Handle Result
+
         result.Success(new ListContactsResponse { Contacts = contacts });
+
+        #endregion
+
         return result;
     }
 }

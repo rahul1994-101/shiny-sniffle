@@ -1,8 +1,317 @@
 using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
+using Infrastructure.Persistence.Shared;
 
 namespace Application.Features.Shared;
+
+/// <summary>Shared slug rules for per-user <c>alias</c> columns (contacts, mailboxes).</summary>
+public static class EntityAliasRules
+{
+    public const int MaxLength = 64;
+
+    private static readonly Regex NonSlugChars = new(@"[^a-z0-9\-]+", RegexOptions.Compiled);
+
+    private static readonly Regex CollapseHyphens = new(@"-{2,}", RegexOptions.Compiled);
+
+    public static string? NormalizeOptional(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    /// <summary>Slug stem from a single display label (catalog name, etc.).</summary>
+    public static string StemFromLabel(string value, string emptyFallback = "item")
+    {
+        var slug = SlugifySegment(value.Trim());
+        return slug.Length > 0 ? Truncate(slug) : emptyFallback;
+    }
+
+    public static string StemFromPersonName(string firstName, string lastName)
+    {
+        var parts = new[] { firstName.Trim(), lastName.Trim() }
+            .Where(x => x.Length > 0)
+            .Select(SlugifySegment);
+
+        var combined = string.Join("-", parts.Where(x => x.Length > 0));
+        return combined.Length > 0 ? Truncate(combined) : "contact";
+    }
+
+    public static string StemFromEmailAddress(string emailAddress)
+    {
+        var trimmed = emailAddress.Trim();
+        var at = trimmed.IndexOf('@');
+        var local = at > 0 ? trimmed[..at] : trimmed;
+        var slug = SlugifySegment(local);
+        return slug.Length > 0 ? Truncate(slug) : "mailbox";
+    }
+
+    public static string WithNumericSuffix(string stem, int index, string emptyStemFallback)
+    {
+        if (index <= 1)
+        {
+            return Truncate(string.IsNullOrEmpty(stem) ? emptyStemFallback : stem);
+        }
+
+        var baseStem = string.IsNullOrEmpty(stem) ? emptyStemFallback : stem;
+        var suffix = $"-{index}";
+        var maxStem = MaxLength - suffix.Length;
+        if (maxStem < 1)
+        {
+            maxStem = 1;
+        }
+
+        var trimmedStem = baseStem.Length <= maxStem ? baseStem : baseStem[..maxStem].TrimEnd('-');
+        if (trimmedStem.Length == 0)
+        {
+            trimmedStem = emptyStemFallback;
+        }
+
+        return trimmedStem + suffix;
+    }
+
+    private static string SlugifySegment(string value)
+    {
+        var lower = value.ToLowerInvariant();
+        var normalized = lower.Normalize(NormalizationForm.FormD);
+        var builder = new StringBuilder(normalized.Length);
+        foreach (var ch in normalized)
+        {
+            if (char.IsAsciiLetterOrDigit(ch))
+            {
+                builder.Append(ch);
+            }
+            else if (char.IsWhiteSpace(ch) || ch is '-' or '_' or '.')
+            {
+                builder.Append('-');
+            }
+        }
+
+        return CollapseHyphens.Replace(NonSlugChars.Replace(builder.ToString(), "-"), "-").Trim('-');
+    }
+
+    private static string Truncate(string value) =>
+        value.Length <= MaxLength ? value : value[..MaxLength].TrimEnd('-');
+}
+
+/// <summary>
+/// Typed handles for AI, tools, and working memory.
+/// Plain <c>alias</c> stays in workspace tables; <c>dbo.EmailProvider.slug</c> is catalog-only (not part of this scheme).
+/// Use <see cref="Format"/> / <see cref="TryParse"/> at boundaries.
+/// </summary>
+public static class EntityRefs
+{
+    public const char Separator = ':';
+
+    public enum Kind
+    {
+        Contact,
+        Mailbox,
+        Tag,
+        Bucket
+    }
+
+    public static string Format(Kind kind, string alias)
+    {
+        if (string.IsNullOrWhiteSpace(alias))
+        {
+            throw new ArgumentException("Alias is required.", nameof(alias));
+        }
+
+        return $"{Prefix(kind)}{Separator}{alias.Trim()}";
+    }
+
+    public static bool TryParse(string? value, out Kind kind, out string alias)
+    {
+        kind = default;
+        alias = string.Empty;
+
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return false;
+        }
+
+        var trimmed = value.Trim();
+        var separator = trimmed.IndexOf(Separator);
+        if (separator <= 0 || separator >= trimmed.Length - 1)
+        {
+            return false;
+        }
+
+        var prefix = trimmed[..separator];
+        if (!TryKindFromPrefix(prefix, out kind))
+        {
+            return false;
+        }
+
+        alias = trimmed[(separator + 1)..].Trim();
+        return alias.Length > 0;
+    }
+
+    internal static string Prefix(Kind kind) => kind switch
+    {
+        Kind.Contact => "contact",
+        Kind.Mailbox => "mailbox",
+        Kind.Tag => "tag",
+        Kind.Bucket => "bucket",
+        _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null)
+    };
+
+    private static bool TryKindFromPrefix(ReadOnlySpan<char> prefix, out Kind kind)
+    {
+        if (prefix.Equals("contact", StringComparison.OrdinalIgnoreCase))
+        {
+            kind = Kind.Contact;
+            return true;
+        }
+
+        if (prefix.Equals("mailbox", StringComparison.OrdinalIgnoreCase))
+        {
+            kind = Kind.Mailbox;
+            return true;
+        }
+
+        if (prefix.Equals("tag", StringComparison.OrdinalIgnoreCase))
+        {
+            kind = Kind.Tag;
+            return true;
+        }
+
+        if (prefix.Equals("bucket", StringComparison.OrdinalIgnoreCase))
+        {
+            kind = Kind.Bucket;
+            return true;
+        }
+
+        kind = default;
+        return false;
+    }
+}
+
+/// <summary>Preview handles in workspace forms before save (matches server slugify rules).</summary>
+public static class EntityAliasPreview
+{
+    public static string FromNameOrAlias(string? alias, string displayName, string emptyFallback)
+    {
+        if (!string.IsNullOrWhiteSpace(alias))
+        {
+            return EntityAliasRules.StemFromLabel(alias.Trim(), emptyFallback);
+        }
+
+        if (string.IsNullOrWhiteSpace(displayName))
+        {
+            return string.Empty;
+        }
+
+        return EntityAliasRules.StemFromLabel(displayName.Trim(), emptyFallback);
+    }
+}
+
+/// <summary>Shared optional presentation fields on <c>dbo</c> catalog rows (e.g. email providers).</summary>
+public static partial class CatalogFieldRules
+{
+    public const int SlugMaxLength = 64;
+
+    public const int NoteMaxLength = 256;
+
+    public const int ColorMaxLength = 9;
+
+    public static string NormalizeSlug(string? slug) =>
+        string.IsNullOrWhiteSpace(slug) ? string.Empty : slug.Trim().ToLowerInvariant();
+
+    public static string? NormalizeColor(string? color)
+    {
+        if (string.IsNullOrWhiteSpace(color))
+        {
+            return null;
+        }
+
+        var trimmed = color.Trim();
+        return trimmed.Length > ColorMaxLength ? trimmed[..ColorMaxLength] : trimmed;
+    }
+
+    public static string? NormalizeNote(string? note)
+    {
+        if (string.IsNullOrWhiteSpace(note))
+        {
+            return null;
+        }
+
+        var trimmed = note.Trim();
+        return trimmed.Length > NoteMaxLength ? trimmed[..NoteMaxLength] : trimmed;
+    }
+
+    public static bool IsValidSlugFormat(string slug) =>
+        !string.IsNullOrEmpty(slug) && SlugRegex().IsMatch(slug);
+
+    public static string StemFromDisplayName(string displayName) =>
+        EntityAliasRules.StemFromLabel(displayName);
+
+    public static string SlugWithNumericSuffix(string stem, int index, string emptyStemFallback) =>
+        EntityAliasRules.WithNumericSuffix(stem, index, emptyStemFallback);
+
+    public static string? ValidateSlug(string? slug, bool required = true)
+    {
+        var normalized = NormalizeSlug(slug);
+        if (string.IsNullOrEmpty(normalized))
+        {
+            return required ? "Slug is required." : null;
+        }
+
+        if (normalized.Length > SlugMaxLength)
+        {
+            return $"Slug must be {SlugMaxLength} characters or fewer.";
+        }
+
+        if (!IsValidSlugFormat(normalized))
+        {
+            return "Slug must use lowercase letters, numbers, and hyphens only.";
+        }
+
+        return null;
+    }
+
+    [GeneratedRegex("^[a-z0-9]+(?:-[a-z0-9]+)*$", RegexOptions.CultureInvariant)]
+    private static partial Regex SlugRegex();
+}
+
+public static class ReferableKindMapping
+{
+    public static ReferableKind ToPersistence(EntityRefs.Kind kind) => kind switch
+    {
+        EntityRefs.Kind.Contact => ReferableKind.Contact,
+        EntityRefs.Kind.Mailbox => ReferableKind.Mailbox,
+        _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null)
+    };
+}
+
+internal static class WorkspaceErAliasResolver
+{
+    internal static async Task<string> ResolveAsync(
+        Func<string, Guid?, CancellationToken, Task<bool>> isTakenAsync,
+        string displayName,
+        string? requestedAlias,
+        Guid? excludeId,
+        string emptyStemFallback,
+        CancellationToken cancellationToken)
+    {
+        var normalized = EntityAliasRules.NormalizeOptional(requestedAlias);
+        if (normalized is not null)
+        {
+            return normalized;
+        }
+
+        var stem = EntityAliasRules.StemFromLabel(displayName, emptyStemFallback);
+
+        for (var index = 1; index < 10_000; index++)
+        {
+            var candidate = EntityAliasRules.WithNumericSuffix(stem, index, emptyStemFallback);
+            if (!await isTakenAsync(candidate, excludeId, cancellationToken))
+            {
+                return candidate;
+            }
+        }
+
+        return EntityAliasRules.WithNumericSuffix(stem, Random.Shared.Next(1000, 9999), emptyStemFallback);
+    }
+}
 
 internal sealed record InboxDateRange(
     DateTime SinceUtc,
