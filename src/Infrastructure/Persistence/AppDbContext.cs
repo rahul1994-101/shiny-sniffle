@@ -1,6 +1,3 @@
-using Infrastructure.Persistence.dbo;
-using Infrastructure.Persistence.chat;
-using Infrastructure.Persistence.workspace;
 using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.Persistence;
@@ -47,6 +44,9 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             entity.Property(e => e.CreatedAt).HasColumnName("createdAt");
             entity.Property(e => e.UpdatedBy).HasColumnName("updatedBy");
             entity.Property(e => e.UpdatedAt).HasColumnName("updatedAt");
+            entity.HasIndex(e => e.Email)
+                .IsUnique()
+                .HasFilter("[isDeleted] = 0");
         });
         modelBuilder.Entity<ChatThread>(entity =>
         {
@@ -62,6 +62,12 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             entity.Property(e => e.CreatedAt).HasColumnName("createdAt");
             entity.Property(e => e.UpdatedBy).HasColumnName("updatedBy");
             entity.Property(e => e.UpdatedAt).HasColumnName("updatedAt");
+            entity.HasIndex(e => e.UserId)
+                .HasFilter("[isDeleted] = 0");
+            entity.HasOne<ChatMessage>()
+                .WithMany()
+                .HasForeignKey(e => e.MemorySummaryThroughMessageId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
         modelBuilder.Entity<ChatMessage>(entity =>
         {
@@ -75,6 +81,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             entity.Property(e => e.CreatedAt).HasColumnName("createdAt");
             entity.Property(e => e.UpdatedBy).HasColumnName("updatedBy");
             entity.Property(e => e.UpdatedAt).HasColumnName("updatedAt");
+            entity.HasIndex(e => e.ChatThreadId)
+                .HasFilter("[isDeleted] = 0");
         });
         modelBuilder.Entity<UserSetting>(entity =>
         {
@@ -236,7 +244,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             entity.HasOne(e => e.Tag)
                 .WithMany()
                 .HasForeignKey(e => e.TagId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .OnDelete(DeleteBehavior.Restrict);
             entity.HasIndex(e => new { e.TagId, e.ReferableKind, e.ReferableId }).IsUnique();
             entity.HasIndex(e => new { e.UserId, e.ReferableKind, e.ReferableId });
         });
@@ -250,7 +258,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             entity.HasOne(e => e.Bucket)
                 .WithMany()
                 .HasForeignKey(e => e.BucketId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .OnDelete(DeleteBehavior.Restrict);
             entity.HasIndex(e => new { e.BucketId, e.ReferableKind, e.ReferableId }).IsUnique();
             entity.HasIndex(e => new { e.UserId, e.ReferableKind, e.ReferableId });
         });

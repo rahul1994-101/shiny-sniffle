@@ -9,22 +9,12 @@ internal sealed record InboxDateRange(
     DateTime? UntilUtcExclusive,
     string Label);
 
-/// <summary>Layer 0 read limits and shared copy for mailbox list/status tools.</summary>
+/// <summary>Shared copy and agent-only limits for mailbox list/status tools. Read caps live in <see cref="Infrastructure.Mailbox.MailboxReadLimits"/>.</summary>
 internal static class EmailReadConstants
 {
-    internal const int DefaultListLimit = 20;
-
-    internal const int DefaultDigestListLimit = DefaultListLimit;
-
-    internal const int MinListLimit = 1;
-
-    internal const int MaxListLimit = 50;
-
     internal const int MaxDeepReadsPerTurn = 5;
 
     internal const int MaxDigestOptionalGets = 3;
-
-    internal const int SnippetMaxLength = 120;
 
     internal const string WorkspaceEmailHint = "Connect your mailbox in Workspace → Email accounts.";
 
@@ -43,17 +33,12 @@ internal static class EmailReadConstants
     internal const string NotConfiguredForFolders =
         $"Mailbox is not configured. {WorkspaceEmailHint} Then ask again to list folders.";
 
-    internal const int MaxMessageBodyLength = 12_000;
-
     internal const string SinceParseHint =
         "Could not parse the date range. Use today, yesterday, this_week, last_N_days, yyyy-MM-dd..yyyy-MM-dd, " +
         "yyyy-MM-dd to yyyy-MM-dd, or since + until (yyyy-MM-dd).";
 
     internal static string FormatSinceParseHint() =>
         $"{SinceParseHint} Today (UTC) is {EmailReadDateContext.TodayUtcIso}. Example range: 2026-05-01..2026-05-07.";
-
-    internal static int ClampListLimit(int limit) =>
-        limit <= 0 ? DefaultListLimit : Math.Clamp(limit, MinListLimit, MaxListLimit);
 }
 
 /// <summary>Current UTC calendar for Email agent/tools — avoids wrong-year ISO dates from the model.</summary>
@@ -426,7 +411,7 @@ internal static class EmailMailboxTextHelpers
 
         var builder = new StringBuilder();
         builder.AppendLine(
-            $"Messages for {queryLabel} ({shownNote}; previews up to {EmailReadConstants.SnippetMaxLength} chars — use get_inbox_message with folder + Uid for full body):");
+            $"Messages for {queryLabel} ({shownNote}; previews up to {MailboxReadLimits.SnippetMaxLength} chars — use get_inbox_message with folder + Uid for full body):");
         for (var i = 0; i < messages.Count; i++)
         {
             var message = messages[i];

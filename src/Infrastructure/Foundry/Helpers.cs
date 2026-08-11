@@ -1,3 +1,5 @@
+using Azure.AI.OpenAI;
+
 namespace Infrastructure.Foundry;
 
 /// <summary>
@@ -5,6 +7,23 @@ namespace Infrastructure.Foundry;
 /// </summary>
 internal static class AzureOpenAiEndpointHelpers
 {
+    internal static AzureOpenAIClientOptions? CreateClientOptions(string apiVersion)
+    {
+        if (string.IsNullOrWhiteSpace(apiVersion))
+        {
+            return null;
+        }
+
+        var enumName = "V" + apiVersion.Trim().Replace("-", "_", StringComparison.Ordinal);
+        if (!Enum.TryParse<AzureOpenAIClientOptions.ServiceVersion>(enumName, ignoreCase: true, out var version))
+        {
+            throw new InvalidOperationException(
+                $"Foundry:ApiVersion '{apiVersion}' is not a supported Azure OpenAI API version.");
+        }
+
+        return new AzureOpenAIClientOptions(version);
+    }
+
     internal static Uri ToAzureOpenAiBaseUri(string endpoint)
     {
         if (string.IsNullOrWhiteSpace(endpoint))

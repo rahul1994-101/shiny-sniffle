@@ -8,7 +8,17 @@ namespace Infrastructure.Foundry;
 
 public sealed class FoundryAgentFactory(IOptions<FoundryOptions> _options, IServiceProvider _services) : IFoundryAgentFactory
 {
-    private AzureOpenAIClient? _openAiClient;
+    private readonly Lazy<AzureOpenAIClient> _openAiClient = new(() =>
+    {
+        var foundry = _options.Value;
+        var endpoint = AzureOpenAiEndpointHelpers.ToAzureOpenAiBaseUri(foundry.Endpoint);
+        var credential = new AzureKeyCredential(foundry.ApiKey);
+        var clientOptions = AzureOpenAiEndpointHelpers.CreateClientOptions(foundry.ApiVersion);
+
+        return clientOptions is null
+            ? new AzureOpenAIClient(endpoint, credential)
+            : new AzureOpenAIClient(endpoint, credential, clientOptions);
+    });
 
     public AIAgent CreateAgent(
         string modelDeployment,
@@ -24,7 +34,7 @@ public sealed class FoundryAgentFactory(IOptions<FoundryOptions> _options, IServ
                 "Foundry is not configured. Set Foundry:Enabled, Foundry:Endpoint, and Foundry:ApiKey.");
         }
 
-        var chatClient = GetOpenAiClient(foundry)
+        var chatClient = _openAiClient.Value
             .GetChatClient(modelDeployment)
             .AsIChatClient();
 
@@ -35,19 +45,5 @@ public sealed class FoundryAgentFactory(IOptions<FoundryOptions> _options, IServ
             description,
             tools,
             services: _services);
-    }
-
-    private AzureOpenAIClient GetOpenAiClient(FoundryOptions foundry)
-    {
-        if (_openAiClient is not null)
-        {
-            return _openAiClient;
-        }
-
-        var endpoint = AzureOpenAiEndpointHelpers.ToAzureOpenAiBaseUri(foundry.Endpoint);
-
-        return _openAiClient = new AzureOpenAIClient(
-            endpoint,
-            new AzureKeyCredential(foundry.ApiKey));
     }
 }

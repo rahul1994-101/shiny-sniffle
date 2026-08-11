@@ -196,7 +196,7 @@ public sealed class EmailTriageTools(UserMailboxService _mailboxService)
         {
             SinceUtc = range.SinceUtc,
             UntilUtcExclusive = range.UntilUtcExclusive,
-            Limit = EmailReadConstants.ClampListLimit(limit),
+            Limit = MailboxReadLimits.ClampListLimit(limit),
             CountOnly = countOnly,
             UnreadOnly = unreadOnly,
             FromContains = NullIfWhiteSpace(fromSender),

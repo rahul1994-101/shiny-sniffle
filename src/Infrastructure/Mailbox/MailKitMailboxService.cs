@@ -13,65 +13,31 @@ public sealed class MailKitMailboxService : IMailboxService
 {
     public async Task<MailboxStatusResult> GetStatusAsync(EmailSettings config, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            using var imap = CreateImapClient();
-            await ConnectImapAsync(imap, config, cancellationToken);
-            await imap.AuthenticateAsync(config.Username, config.Password, cancellationToken);
-            await imap.DisconnectAsync(true, cancellationToken);
+        var probe = await ProbeConnectionsAsync(config, cancellationToken);
 
+        if (probe.ImapOk && probe.SmtpOk)
+        {
             return new MailboxStatusResult
             {
                 IsConfigured = true,
                 IsReachable = true,
-                Message = "Mailbox is configured and reachable."
+                Message = "IMAP and SMTP are reachable."
             };
         }
-        catch (Exception ex)
+
+        return new MailboxStatusResult
         {
-            return new MailboxStatusResult
-            {
-                IsConfigured = true,
-                IsReachable = false,
-                Message = FriendlyError(ex)
-            };
-        }
+            IsConfigured = true,
+            IsReachable = probe.ImapOk,
+            Message = FormatConnectionProbeMessage(probe)
+        };
     }
 
     public async Task<MailboxTestResult> TestConnectionAsync(EmailSettings config, CancellationToken cancellationToken = default)
     {
-        var imapOk = false;
-        var smtpOk = false;
-        string? imapError = null;
-        string? smtpError = null;
+        var probe = await ProbeConnectionsAsync(config, cancellationToken);
 
-        try
-        {
-            using var imap = CreateImapClient();
-            await ConnectImapAsync(imap, config, cancellationToken);
-            await imap.AuthenticateAsync(config.Username, config.Password, cancellationToken);
-            await imap.DisconnectAsync(true, cancellationToken);
-            imapOk = true;
-        }
-        catch (Exception ex)
-        {
-            imapError = FriendlyError(ex);
-        }
-
-        try
-        {
-            using var smtp = CreateSmtpClient();
-            await ConnectSmtpAsync(smtp, config, cancellationToken);
-            await smtp.AuthenticateAsync(config.Username, config.Password, cancellationToken);
-            await smtp.DisconnectAsync(true, cancellationToken);
-            smtpOk = true;
-        }
-        catch (Exception ex)
-        {
-            smtpError = FriendlyError(ex);
-        }
-
-        if (imapOk && smtpOk)
+        if (probe.ImapOk && probe.SmtpOk)
         {
             return new MailboxTestResult
             {
@@ -82,31 +48,12 @@ public sealed class MailKitMailboxService : IMailboxService
             };
         }
 
-        var parts = new List<string>();
-        if (imapOk)
-        {
-            parts.Add("IMAP OK");
-        }
-        else
-        {
-            parts.Add($"IMAP failed: {imapError}");
-        }
-
-        if (smtpOk)
-        {
-            parts.Add("SMTP OK");
-        }
-        else
-        {
-            parts.Add($"SMTP failed: {smtpError}");
-        }
-
         return new MailboxTestResult
         {
             Success = false,
-            ImapOk = imapOk,
-            SmtpOk = smtpOk,
-            Message = string.Join(" · ", parts)
+            ImapOk = probe.ImapOk,
+            SmtpOk = probe.SmtpOk,
+            Message = FormatConnectionProbeMessage(probe)
         };
     }
 
@@ -129,7 +76,7 @@ public sealed class MailKitMailboxService : IMailboxService
             return new InboxListResult { TotalMatched = totalMatched };
         }
 
-        var limit = MailboxReadLimitsHelpers.ClampListLimit(query.Limit);
+        var limit = MailboxReadLimits.ClampListLimit(query.Limit);
         var selected = ids.TakeLast(limit).Reverse().ToList();
         var summaries = new List<InboxMessageSummary>(selected.Count);
 
@@ -280,27 +227,89 @@ public sealed class MailKitMailboxService : IMailboxService
         };
     }
 
-    private static ImapClient CreateImapClient()
-    {
-        var client = new ImapClient
+    private static ImapClient CreateImapClient() =>
+        new()
+        {
+            Timeout = ConnectTimeoutMs,
+            // Intentional v1 tradeoff: many hosted mail servers use misconfigured or private CAs;
+            // disabling revocation checks avoids false negatives on connect. Revisit if exposing a strict-TLS option.
+            CheckCertificateRevocation = false
+        };
+
+    private static SmtpClient CreateSmtpClient() =>
+        new()
         {
             Timeout = ConnectTimeoutMs,
             CheckCertificateRevocation = false
         };
 
-        return client;
-    }
-
-    private static SmtpClient CreateSmtpClient()
+    private async Task<ConnectionProbeResult> ProbeConnectionsAsync(
+        EmailSettings config,
+        CancellationToken cancellationToken)
     {
-        var client = new SmtpClient
-        {
-            Timeout = ConnectTimeoutMs,
-            CheckCertificateRevocation = false
-        };
+        var imapOk = false;
+        var smtpOk = false;
+        string? imapError = null;
+        string? smtpError = null;
 
-        return client;
+        try
+        {
+            using var imap = CreateImapClient();
+            await ConnectImapAsync(imap, config, cancellationToken);
+            await imap.AuthenticateAsync(config.Username, config.Password, cancellationToken);
+            await imap.DisconnectAsync(true, cancellationToken);
+            imapOk = true;
+        }
+        catch (Exception ex)
+        {
+            imapError = FriendlyError(ex);
+        }
+
+        try
+        {
+            using var smtp = CreateSmtpClient();
+            await ConnectSmtpAsync(smtp, config, cancellationToken);
+            await smtp.AuthenticateAsync(config.Username, config.Password, cancellationToken);
+            await smtp.DisconnectAsync(true, cancellationToken);
+            smtpOk = true;
+        }
+        catch (Exception ex)
+        {
+            smtpError = FriendlyError(ex);
+        }
+
+        return new ConnectionProbeResult(imapOk, smtpOk, imapError, smtpError);
     }
+
+    private static string FormatConnectionProbeMessage(ConnectionProbeResult probe)
+    {
+        var parts = new List<string>();
+        if (probe.ImapOk)
+        {
+            parts.Add("IMAP OK");
+        }
+        else
+        {
+            parts.Add($"IMAP failed: {probe.ImapError}");
+        }
+
+        if (probe.SmtpOk)
+        {
+            parts.Add("SMTP OK");
+        }
+        else
+        {
+            parts.Add($"SMTP failed: {probe.SmtpError}");
+        }
+
+        return string.Join(" · ", parts);
+    }
+
+    private sealed record ConnectionProbeResult(
+        bool ImapOk,
+        bool SmtpOk,
+        string? ImapError,
+        string? SmtpError);
 
     private static SearchQuery BuildInboxSearchQuery(InboxQuery query)
     {
@@ -385,9 +394,9 @@ public sealed class MailKitMailboxService : IMailboxService
         }
 
         text = text.Replace('\r', ' ').Replace('\n', ' ').Trim();
-        return text.Length <= MailboxReadLimitsHelpers.SnippetMaxLength
+        return text.Length <= MailboxReadLimits.SnippetMaxLength
             ? text
-            : text[..MailboxReadLimitsHelpers.SnippetMaxLength] + "…";
+            : text[..MailboxReadLimits.SnippetMaxLength] + "…";
     }
 
     private static string FriendlyError(Exception ex) =>

@@ -1,7 +1,5 @@
 namespace Infrastructure.Mailbox;
 
-using Infrastructure.Persistence.Shared;
-
 public sealed class InboxMessageSummary
 {
     public uint Uid { get; init; }

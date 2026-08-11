@@ -171,7 +171,8 @@ public sealed class EmailTriageAgent(IFoundryAgentFactory _agentFactory, EmailTr
         var name = "Email";
         var description = "Mailbox specialist that lists, summarizes, and sends mail through the connected account.";
         var maxGets = EmailReadConstants.MaxDeepReadsPerTurn;
-        var digestLimit = EmailReadConstants.DefaultDigestListLimit;
+        var digestLimit = MailboxReadLimits.DefaultListLimit;
+        var maxListLimit = MailboxReadLimits.MaxListLimit;
         var optionalGets = EmailReadConstants.MaxDigestOptionalGets;
         var dateContext = EmailReadDateContext.AgentDateBlock();
         var todayIso = EmailReadDateContext.TodayUtcIso;
@@ -198,7 +199,7 @@ public sealed class EmailTriageAgent(IFoundryAgentFactory _agentFactory, EmailTr
               - Do NOT pass only the start date for a range—the user asked for multiple days.
               - Never guess the year from training data. Today is {todayIso} UTC.
             - folder: inbox (default), sent, drafts, trash, junk, or name from list_mailbox_folders. Same folder on list and get.
-            - limit: 1-50 (default {digestLimit}). Filters: unread_only, from_sender, subject_contains.
+            - limit: {MailboxReadLimits.MinListLimit}-{maxListLimit} (default {digestLimit}). Filters: unread_only, from_sender, subject_contains.
 
             Output choreography (Layer 6):
             - Tools fetch; you interpret. Never summarize or prioritize mail not returned by tools this turn.
@@ -213,7 +214,7 @@ public sealed class EmailTriageAgent(IFoundryAgentFactory _agentFactory, EmailTr
             - triage — attention/reply priority. List unread + today; if empty widen to this_week. get up to {maxGets} messages that look actionable. Sections: Summary, Needs reply, FYI, Low priority (optional), Counts.
             - compare — more/less than another period. Two list_inbox_messages with count_only (same folder/filters; since today vs yesterday, or this_week vs last_week—use keywords, not ISO dates). Sections: Comparison (counts + delta in plain language), Brief note.
             - single — one message deep-read. List with filters → one get → bullets. Mention attachments if tool lists them. Sections: Summary, Key points, Attachments (if any).
-            - stats — volume by sender. List only (up to 50); group by From from list rows—no get unless user asks. Sections: Summary, Top senders (ranked), Counts.
+            - stats — volume by sender. List only (up to {maxListLimit}); group by From from list rows—no get unless user asks. Sections: Summary, Top senders (ranked), Counts.
             - action_list — candidates for later action. List with filters → get up to {maxGets} candidates → Sections: Summary, ACTION_ITEMS (each: sender — subject — folder — Uid — one-line reason). Optional: FYI. Do not execute actions.
 
             Triage template (adapt with real tool data):

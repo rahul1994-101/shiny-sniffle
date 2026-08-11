@@ -1,5 +1,3 @@
-using Infrastructure.Persistence.dbo;
-
 namespace Infrastructure.Persistence.workspace;
 
 /// <summary>

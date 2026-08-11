@@ -1,5 +1,3 @@
-using Infrastructure.Persistence.Shared;
-
 namespace Infrastructure.Persistence.workspace;
 
 public class TagAssignment

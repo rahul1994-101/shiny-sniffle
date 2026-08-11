@@ -7,19 +7,20 @@ using System.Text.RegularExpressions;
 
 namespace Infrastructure.Mailbox;
 
-internal static class MailboxReadLimitsHelpers
+/// <summary>Canonical mailbox read limits — enforced in <see cref="MailKitMailboxService"/>; referenced by Application tools/agent copy.</summary>
+public static class MailboxReadLimits
 {
-    internal const int DefaultListLimit = 20;
+    public const int DefaultListLimit = 20;
 
-    internal const int MinListLimit = 1;
+    public const int MinListLimit = 1;
 
-    internal const int MaxListLimit = 50;
+    public const int MaxListLimit = 50;
 
-    internal const int SnippetMaxLength = 120;
+    public const int SnippetMaxLength = 120;
 
-    internal const int MaxMessageBodyLength = 12_000;
+    public const int MaxMessageBodyLength = 12_000;
 
-    internal static int ClampListLimit(int limit) =>
+    public static int ClampListLimit(int limit) =>
         limit <= 0 ? DefaultListLimit : Math.Clamp(limit, MinListLimit, MaxListLimit);
 }
 
@@ -268,8 +269,8 @@ internal static partial class EmailMessageBodyHelpers
     private static string TruncateBody(string text)
     {
         text = text.Trim();
-        return text.Length <= MailboxReadLimitsHelpers.MaxMessageBodyLength
+        return text.Length <= MailboxReadLimits.MaxMessageBodyLength
             ? text
-            : text[..MailboxReadLimitsHelpers.MaxMessageBodyLength] + "… (truncated)";
+            : text[..MailboxReadLimits.MaxMessageBodyLength] + "… (truncated)";
     }
 }
