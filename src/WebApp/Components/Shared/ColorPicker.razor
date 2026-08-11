@@ -1,0 +1,176 @@
+<div class="ui-color-picker" id="@Id">
+    <div class="ui-color-picker-panel app-glass-panel">
+        <div class="ui-color-picker-presets" role="group" aria-label="Color presets">
+            @foreach (var preset in ColorPickerPresets.All)
+            {
+                var selected = IsSelected(preset);
+                <button type="button"
+                        class="ui-color-picker-swatch @(selected ? "is-selected" : null)"
+                        style="@($"--ui-color-picker-swatch: {preset}")"
+                        aria-label="@preset"
+                        aria-pressed="@selected"
+                        disabled="@Disabled"
+                        @onclick="() => SelectAsync(preset)"></button>
+            }
+        </div>
+
+        <div class="ui-color-picker-hex-row">
+            <div class="ui-color-picker-hex-field @(Disabled ? "is-disabled" : null)">
+                <span class="ui-color-picker-hex-chip @(HasValue ? null : "is-empty")"
+                      style="@(HasValue ? $"--ui-color-picker-value: {Value}" : null)"
+                      aria-hidden="true"></span>
+                <input id="@HexInputId"
+                       type="text"
+                       class="ui-color-picker-hex-input"
+                       inputmode="text"
+                       spellcheck="false"
+                       maxlength="7"
+                       placeholder="#6366f1"
+                       aria-label="Hex color"
+                       value="@_hexDraft"
+                       disabled="@Disabled"
+                       @oninput="OnHexInput"
+                       @onchange="CommitHexDraftAsync" />
+            </div>
+
+            <label class="ui-color-picker-swatch ui-color-picker-swatch-custom ui-color-picker-swatch-row @(IsCustomSelected ? "is-selected" : null)"
+                   style="@CustomSwatchStyle"
+                   aria-label="Pick a custom color"
+                   title="Custom color">
+                <span class="ui-color-picker-swatch-custom-icon" aria-hidden="true"></span>
+                <input type="color"
+                       class="ui-color-picker-native"
+                       value="@NativePickerValue"
+                       disabled="@Disabled"
+                       @onchange="OnNativeColorChanged" />
+            </label>
+
+            @if (AllowClear && HasValue && !Disabled)
+            {
+                <button type="button" class="ui-btn ui-btn-secondary ui-btn-sm ui-color-picker-clear" @onclick="ClearAsync">
+                    Clear
+                </button>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private string _hexDraft = string.Empty;
+
+    [Parameter]
+    public string? Id { get; set; }
+
+    [Parameter]
+    public string? Value { get; set; }
+
+    [Parameter]
+    public EventCallback<string?> ValueChanged { get; set; }
+
+    [Parameter]
+    public bool Disabled { get; set; }
+
+    [Parameter]
+    public bool AllowClear { get; set; } = true;
+
+    private string HexInputId => string.IsNullOrWhiteSpace(Id) ? "color-picker-hex" : $"{Id}-hex";
+
+    private bool HasValue => ColorPickerPresets.TryNormalize(Value, out var hex) && hex is not null;
+
+    private string NativePickerValue =>
+        HasValue && ColorPickerPresets.TryNormalize(Value, out var hex) && hex is not null
+            ? hex
+            : ColorPickerPresets.Default;
+
+    private bool IsCustomSelected =>
+        HasValue
+        && ColorPickerPresets.TryNormalize(Value, out var hex)
+        && hex is not null
+        && !ColorPickerPresets.IsPreset(hex);
+
+    private string? CustomSwatchStyle =>
+        IsCustomSelected && ColorPickerPresets.TryNormalize(Value, out var hex) && hex is not null
+            ? $"--ui-color-picker-swatch: {hex}"
+            : null;
+
+    protected override void OnParametersSet()
+    {
+        _hexDraft = HasValue && ColorPickerPresets.TryNormalize(Value, out var hex) && hex is not null
+            ? hex
+            : string.Empty;
+    }
+
+    private bool IsSelected(string preset) =>
+        HasValue
+        && ColorPickerPresets.TryNormalize(Value, out var hex)
+        && string.Equals(hex, preset, StringComparison.OrdinalIgnoreCase);
+
+    private async Task SelectAsync(string color)
+    {
+        if (Disabled)
+        {
+            return;
+        }
+
+        _hexDraft = color;
+        await ValueChanged.InvokeAsync(color);
+    }
+
+    private async Task ClearAsync()
+    {
+        if (Disabled)
+        {
+            return;
+        }
+
+        _hexDraft = string.Empty;
+        await ValueChanged.InvokeAsync(null);
+    }
+
+    private async Task OnNativeColorChanged(ChangeEventArgs e)
+    {
+        if (Disabled || e.Value is not string raw)
+        {
+            return;
+        }
+
+        if (!ColorPickerPresets.TryNormalize(raw, out var hex) || hex is null)
+        {
+            return;
+        }
+
+        _hexDraft = hex;
+        await ValueChanged.InvokeAsync(hex);
+    }
+
+    private void OnHexInput(ChangeEventArgs e) => _hexDraft = e.Value?.ToString() ?? string.Empty;
+
+    private async Task CommitHexDraftAsync()
+    {
+        if (Disabled)
+        {
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(_hexDraft))
+        {
+            if (AllowClear)
+            {
+                await ValueChanged.InvokeAsync(null);
+            }
+
+            return;
+        }
+
+        if (!ColorPickerPresets.TryNormalize(_hexDraft, out var hex))
+        {
+            _hexDraft = HasValue && ColorPickerPresets.TryNormalize(Value, out var current) && current is not null
+                ? current
+                : string.Empty;
+            return;
+        }
+
+        _hexDraft = hex!;
+        await ValueChanged.InvokeAsync(hex);
+    }
+}

@@ -73,11 +73,15 @@ else
             <div class="settings-editor-form">
                 <div class="settings-field">
                     <label class="settings-label" for="bucket-name">Name</label>
-                    <input id="bucket-name" class="settings-input" maxlength="128" @bind="_form.Name" disabled="@IsFormBusy" />
+                    <input id="bucket-name"
+                           class="settings-input"
+                           maxlength="128"
+                           @bind="_form.Name"
+                           disabled="@IsFormBusy" />
                 </div>
                 <div class="settings-field">
                     <label class="settings-label" for="bucket-color">Color <span class="settings-label-optional">(optional)</span></label>
-                    <input id="bucket-color" type="color" class="settings-input" @bind="_form.Color" disabled="@IsFormBusy" />
+                    <ColorPicker Id="bucket-color" @bind-Value="_form.Color" Disabled="@IsFormBusy" />
                 </div>
                 <div class="settings-provider-extras">
                     <p class="settings-label">@EntityContextFieldCopy.SectionTitle</p>
@@ -125,7 +129,7 @@ else
 }
 
 @code {
-    private const string DefaultColor = "#6366f1";
+    private const string DefaultColor = ColorPickerPresets.Default;
 
     private TabBusy _busy = TabBusy.Loading;
     private bool _saving;
@@ -227,9 +231,9 @@ else
         public string? Context { get; set; }
 
         public string EffectiveAlias =>
-            string.IsNullOrWhiteSpace(Alias) ? Name.Trim().ToLowerInvariant() : Alias.Trim();
+            EntityAliasPreview.FromNameOrAlias(Alias, Name, "bucket");
 
-        public bool CanPreviewEntityRef => !string.IsNullOrWhiteSpace(EffectiveAlias);
+        public bool CanPreviewEntityRef => !string.IsNullOrWhiteSpace(Name) || !string.IsNullOrWhiteSpace(Alias);
 
         public static BucketForm FromDto(BucketDto dto) => new()
         {

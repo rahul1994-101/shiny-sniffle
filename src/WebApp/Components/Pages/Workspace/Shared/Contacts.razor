@@ -462,8 +462,10 @@ else
         /// <summary>Alias entered in the form, or slug preview when blank.</summary>
         public string EffectiveAlias =>
             !string.IsNullOrWhiteSpace(Alias)
-                ? Alias.Trim()
-                : ContactAliases.StemFromName(FirstName, LastName);
+                ? EntityAliasPreview.FromNameOrAlias(Alias, string.Empty, "contact")
+                : string.IsNullOrWhiteSpace(FirstName)
+                    ? string.Empty
+                    : ContactAliases.StemFromName(FirstName, LastName);
 
         public bool CanPreviewEntityRef =>
             !string.IsNullOrWhiteSpace(Alias) || !string.IsNullOrWhiteSpace(FirstName);

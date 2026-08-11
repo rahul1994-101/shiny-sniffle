@@ -698,7 +698,7 @@ else
 
         public string EffectiveAlias =>
             !string.IsNullOrWhiteSpace(Alias)
-                ? Alias.Trim()
+                ? EntityAliasPreview.FromNameOrAlias(Alias, string.Empty, "mailbox")
                 : EmailAccountAliases.StemFromEmailAddress(EmailAddress);
 
         public bool CanPreviewEntityRef =>
