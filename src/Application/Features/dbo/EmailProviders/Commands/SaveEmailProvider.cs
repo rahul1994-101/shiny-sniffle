@@ -43,13 +43,10 @@ public sealed class SaveEmailProviderRequestHandler(EmailProviderRepository emai
             return result;
         }
 
-        if (await emailProviderRepo.IsSlugTakenAsync(dto.Slug, dto.Id, cancellationToken))
-        {
-            result.Failure(ErrorCode.BadRequest, "Slug is already in use.");
-            return result;
-        }
-
-        var (saved, notFound, blockedSystem) = await emailProviderRepo.SaveAsync(dto, request.UserId, cancellationToken);
+        var (saved, error, notFound, blockedSystem) = await emailProviderRepo.SaveAsync(
+            dto,
+            request.UserId,
+            cancellationToken);
 
         #endregion
 
@@ -62,6 +59,10 @@ public sealed class SaveEmailProviderRequestHandler(EmailProviderRepository emai
         else if (blockedSystem)
         {
             result.Failure(ErrorCode.BadRequest, "System providers cannot be modified.");
+        }
+        else if (error is not null)
+        {
+            result.Failure(ErrorCode.BadRequest, error);
         }
         else if (saved is null)
         {

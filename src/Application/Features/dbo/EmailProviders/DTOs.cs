@@ -22,10 +22,6 @@ public class EmailProviderDto
 
     public string? SetupHelpUrl { get; init; }
 
-    public string? Color { get; init; }
-
-    public string? Note { get; init; }
-
     public int SortOrder { get; init; }
 
     public bool IsSystem { get; init; }
@@ -42,8 +38,6 @@ public class EmailProviderDto
         SmtpPort = SmtpPort,
         SmtpUseSsl = SmtpUseSsl,
         SetupHelpUrl = SetupHelpUrl,
-        Color = Color,
-        Note = Note,
         SortOrder = SortOrder,
         IsSystem = IsSystem
     };
@@ -70,10 +64,6 @@ public sealed class SaveEmailProviderDto
     public bool SmtpUseSsl { get; init; } = true;
 
     public string? SetupHelpUrl { get; init; }
-
-    public string? Color { get; init; }
-
-    public string? Note { get; init; }
 
     public int SortOrder { get; init; }
 }

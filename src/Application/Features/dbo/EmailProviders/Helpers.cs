@@ -17,8 +17,6 @@ internal static partial class EmailProviderMapping
         SmtpPort = entity.SmtpPort,
         SmtpUseSsl = entity.SmtpUseSsl,
         SetupHelpUrl = entity.SetupHelpUrl,
-        Color = entity.Color,
-        Note = entity.Note,
         SortOrder = entity.SortOrder,
         IsSystem = entity.IsSystem
     };
@@ -30,6 +28,20 @@ internal static partial class EmailProviderMapping
             return "Name is required.";
         }
 
-        return CatalogFieldRules.ValidateSlug(dto.Slug, required: true);
+        return CatalogFieldRules.ValidateSlug(dto.Slug, required: false);
     }
+
+    internal static async Task<string> ResolveSlugAsync(
+        Func<string, Guid?, CancellationToken, Task<bool>> isTakenAsync,
+        string displayName,
+        string? requestedSlug,
+        Guid? excludeId,
+        CancellationToken cancellationToken) =>
+        await WorkspaceErAliasResolver.ResolveAsync(
+            isTakenAsync,
+            displayName,
+            requestedSlug,
+            excludeId,
+            "provider",
+            cancellationToken);
 }

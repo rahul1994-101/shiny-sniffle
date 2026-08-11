@@ -1,3 +1,4 @@
+using Application.Features.Shared;
 using Infrastructure.Persistence;
 using Infrastructure.Persistence.dbo;
 using Microsoft.EntityFrameworkCore;
@@ -29,14 +30,27 @@ public sealed class EmailProviderRepository(IDbContextFactory<AppDbContext> _dbC
         return entity is null ? null : EmailProviderMapping.FromEntity(entity);
     }
 
-    public async Task<(EmailProviderDto? Saved, bool NotFound, bool BlockedSystem)> SaveAsync(
+    public async Task<(EmailProviderDto? Saved, string? Error, bool NotFound, bool BlockedSystem)> SaveAsync(
         SaveEmailProviderDto dto,
         Guid userId,
         CancellationToken cancellationToken = default)
     {
         await using var ctx = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
-        var slug = dto.Slug.Trim().ToLowerInvariant();
+        var name = dto.Name.Trim();
         var now = DateTime.UtcNow;
+
+        var slug = await EmailProviderMapping.ResolveSlugAsync(
+            (candidate, excludeId, ct) => IsSlugTakenAsync(ctx, candidate, excludeId, ct),
+            name,
+            dto.Slug,
+            dto.Id,
+            cancellationToken);
+
+        if (await IsSlugTakenAsync(ctx, slug, dto.Id, cancellationToken))
+        {
+            return (null, "Slug is already in use.", false, false);
+        }
+
         EmailProvider entity;
 
         if (dto.Id is { } id)
@@ -44,16 +58,16 @@ public sealed class EmailProviderRepository(IDbContextFactory<AppDbContext> _dbC
             var existing = await ctx.EmailProviders.FirstOrDefaultAsync(x => x.Id == id && !x.IsDeleted, cancellationToken);
             if (existing is null)
             {
-                return (null, true, false);
+                return (null, null, true, false);
             }
 
             if (existing.IsSystem)
             {
-                return (null, false, true);
+                return (null, null, false, true);
             }
 
             entity = existing;
-            entity.Name = dto.Name.Trim();
+            entity.Name = name;
             entity.Slug = slug;
             entity.ImapHost = dto.ImapHost.Trim();
             entity.ImapPort = dto.ImapPort;
@@ -62,8 +76,6 @@ public sealed class EmailProviderRepository(IDbContextFactory<AppDbContext> _dbC
             entity.SmtpPort = dto.SmtpPort;
             entity.SmtpUseSsl = dto.SmtpUseSsl;
             entity.SetupHelpUrl = string.IsNullOrWhiteSpace(dto.SetupHelpUrl) ? null : dto.SetupHelpUrl.Trim();
-            entity.Color = CatalogFieldRules.NormalizeColor(dto.Color);
-            entity.Note = CatalogFieldRules.NormalizeNote(dto.Note);
             entity.SortOrder = dto.SortOrder;
             entity.UpdatedBy = userId;
             entity.UpdatedAt = now;
@@ -72,7 +84,7 @@ public sealed class EmailProviderRepository(IDbContextFactory<AppDbContext> _dbC
         {
             entity = new EmailProvider
             {
-                Name = dto.Name.Trim(),
+                Name = name,
                 Slug = slug,
                 ImapHost = dto.ImapHost.Trim(),
                 ImapPort = dto.ImapPort,
@@ -81,8 +93,6 @@ public sealed class EmailProviderRepository(IDbContextFactory<AppDbContext> _dbC
                 SmtpPort = dto.SmtpPort,
                 SmtpUseSsl = dto.SmtpUseSsl,
                 SetupHelpUrl = string.IsNullOrWhiteSpace(dto.SetupHelpUrl) ? null : dto.SetupHelpUrl.Trim(),
-                Color = CatalogFieldRules.NormalizeColor(dto.Color),
-                Note = CatalogFieldRules.NormalizeNote(dto.Note),
                 SortOrder = dto.SortOrder,
                 IsSystem = false,
                 CreatedBy = userId,
@@ -94,7 +104,7 @@ public sealed class EmailProviderRepository(IDbContextFactory<AppDbContext> _dbC
         }
 
         await ctx.SaveChangesAsync(cancellationToken);
-        return (EmailProviderMapping.FromEntity(entity), false, false);
+        return (EmailProviderMapping.FromEntity(entity), null, false, false);
     }
 
     public async Task<(bool Found, bool Blocked)> TrySoftDeleteAsync(Guid id, Guid userId, CancellationToken cancellationToken = default)
@@ -121,10 +131,16 @@ public sealed class EmailProviderRepository(IDbContextFactory<AppDbContext> _dbC
 
     public async Task<bool> IsSlugTakenAsync(string slug, Guid? excludeId, CancellationToken cancellationToken = default)
     {
-        var normalized = slug.Trim().ToLowerInvariant();
         await using var ctx = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
-        return await ctx.EmailProviders.AnyAsync(
-            x => x.Slug == normalized && !x.IsDeleted && x.Id != excludeId,
-            cancellationToken);
+        return await IsSlugTakenAsync(ctx, CatalogFieldRules.NormalizeSlug(slug), excludeId, cancellationToken);
     }
+
+    private static Task<bool> IsSlugTakenAsync(
+        AppDbContext ctx,
+        string slug,
+        Guid? excludeId,
+        CancellationToken cancellationToken) =>
+        ctx.EmailProviders.AnyAsync(
+            x => x.Slug == slug && !x.IsDeleted && x.Id != excludeId,
+            cancellationToken);
 }

@@ -54,13 +54,7 @@ else
                         <div class="ui-group-row ui-group-row-static ui-list-row-rich @(rowActive ? "settings-editor-row-active" : null)">
                             <div class="ui-list-row-rich-body">
                                 <span class="ui-list-row-meta">
-                                    <span class="ui-group-row-title" title="@provider.Note">
-                                        @if (!string.IsNullOrWhiteSpace(provider.Color))
-                                        {
-                                            <span class="ui-catalog-swatch" style="background-color: @provider.Color"></span>
-                                        }
-                                        @provider.Name
-                                    </span>
+                                    <span class="ui-group-row-title">@provider.Name</span>
                                     @if (provider.IsSystem)
                                     {
                                         <span class="ui-list-row-badge">System</span>
@@ -155,8 +149,7 @@ else
     private bool CanSaveEditor =>
         !IsFormBusy
         && !_editorReadOnly
-        && !string.IsNullOrWhiteSpace(_form.Name)
-        && !string.IsNullOrWhiteSpace(_form.Slug);
+        && !string.IsNullOrWhiteSpace(_form.Name);
 
     private string EditorTitle =>
         _form.Id is null
@@ -196,20 +189,11 @@ else
             </div>
             <div class="settings-field">
                 <label class="settings-label" for="ep-slug">@CatalogFieldCopy.SlugLabel</label>
-                <input id="ep-slug" type="text" class="settings-input" @bind="_form.Slug" disabled="@IsFieldDisabled" autocomplete="off" />
+                <input id="ep-slug" type="text" class="settings-input" @bind="_form.Slug" disabled="@IsFieldDisabled" autocomplete="off" placeholder="Auto from name" />
                 @if (!_editorReadOnly)
                 {
                     <p class="settings-hint">@CatalogFieldCopy.SlugHint</p>
                 }
-            </div>
-            <div class="settings-field">
-                <label class="settings-label" for="ep-color">@CatalogFieldCopy.ColorLabel <span class="settings-label-optional">(optional)</span></label>
-                <input id="ep-color" type="color" class="settings-input" @bind="_form.Color" disabled="@IsFieldDisabled" />
-            </div>
-            <div class="settings-field">
-                <label class="settings-label" for="ep-note">@CatalogFieldCopy.NoteLabel <span class="settings-label-optional">(optional)</span></label>
-                <textarea id="ep-note" class="settings-input" rows="2" maxlength="256" @bind="_form.Note" disabled="@IsFieldDisabled"></textarea>
-                <p class="settings-hint">@CatalogFieldCopy.NoteHint</p>
             </div>
             <div class="settings-mail-server">
                 <div class="settings-endpoint-row">
@@ -325,7 +309,7 @@ else
     {
         _status.Clear();
         _editorReadOnly = false;
-        _form = new ProviderForm { SortOrder = NextSortOrder(), Color = CatalogFieldCopy.DefaultColor };
+        _form = new ProviderForm { SortOrder = NextSortOrder() };
         _editorOpen = true;
     }
 
@@ -416,10 +400,6 @@ else
 
         public string Slug { get; set; } = string.Empty;
 
-        public string? Color { get; set; }
-
-        public string? Note { get; set; }
-
         public string ImapHost { get; set; } = string.Empty;
 
         public int ImapPort { get; set; } = 993;
@@ -443,8 +423,6 @@ else
             Id = dto.Id,
             Name = dto.Name,
             Slug = dto.Slug,
-            Color = dto.Color ?? CatalogFieldCopy.DefaultColor,
-            Note = dto.Note,
             ImapHost = dto.ImapHost,
             ImapPort = dto.ImapPort,
             ImapUseSsl = dto.ImapUseSsl,
@@ -460,9 +438,7 @@ else
         {
             Id = Id,
             Name = Name,
-            Slug = Slug,
-            Color = Color,
-            Note = string.IsNullOrWhiteSpace(Note) ? null : Note.Trim(),
+            Slug = string.IsNullOrWhiteSpace(Slug) ? string.Empty : Slug.Trim(),
             ImapHost = ImapHost,
             ImapPort = ImapPort,
             ImapUseSsl = ImapUseSsl,

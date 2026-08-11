@@ -141,10 +141,48 @@ John shows **many buckets and many tags** on one person—work and social overla
 - **Soft-delete an ER** (contact, mailbox, tag, or bucket): remove junction rows where applicable; definitions remain unless the row itself is deleted.
 - **Rename** display name: UI uses the new name; **alias** (and handles) are unchanged unless the user edits alias.
 
+#### Alias vs slug (two layers)
+
+| Layer | Table / schema | Stable key | AI handles | Purpose |
+|-------|----------------|------------|------------|---------|
+| **Workspace ER** | `workspace.*` (Contact, EmailAccount, Tag, Bucket) | **`alias`** | yes — `{kind}:{alias}` | User-owned things agents and rules point at |
+| **Catalog** | `dbo.EmailProvider` (and similar) | **`slug`** | no | Infra/templates (IMAP/SMTP presets); not workspace referables |
+
+- **`name`** (ER) = display label — rename freely in UI.
+- **`alias`** (ER) = stable handle — like `@username`; auto-generated from name when blank on save; unique per user per kind.
+- **`context`** (ER) = optional facts for UI and agent prompts.
+- **Catalog** rows use **`name`**, **`slug`**, and **`sortOrder`**.
+- Do **not** add a separate **`slug`** column on Tag/Bucket; **`alias` already is the machine key.**
+
+Engineering: `EntityRefs.Format` / `EntityRefs.TryParse` at boundaries; DB column is always `alias` on workspace ERs.
+
+#### Mention syntax — future UI (not v1)
+
+Social-style typing **on top of** existing handles — no extra DB columns.
+
+| User types (draft) | Resolves to | Notes |
+|--------------------|-------------|--------|
+| `@sarah` | `contact:sarah` | Autocomplete contacts (and optionally other ER kinds) |
+| `@work` | `mailbox:work` | Mailbox / connected inbox |
+| `#marketing` or `@marketing` | `tag:marketing` | **`#`** optional hashtag affordance for tags |
+| `@xyz-inc` | `bucket:xyz-inc` | Named group |
+
+**Autocomplete:** as the user types `@…` or `#…`, show matches on **alias** and **name** across workspace ERs (kind badge + display name). On pick, store/canonicalize to **`{kind}:{alias}`** in prompts, rules, and tool args — not the free-form display name.
+
+**Rules for implementers:**
+
+1. **AI, tools, and rules** use **`kind:alias`** only (rename-safe).
+2. **UI** shows **name**; chips/tooltips may show handle (e.g. `tag:marketing`).
+3. **Tag/bucket assignment** on contacts/mailboxes stays **picker-based** (dictionary rows), not free-text at assign time.
+4. **Triage suggestions** on mail: suggest → user confirms; do not auto-create tag/bucket defs from model output without explicit user action.
+5. **Catalog `slug`** (e.g. `gmail`) stays in provider/mailbox config — never mixed into `@`/`#` ER mention resolution.
+
+**Out of scope until mention UI lands:** chat composer `@`/`#` picker, rule builder token insertion, resolving mentions in stored prompt templates.
+
 #### Relation to mail triage
 
 - v1 implements tags/buckets on **contacts and mailboxes** first.
-- Triage **suggestions** on mail reuse the same tag **names** once message-level assignment exists; until then, triage output can reference ERs and buckets already in workspace.
+- Triage **suggestions** on mail reuse the same tag **aliases** (handles) once message-level assignment exists; until then, triage output can reference ERs and buckets already in workspace.
 
 ---
 
@@ -286,4 +324,4 @@ For technical work, use **`docs/README.md`** and the engineering roadmaps listed
 
 ---
 
-*Last updated: §5.5 example (contacts, buckets, tags).*
+*Last updated: §5.5 alias/slug layers + future @/# mention syntax.*

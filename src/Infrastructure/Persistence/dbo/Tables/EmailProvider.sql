@@ -25,8 +25,6 @@ CREATE TABLE [dbo].[EmailProvider] (
     [smtpPort]                              INT NOT NULL DEFAULT 587,                  -- SMTP port
     [smtpUseSsl]                            BIT DEFAULT 1,                             -- Use SSL/TLS for SMTP
     [setupHelpUrl]                          NVARCHAR(500) NULL,                        -- Optional link to provider setup docs
-    [color]                                 NVARCHAR(9) NULL,                          -- Optional UI color (e.g. #RRGGBB)
-    [note]                                  NVARCHAR(256) NULL,                        -- Optional tooltip hint (UI only)
     [sortOrder]                             INT NOT NULL DEFAULT 0,                    -- List order in UI
     [isSystem]                              BIT DEFAULT 0,                             -- Seeded catalog row; app blocks delete
 

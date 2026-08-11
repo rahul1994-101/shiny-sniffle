@@ -2,7 +2,7 @@ namespace Infrastructure.Persistence.dbo;
 
 /// <summary>
 /// Row in <c>dbo.EmailProvider</c> — IMAP/SMTP catalog for Settings → Email providers.
-/// Not the same as <see cref="EmailProviderPreset"/> on <see cref="EmailSettings"/> (runtime mail config).
+/// Not the same as <see cref="EmailProviderPreset"/> on runtime mail config DTOs.
 /// </summary>
 public class EmailProvider : BaseAuditableEntity
 {
@@ -24,12 +24,6 @@ public class EmailProvider : BaseAuditableEntity
     public bool SmtpUseSsl { get; set; } = true;
 
     public string? SetupHelpUrl { get; set; }
-
-    /// <summary>UI-only (e.g. #RRGGBB).</summary>
-    public string? Color { get; set; }
-
-    /// <summary>UI-only tooltip hint.</summary>
-    public string? Note { get; set; }
 
     public int SortOrder { get; set; }
 
