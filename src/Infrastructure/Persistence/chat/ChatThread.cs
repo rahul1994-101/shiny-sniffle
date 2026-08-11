@@ -6,7 +6,7 @@ public class ChatThread : BaseAuditableEntity
 
     public string Title { get; set; } = string.Empty;
 
-    public ChatAgent ChatAgent { get; set; }
+    public ChatThreadAgent ChatAgent { get; set; }
 
     /// <summary>Rolling summary of messages outside the short-term window.</summary>
     public string? MemorySummary { get; set; }

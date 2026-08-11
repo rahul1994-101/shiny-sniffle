@@ -44,7 +44,7 @@ public sealed class ChatThreadRepository(IDbContextFactory<AppDbContext> _dbCont
             return null;
         }
 
-        entity.ChatAgent = chatAgent;
+        entity.ChatAgent = ChatAgentHelpers.ToPersistence(chatAgent);
         entity.UpdatedBy = updatedBy;
         entity.UpdatedAt = DateTime.UtcNow;
         await ctx.SaveChangesAsync(cancellationToken);

@@ -1,20 +1,5 @@
 @inherits BaseComponent
 
-@using Application.Features.workspace.EmailAccounts
-@using Application.Features.workspace.EmailAccounts.Commands
-@using Application.Features.workspace.EmailAccounts.Queries
-@using Application.Features.dbo.EmailProviders
-@using Application.Features.dbo.EmailProviders.Queries
-@using Application.Features.Shared
-@using WebApp.Components.Pages.Settings
-@using WebApp.Components.Pages.Settings.Shared
-@using WebApp.Components.Shared
-@using WebApp.Components.Pages.Workspace.Shared
-@using Application.Features.workspace.Tags
-@using Application.Features.workspace.Tags.Queries
-@using Application.Features.workspace.Buckets
-@using Application.Features.workspace.Buckets.Queries
-
 @implements IDisposable
 
 @if (_busy == TabBusy.Loading)
@@ -413,6 +398,8 @@ else
 
     public void Dispose() => _status.Dispose();
 
+    #region # Load
+
     private async Task LoadAsync()
     {
         _busy = TabBusy.Loading;
@@ -467,6 +454,8 @@ else
         _busy = TabBusy.None;
     }
 
+    #endregion
+
     private static string FormatAccountTaxonomy(EmailAccountSummaryDto account)
     {
         var parts = new List<string>();
@@ -482,6 +471,8 @@ else
 
         return string.Join(" · ", parts);
     }
+
+    #region # Editor
 
     private void BeginAdd()
     {
@@ -638,6 +629,10 @@ else
             await LoadAsync();
         }
     }
+
+    #endregion
+
+    #region # Helpers
 
     private void CaptureFormBaseline() => _formBaseline = _form.CloneForBaseline();
 
@@ -812,4 +807,6 @@ else
         None,
         Loading
     }
+
+    #endregion
 }

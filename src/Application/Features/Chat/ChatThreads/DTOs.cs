@@ -16,7 +16,7 @@ public class ChatThreadDto
         Id = thread.Id,
         Title = thread.Title,
         UserId = thread.UserId,
-        ChatAgent = thread.ChatAgent,
+        ChatAgent = ChatAgentHelpers.ToModel(thread.ChatAgent),
         CreatedAt = thread.CreatedAt,
         UpdatedAt = thread.UpdatedAt
     };

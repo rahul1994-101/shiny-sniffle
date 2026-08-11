@@ -2,9 +2,6 @@
 @page "/automations"
 @inherits BaseComponent
 
-@using WebApp.Components.Pages.Settings.Shared
-@inject NavigationManager Navigation
-
 @attribute [Authorize]
 
 <PageTitle>Workflows</PageTitle>
@@ -25,10 +22,10 @@
 @code {
     protected override void OnInitialized()
     {
-        var path = Navigation.ToBaseRelativePath(Navigation.Uri);
+        var path = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
         if (path.StartsWith("automations", StringComparison.OrdinalIgnoreCase))
         {
-            Navigation.NavigateTo("/workflows", replace: true);
+            NavigationManager.NavigateTo("/workflows", replace: true);
         }
     }
 }

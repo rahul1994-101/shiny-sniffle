@@ -1,12 +1,5 @@
 @inherits BaseComponent
 
-@using WebApp.Components.Pages.Settings
-@using WebApp.Components.Pages.Settings.Shared
-@using Application.Features.Shared
-@using Application.Features.workspace.Buckets
-@using Application.Features.workspace.Buckets.Commands
-@using Application.Features.workspace.Buckets.Queries
-
 @if (_busy == TabBusy.Loading)
 {
     <div class="settings-loading" role="status" aria-busy="true"><div class="settings-skeleton settings-skeleton-card"></div></div>
@@ -113,6 +106,8 @@ else
         await LoadAsync();
     }
 
+    #region # Load
+
     private async Task LoadAsync()
     {
         _busy = TabBusy.Loading;
@@ -125,6 +120,10 @@ else
 
         _busy = TabBusy.None;
     }
+
+    #endregion
+
+    #region # Editor
 
     private void BeginAdd()
     {
@@ -185,6 +184,10 @@ else
         _deleting = false;
     }
 
+    #endregion
+
+    #region # Helpers
+
     private sealed class BucketForm
     {
         public Guid? Id { get; set; }
@@ -218,4 +221,6 @@ else
     }
 
     private enum TabBusy { None, Loading }
+
+    #endregion
 }

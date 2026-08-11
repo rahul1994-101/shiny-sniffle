@@ -1,18 +1,5 @@
 @inherits BaseComponent
 
-@using WebApp.Components.Shared
-@using Application.Features.Shared
-@using Application.Features.workspace.Contacts
-@using Application.Features.workspace.Contacts.Commands
-@using Application.Features.workspace.Contacts.Queries
-@using Application.Features.workspace.Tags
-@using Application.Features.workspace.Tags.Queries
-@using Application.Features.workspace.Buckets
-@using Application.Features.workspace.Buckets.Queries
-@using WebApp.Components.Pages.Workspace.Shared
-@using WebApp.Components.Pages.Settings
-@using WebApp.Components.Pages.Settings.Shared
-
 @if (_busy == TabBusy.Loading)
 {
     <div class="settings-loading" role="status" aria-busy="true" aria-label="Loading contacts">
@@ -314,6 +301,8 @@ else
         return Task.CompletedTask;
     }
 
+    #region # Load
+
     private async Task LoadAsync()
     {
         _busy = TabBusy.Loading;
@@ -353,6 +342,10 @@ else
 
         _busy = TabBusy.None;
     }
+
+    #endregion
+
+    #region # Editor
 
     private void BeginAdd()
     {
@@ -446,6 +439,10 @@ else
 
         _deleting = false;
     }
+
+    #endregion
+
+    #region # Helpers
 
     private sealed class ContactForm
     {
@@ -563,4 +560,6 @@ else
         None,
         Loading
     }
+
+    #endregion
 }

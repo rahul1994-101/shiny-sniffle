@@ -2,11 +2,6 @@
 
 @inject IHttpContextAccessor HttpContextAccessor
 
-@using WebApp.Components.Pages.Settings
-@using WebApp.Utilities.Helpers
-
-@implements IDisposable
-
 @if (_busy == TabBusy.Loading)
 {
     <div class="settings-loading" role="status" aria-busy="true" aria-label="Loading account settings">

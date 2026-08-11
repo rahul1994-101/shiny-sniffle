@@ -11,4 +11,8 @@ public static class ChatAgentHelpers
         };
 
     public static IReadOnlyList<ChatAgent> All { get; } = Enum.GetValues<ChatAgent>().ToArray();
+
+    internal static ChatAgent ToModel(ChatThreadAgent agent) => (ChatAgent)(int)agent;
+
+    internal static ChatThreadAgent ToPersistence(ChatAgent agent) => (ChatThreadAgent)(int)agent;
 }

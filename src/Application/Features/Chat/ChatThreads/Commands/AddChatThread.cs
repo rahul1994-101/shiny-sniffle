@@ -40,7 +40,7 @@ public sealed class AddChatThreadRequestHandler(IDbContextFactory<AppDbContext> 
         {
             Title = request.Title,
             UserId = request.UserId,
-            ChatAgent = request.ChatAgent,
+            ChatAgent = ChatAgentHelpers.ToPersistence(request.ChatAgent),
             CreatedBy = request.UserId,
             UpdatedBy = request.UserId
         };

@@ -2,9 +2,9 @@ namespace Infrastructure.Persistence.Shared;
 
 /// <summary>
 /// Chat thread agent selection. Stored on <see cref="ChatThread.ChatAgent"/> (not a lookup table).
-/// <see cref="Assistant"/> is 0 — the default for new instances, <c>default(ChatAgent)</c>, and the DB column default.
+/// <see cref="Assistant"/> is 0 — the default for new instances, <c>default(ChatThreadAgent)</c>, and the DB column default.
 /// </summary>
-public enum ChatAgent
+public enum ChatThreadAgent
 {
     /// <summary>Default assistant for new threads.</summary>
     Assistant = 0,
