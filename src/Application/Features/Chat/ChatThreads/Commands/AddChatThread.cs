@@ -1,6 +1,5 @@
 using FluentValidation;
 using Infrastructure.Persistence;
-using Infrastructure.Persistence.chat;
 using Microsoft.EntityFrameworkCore;
 
 namespace Application.Features.chat.ChatThreads.Commands;

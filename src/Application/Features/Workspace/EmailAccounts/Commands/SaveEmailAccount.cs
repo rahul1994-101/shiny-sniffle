@@ -1,5 +1,6 @@
 using Application.Features.dbo.EmailProviders;
 using FluentValidation;
+using Infrastructure.Mailbox;
 
 namespace Application.Features.workspace.EmailAccounts.Commands;
 

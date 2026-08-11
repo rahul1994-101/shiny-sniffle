@@ -3,6 +3,7 @@ using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Options;
 using Application.Features.chat.ChatMessages;
 using Application.Features.chat.ChatThreads;
+using Infrastructure.Foundry;
 using AiChatMessage = Microsoft.Extensions.AI.ChatMessage;
 using AiChatRole = Microsoft.Extensions.AI.ChatRole;
 

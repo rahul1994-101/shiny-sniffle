@@ -1,8 +1,5 @@
 namespace Application.Features.workspace.Contacts;
 
-using Application.Features.Shared;
-using Infrastructure.Persistence.Shared;
-
 public sealed class ContactSummaryDto
 {
     public Guid Id { get; init; }

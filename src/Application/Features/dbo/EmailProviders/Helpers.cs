@@ -1,7 +1,5 @@
-using Application.Features.Shared;
 using Application.Features.workspace.EmailAccounts;
-using Infrastructure.Persistence.dbo;
-using Infrastructure.Persistence.Shared;
+using Infrastructure.Mailbox;
 
 namespace Application.Features.dbo.EmailProviders;
 

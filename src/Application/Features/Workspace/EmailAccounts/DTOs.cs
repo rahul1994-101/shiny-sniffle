@@ -1,7 +1,5 @@
 namespace Application.Features.workspace.EmailAccounts;
 
-using Application.Features.Shared;
-
 public sealed class EmailAccountSummaryDto
 {
     public Guid Id { get; init; }

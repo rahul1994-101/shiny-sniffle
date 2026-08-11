@@ -1,5 +1,3 @@
-using Infrastructure.Persistence.dbo;
-
 namespace Application.Features.dbo.Users;
 
 public class SessionDto

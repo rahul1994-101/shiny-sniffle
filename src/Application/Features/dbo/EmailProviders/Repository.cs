@@ -1,6 +1,6 @@
-using Application.Features.Shared;
+using Application.Features.dbo.EmailProviders;
+using Application.Utilities.Extensions;
 using Infrastructure.Persistence;
-using Infrastructure.Persistence.dbo;
 using Microsoft.EntityFrameworkCore;
 
 namespace Application.Features.dbo.EmailProviders;

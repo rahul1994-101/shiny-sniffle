@@ -1,6 +1,8 @@
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
 using Application.AI.Tools;
+using Infrastructure.Foundry;
+using Infrastructure.Mailbox;
 
 namespace Application.AI.Agents;
 

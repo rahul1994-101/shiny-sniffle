@@ -1,7 +1,5 @@
 namespace Application.Features.workspace.Tags;
 
-using Application.Features.Shared;
-
 public class TagDto
 {
     public Guid Id { get; init; }

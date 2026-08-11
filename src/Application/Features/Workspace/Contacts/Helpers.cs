@@ -1,6 +1,3 @@
-using Application.Features.Shared;
-using Infrastructure.Persistence.workspace;
-
 namespace Application.Features.workspace.Contacts;
 
 internal static class ContactMapping

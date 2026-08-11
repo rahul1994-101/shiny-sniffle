@@ -1,5 +1,3 @@
-using Infrastructure.Persistence.dbo;
-
 namespace Application.Features.dbo.UserSettings;
 
 public class GeneralSettingsDto

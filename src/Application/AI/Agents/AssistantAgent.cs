@@ -1,5 +1,6 @@
 using Microsoft.Agents.AI;
 using System.Text;
+using Infrastructure.Foundry;
 
 namespace Application.AI.Agents;
 
