@@ -2,6 +2,7 @@
 
 @using WebApp.Components.Pages.Settings
 @using WebApp.Components.Pages.Settings.Shared
+@using Application.Features.Shared
 @using Application.Features.workspace.Tags
 @using Application.Features.workspace.Tags.Commands
 @using Application.Features.workspace.Tags.Queries
@@ -44,13 +45,14 @@ else
                     {
                         <div class="ui-group-row ui-group-row-static ui-list-row-rich">
                             <div class="ui-list-row-rich-body">
-                                <span class="ui-group-row-title">
+                                <span class="ui-group-row-title" title="@tag.Context">
                                     @if (!string.IsNullOrWhiteSpace(tag.Color))
                                     {
-                                        <span class="ui-tag-swatch-inline" style="background-color: @tag.Color"></span>
+                                        <span class="ui-catalog-swatch" style="background-color: @tag.Color"></span>
                                     }
                                     @tag.Name
                                 </span>
+                                <span class="ui-group-row-desc">@tag.EntityRef</span>
                             </div>
                             <div class="ui-list-row-rich-actions">
                                 <button type="button" class="ui-btn ui-btn-secondary ui-btn-sm" disabled="@IsFormBusy" @onclick="() => BeginEdit(tag)">Edit</button>
@@ -77,6 +79,40 @@ else
                     <label class="settings-label" for="tag-color">Color <span class="settings-label-optional">(optional)</span></label>
                     <input id="tag-color" type="color" class="settings-input" @bind="_form.Color" disabled="@IsFormBusy" />
                 </div>
+                <div class="settings-provider-extras">
+                    <p class="settings-label">@EntityContextFieldCopy.SectionTitle</p>
+                    <div class="settings-field">
+                        <label class="settings-label" for="tag-alias">
+                            Alias <span class="settings-label-optional">@EntityAliasFieldCopy.OptionalMarker</span>
+                        </label>
+                        <input id="tag-alias"
+                               type="text"
+                               class="settings-input"
+                               maxlength="64"
+                               placeholder="@EntityAliasFieldCopy.PlaceholderAutoFromName"
+                               @bind="_form.Alias"
+                               disabled="@IsFormBusy"
+                               autocomplete="off" />
+                        @if (_form.CanPreviewEntityRef)
+                        {
+                            <p class="settings-hint">@EntityAliasFieldCopy.EntityRefLead @EntityRefs.Format(EntityRefs.Kind.Tag, _form.EffectiveAlias)</p>
+                        }
+                        else
+                        {
+                            <p class="settings-hint">@EntityAliasFieldCopy.EmptyFieldHint("name", "tags")</p>
+                        }
+                    </div>
+                    <div class="settings-field">
+                        <label class="settings-label" for="tag-context">@EntityContextFieldCopy.Label</label>
+                        <textarea id="tag-context"
+                                  class="settings-input settings-textarea"
+                                  rows="3"
+                                  maxlength="2000"
+                                  @bind="_form.Context"
+                                  disabled="@IsFormBusy"></textarea>
+                        <p class="settings-hint">@EntityContextFieldCopy.Hint</p>
+                    </div>
+                </div>
             </div>
         </EditorContent>
         <EditorFooter>
@@ -88,9 +124,9 @@ else
     </SettingsEditorHost>
 }
 
-<style>.ui-tag-swatch-inline { display:inline-block;width:.75rem;height:.75rem;border-radius:999px;margin-right:.35rem;vertical-align:middle;border:1px solid var(--ui-border,#ccc);}</style>
-
 @code {
+    private const string DefaultColor = "#6366f1";
+
     private TabBusy _busy = TabBusy.Loading;
     private bool _saving;
     private bool _deleting;
@@ -125,7 +161,7 @@ else
 
     private void BeginAdd()
     {
-        _form = new TagForm { Color = "#6366f1" };
+        _form = new TagForm { Color = DefaultColor };
         _editorOpen = true;
     }
 
@@ -186,11 +222,32 @@ else
     {
         public Guid? Id { get; set; }
         public string Name { get; set; } = string.Empty;
+        public string? Alias { get; set; }
         public string? Color { get; set; }
+        public string? Context { get; set; }
 
-        public static TagForm FromDto(TagDto dto) => new() { Id = dto.Id, Name = dto.Name, Color = dto.Color ?? "#6366f1" };
+        public string EffectiveAlias =>
+            string.IsNullOrWhiteSpace(Alias) ? Name.Trim().ToLowerInvariant() : Alias.Trim();
 
-        public SaveTagDto ToDto() => new() { Id = Id, Name = Name.Trim(), Color = Color };
+        public bool CanPreviewEntityRef => !string.IsNullOrWhiteSpace(EffectiveAlias);
+
+        public static TagForm FromDto(TagDto dto) => new()
+        {
+            Id = dto.Id,
+            Name = dto.Name,
+            Alias = dto.Alias,
+            Color = dto.Color ?? DefaultColor,
+            Context = dto.Context
+        };
+
+        public SaveTagDto ToDto() => new()
+        {
+            Id = Id,
+            Name = Name.Trim(),
+            Alias = string.IsNullOrWhiteSpace(Alias) ? null : Alias.Trim(),
+            Color = Color,
+            Context = string.IsNullOrWhiteSpace(Context) ? null : Context.Trim()
+        };
     }
 
     private enum TabBusy { None, Loading }

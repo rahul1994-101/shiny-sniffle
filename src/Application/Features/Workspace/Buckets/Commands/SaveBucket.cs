@@ -55,6 +55,9 @@ public sealed class SaveBucketRequestHandler(BucketRepository bucketRepo)
             {
                 Id = saved.Id,
                 Name = saved.Name,
+                Alias = saved.Alias,
+                Color = saved.Color,
+                Context = saved.Context,
                 SortOrder = saved.SortOrder
             });
         }

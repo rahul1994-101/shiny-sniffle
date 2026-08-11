@@ -8,11 +8,24 @@ public class TagDto
 
     public string Name { get; init; } = string.Empty;
 
+    public string Alias { get; init; } = string.Empty;
+
+    public string EntityRef => EntityRefs.Format(EntityRefs.Kind.Tag, Alias);
+
     public string? Color { get; init; }
+
+    public string? Context { get; init; }
 
     public int SortOrder { get; init; }
 
-    public TagRefDto AsRef() => new() { Id = Id, Name = Name, Color = Color };
+    public TagRefDto AsRef() => new()
+    {
+        Id = Id,
+        Name = Name,
+        Alias = Alias,
+        Color = Color,
+        Context = Context
+    };
 }
 
 public sealed class SaveTagDto
@@ -21,5 +34,9 @@ public sealed class SaveTagDto
 
     public string Name { get; init; } = string.Empty;
 
+    public string? Alias { get; init; }
+
     public string? Color { get; init; }
+
+    public string? Context { get; init; }
 }

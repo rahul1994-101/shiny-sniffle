@@ -25,6 +25,12 @@ public class EmailProvider : BaseAuditableEntity
 
     public string? SetupHelpUrl { get; set; }
 
+    /// <summary>UI-only (e.g. #RRGGBB).</summary>
+    public string? Color { get; set; }
+
+    /// <summary>UI-only tooltip hint.</summary>
+    public string? Note { get; set; }
+
     public int SortOrder { get; set; }
 
     /// <summary>When true, delete is blocked in app (seeded providers).</summary>

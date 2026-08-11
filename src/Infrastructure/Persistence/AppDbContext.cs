@@ -100,6 +100,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             entity.Property(e => e.SmtpPort).HasColumnName("smtpPort");
             entity.Property(e => e.SmtpUseSsl).HasColumnName("smtpUseSsl");
             entity.Property(e => e.SetupHelpUrl).HasColumnName("setupHelpUrl").HasMaxLength(500);
+            entity.Property(e => e.Color).HasColumnName("color").HasMaxLength(9);
+            entity.Property(e => e.Note).HasColumnName("note").HasMaxLength(256);
             entity.Property(e => e.SortOrder).HasColumnName("sortOrder");
             entity.Property(e => e.IsSystem).HasColumnName("isSystem");
             entity.Property(e => e.IsActive).HasColumnName("isActive");
@@ -185,6 +187,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             entity.Property(e => e.Name).HasColumnName("name").HasMaxLength(64);
             entity.Property(e => e.Color).HasColumnName("color").HasMaxLength(9);
             entity.Property(e => e.SortOrder).HasColumnName("sortOrder");
+            entity.Property(e => e.Alias).HasColumnName("alias").HasMaxLength(64).IsRequired();
+            entity.Property(e => e.Context).HasColumnName("context").HasMaxLength(2000);
             entity.Property(e => e.IsActive).HasColumnName("isActive");
             entity.Property(e => e.IsDeleted).HasColumnName("isDeleted");
             entity.Property(e => e.CreatedBy).HasColumnName("createdBy");
@@ -194,13 +198,21 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             entity.HasIndex(e => new { e.UserId, e.Name })
                 .IsUnique()
                 .HasFilter("[isDeleted] = 0");
+            entity.HasIndex(e => new { e.UserId, e.Alias })
+                .IsUnique()
+                .HasFilter("[isDeleted] = 0");
+            entity.HasIndex(e => new { e.UserId, e.SortOrder })
+                .HasFilter("[isDeleted] = 0");
         });
         modelBuilder.Entity<Bucket>(entity =>
         {
             entity.ToTable("Bucket", "workspace");
             entity.Property(e => e.UserId).HasColumnName("userId");
             entity.Property(e => e.Name).HasColumnName("name").HasMaxLength(128);
+            entity.Property(e => e.Color).HasColumnName("color").HasMaxLength(9);
             entity.Property(e => e.SortOrder).HasColumnName("sortOrder");
+            entity.Property(e => e.Alias).HasColumnName("alias").HasMaxLength(64).IsRequired();
+            entity.Property(e => e.Context).HasColumnName("context").HasMaxLength(2000);
             entity.Property(e => e.IsActive).HasColumnName("isActive");
             entity.Property(e => e.IsDeleted).HasColumnName("isDeleted");
             entity.Property(e => e.CreatedBy).HasColumnName("createdBy");
@@ -209,6 +221,11 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             entity.Property(e => e.UpdatedAt).HasColumnName("updatedAt");
             entity.HasIndex(e => new { e.UserId, e.Name })
                 .IsUnique()
+                .HasFilter("[isDeleted] = 0");
+            entity.HasIndex(e => new { e.UserId, e.Alias })
+                .IsUnique()
+                .HasFilter("[isDeleted] = 0");
+            entity.HasIndex(e => new { e.UserId, e.SortOrder })
                 .HasFilter("[isDeleted] = 0");
         });
         modelBuilder.Entity<TagAssignment>(entity =>

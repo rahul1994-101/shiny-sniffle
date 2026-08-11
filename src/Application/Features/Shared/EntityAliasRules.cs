@@ -15,6 +15,13 @@ public static class EntityAliasRules
     public static string? NormalizeOptional(string? value) =>
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
+    /// <summary>Slug stem from a single display label (catalog name, etc.).</summary>
+    public static string StemFromLabel(string value, string emptyFallback = "item")
+    {
+        var slug = SlugifySegment(value.Trim());
+        return slug.Length > 0 ? Truncate(slug) : emptyFallback;
+    }
+
     public static string StemFromPersonName(string firstName, string lastName)
     {
         var parts = new[] { firstName.Trim(), lastName.Trim() }

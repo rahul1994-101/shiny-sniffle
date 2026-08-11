@@ -1,14 +1,15 @@
 -- =====================================================
 -- BUCKET MEMBER TABLE
 -- =====================================================
--- Links a Bucket to a referable workspace object (contact or mailbox).
--- Rows removed when the bucket, referable object, or parent user scope is cleaned up in app.
+-- Links a Bucket to a contact or mailbox (membership target — not the bucket ER itself).
+-- Rows removed when the bucket, target, or parent user scope is cleaned up in app.
 --
 -- Business Rules:
--- - referableKind: 0 = Contact, 1 = Mailbox (ReferableKind in app)
+-- - referableKind: membership target only — 0 = Contact, 1 = Mailbox (ReferableKind in app)
+-- - Tag and Bucket rows are ERs (tag:{alias}, bucket:{alias}); this table groups contact/mailbox targets
 -- - At most one row per (bucketId, referableKind, referableId)
--- - userId matches bucket owner and referable owner (denormalized for scoped queries)
--- - Apply after workspace.Bucket
+-- - userId matches bucket owner and target owner (denormalized for scoped queries)
+-- - Apply after workspace.Bucket and workspace/Tables/Contact.sql
 -- =====================================================
 GO
 
@@ -19,8 +20,8 @@ CREATE TABLE [workspace].[BucketMember] (
 
     -- Data fields
     [bucketId]                               UNIQUEIDENTIFIER NOT NULL,                 -- FK to Bucket
-    [referableKind]                          TINYINT NOT NULL,                          -- ReferableKind: Contact = 0, Mailbox = 1
-    [referableId]                            UNIQUEIDENTIFIER NOT NULL,                 -- PK of Contact or EmailAccount
+    [referableKind]                          TINYINT NOT NULL,                          -- Membership target: Contact = 0, Mailbox = 1
+    [referableId]                            UNIQUEIDENTIFIER NOT NULL,                 -- PK of Contact or EmailAccount (target)
 
     -- Foreign keys
     CONSTRAINT [FK_BucketMember_User] FOREIGN KEY ([userId]) REFERENCES [dbo].[User] ([id]),

@@ -14,12 +14,18 @@
             @foreach (var bucket in Buckets)
             {
                 var selected = SelectedBucketIds.Contains(bucket.Id);
-                <label class="ui-group-row">
+                <label class="ui-group-row" title="@bucket.Context">
                     <input type="checkbox"
                            checked="@selected"
                            disabled="@Disabled"
                            @onchange="e => ToggleBucket(bucket.Id, e)" />
-                    <span>@bucket.Name</span>
+                    <span class="ui-catalog-label">
+                        @if (!string.IsNullOrWhiteSpace(bucket.Color))
+                        {
+                            <span class="ui-catalog-swatch" style="background-color: @bucket.Color" aria-hidden="true"></span>
+                        }
+                        @bucket.Name
+                    </span>
                 </label>
             }
         </div>
@@ -38,15 +44,15 @@
             @foreach (var tag in Tags)
             {
                 var selected = SelectedTagIds.Contains(tag.Id);
-                <label class="ui-group-row">
+                <label class="ui-group-row" title="@tag.Context">
                     <input type="checkbox"
                            checked="@selected"
                            disabled="@Disabled"
                            @onchange="e => ToggleTag(tag.Id, e)" />
-                    <span class="ui-tag-label">
+                    <span class="ui-catalog-label">
                         @if (!string.IsNullOrWhiteSpace(tag.Color))
                         {
-                            <span class="ui-tag-swatch" style="background-color: @tag.Color" aria-hidden="true"></span>
+                            <span class="ui-catalog-swatch" style="background-color: @tag.Color" aria-hidden="true"></span>
                         }
                         @tag.Name
                     </span>
@@ -57,8 +63,7 @@
 </div>
 
 <style>
-    .ui-tag-label { display: inline-flex; align-items: center; gap: 0.35rem; }
-    .ui-tag-swatch { width: 0.75rem; height: 0.75rem; border-radius: 999px; border: 1px solid var(--ui-border, #ccc); }
+    .ui-catalog-label { display: inline-flex; align-items: center; gap: 0.35rem; }
 </style>
 
 @code {

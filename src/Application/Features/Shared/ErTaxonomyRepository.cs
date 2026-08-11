@@ -47,7 +47,14 @@ public sealed class ErTaxonomyRepository
             map[group.Key] = new ErTaxonomyDto
             {
                 Tags = group
-                    .Select(x => new TagRefDto { Id = x.Tag.Id, Name = x.Tag.Name, Color = x.Tag.Color })
+                    .Select(x => new TagRefDto
+                    {
+                        Id = x.Tag.Id,
+                        Name = x.Tag.Name,
+                        Alias = x.Tag.Alias,
+                        Color = x.Tag.Color,
+                        Context = x.Tag.Context
+                    })
                     .OrderBy(x => x.Name, StringComparer.OrdinalIgnoreCase)
                     .ToList(),
                 Buckets = current.Buckets
@@ -61,7 +68,14 @@ public sealed class ErTaxonomyRepository
             {
                 Tags = current.Tags,
                 Buckets = group
-                    .Select(x => new BucketRefDto { Id = x.Bucket.Id, Name = x.Bucket.Name })
+                    .Select(x => new BucketRefDto
+                    {
+                        Id = x.Bucket.Id,
+                        Name = x.Bucket.Name,
+                        Alias = x.Bucket.Alias,
+                        Color = x.Bucket.Color,
+                        Context = x.Bucket.Context
+                    })
                     .OrderBy(x => x.Name, StringComparer.OrdinalIgnoreCase)
                     .ToList()
             };

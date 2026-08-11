@@ -1,8 +1,8 @@
 namespace Application.Features.Shared;
 
 /// <summary>
-/// Typed handles for AI, tools, and working memory — <see cref="Kind.Contact"/> and <see cref="Kind.Mailbox"/> only.
-/// Plain <c>alias</c> stays in the database; catalog rows (e.g. <c>dbo.EmailProvider.slug</c>) are not part of this scheme.
+/// Typed handles for AI, tools, and working memory.
+/// Plain <c>alias</c> stays in workspace tables; <c>dbo.EmailProvider.slug</c> is catalog-only (not part of this scheme).
 /// Use <see cref="Format"/> / <see cref="TryParse"/> at boundaries.
 /// </summary>
 public static class EntityRefs
@@ -12,7 +12,9 @@ public static class EntityRefs
     public enum Kind
     {
         Contact,
-        Mailbox
+        Mailbox,
+        Tag,
+        Bucket
     }
 
     public static string Format(Kind kind, string alias)
@@ -56,6 +58,8 @@ public static class EntityRefs
     {
         Kind.Contact => "contact",
         Kind.Mailbox => "mailbox",
+        Kind.Tag => "tag",
+        Kind.Bucket => "bucket",
         _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null)
     };
 
@@ -70,6 +74,18 @@ public static class EntityRefs
         if (prefix.Equals("mailbox", StringComparison.OrdinalIgnoreCase))
         {
             kind = Kind.Mailbox;
+            return true;
+        }
+
+        if (prefix.Equals("tag", StringComparison.OrdinalIgnoreCase))
+        {
+            kind = Kind.Tag;
+            return true;
+        }
+
+        if (prefix.Equals("bucket", StringComparison.OrdinalIgnoreCase))
+        {
+            kind = Kind.Bucket;
             return true;
         }
 

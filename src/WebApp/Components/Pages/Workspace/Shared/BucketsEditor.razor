@@ -2,6 +2,7 @@
 
 @using WebApp.Components.Pages.Settings
 @using WebApp.Components.Pages.Settings.Shared
+@using Application.Features.Shared
 @using Application.Features.workspace.Buckets
 @using Application.Features.workspace.Buckets.Commands
 @using Application.Features.workspace.Buckets.Queries
@@ -44,7 +45,14 @@ else
                     {
                         <div class="ui-group-row ui-group-row-static ui-list-row-rich">
                             <div class="ui-list-row-rich-body">
-                                <span class="ui-group-row-title">@bucket.Name</span>
+                                <span class="ui-group-row-title" title="@bucket.Context">
+                                    @if (!string.IsNullOrWhiteSpace(bucket.Color))
+                                    {
+                                        <span class="ui-catalog-swatch" style="background-color: @bucket.Color"></span>
+                                    }
+                                    @bucket.Name
+                                </span>
+                                <span class="ui-group-row-desc">@bucket.EntityRef</span>
                             </div>
                             <div class="ui-list-row-rich-actions">
                                 <button type="button" class="ui-btn ui-btn-secondary ui-btn-sm" disabled="@IsFormBusy" @onclick="() => BeginEdit(bucket)">Edit</button>
@@ -67,6 +75,44 @@ else
                     <label class="settings-label" for="bucket-name">Name</label>
                     <input id="bucket-name" class="settings-input" maxlength="128" @bind="_form.Name" disabled="@IsFormBusy" />
                 </div>
+                <div class="settings-field">
+                    <label class="settings-label" for="bucket-color">Color <span class="settings-label-optional">(optional)</span></label>
+                    <input id="bucket-color" type="color" class="settings-input" @bind="_form.Color" disabled="@IsFormBusy" />
+                </div>
+                <div class="settings-provider-extras">
+                    <p class="settings-label">@EntityContextFieldCopy.SectionTitle</p>
+                    <div class="settings-field">
+                        <label class="settings-label" for="bucket-alias">
+                            Alias <span class="settings-label-optional">@EntityAliasFieldCopy.OptionalMarker</span>
+                        </label>
+                        <input id="bucket-alias"
+                               type="text"
+                               class="settings-input"
+                               maxlength="64"
+                               placeholder="@EntityAliasFieldCopy.PlaceholderAutoFromName"
+                               @bind="_form.Alias"
+                               disabled="@IsFormBusy"
+                               autocomplete="off" />
+                        @if (_form.CanPreviewEntityRef)
+                        {
+                            <p class="settings-hint">@EntityAliasFieldCopy.EntityRefLead @EntityRefs.Format(EntityRefs.Kind.Bucket, _form.EffectiveAlias)</p>
+                        }
+                        else
+                        {
+                            <p class="settings-hint">@EntityAliasFieldCopy.EmptyFieldHint("name", "buckets")</p>
+                        }
+                    </div>
+                    <div class="settings-field">
+                        <label class="settings-label" for="bucket-context">@EntityContextFieldCopy.Label</label>
+                        <textarea id="bucket-context"
+                                  class="settings-input settings-textarea"
+                                  rows="3"
+                                  maxlength="2000"
+                                  @bind="_form.Context"
+                                  disabled="@IsFormBusy"></textarea>
+                        <p class="settings-hint">@EntityContextFieldCopy.Hint</p>
+                    </div>
+                </div>
             </div>
         </EditorContent>
         <EditorFooter>
@@ -79,6 +125,8 @@ else
 }
 
 @code {
+    private const string DefaultColor = "#6366f1";
+
     private TabBusy _busy = TabBusy.Loading;
     private bool _saving;
     private bool _deleting;
@@ -113,7 +161,7 @@ else
 
     private void BeginAdd()
     {
-        _form = new BucketForm();
+        _form = new BucketForm { Color = DefaultColor };
         _editorOpen = true;
     }
 
@@ -174,10 +222,32 @@ else
     {
         public Guid? Id { get; set; }
         public string Name { get; set; } = string.Empty;
+        public string? Alias { get; set; }
+        public string? Color { get; set; }
+        public string? Context { get; set; }
 
-        public static BucketForm FromDto(BucketDto dto) => new() { Id = dto.Id, Name = dto.Name };
+        public string EffectiveAlias =>
+            string.IsNullOrWhiteSpace(Alias) ? Name.Trim().ToLowerInvariant() : Alias.Trim();
 
-        public SaveBucketDto ToDto() => new() { Id = Id, Name = Name.Trim() };
+        public bool CanPreviewEntityRef => !string.IsNullOrWhiteSpace(EffectiveAlias);
+
+        public static BucketForm FromDto(BucketDto dto) => new()
+        {
+            Id = dto.Id,
+            Name = dto.Name,
+            Alias = dto.Alias,
+            Color = dto.Color ?? DefaultColor,
+            Context = dto.Context
+        };
+
+        public SaveBucketDto ToDto() => new()
+        {
+            Id = Id,
+            Name = Name.Trim(),
+            Alias = string.IsNullOrWhiteSpace(Alias) ? null : Alias.Trim(),
+            Color = Color,
+            Context = string.IsNullOrWhiteSpace(Context) ? null : Context.Trim()
+        };
     }
 
     private enum TabBusy { None, Loading }

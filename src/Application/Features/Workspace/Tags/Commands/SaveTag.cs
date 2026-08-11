@@ -55,7 +55,9 @@ public sealed class SaveTagRequestHandler(TagRepository tagRepo)
             {
                 Id = saved.Id,
                 Name = saved.Name,
+                Alias = saved.Alias,
                 Color = saved.Color,
+                Context = saved.Context,
                 SortOrder = saved.SortOrder
             });
         }

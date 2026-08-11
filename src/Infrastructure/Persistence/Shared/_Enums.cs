@@ -42,7 +42,7 @@ public enum ContactSource
     Api = 4
 }
 
-/// <summary>Workspace referable object kind for tag/bucket membership (Contact = 0, Mailbox = 1).</summary>
+/// <summary>Target kind on TagAssignment / BucketMember (contact or mailbox being tagged or grouped).</summary>
 public enum ReferableKind : byte
 {
     Contact = 0,

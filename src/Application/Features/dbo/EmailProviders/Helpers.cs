@@ -1,5 +1,5 @@
+using Application.Features.Shared;
 using Infrastructure.Persistence.dbo;
-using System.Text.RegularExpressions;
 
 namespace Application.Features.dbo.EmailProviders;
 
@@ -17,6 +17,8 @@ internal static partial class EmailProviderMapping
         SmtpPort = entity.SmtpPort,
         SmtpUseSsl = entity.SmtpUseSsl,
         SetupHelpUrl = entity.SetupHelpUrl,
+        Color = entity.Color,
+        Note = entity.Note,
         SortOrder = entity.SortOrder,
         IsSystem = entity.IsSystem
     };
@@ -28,24 +30,6 @@ internal static partial class EmailProviderMapping
             return "Name is required.";
         }
 
-        if (string.IsNullOrWhiteSpace(dto.Slug))
-        {
-            return "Slug is required.";
-        }
-
-        if (!SlugRegex().IsMatch(dto.Slug.Trim()))
-        {
-            return "Slug must use lowercase letters, numbers, and hyphens only.";
-        }
-
-        if (dto.ImapPort is < 1 or > 65535 || dto.SmtpPort is < 1 or > 65535)
-        {
-            return "Ports must be between 1 and 65535.";
-        }
-
-        return null;
+        return CatalogFieldRules.ValidateSlug(dto.Slug, required: true);
     }
-
-    [GeneratedRegex("^[a-z0-9]+(?:-[a-z0-9]+)*$", RegexOptions.CultureInvariant)]
-    private static partial Regex SlugRegex();
 }

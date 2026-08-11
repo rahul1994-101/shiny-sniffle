@@ -666,6 +666,16 @@ body.app-login-page {
     color: var(--app-fg);
 }
 
+.ui-catalog-swatch {
+    display: inline-block;
+    width: 0.75rem;
+    height: 0.75rem;
+    border-radius: 999px;
+    margin-right: 0.35rem;
+    vertical-align: middle;
+    border: 1px solid var(--app-border);
+}
+
 .ui-type-section {
     font-size: var(--ui-type-section);
     font-weight: 600;

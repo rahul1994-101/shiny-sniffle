@@ -1,14 +1,15 @@
 -- =====================================================
 -- TAG ASSIGNMENT TABLE
 -- =====================================================
--- Links a Tag to a referable workspace object (contact or mailbox).
--- Rows removed when the tag, referable object, or parent user scope is cleaned up in app.
+-- Links a Tag to a contact or mailbox (assignment target — not the tag ER itself).
+-- Rows removed when the tag, target, or parent user scope is cleaned up in app.
 --
 -- Business Rules:
--- - referableKind: 0 = Contact, 1 = Mailbox (ReferableKind in app)
+-- - referableKind: assignment target only — 0 = Contact, 1 = Mailbox (ReferableKind in app)
+-- - Tag and Bucket rows are ERs (tag:{alias}, bucket:{alias}); this table tags contact/mailbox targets
 -- - At most one row per (tagId, referableKind, referableId)
--- - userId matches tag owner and referable owner (denormalized for scoped queries)
--- - Apply after workspace.Tag
+-- - userId matches tag owner and target owner (denormalized for scoped queries)
+-- - Apply after workspace.Tag and workspace/Tables/Contact.sql
 -- =====================================================
 GO
 
@@ -19,8 +20,8 @@ CREATE TABLE [workspace].[TagAssignment] (
 
     -- Data fields
     [tagId]                                  UNIQUEIDENTIFIER NOT NULL,                 -- FK to Tag
-    [referableKind]                          TINYINT NOT NULL,                          -- ReferableKind: Contact = 0, Mailbox = 1
-    [referableId]                            UNIQUEIDENTIFIER NOT NULL,                 -- PK of Contact or EmailAccount
+    [referableKind]                          TINYINT NOT NULL,                          -- Assignment target: Contact = 0, Mailbox = 1
+    [referableId]                            UNIQUEIDENTIFIER NOT NULL,                 -- PK of Contact or EmailAccount (target)
 
     -- Foreign keys
     CONSTRAINT [FK_TagAssignment_User] FOREIGN KEY ([userId]) REFERENCES [dbo].[User] ([id]),

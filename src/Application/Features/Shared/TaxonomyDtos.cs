@@ -6,7 +6,13 @@ public sealed class TagRefDto
 
     public string Name { get; init; } = string.Empty;
 
+    public string Alias { get; init; } = string.Empty;
+
+    public string EntityRef => EntityRefs.Format(EntityRefs.Kind.Tag, Alias);
+
     public string? Color { get; init; }
+
+    public string? Context { get; init; }
 }
 
 public sealed class BucketRefDto
@@ -14,6 +20,14 @@ public sealed class BucketRefDto
     public Guid Id { get; init; }
 
     public string Name { get; init; } = string.Empty;
+
+    public string Alias { get; init; } = string.Empty;
+
+    public string EntityRef => EntityRefs.Format(EntityRefs.Kind.Bucket, Alias);
+
+    public string? Color { get; init; }
+
+    public string? Context { get; init; }
 }
 
 public sealed class ErTaxonomyDto

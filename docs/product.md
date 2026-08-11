@@ -83,31 +83,34 @@ These apply to **Email Triage** first and define the long-term platform—not a 
 
 ### 5.5 Referable objects (ER), tags, and buckets
 
-Shared **workspace taxonomy** for things the product (and AI) can point at consistently. Engineering uses handle prefixes `contact:` and `mailbox:`; this section is the business rules.
+Shared **workspace taxonomy** for things the product (and AI) can point at consistently. Engineering uses handle prefixes `contact:`, `mailbox:`, `tag:`, and `bucket:`; this section is the business rules.
 
 #### Referable objects (ER)
 
-| ER (v1) | Role | AI handle |
-|---------|------|-----------|
+| ER | Role | AI handle |
+|----|------|-----------|
 | **Contact** | Person or role the user maintains for recall and rules | `contact:{alias}` |
 | **Mailbox** | Connected email account (Workspace → Email accounts) | `mailbox:{alias}` |
+| **Tag** | Label definition (facets, roles, topics) | `tag:{alias}` |
+| **Bucket** | Named group definition (e.g. XYZ Inc, Family) | `bucket:{alias}` |
 
-- Every ER **must** have a user-scoped **alias** (stable for tools and prompts).
-- Additional ER kinds (e.g. message, thread) may be added later using the same tags/buckets pattern—not a single generic “entity” table.
-- All ER rows, tags, buckets, and memberships are **scoped to one user** (solo/pro v1; not shared across seats).
+- Every ER **must** have a user-scoped **alias** (stable for tools and prompts) and may have **context** (optional facts for agents).
+- **Color** on tags and buckets is UI-only.
+- Additional ER kinds (e.g. message, thread) may be added later—not a single generic “entity” table.
+- All ER rows and memberships are **scoped to one user** (solo/pro v1; not shared across seats).
 
 #### Tags — *describe*
 
 - **Job:** facets, flags, workflow hints (e.g. `vip`, `invoice`, `slow-payer`).
-- **Fields:** **name** (unique per user, case-insensitive) + **color** (UI only; optional default palette). AI and rules use **name**, not color.
-- **Cardinality:** many tags per ER; same tag on many ERs.
-- **Not in v1:** tagging a bucket (only ERs are tagged).
+- **Fields:** **name** + **alias** + optional **context**; **color** (UI only).
+- **Cardinality:** many tags per contact/mailbox via TagAssignment; same tag on many ERs.
+- **Not in v1:** tagging a bucket (only contacts/mailboxes are tagged).
 
 #### Buckets — *place*
 
 - **Job:** simple named groups with clear membership (e.g. “Organizations”, “XYZ Inc”, “Client work”).
-- **Fields:** **name** only—no bucket types or Org table in v1. A company is whatever the user names a bucket.
-- **Cardinality:** many-to-many—an ER can sit in **many** buckets; a bucket holds **many** ERs.
+- **Fields:** **name** + **alias** + optional **context**; **color** (UI only). No bucket types or Org table in v1.
+- **Cardinality:** many-to-many—contact/mailbox ERs can sit in **many** buckets; a bucket holds **many** ERs.
 - AI and triage can **scope** to “everything in bucket X” by expanding membership to handles.
 
 #### Example — organizing contacts
@@ -135,8 +138,8 @@ John shows **many buckets and many tags** on one person—work and social overla
 
 #### Lifecycle
 
-- **Soft-delete an ER** (contact or mailbox): remove or hide **tag and bucket memberships** for that ER; tag and bucket definitions remain.
-- **Rename** tag or bucket name: UI and AI-facing lists use the new name; aliases on ERs are unchanged.
+- **Soft-delete an ER** (contact, mailbox, tag, or bucket): remove junction rows where applicable; definitions remain unless the row itself is deleted.
+- **Rename** display name: UI uses the new name; **alias** (and handles) are unchanged unless the user edits alias.
 
 #### Relation to mail triage
 
