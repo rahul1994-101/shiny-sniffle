@@ -42,7 +42,7 @@ public enum ContactSource
     Api = 4
 }
 
-/// <summary>Target kind on TagAssignment / BucketMember (contact or mailbox being tagged or grouped).</summary>
+/// <summary>Target kind on TagAssignment / BucketAssignment (contact or mailbox being tagged or grouped).</summary>
 public enum ReferableKind : byte
 {
     Contact = 0,

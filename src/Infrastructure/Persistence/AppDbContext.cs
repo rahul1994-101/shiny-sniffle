@@ -27,7 +27,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
 
     public DbSet<TagAssignment> TagAssignments { get; set; }
 
-    public DbSet<BucketMember> BucketMembers { get; set; }
+    public DbSet<BucketAssignment> BucketAssignments { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -240,9 +240,9 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             entity.HasIndex(e => new { e.TagId, e.ReferableKind, e.ReferableId }).IsUnique();
             entity.HasIndex(e => new { e.UserId, e.ReferableKind, e.ReferableId });
         });
-        modelBuilder.Entity<BucketMember>(entity =>
+        modelBuilder.Entity<BucketAssignment>(entity =>
         {
-            entity.ToTable("BucketMember", "workspace");
+            entity.ToTable("BucketAssignment", "workspace");
             entity.Property(e => e.UserId).HasColumnName("userId");
             entity.Property(e => e.BucketId).HasColumnName("bucketId");
             entity.Property(e => e.ReferableKind).HasColumnName("referableKind").HasConversion<byte>();

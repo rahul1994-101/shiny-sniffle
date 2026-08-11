@@ -2,7 +2,7 @@
 -- BUCKET TABLE
 -- =====================================================
 -- User-owned referable group (Workspace → Buckets; bucket:{alias}).
--- Groups contacts and mailboxes via BucketMember — see product §5.5.
+-- Groups contacts and mailboxes via BucketAssignment — see product §5.5.
 --
 -- Business Rules:
 -- - Scoped to userId; soft delete via isDeleted

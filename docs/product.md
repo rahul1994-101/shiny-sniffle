@@ -110,7 +110,7 @@ Shared **workspace taxonomy** for things the product (and AI) can point at consi
 
 - **Job:** simple named groups with clear membership (e.g. “Organizations”, “XYZ Inc”, “Client work”).
 - **Fields:** **name** + **alias** + optional **context**; **color** (UI only). No bucket types or Org table in v1.
-- **Cardinality:** many-to-many—contact/mailbox ERs can sit in **many** buckets; a bucket holds **many** ERs.
+- **Cardinality:** many-to-many via BucketAssignment—contact/mailbox ERs can sit in **many** buckets; a bucket holds **many** ERs.
 - AI and triage can **scope** to “everything in bucket X” by expanding membership to handles.
 
 #### Example — organizing contacts

@@ -114,7 +114,7 @@ public sealed class BucketRepository(
         entity.UpdatedBy = updatedBy;
         entity.UpdatedAt = DateTime.UtcNow;
 
-        await taxonomyRepo.RemoveMembersForBucketAsync(ctx, userId, bucketId, cancellationToken);
+        await taxonomyRepo.RemoveAssignmentsForBucketAsync(ctx, userId, bucketId, cancellationToken);
         await ctx.SaveChangesAsync(cancellationToken);
         return true;
     }

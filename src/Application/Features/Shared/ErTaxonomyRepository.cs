@@ -29,7 +29,7 @@ public sealed class ErTaxonomyRepository
                 (a, t) => new { a.ReferableId, Tag = t })
             .ToListAsync(cancellationToken);
 
-        var bucketRows = await ctx.BucketMembers
+        var bucketRows = await ctx.BucketAssignments
             .AsNoTracking()
             .Where(x => x.UserId == userId && x.ReferableKind == kind && referableIds.Contains(x.ReferableId))
             .Join(
@@ -139,15 +139,15 @@ public sealed class ErTaxonomyRepository
                 cancellationToken);
         }
 
-        var existingBuckets = await ctx.BucketMembers
+        var existingBuckets = await ctx.BucketAssignments
             .Where(x => x.UserId == userId && x.ReferableKind == kind && x.ReferableId == referableId)
             .ToListAsync(cancellationToken);
-        ctx.BucketMembers.RemoveRange(existingBuckets);
+        ctx.BucketAssignments.RemoveRange(existingBuckets);
 
         foreach (var bucketId in distinctBuckets)
         {
-            await ctx.BucketMembers.AddAsync(
-                new BucketMember
+            await ctx.BucketAssignments.AddAsync(
+                new BucketAssignment
                 {
                     Id = Guid.NewGuid(),
                     UserId = userId,
@@ -173,10 +173,10 @@ public sealed class ErTaxonomyRepository
             .ToListAsync(cancellationToken);
         ctx.TagAssignments.RemoveRange(tagRows);
 
-        var bucketRows = await ctx.BucketMembers
+        var bucketRows = await ctx.BucketAssignments
             .Where(x => x.UserId == userId && x.ReferableKind == kind && x.ReferableId == referableId)
             .ToListAsync(cancellationToken);
-        ctx.BucketMembers.RemoveRange(bucketRows);
+        ctx.BucketAssignments.RemoveRange(bucketRows);
     }
 
     public async Task RemoveAssignmentsForTagAsync(
@@ -191,16 +191,16 @@ public sealed class ErTaxonomyRepository
         ctx.TagAssignments.RemoveRange(rows);
     }
 
-    public async Task RemoveMembersForBucketAsync(
+    public async Task RemoveAssignmentsForBucketAsync(
         AppDbContext ctx,
         Guid userId,
         Guid bucketId,
         CancellationToken cancellationToken = default)
     {
-        var rows = await ctx.BucketMembers
+        var rows = await ctx.BucketAssignments
             .Where(x => x.UserId == userId && x.BucketId == bucketId)
             .ToListAsync(cancellationToken);
-        ctx.BucketMembers.RemoveRange(rows);
+        ctx.BucketAssignments.RemoveRange(rows);
     }
 
     private static ErTaxonomyDto EmptyTaxonomy() => new() { Tags = [], Buckets = [] };

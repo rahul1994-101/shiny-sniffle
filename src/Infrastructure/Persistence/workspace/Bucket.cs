@@ -2,7 +2,7 @@ namespace Infrastructure.Persistence.workspace;
 
 /// <summary>
 /// Row in <c>workspace.Bucket</c> — user-owned referable group (bucket:{alias}).
-/// Groups contacts and mailboxes via <see cref="BucketMember"/>.
+/// Groups contacts and mailboxes via <see cref="BucketAssignment"/>.
 /// </summary>
 public class Bucket : BaseAuditableEntity
 {

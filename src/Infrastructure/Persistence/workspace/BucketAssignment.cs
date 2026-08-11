@@ -2,7 +2,7 @@ using Infrastructure.Persistence.Shared;
 
 namespace Infrastructure.Persistence.workspace;
 
-public class BucketMember
+public class BucketAssignment
 {
     public Guid Id { get; set; }
 
