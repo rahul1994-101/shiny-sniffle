@@ -181,7 +181,9 @@ else
                            disabled="@IsFormBusy" />
                 </div>
                 <div class="settings-field">
-                    <label class="settings-label" for="contact-last-name">Last name</label>
+                    <label class="settings-label" for="contact-last-name">
+                        Last name <span class="settings-label-optional">@FormFieldCopy.OptionalMarker</span>
+                    </label>
                     <input id="contact-last-name"
                            type="text"
                            class="settings-input"
@@ -194,7 +196,9 @@ else
             </div>
             <div class="settings-endpoint-row settings-endpoint-row-duo">
                 <div class="settings-field">
-                    <label class="settings-label" for="contact-email">Email</label>
+                    <label class="settings-label" for="contact-email">
+                        Email <span class="settings-label-optional">@FormFieldCopy.OptionalMarker</span>
+                    </label>
                     <input id="contact-email"
                            type="email"
                            class="settings-input"
@@ -204,7 +208,9 @@ else
                            disabled="@IsFormBusy" />
                 </div>
                 <div class="settings-field">
-                    <label class="settings-label" for="contact-phone">Phone</label>
+                    <label class="settings-label" for="contact-phone">
+                        Phone <span class="settings-label-optional">@FormFieldCopy.OptionalMarker</span>
+                    </label>
                     <input id="contact-phone"
                            type="tel"
                            class="settings-input"
@@ -218,7 +224,7 @@ else
                 <p class="settings-label">@EntityContextFieldCopy.SectionTitle</p>
                 <div class="settings-field">
                     <label class="settings-label" for="contact-alias">
-                        Alias <span class="settings-label-optional">@EntityAliasFieldCopy.OptionalMarker</span>
+                        Alias <span class="settings-label-optional">@FormFieldCopy.OptionalMarker</span>
                     </label>
                     <input id="contact-alias"
                            type="text"
@@ -238,7 +244,9 @@ else
                     }
                 </div>
                 <div class="settings-field">
-                    <label class="settings-label" for="contact-context">@EntityContextFieldCopy.Label</label>
+                    <label class="settings-label" for="contact-context">
+                        @EntityContextFieldCopy.Label <span class="settings-label-optional">@FormFieldCopy.OptionalMarker</span>
+                    </label>
                     <textarea id="contact-context"
                               class="settings-input settings-textarea"
                               rows="3"

@@ -544,6 +544,11 @@
     margin-bottom: 0.4rem;
 }
 
+.settings-content ::deep .settings-label-optional {
+    font-weight: 400;
+    color: var(--app-muted);
+}
+
 .settings-content ::deep .settings-select {
     appearance: none;
     -webkit-appearance: none;

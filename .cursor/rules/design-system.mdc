@@ -32,6 +32,7 @@ Full reference: [`docs/design-system.md`](../docs/design-system.md). Implementat
 | Settings-style list | `ui-group` + `ui-group-row` (+ title/desc/chevron) |
 | Tabs / Dark–Light | `ui-segmented` + `ui-segmented-btn` + `ui-segmented-btn-active` |
 | Empty / status | `ui-empty-state`, `ui-status-pill` |
+| Optional field suffix | `settings-label-optional` + `FormFieldCopy.OptionalMarker` on the label |
 | Menu | `ui-dropdown-menu` + `ui-dropdown-option` |
 
 Bootstrap classes are for legacy form reboot only — not product buttons/cards.

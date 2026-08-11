@@ -1,0 +1,103 @@
+@using Application.Features.Shared
+
+<div class="settings-editor-form">
+    <div class="settings-field">
+        <label class="settings-label" for="@($"{IdPrefix}-name")">Name</label>
+        <input id="@($"{IdPrefix}-name")"
+               class="settings-input"
+               maxlength="@NameMaxLength"
+               @bind="Name"
+               disabled="@Disabled" />
+    </div>
+    <div class="settings-field">
+        <label class="settings-label" for="@($"{IdPrefix}-color")">
+            Color <span class="settings-label-optional">@FormFieldCopy.OptionalMarker</span>
+        </label>
+        <ColorPicker Id="@($"{IdPrefix}-color")"
+                     @bind-Value="Color"
+                     Disabled="@Disabled" />
+    </div>
+    <div class="settings-provider-extras">
+        <p class="settings-label">@EntityContextFieldCopy.SectionTitle</p>
+        <div class="settings-field">
+            <label class="settings-label" for="@($"{IdPrefix}-alias")">
+                Alias <span class="settings-label-optional">@FormFieldCopy.OptionalMarker</span>
+            </label>
+            <input id="@($"{IdPrefix}-alias")"
+                   type="text"
+                   class="settings-input"
+                   maxlength="64"
+                   placeholder="@EntityAliasFieldCopy.PlaceholderAutoFromName"
+                   @bind="Alias"
+                   disabled="@Disabled"
+                   autocomplete="off" />
+            @if (CanPreviewEntityRef)
+            {
+                <p class="settings-hint">@EntityAliasFieldCopy.EntityRefLead @EntityRefs.Format(Kind, EffectiveAlias)</p>
+            }
+            else
+            {
+                <p class="settings-hint">@EntityAliasFieldCopy.EmptyFieldHint("name", ScopePlural)</p>
+            }
+        </div>
+        <div class="settings-field">
+            <label class="settings-label" for="@($"{IdPrefix}-context")">
+                @EntityContextFieldCopy.Label <span class="settings-label-optional">@FormFieldCopy.OptionalMarker</span>
+            </label>
+            <textarea id="@($"{IdPrefix}-context")"
+                      class="settings-input settings-textarea"
+                      rows="3"
+                      maxlength="2000"
+                      @bind="Context"
+                      disabled="@Disabled"></textarea>
+            <p class="settings-hint">@EntityContextFieldCopy.Hint</p>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public string IdPrefix { get; set; } = "item";
+
+    [Parameter]
+    public int NameMaxLength { get; set; } = 64;
+
+    [Parameter]
+    public string ScopePlural { get; set; } = "items";
+
+    [Parameter]
+    public EntityRefs.Kind Kind { get; set; }
+
+    [Parameter]
+    public bool Disabled { get; set; }
+
+    [Parameter]
+    public string Name { get; set; } = string.Empty;
+
+    [Parameter]
+    public EventCallback<string> NameChanged { get; set; }
+
+    [Parameter]
+    public string? Color { get; set; }
+
+    [Parameter]
+    public EventCallback<string?> ColorChanged { get; set; }
+
+    [Parameter]
+    public string? Alias { get; set; }
+
+    [Parameter]
+    public EventCallback<string?> AliasChanged { get; set; }
+
+    [Parameter]
+    public string? Context { get; set; }
+
+    [Parameter]
+    public EventCallback<string?> ContextChanged { get; set; }
+
+    [Parameter]
+    public string EffectiveAlias { get; set; } = string.Empty;
+
+    [Parameter]
+    public bool CanPreviewEntityRef { get; set; }
+}

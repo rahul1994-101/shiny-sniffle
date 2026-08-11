@@ -2,11 +2,11 @@ namespace WebApp.Components.Shared;
 
 /// <summary>
 /// Shared alias field labels and hints (Contacts, Email accounts).
-/// <see cref="OptionalMarker"/> means optional <em>user input</em>; the database column is always NOT NULL (app auto-fills).
-/// </summary>
+    /// <see cref="OptionalMarker"/> means optional <em>user input</em>; the database column is always NOT NULL (app auto-fills).
+    /// </summary>
 public static class EntityAliasFieldCopy
 {
-    public const string OptionalMarker = "(optional)";
+    public const string OptionalMarker = FormFieldCopy.OptionalMarker;
 
     public const string EntityRefLead = "AI reference:";
 

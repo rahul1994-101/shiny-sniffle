@@ -188,7 +188,9 @@ else
                 <input id="ep-name" type="text" class="settings-input" @bind="_form.Name" disabled="@IsFieldDisabled" />
             </div>
             <div class="settings-field">
-                <label class="settings-label" for="ep-slug">@CatalogFieldCopy.SlugLabel</label>
+                <label class="settings-label" for="ep-slug">
+                    @CatalogFieldCopy.SlugLabel <span class="settings-label-optional">@FormFieldCopy.OptionalMarker</span>
+                </label>
                 <input id="ep-slug" type="text" class="settings-input" @bind="_form.Slug" disabled="@IsFieldDisabled" autocomplete="off" placeholder="Auto from name" />
                 @if (!_editorReadOnly)
                 {
@@ -244,7 +246,9 @@ else
             <div class="settings-provider-extras">
                 <div class="settings-extras-row">
                     <div class="settings-field settings-field-help">
-                        <label class="settings-label" for="ep-help">Setup help URL <span class="settings-label-optional">(optional)</span></label>
+                        <label class="settings-label" for="ep-help">
+                            Setup help URL <span class="settings-label-optional">@FormFieldCopy.OptionalMarker</span>
+                        </label>
                         @if (_editorReadOnly)
                         {
                             @if (!string.IsNullOrWhiteSpace(_form.SetupHelpUrl))

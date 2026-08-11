@@ -219,6 +219,12 @@ Section list header: `ListTitle`, `ListLead` or `ListLeadContent`, and **`ListHe
 
 **Dialog footer actions** (`settings-editor-dialog-footer`): Save + Cancel stay **side-by-side** (`1fr` + `auto`) at all widths used by the editor dialog; stack full-width only at `max-width: 360px`. Dialog header uses `ui-dialog-header` only (no `settings-editor-header` margin).
 
+**Optional fields:** When user input is optional (nullable DB column or blank-allowed with auto-generate), append `<span class="settings-label-optional">@FormFieldCopy.OptionalMarker</span>` on the **field label** — not in hints. Use `FormFieldCopy.OptionalMarker` (`"(optional)"`) everywhere; do not hardcode the string. Hints explain behavior (auto-generate, format); never repeat “optional” in hint copy.
+
+**Shared ER editor:** Tags and Buckets use `WorkspaceErEditorFields.razor` (name, color, alias, context). Contacts and Email accounts inline the same Agent reference block with the same optional pattern.
+
+**Color picker:** `ColorPicker.razor` — presets row + hex/custom/clear row; styles in `app.css` under `.ui-color-picker-*`.
+
 ---
 
 ## Where to put CSS

@@ -364,7 +364,7 @@ else
                 <p class="settings-label">@EntityContextFieldCopy.SectionTitle</p>
                 <div class="settings-field">
                     <label class="settings-label" for="acc-alias">
-                        Alias <span class="settings-label-optional">@EntityAliasFieldCopy.OptionalMarker</span>
+                        Alias <span class="settings-label-optional">@FormFieldCopy.OptionalMarker</span>
                     </label>
                     <input id="acc-alias"
                            type="text"
@@ -383,7 +383,9 @@ else
                     }
                 </div>
                 <div class="settings-field">
-                    <label class="settings-label" for="acc-context">@EntityContextFieldCopy.Label</label>
+                    <label class="settings-label" for="acc-context">
+                        @EntityContextFieldCopy.Label <span class="settings-label-optional">@FormFieldCopy.OptionalMarker</span>
+                    </label>
                     <textarea id="acc-context"
                               class="settings-input settings-textarea"
                               rows="3"

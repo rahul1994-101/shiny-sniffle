@@ -8,5 +8,5 @@ public static class EntityContextFieldCopy
     public const string Label = "Context";
 
     public const string Hint =
-        "Relationship, preferences, or how agents should use this record. Optional.";
+        "Relationship, preferences, or how agents should use this record.";
 }

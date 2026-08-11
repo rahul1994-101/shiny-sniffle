@@ -3,7 +3,9 @@
 @using Application.Features.Shared
 
 <div class="settings-field">
-    <p class="settings-label">Buckets</p>
+    <p class="settings-label">
+        Buckets <span class="settings-label-optional">@FormFieldCopy.OptionalMarker</span>
+    </p>
     @if (Buckets.Count == 0)
     {
         <p class="settings-hint">No buckets yet. Add them under Workspace → Buckets.</p>
@@ -33,7 +35,9 @@
 </div>
 
 <div class="settings-field">
-    <p class="settings-label">Tags</p>
+    <p class="settings-label">
+        Tags <span class="settings-label-optional">@FormFieldCopy.OptionalMarker</span>
+    </p>
     @if (Tags.Count == 0)
     {
         <p class="settings-hint">No tags yet. Add them under Workspace → Tags.</p>

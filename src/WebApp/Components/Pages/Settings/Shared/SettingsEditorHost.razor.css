@@ -234,8 +234,13 @@
 }
 
 .settings-editor-host ::deep .settings-editor-form > .settings-field:first-child,
+.settings-editor-host ::deep .settings-editor-form > .settings-endpoint-row:first-child,
 .settings-editor-host ::deep .settings-editor-form > .settings-hint:first-child {
     margin-top: 0;
+}
+
+.settings-editor-host ::deep .settings-editor-form > .settings-endpoint-row + .settings-endpoint-row {
+    margin-top: var(--ui-space-3);
 }
 
 .settings-editor-host ::deep .settings-editor-form > .settings-extras-row {

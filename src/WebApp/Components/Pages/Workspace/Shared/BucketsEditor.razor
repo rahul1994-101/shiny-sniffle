@@ -70,54 +70,17 @@ else
             }
         </ListStatus>
         <EditorContent>
-            <div class="settings-editor-form">
-                <div class="settings-field">
-                    <label class="settings-label" for="bucket-name">Name</label>
-                    <input id="bucket-name"
-                           class="settings-input"
-                           maxlength="128"
-                           @bind="_form.Name"
-                           disabled="@IsFormBusy" />
-                </div>
-                <div class="settings-field">
-                    <label class="settings-label" for="bucket-color">Color <span class="settings-label-optional">(optional)</span></label>
-                    <ColorPicker Id="bucket-color" @bind-Value="_form.Color" Disabled="@IsFormBusy" />
-                </div>
-                <div class="settings-provider-extras">
-                    <p class="settings-label">@EntityContextFieldCopy.SectionTitle</p>
-                    <div class="settings-field">
-                        <label class="settings-label" for="bucket-alias">
-                            Alias <span class="settings-label-optional">@EntityAliasFieldCopy.OptionalMarker</span>
-                        </label>
-                        <input id="bucket-alias"
-                               type="text"
-                               class="settings-input"
-                               maxlength="64"
-                               placeholder="@EntityAliasFieldCopy.PlaceholderAutoFromName"
-                               @bind="_form.Alias"
-                               disabled="@IsFormBusy"
-                               autocomplete="off" />
-                        @if (_form.CanPreviewEntityRef)
-                        {
-                            <p class="settings-hint">@EntityAliasFieldCopy.EntityRefLead @EntityRefs.Format(EntityRefs.Kind.Bucket, _form.EffectiveAlias)</p>
-                        }
-                        else
-                        {
-                            <p class="settings-hint">@EntityAliasFieldCopy.EmptyFieldHint("name", "buckets")</p>
-                        }
-                    </div>
-                    <div class="settings-field">
-                        <label class="settings-label" for="bucket-context">@EntityContextFieldCopy.Label</label>
-                        <textarea id="bucket-context"
-                                  class="settings-input settings-textarea"
-                                  rows="3"
-                                  maxlength="2000"
-                                  @bind="_form.Context"
-                                  disabled="@IsFormBusy"></textarea>
-                        <p class="settings-hint">@EntityContextFieldCopy.Hint</p>
-                    </div>
-                </div>
-            </div>
+            <WorkspaceErEditorFields IdPrefix="bucket"
+                                     NameMaxLength="128"
+                                     ScopePlural="buckets"
+                                     Kind="@EntityRefs.Kind.Bucket"
+                                     Disabled="@IsFormBusy"
+                                     @bind-Name="_form.Name"
+                                     @bind-Color="_form.Color"
+                                     @bind-Alias="_form.Alias"
+                                     @bind-Context="_form.Context"
+                                     EffectiveAlias="@_form.EffectiveAlias"
+                                     CanPreviewEntityRef="@_form.CanPreviewEntityRef" />
         </EditorContent>
         <EditorFooter>
             <div class="settings-card-footer settings-actions">
