@@ -182,17 +182,12 @@ else
 }
 
 @code {
-    [CascadingParameter]
-    public SettingsPageContext PageContext { get; set; } = null!;
-
     private GeneralSettingsDto _profile = new();
     private TabBusy _busy = TabBusy.Loading;
     private bool _profileSaving;
     private bool _passwordSaving;
     private SettingsSectionStatusHandle _profileStatus = null!;
     private SettingsSectionStatusHandle _passwordStatus = null!;
-    private string _savedFirstName = string.Empty;
-    private string _savedLastName = string.Empty;
     private string _currentPassword = string.Empty;
     private string _newPassword = string.Empty;
     private string _confirmPassword = string.Empty;
@@ -240,24 +235,18 @@ else
         else
         {
             _profile = result.Payload;
-            CaptureProfileBaseline();
         }
 
         #endregion
 
         _busy = TabBusy.None;
-        SyncDirtyState();
     }
 
     #endregion
 
     #region # Profile
 
-    private void OnProfileEdited()
-    {
-        ValidateProfileFields();
-        SyncDirtyState();
-    }
+    private void OnProfileEdited() => ValidateProfileFields();
 
     private async Task SaveProfileAsync()
     {
@@ -290,7 +279,6 @@ else
         else
         {
             _profile = result.Payload;
-            CaptureProfileBaseline();
             _profileStatus.Set("Profile saved.", isError: false, autoClear: true);
 
             var httpContext = HttpContextAccessor.HttpContext;
@@ -307,7 +295,6 @@ else
         #endregion
 
         _profileSaving = false;
-        SyncDirtyState();
     }
 
     #endregion
@@ -324,8 +311,14 @@ else
 
     private void OnPasswordEdited()
     {
-        ValidatePasswordFields();
-        SyncDirtyState();
+        if (HasPasswordInput)
+        {
+            ValidatePasswordFields();
+        }
+        else
+        {
+            ClearPasswordFieldErrors();
+        }
     }
 
     private async Task ChangePasswordAsync()
@@ -373,18 +366,11 @@ else
         #endregion
 
         _passwordSaving = false;
-        SyncDirtyState();
     }
 
     #endregion
 
     #region # Helpers
-
-    private void CaptureProfileBaseline()
-    {
-        _savedFirstName = _profile.FirstName;
-        _savedLastName = _profile.LastName;
-    }
 
     private void ValidateProfileFields()
     {
@@ -395,11 +381,6 @@ else
     private void ValidatePasswordFields()
     {
         ClearPasswordFieldErrors();
-
-        if (!IsPasswordDirty)
-        {
-            return;
-        }
 
         var message = SettingsFormValidation.ValidatePasswordChange(_currentPassword, _newPassword, _confirmPassword);
         if (message is null)
@@ -429,29 +410,23 @@ else
         _confirmPasswordError = null;
     }
 
-    private void SyncDirtyState()
-    {
-        PageContext.SetProfileDirty(IsProfileDirty);
-        PageContext.SetPasswordDirty(IsPasswordDirty);
-    }
-
     private bool IsProfileSaving => _profileSaving;
 
     private bool IsPasswordSaving => _passwordSaving;
 
-    private bool IsProfileDirty =>
-        !string.Equals(_profile.FirstName, _savedFirstName, StringComparison.Ordinal)
-        || !string.Equals(_profile.LastName, _savedLastName, StringComparison.Ordinal);
-
-    private bool IsPasswordDirty =>
+    private bool HasPasswordInput =>
         !string.IsNullOrEmpty(_currentPassword)
         || !string.IsNullOrEmpty(_newPassword)
         || !string.IsNullOrEmpty(_confirmPassword);
 
-    private bool CanSaveProfile => IsProfileDirty && !IsProfileSaving && _firstNameError is null && _lastNameError is null;
+    private bool CanSaveProfile =>
+        !IsProfileSaving && _firstNameError is null && _lastNameError is null;
 
-    private bool CanChangePassword => IsPasswordDirty && !IsPasswordSaving
-        && _currentPasswordError is null && _newPasswordError is null && _confirmPasswordError is null;
+    private bool CanChangePassword =>
+        !IsPasswordSaving
+        && _currentPasswordError is null
+        && _newPasswordError is null
+        && _confirmPasswordError is null;
 
     private string DisplayName()
     {

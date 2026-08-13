@@ -120,9 +120,6 @@ else
 }
 
 @code {
-    [CascadingParameter]
-    public SettingsPageContext PageContext { get; set; } = null!;
-
     private TabBusy _busy = TabBusy.Loading;
     private bool _saving;
     private bool _deleting;
@@ -134,18 +131,13 @@ else
     private IReadOnlyList<BucketRefDto> _bucketRefs = [];
     private IReadOnlyList<TagRefDto> _tagRefs = [];
     private ContactForm _form = new();
-    private ContactForm _formBaseline = new();
     private SettingsSectionStatusHandle _status = null!;
 
     private bool IsFormBusy => _saving || _deleting;
 
-    private bool IsFormDirty =>
-        !_form.ContentEquals(_formBaseline);
-
     private bool CanSaveEditor =>
         !IsFormBusy
-        && !string.IsNullOrWhiteSpace(_form.FirstName)
-        && IsFormDirty;
+        && !string.IsNullOrWhiteSpace(_form.FirstName);
 
     private string EditorTitle =>
         _form.Id is null ? "New contact" : $"Edit {_form.ListLabel}";
@@ -166,7 +158,6 @@ else
                            type="text"
                            class="settings-input"
                            @bind="_form.FirstName"
-                           @bind:after="OnFormEdited"
                            maxlength="50"
                            autocomplete="given-name"
                            disabled="@IsFormBusy" />
@@ -179,7 +170,6 @@ else
                            type="text"
                            class="settings-input"
                            @bind="_form.LastName"
-                           @bind:after="OnFormEdited"
                            maxlength="50"
                            autocomplete="family-name"
                            disabled="@IsFormBusy" />
@@ -194,7 +184,6 @@ else
                            type="email"
                            class="settings-input"
                            @bind="_form.Email"
-                           @bind:after="OnFormEdited"
                            autocomplete="off"
                            disabled="@IsFormBusy" />
                 </div>
@@ -206,7 +195,6 @@ else
                            type="tel"
                            class="settings-input"
                            @bind="_form.Phone"
-                           @bind:after="OnFormEdited"
                            autocomplete="off"
                            disabled="@IsFormBusy" />
                 </div>
@@ -221,7 +209,6 @@ else
                            type="text"
                            class="settings-input"
                            @bind="_form.Alias"
-                           @bind:after="OnFormEdited"
                            maxlength="64"
                            placeholder="@EntityAliasFieldCopy.PlaceholderAutoFromName"
                            disabled="@IsFormBusy" />
@@ -242,7 +229,6 @@ else
                               class="settings-input settings-textarea"
                               rows="3"
                               @bind="_form.Context"
-                              @bind:after="OnFormEdited"
                               maxlength="2000"
                               disabled="@IsFormBusy"></textarea>
                     <p class="settings-hint">@EntityContextFieldCopy.Hint</p>
@@ -252,15 +238,9 @@ else
                               Tags="_tagRefs"
                               SelectedBucketIds="_form.SelectedBucketIds"
                               SelectedTagIds="_form.SelectedTagIds"
-                              Disabled="@IsFormBusy"
-                              SelectionChanged="OnFormEdited" />
+                              Disabled="@IsFormBusy" />
         </div>
     };
-
-    private void OnFormEdited() => SyncDirtyState();
-
-    private void SyncDirtyState() =>
-        PageContext.SetEditorDirty(_editorOpen && IsFormDirty);
 
     private static string FormatReach(ContactSummaryDto contact)
     {
@@ -355,9 +335,7 @@ else
     {
         _status.Clear();
         _form = new ContactForm();
-        _formBaseline = _form.Clone();
         _editorOpen = true;
-        SyncDirtyState();
     }
 
     private async Task BeginEditAsync(ContactSummaryDto summary)
@@ -374,29 +352,20 @@ else
         }
 
         _form = ContactForm.FromDto(result.Payload);
-        _formBaseline = _form.Clone();
         _editorOpen = true;
-        SyncDirtyState();
     }
 
-    private async Task CancelEditorAsync()
+    private Task CancelEditorAsync()
     {
-        if (_editorOpen && IsFormDirty
-            && !await JsRuntime.InvokeAsync<bool>("confirm", SettingsDirtyGuard.DiscardMessage))
-        {
-            return;
-        }
-
         CloseEditor();
+        return Task.CompletedTask;
     }
 
     private void CloseEditor()
     {
         _editorOpen = false;
         _form = new ContactForm();
-        _formBaseline = new ContactForm();
         _status.Clear();
-        SyncDirtyState();
     }
 
     private async Task SaveEditorAsync()
@@ -521,42 +490,6 @@ else
 
             return form;
         }
-
-        public ContactForm Clone()
-        {
-            var c = new ContactForm
-            {
-                Id = Id,
-                FirstName = FirstName,
-                LastName = LastName,
-                Alias = Alias,
-                Email = Email,
-                Phone = Phone,
-                Context = Context
-            };
-            foreach (var id in SelectedTagIds)
-            {
-                c.SelectedTagIds.Add(id);
-            }
-
-            foreach (var id in SelectedBucketIds)
-            {
-                c.SelectedBucketIds.Add(id);
-            }
-
-            return c;
-        }
-
-        public bool ContentEquals(ContactForm other) =>
-            Id == other.Id
-            && string.Equals(FirstName, other.FirstName, StringComparison.Ordinal)
-            && string.Equals(LastName, other.LastName, StringComparison.Ordinal)
-            && string.Equals(Alias ?? "", other.Alias ?? "", StringComparison.Ordinal)
-            && string.Equals(Email ?? "", other.Email ?? "", StringComparison.OrdinalIgnoreCase)
-            && string.Equals(Phone ?? "", other.Phone ?? "", StringComparison.Ordinal)
-            && string.Equals(Context ?? "", other.Context ?? "", StringComparison.Ordinal)
-            && SelectedTagIds.SetEquals(other.SelectedTagIds)
-            && SelectedBucketIds.SetEquals(other.SelectedBucketIds);
 
         public SaveContactDto ToSaveDto() => new()
         {

@@ -157,9 +157,6 @@ else
 }
 
 @code {
-    [CascadingParameter]
-    public SettingsPageContext PageContext { get; set; } = null!;
-
     private readonly List<EmailAccountSummaryDto> _accounts = [];
     private readonly List<EmailProviderDto> _catalog = [];
     private readonly List<TagDto> _allTags = [];
@@ -167,7 +164,6 @@ else
     private IReadOnlyList<BucketRefDto> _bucketRefs = [];
     private IReadOnlyList<TagRefDto> _tagRefs = [];
     private AccountForm _form = new();
-    private AccountForm _formBaseline = new();
     private TabBusy _busy = TabBusy.Loading;
     private bool _saving;
     private bool _testing;
@@ -193,21 +189,16 @@ else
             }
 
             _form.IsDefault = isDefault;
-            OnFormEdited();
         }
     }
 
     private bool IsFormBusy => _saving || _testing || _deleting;
 
-    private bool IsFormDirty =>
-        !_form.ContentEquals(_formBaseline) || !string.IsNullOrEmpty(_form.Password);
-
     private bool CanSaveEditor =>
         !IsFormBusy
         && _catalog.Count > 0
         && !string.IsNullOrWhiteSpace(_form.EmailAddress)
-        && !string.IsNullOrWhiteSpace(_form.Username)
-        && IsFormDirty;
+        && !string.IsNullOrWhiteSpace(_form.Username);
 
     private string ListStatusTitle =>
         _accounts.Count == 0 ? "No accounts connected" : $"{_accounts.Count} account{(_accounts.Count == 1 ? "" : "s")} connected";
@@ -306,7 +297,6 @@ else
                                type="email"
                                class="settings-input"
                                @bind="_form.EmailAddress"
-                               @bind:after="OnFormEdited"
                                autocomplete="email"
                                disabled="@IsFormBusy" />
                     </div>
@@ -316,7 +306,6 @@ else
                                type="text"
                                class="settings-input"
                                @bind="_form.Username"
-                               @bind:after="OnFormEdited"
                                autocomplete="username"
                                disabled="@IsFormBusy" />
                     </div>
@@ -329,7 +318,6 @@ else
                                    type="@(_showPassword ? "text" : "password")"
                                    class="settings-input"
                                    @bind="_form.Password"
-                                   @bind:after="OnFormEdited"
                                    autocomplete="new-password"
                                    placeholder="@(_form.HasStoredPassword ? "Saved — leave blank to keep" : "App password or mailbox password")"
                                    disabled="@IsFormBusy" />
@@ -344,7 +332,6 @@ else
                         <select id="acc-default"
                                 class="settings-input settings-select settings-ssl-select"
                                 @bind="DefaultSelect"
-                                @bind:after="OnFormEdited"
                                 disabled="@(IsFormBusy || _form.IsDefaultForced)">
                             <option value="default">Yes</option>
                             <option value="no">No</option>
@@ -363,7 +350,6 @@ else
                            type="text"
                            class="settings-input"
                            @bind="_form.Alias"
-                           @bind:after="OnFormEdited"
                            maxlength="64"
                            placeholder="@EntityAliasFieldCopy.PlaceholderAutoFromEmail"
                            disabled="@IsFormBusy" />
@@ -384,7 +370,6 @@ else
                               class="settings-input settings-textarea"
                               rows="3"
                               @bind="_form.Context"
-                              @bind:after="OnFormEdited"
                               maxlength="2000"
                               disabled="@IsFormBusy"></textarea>
                     <p class="settings-hint">@EntityContextFieldCopy.Hint</p>
@@ -395,15 +380,9 @@ else
                               Tags="_tagRefs"
                               SelectedBucketIds="_form.SelectedBucketIds"
                               SelectedTagIds="_form.SelectedTagIds"
-                              Disabled="@IsFormBusy"
-                              SelectionChanged="OnFormEdited" />
+                              Disabled="@IsFormBusy" />
         </div>
     };
-
-    private void OnFormEdited() => SyncDirtyState();
-
-    private void SyncDirtyState() =>
-        PageContext.SetEditorDirty(_editorOpen && IsFormDirty);
 
     private Task OnEditorLayoutChangedAsync(SettingsEditorLayout layout)
     {
@@ -499,10 +478,8 @@ else
             ProviderSlug = ResolveInitialProviderSlug()
         };
         EnsureProviderSlugInForm();
-        CaptureFormBaseline();
         _editorOpen = true;
         _showPassword = false;
-        SyncDirtyState();
     }
 
     private async Task BeginEditAsync(EmailAccountSummaryDto summary)
@@ -523,32 +500,23 @@ else
 
         _form = AccountForm.FromDto(result.Payload, _accounts.Count <= 1 && result.Payload.IsDefault);
         EnsureProviderSlugInForm();
-        CaptureFormBaseline();
         _editorOpen = true;
         _showPassword = false;
         _busy = TabBusy.None;
-        SyncDirtyState();
     }
 
-    private async Task CancelEditorAsync()
+    private Task CancelEditorAsync()
     {
-        if (_editorOpen && IsFormDirty
-            && !await JsRuntime.InvokeAsync<bool>("confirm", SettingsDirtyGuard.DiscardMessage))
-        {
-            return;
-        }
-
         CloseEditor();
+        return Task.CompletedTask;
     }
 
     private void CloseEditor()
     {
         _editorOpen = false;
         _form = new AccountForm();
-        _formBaseline = new AccountForm();
         _providerOpen = false;
         _status.Clear();
-        SyncDirtyState();
     }
 
     private async Task SaveEditorAsync()
@@ -657,8 +625,6 @@ else
 
     #region # Helpers
 
-    private void CaptureFormBaseline() => _formBaseline = _form.CloneForBaseline();
-
     private string ResolveInitialProviderSlug()
     {
         if (_catalog.Count == 0)
@@ -708,7 +674,6 @@ else
     {
         _form.ProviderSlug = provider.Slug;
         CloseProviderPicker();
-        OnFormEdited();
     }
 
     private sealed class AccountForm
@@ -785,45 +750,6 @@ else
             TagIds = SelectedTagIds.ToList(),
             BucketIds = SelectedBucketIds.ToList()
         };
-
-        public AccountForm CloneForBaseline()
-        {
-            var c = new AccountForm
-            {
-                Id = Id,
-                Alias = Alias,
-                IsDefault = IsDefault,
-                IsDefaultForced = IsDefaultForced,
-                ProviderSlug = ProviderSlug,
-                EmailAddress = EmailAddress,
-                Username = Username,
-                HasStoredPassword = HasStoredPassword,
-                Context = Context
-            };
-            foreach (var id in SelectedTagIds)
-            {
-                c.SelectedTagIds.Add(id);
-            }
-
-            foreach (var id in SelectedBucketIds)
-            {
-                c.SelectedBucketIds.Add(id);
-            }
-
-            return c;
-        }
-
-        public bool ContentEquals(AccountForm other) =>
-            Id == other.Id
-            && string.Equals(Alias, other.Alias, StringComparison.Ordinal)
-            && IsDefault == other.IsDefault
-            && string.Equals(ProviderSlug, other.ProviderSlug, StringComparison.OrdinalIgnoreCase)
-            && string.Equals(EmailAddress, other.EmailAddress, StringComparison.Ordinal)
-            && string.Equals(Username, other.Username, StringComparison.Ordinal)
-            && string.Equals(Context ?? "", other.Context ?? "", StringComparison.Ordinal)
-            && HasStoredPassword == other.HasStoredPassword
-            && SelectedTagIds.SetEquals(other.SelectedTagIds)
-            && SelectedBucketIds.SetEquals(other.SelectedBucketIds);
     }
 
     private enum TabBusy

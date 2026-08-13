@@ -1,44 +1,5 @@
 namespace WebApp.Components.Pages.Settings;
 
-/// <summary>Shared confirm copy for unsaved editor and settings forms.</summary>
-public static class SettingsDirtyGuard
-{
-    public const string LeaveMessage = "You have unsaved changes. Leave without saving?";
-
-    public const string DiscardMessage = "You have unsaved changes. Discard them?";
-}
-
-/// <summary>Tracks unsaved edits for navigation guards on settings and workspace editor pages.</summary>
-public sealed class SettingsPageContext : IDisposable
-{
-    private bool _profileDirty;
-    private bool _passwordDirty;
-    private bool _editorDirty;
-
-    public event Action? Changed;
-
-    public bool IsDirty => _profileDirty || _passwordDirty || _editorDirty;
-
-    public void SetProfileDirty(bool dirty) => Set(ref _profileDirty, dirty);
-
-    public void SetPasswordDirty(bool dirty) => Set(ref _passwordDirty, dirty);
-
-    public void SetEditorDirty(bool dirty) => Set(ref _editorDirty, dirty);
-
-    public void Dispose() => Changed = null;
-
-    private void Set(ref bool field, bool value)
-    {
-        if (field == value)
-        {
-            return;
-        }
-
-        field = value;
-        Changed?.Invoke();
-    }
-}
-
 public sealed record SettingsSectionStatus(string Message, bool IsError, bool Fading = false);
 
 /// <summary>One breadcrumb segment (ancestors only; current page is the H1).</summary>

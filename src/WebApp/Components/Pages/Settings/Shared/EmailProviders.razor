@@ -128,9 +128,6 @@ else
 }
 
 @code {
-    [CascadingParameter]
-    public SettingsPageContext PageContext { get; set; } = null!;
-
     private TabBusy _busy = TabBusy.Loading;
     private bool _saving;
     private bool _deleting;
@@ -138,7 +135,6 @@ else
     private SettingsEditorLayout _editorLayout = SettingsEditorLayout.FullPage;
     private readonly List<EmailProviderDto> _providers = [];
     private ProviderForm _form = new();
-    private ProviderForm _formBaseline = new();
     private SettingsSectionStatusHandle _status = null!;
 
     private bool IsFormBusy => _saving || _deleting;
@@ -147,15 +143,10 @@ else
 
     private bool IsFieldDisabled => IsFormBusy || _editorReadOnly;
 
-    private bool IsFormDirty =>
-        !_editorReadOnly
-        && !_form.ContentEquals(_formBaseline);
-
     private bool CanSaveEditor =>
         !IsFormBusy
         && !_editorReadOnly
-        && !string.IsNullOrWhiteSpace(_form.Name)
-        && IsFormDirty;
+        && !string.IsNullOrWhiteSpace(_form.Name);
 
     private string EditorTitle =>
         _form.Id is null
@@ -170,7 +161,6 @@ else
         set
         {
             _form.ImapUseSsl = string.Equals(value, "ssl", StringComparison.Ordinal);
-            OnFormEdited();
         }
     }
 
@@ -180,7 +170,6 @@ else
         set
         {
             _form.SmtpUseSsl = string.Equals(value, "ssl", StringComparison.Ordinal);
-            OnFormEdited();
         }
     }
 
@@ -199,13 +188,13 @@ else
             }
             <div class="settings-field">
                 <label class="settings-label" for="ep-name">Name</label>
-                <input id="ep-name" type="text" class="settings-input" @bind="_form.Name" @bind:after="OnFormEdited" disabled="@IsFieldDisabled" />
+                <input id="ep-name" type="text" class="settings-input" @bind="_form.Name" disabled="@IsFieldDisabled" />
             </div>
             <div class="settings-field">
                 <label class="settings-label" for="ep-slug">
                     @CatalogFieldCopy.SlugLabel <span class="settings-label-optional">@FormFieldCopy.OptionalMarker</span>
                 </label>
-                <input id="ep-slug" type="text" class="settings-input" @bind="_form.Slug" @bind:after="OnFormEdited" disabled="@IsFieldDisabled" autocomplete="off" placeholder="Auto from name" />
+                <input id="ep-slug" type="text" class="settings-input" @bind="_form.Slug" disabled="@IsFieldDisabled" autocomplete="off" placeholder="Auto from name" />
                 @if (!_editorReadOnly)
                 {
                     <p class="settings-hint">@CatalogFieldCopy.SlugHint</p>
@@ -215,12 +204,12 @@ else
                 <div class="settings-endpoint-row">
                     <div class="settings-field">
                         <label class="settings-label" for="ep-imap-host">IMAP host</label>
-                        <input id="ep-imap-host" type="text" class="settings-input" @bind="_form.ImapHost" @bind:after="OnFormEdited" disabled="@IsFieldDisabled" />
+                        <input id="ep-imap-host" type="text" class="settings-input" @bind="_form.ImapHost" disabled="@IsFieldDisabled" />
                     </div>
                     <div class="settings-endpoint-port-ssl">
                         <div class="settings-field settings-field-port">
                             <label class="settings-label" for="ep-imap-port">IMAP port</label>
-                            <input id="ep-imap-port" type="number" class="settings-input" @bind="_form.ImapPort" @bind:after="OnFormEdited" disabled="@IsFieldDisabled" />
+                            <input id="ep-imap-port" type="number" class="settings-input" @bind="_form.ImapPort" disabled="@IsFieldDisabled" />
                         </div>
                         <div class="settings-field settings-field-ssl">
                             <label class="settings-label" for="ep-imap-ssl">IMAP SSL</label>
@@ -237,12 +226,12 @@ else
                 <div class="settings-endpoint-row">
                     <div class="settings-field">
                         <label class="settings-label" for="ep-smtp-host">SMTP host</label>
-                        <input id="ep-smtp-host" type="text" class="settings-input" @bind="_form.SmtpHost" @bind:after="OnFormEdited" disabled="@IsFieldDisabled" />
+                        <input id="ep-smtp-host" type="text" class="settings-input" @bind="_form.SmtpHost" disabled="@IsFieldDisabled" />
                     </div>
                     <div class="settings-endpoint-port-ssl">
                         <div class="settings-field settings-field-port">
                             <label class="settings-label" for="ep-smtp-port">SMTP port</label>
-                            <input id="ep-smtp-port" type="number" class="settings-input" @bind="_form.SmtpPort" @bind:after="OnFormEdited" disabled="@IsFieldDisabled" />
+                            <input id="ep-smtp-port" type="number" class="settings-input" @bind="_form.SmtpPort" disabled="@IsFieldDisabled" />
                         </div>
                         <div class="settings-field settings-field-ssl">
                             <label class="settings-label" for="ep-smtp-ssl">SMTP SSL</label>
@@ -282,24 +271,47 @@ else
                         }
                         else
                         {
-                            <input id="ep-help" type="url" class="settings-input" @bind="_form.SetupHelpUrl" @bind:after="OnFormEdited" disabled="@IsFieldDisabled" />
+                            <input id="ep-help" type="url" class="settings-input" @bind="_form.SetupHelpUrl" disabled="@IsFieldDisabled" />
                         }
                     </div>
                     <div class="settings-field settings-field-sort">
                         <label class="settings-label" for="ep-sort">Sort order</label>
-                        <input id="ep-sort" type="number" class="settings-input" @bind="_form.SortOrder" @bind:after="OnFormEdited" disabled="@IsFieldDisabled" />
+                        <input id="ep-sort" type="number" class="settings-input" @bind="_form.SortOrder" disabled="@IsFieldDisabled" />
                     </div>
                 </div>
             </div>
         </div>
     };
 
-    private void OnFormEdited() => SyncDirtyState();
+    private void BeginAdd()
+    {
+        _status.Clear();
+        _editorReadOnly = false;
+        _form = new ProviderForm { SortOrder = NextSortOrder() };
+        _editorOpen = true;
+    }
 
-    private void SyncDirtyState() =>
-        PageContext.SetEditorDirty(_editorOpen && IsFormDirty);
+    private void BeginEdit(EmailProviderDto provider)
+    {
+        _status.Clear();
+        _form = ProviderForm.FromDto(provider);
+        _editorReadOnly = provider.IsSystem;
+        _editorOpen = true;
+    }
 
-    private void CaptureFormBaseline() => _formBaseline = _form.Clone();
+    private Task CancelEditorAsync()
+    {
+        CloseEditor();
+        return Task.CompletedTask;
+    }
+
+    private void CloseEditor()
+    {
+        _editorOpen = false;
+        _editorReadOnly = false;
+        _form = new ProviderForm();
+        _status.Clear();
+    }
 
     private Task OnEditorLayoutChangedAsync(SettingsEditorLayout layout)
     {
@@ -328,47 +340,6 @@ else
         }
 
         _busy = TabBusy.None;
-    }
-
-    private void BeginAdd()
-    {
-        _status.Clear();
-        _editorReadOnly = false;
-        _form = new ProviderForm { SortOrder = NextSortOrder() };
-        CaptureFormBaseline();
-        _editorOpen = true;
-        SyncDirtyState();
-    }
-
-    private void BeginEdit(EmailProviderDto provider)
-    {
-        _status.Clear();
-        _form = ProviderForm.FromDto(provider);
-        _editorReadOnly = provider.IsSystem;
-        CaptureFormBaseline();
-        _editorOpen = true;
-        SyncDirtyState();
-    }
-
-    private async Task CancelEditorAsync()
-    {
-        if (_editorOpen && IsFormDirty
-            && !await JsRuntime.InvokeAsync<bool>("confirm", SettingsDirtyGuard.DiscardMessage))
-        {
-            return;
-        }
-
-        CloseEditor();
-    }
-
-    private void CloseEditor()
-    {
-        _editorOpen = false;
-        _editorReadOnly = false;
-        _form = new ProviderForm();
-        _formBaseline = new ProviderForm();
-        _status.Clear();
-        SyncDirtyState();
     }
 
     private int NextSortOrder() =>
@@ -489,35 +460,6 @@ else
             SetupHelpUrl = SetupHelpUrl,
             SortOrder = SortOrder
         };
-
-        public ProviderForm Clone() => new()
-        {
-            Id = Id,
-            Name = Name,
-            Slug = Slug,
-            ImapHost = ImapHost,
-            ImapPort = ImapPort,
-            ImapUseSsl = ImapUseSsl,
-            SmtpHost = SmtpHost,
-            SmtpPort = SmtpPort,
-            SmtpUseSsl = SmtpUseSsl,
-            SetupHelpUrl = SetupHelpUrl,
-            SortOrder = SortOrder,
-            IsSystem = IsSystem
-        };
-
-        public bool ContentEquals(ProviderForm other) =>
-            Id == other.Id
-            && string.Equals(Name, other.Name, StringComparison.Ordinal)
-            && string.Equals(Slug, other.Slug, StringComparison.Ordinal)
-            && string.Equals(ImapHost, other.ImapHost, StringComparison.Ordinal)
-            && ImapPort == other.ImapPort
-            && ImapUseSsl == other.ImapUseSsl
-            && string.Equals(SmtpHost, other.SmtpHost, StringComparison.Ordinal)
-            && SmtpPort == other.SmtpPort
-            && SmtpUseSsl == other.SmtpUseSsl
-            && string.Equals(SetupHelpUrl ?? "", other.SetupHelpUrl ?? "", StringComparison.Ordinal)
-            && SortOrder == other.SortOrder;
     }
 
     private enum TabBusy

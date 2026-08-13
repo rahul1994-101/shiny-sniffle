@@ -1,69 +1,55 @@
 @inherits BaseComponent
 
-@using Microsoft.AspNetCore.Components.Routing
-
-@implements IDisposable
-
-<CascadingValue Value="_pageContext" IsFixed="true">
-    @if (_useDirtyGuard)
-    {
-        <NavigationLock OnBeforeInternalNavigation="OnBeforeInternalNavigationAsync"
-                        ConfirmExternalNavigation="@_pageContext.IsDirty" />
-    }
-
-    <div class="app-page settings-shell">
-        <header class="app-page-header">
-            <div class="app-page-header-inner">
-                <div class="app-page-head-row">
-                    <h1 class="app-page-title">@Title</h1>
-                    @if (Breadcrumbs is { Count: > 0 } trail)
-                    {
-                        <nav class="app-page-breadcrumb" aria-label="Breadcrumb">
-                            <ol class="app-page-breadcrumb-list">
-                                @foreach (var item in trail)
-                                {
-                                    <li class="app-page-breadcrumb-item">
-                                        @if (string.IsNullOrEmpty(item.Href))
-                                        {
-                                            <span>@item.Label</span>
-                                        }
-                                        else
-                                        {
-                                            <NavLink href="@item.Href">@item.Label</NavLink>
-                                        }
-                                    </li>
-                                }
-                                <li class="app-page-breadcrumb-item app-page-breadcrumb-item-current" aria-current="page">
-                                    <span>@Title</span>
+<div class="app-page settings-shell">
+    <header class="app-page-header">
+        <div class="app-page-header-inner">
+            <div class="app-page-head-row">
+                <h1 class="app-page-title">@Title</h1>
+                @if (Breadcrumbs is { Count: > 0 } trail)
+                {
+                    <nav class="app-page-breadcrumb" aria-label="Breadcrumb">
+                        <ol class="app-page-breadcrumb-list">
+                            @foreach (var item in trail)
+                            {
+                                <li class="app-page-breadcrumb-item">
+                                    @if (string.IsNullOrEmpty(item.Href))
+                                    {
+                                        <span>@item.Label</span>
+                                    }
+                                    else
+                                    {
+                                        <NavLink href="@item.Href">@item.Label</NavLink>
+                                    }
                                 </li>
-                            </ol>
-                        </nav>
-                    }
-                </div>
-                @if (!string.IsNullOrWhiteSpace(Subtitle))
-                {
-                    <p class="app-page-subtitle">@Subtitle</p>
+                            }
+                            <li class="app-page-breadcrumb-item app-page-breadcrumb-item-current" aria-current="page">
+                                <span>@Title</span>
+                            </li>
+                        </ol>
+                    </nav>
                 }
             </div>
-        </header>
+            @if (!string.IsNullOrWhiteSpace(Subtitle))
+            {
+                <p class="app-page-subtitle">@Subtitle</p>
+            }
+        </div>
+    </header>
 
-        <div class="app-page-body">
-            <div class="app-page-body-inner settings-content">
-                @if (Nav is not null)
-                {
-                    <div class="ui-segmented settings-section-nav" role="tablist">
-                        @Nav
-                    </div>
-                }
-                @ChildContent
-            </div>
+    <div class="app-page-body">
+        <div class="app-page-body-inner settings-content">
+            @if (Nav is not null)
+            {
+                <div class="ui-segmented settings-section-nav" role="tablist">
+                    @Nav
+                </div>
+            }
+            @ChildContent
         </div>
     </div>
-</CascadingValue>
+</div>
 
 @code {
-    private readonly SettingsPageContext _pageContext = new();
-
     [Parameter]
     public string Title { get; set; } = "Settings";
 
@@ -74,42 +60,8 @@
     public IReadOnlyList<SettingsBreadcrumbItem>? Breadcrumbs { get; set; }
 
     [Parameter]
-    public bool UseDirtyGuard { get; set; } = true;
-
-    [Parameter]
     public RenderFragment? ChildContent { get; set; }
 
     [Parameter]
     public RenderFragment? Nav { get; set; }
-
-    private bool _useDirtyGuard;
-
-    protected override void OnInitialized()
-    {
-        _useDirtyGuard = UseDirtyGuard;
-        _pageContext.Changed += OnPageContextChanged;
-    }
-
-    private void OnPageContextChanged() => InvokeAsync(StateHasChanged);
-
-    private async Task OnBeforeInternalNavigationAsync(LocationChangingContext context)
-    {
-        if (!_pageContext.IsDirty)
-        {
-            return;
-        }
-
-        var leave = await JsRuntime.InvokeAsync<bool>("confirm", SettingsDirtyGuard.LeaveMessage);
-
-        if (!leave)
-        {
-            context.PreventNavigation();
-        }
-    }
-
-    public void Dispose()
-    {
-        _pageContext.Changed -= OnPageContextChanged;
-        _pageContext.Dispose();
-    }
 }

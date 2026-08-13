@@ -73,8 +73,7 @@ else
                                      @bind-Alias="_form.Alias"
                                      @bind-Context="_form.Context"
                                      EffectiveAlias="@_form.EffectiveAlias"
-                                     CanPreviewEntityRef="@_form.CanPreviewEntityRef"
-                                     Edited="OnFormEdited" />
+                                     CanPreviewEntityRef="@_form.CanPreviewEntityRef" />
         </EditorContent>
         <EditorFooter>
             <div class="settings-card-footer settings-actions">
@@ -86,9 +85,6 @@ else
 }
 
 @code {
-    [CascadingParameter]
-    public SettingsPageContext PageContext { get; set; } = null!;
-
     private const string DefaultColor = ColorPickerPresets.Default;
 
     private TabBusy _busy = TabBusy.Loading;
@@ -98,17 +94,13 @@ else
     private SettingsEditorLayout _editorLayout = SettingsEditorLayout.FullPage;
     private readonly List<TagDto> _tags = [];
     private TagForm _form = new();
-    private TagForm _formBaseline = new();
     private SettingsSectionStatusHandle _status = null!;
 
     private bool IsFormBusy => _saving || _deleting;
 
-    private bool IsFormDirty => !_form.ContentEquals(_formBaseline);
-
     private bool CanSave =>
         !IsFormBusy
-        && !string.IsNullOrWhiteSpace(_form.Name)
-        && IsFormDirty;
+        && !string.IsNullOrWhiteSpace(_form.Name);
     private string EditorTitle => _form.Id is null ? "New tag" : $"Edit {_form.Name}";
 
     protected override async Task OnInitializedAsync()
@@ -139,44 +131,26 @@ else
     private void BeginAdd()
     {
         _form = new TagForm { Color = DefaultColor };
-        CaptureFormBaseline();
         _editorOpen = true;
-        SyncDirtyState();
     }
 
     private void BeginEdit(TagDto tag)
     {
         _form = TagForm.FromDto(tag);
-        CaptureFormBaseline();
         _editorOpen = true;
-        SyncDirtyState();
     }
 
-    private async Task CancelEditorAsync()
+    private Task CancelEditorAsync()
     {
-        if (_editorOpen && IsFormDirty
-            && !await JsRuntime.InvokeAsync<bool>("confirm", SettingsDirtyGuard.DiscardMessage))
-        {
-            return;
-        }
-
         CloseEditor();
+        return Task.CompletedTask;
     }
 
     private void CloseEditor()
     {
         _editorOpen = false;
         _form = new();
-        _formBaseline = new();
-        SyncDirtyState();
     }
-
-    private void OnFormEdited() => SyncDirtyState();
-
-    private void SyncDirtyState() =>
-        PageContext.SetEditorDirty(_editorOpen && IsFormDirty);
-
-    private void CaptureFormBaseline() => _formBaseline = _form.Clone();
 
     private Task OnEditorLayoutChangedAsync(SettingsEditorLayout layout)
     {
@@ -252,22 +226,6 @@ else
             Color = Color,
             Context = string.IsNullOrWhiteSpace(Context) ? null : Context.Trim()
         };
-
-        public TagForm Clone() => new()
-        {
-            Id = Id,
-            Name = Name,
-            Alias = Alias,
-            Color = Color,
-            Context = Context
-        };
-
-        public bool ContentEquals(TagForm other) =>
-            Id == other.Id
-            && string.Equals(Name, other.Name, StringComparison.Ordinal)
-            && string.Equals(Alias ?? "", other.Alias ?? "", StringComparison.Ordinal)
-            && string.Equals(Color ?? "", other.Color ?? "", StringComparison.Ordinal)
-            && string.Equals(Context ?? "", other.Context ?? "", StringComparison.Ordinal);
     }
 
     private enum TabBusy { None, Loading }
