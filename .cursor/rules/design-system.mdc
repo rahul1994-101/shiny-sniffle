@@ -47,4 +47,4 @@ Match existing motion: `--ui-duration*`, `--ui-ease-out` for enter; honor `prefe
 
 ## Theme
 
-Dark default on `:root`; light via `[data-theme="light"]`. New semantic tokens → **both** theme blocks. Navbar + Appearance stay in sync via `app-theme-changed` in `webapp.js`.
+Dark default on `:root`; light via `[data-theme="light"]`. New semantic tokens → **both** theme blocks. Navbar + Appearance stay in sync via `app-theme-changed` in `webapp.js`. Theme is **device-local** (`localStorage`); **deferred** — do not persist to `dbo.UserSetting` unless cross-device sync is required (see `application.mdc`).

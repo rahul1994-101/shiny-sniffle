@@ -1,6 +1,8 @@
 # WebApp design system
 
-One UI–inspired, **no external UI library**. Tokens and shared components live in `src/WebApp/wwwroot/app.css`. Theme is **dark-first** with `[data-theme="light"]` overrides; user choice is persisted via `webAppTheme` in `wwwroot/js/webapp.js`.
+One UI–inspired, **no external UI library**. Tokens and shared components live in `src/WebApp/wwwroot/app.css`. Theme is **dark-first** with `[data-theme="light"]` overrides; user choice is persisted **per device** via `webAppTheme` in `wwwroot/js/webapp.js` (`localStorage` key `app-theme`).
+
+**Deferred:** Saving theme to `dbo.UserSetting` (cross-device sync) is intentionally out of scope — cosmetic, instant client toggle, and first paint depends on inline script in `App.razor`. Revisit only if product requires the same theme after sign-in on every device.
 
 **Cursor rule (short):** [`.cursor/rules/design-system.mdc`](../.cursor/rules/design-system.mdc)
 
@@ -23,7 +25,7 @@ One UI–inspired, **no external UI library**. Tokens and shared components live
 |-----------|----------|
 | Default dark tokens | `:root`, `[data-theme="dark"]` in `app.css` |
 | Light overrides | `[data-theme="light"]` in `app.css` |
-| Toggle / persist | Navbar, Settings → Appearance; `getAppTheme` / `setAppTheme` in `webapp.js` |
+| Toggle / persist (device-local) | Navbar, Settings → Appearance; `getAppTheme` / `setAppTheme` in `webapp.js` |
 | Blazor sync | `app-theme-changed` DOM event; `subscribeAppThemeChanged` / `unsubscribeAppThemeChanged` (see `Appearance.razor`) |
 
 When any code calls `webAppTheme.set()` (navbar toggle or Settings → Appearance), the document dispatches **`app-theme-changed`** with `{ theme: "dark" | "light" }`. Components that mirror theme UI should subscribe on first render and unsubscribe on dispose.

@@ -40,6 +40,7 @@ Per concern: **`Abstractions.cs`** + **`DTOs.cs`** + **`Helpers.cs`** + implemen
 - Input validation on `Application` `{UseCase}RequestValidator`, not on entities
 - Mail runtime config: `Infrastructure/Mailbox/DTOs.cs` (`EmailSettings`), built in Application from `EmailAccount` + catalog
 - Per-user mail connections: `Workspace.EmailAccount`; catalog: `Dbo.EmailProvider` (system templates + per-user custom rows via `userId`)
+- `Dbo.UserSetting` — placeholder table (one row per user; no preference columns yet). **Deferred:** color theme is client-only (`localStorage`); do not add a `theme` column until cross-device sync is required
 
 ## EF (`AppDbContext`)
 

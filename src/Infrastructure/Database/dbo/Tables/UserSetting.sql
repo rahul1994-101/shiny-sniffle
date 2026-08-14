@@ -8,6 +8,7 @@
 -- Business Rules:
 -- - Each user has at most one active settings row
 -- - Add preference columns here as the product grows (timezone, defaults, UI prefs)
+-- - Deferred: color theme stays device-local (localStorage); do not add [theme] until cross-device sync is required
 -- - All records include audit fields for tracking changes
 -- =====================================================
 GO

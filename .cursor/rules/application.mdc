@@ -44,6 +44,8 @@ Utilities/      technical cross-cutting only (crypto) — not slice business log
 
 `Dbo.UserSetting` is persistence-only today (placeholder row per user). No Features slice until preference columns and use cases exist — profile/password stay on `Dbo/Users/`.
 
+**Deferred — theme in `UserSetting`:** Color theme (Settings → Appearance, navbar toggle) stays **device-local** via `localStorage` (`webAppTheme` in `webapp.js`). Do not add a `theme` column, migration, or Get/Save Appearance handlers until cross-device theme sync is an explicit product requirement. Revisit with timezone and other server-backed prefs when `UserSetting` gets its first real column.
+
 **`Dbo.EmailProvider` access:** `IsSystem = true`, `UserId = null` → global read-only templates (all users). `IsSystem = false`, `UserId` set → custom template owned by that user (create/update/delete). List/get/slug-resolve always scope to `UserId`: system rows + that user's custom rows. Slug unique among system rows; slug unique per user among custom rows. SQL `CK_EmailProvider_Ownership` enforces the system/custom ownership pairing.
 
 C# folders and namespaces use **PascalCase** (`Chat/`, `Application.Features.Chat.*`). SQL scripts live under `Infrastructure/Database/{schema}/` (lowercase SQL schema names).
