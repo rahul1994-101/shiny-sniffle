@@ -7,7 +7,6 @@ using Application.AI.Tools;
 using Application.Features.chat.ChatMessages;
 using Application.Features.chat.ChatThreads;
 using Application.Features.dbo.EmailProviders;
-using Application.Features.dbo.UserSettings;
 using Application.Features.workspace.Contacts;
 using Application.Features.workspace.EmailAccounts;
 using Application.Features.workspace.Tags;
@@ -33,7 +32,6 @@ public static class DependencyInjection
         services.AddScoped<UserRepository>();
         services.AddScoped<ChatThreadRepository>();
         services.AddScoped<ChatMessageRepository>();
-        services.AddScoped<UserSettingsRepository>();
         services.AddScoped<EmailProviderRepository>();
         services.AddScoped<EmailAccountRepository>();
         services.AddScoped<ContactRepository>();

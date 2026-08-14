@@ -1,6 +1,6 @@
 using FluentValidation;
 
-namespace Application.Features.dbo.UserSettings.Commands;
+namespace Application.Features.dbo.Users.Commands;
 
 public sealed record ChangePasswordRequest(Guid UserId, string CurrentPassword, string NewPassword, string ConfirmPassword)
     : ICommand;
@@ -33,14 +33,14 @@ public sealed class ChangePasswordRequestValidator : AbstractValidator<ChangePas
     }
 }
 
-public sealed class ChangePasswordRequestHandler(UserSettingsRepository userSettingsRepo)
+public sealed class ChangePasswordRequestHandler(UserRepository userRepo)
     : IRequestHandler<ChangePasswordRequest>
 {
     public async ValueTask<Result> HandleAsync(ChangePasswordRequest request, CancellationToken cancellationToken = default)
     {
         var result = new Result();
 
-        var currentMatches = await userSettingsRepo.UserPasswordMatchesAsync(request.UserId, request.CurrentPassword, cancellationToken);
+        var currentMatches = await userRepo.UserPasswordMatchesAsync(request.UserId, request.CurrentPassword, cancellationToken);
         if (!currentMatches)
         {
             result.Failure(ErrorCode.BadRequest, "Current password is incorrect.");
@@ -49,7 +49,7 @@ public sealed class ChangePasswordRequestHandler(UserSettingsRepository userSett
 
         #region # Execute
 
-        var updated = await userSettingsRepo.UpdateUserPasswordAsync(request.UserId, request.NewPassword, request.UserId, cancellationToken);
+        var updated = await userRepo.UpdateUserPasswordAsync(request.UserId, request.NewPassword, request.UserId, cancellationToken);
 
         #endregion
 

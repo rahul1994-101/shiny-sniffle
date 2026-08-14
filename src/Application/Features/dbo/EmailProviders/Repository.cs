@@ -1,5 +1,3 @@
-using Application.Features.dbo.EmailProviders;
-using Application.Utilities.Extensions;
 using Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -127,12 +125,6 @@ public sealed class EmailProviderRepository(IDbContextFactory<AppDbContext> _dbC
         entity.UpdatedAt = DateTime.UtcNow;
         await ctx.SaveChangesAsync(cancellationToken);
         return (true, false);
-    }
-
-    public async Task<bool> IsSlugTakenAsync(string slug, Guid? excludeId, CancellationToken cancellationToken = default)
-    {
-        await using var ctx = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
-        return await IsSlugTakenAsync(ctx, CatalogFieldRules.NormalizeSlug(slug), excludeId, cancellationToken);
     }
 
     private static Task<bool> IsSlugTakenAsync(

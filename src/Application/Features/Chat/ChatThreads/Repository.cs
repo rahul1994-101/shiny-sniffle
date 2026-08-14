@@ -5,6 +5,29 @@ namespace Application.Features.chat.ChatThreads;
 
 public sealed class ChatThreadRepository(IDbContextFactory<AppDbContext> _dbContextFactory)
 {
+    public async Task<List<ChatThreadDto>> ListActiveByUserIdAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        await using var ctx = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var threads = await ctx.ChatThreads
+            .AsNoTracking()
+            .Where(x =>
+                x.UserId == userId &&
+                x.IsActive &&
+                !x.IsDeleted)
+            .OrderByDescending(x => x.UpdatedAt)
+            .ToListAsync(cancellationToken);
+
+        return ChatThreadDto.FromEntities(threads);
+    }
+
+    public async Task<ChatThreadDto?> AddAsync(ChatThread entity, CancellationToken cancellationToken = default)
+    {
+        await using var ctx = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        await ctx.ChatThreads.AddAsync(entity, cancellationToken);
+        await ctx.SaveChangesAsync(cancellationToken);
+        return ChatThreadDto.FromEntity(entity);
+    }
+
     public async Task<ChatThreadDto?> GetActiveByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
         await using var ctx = await _dbContextFactory.CreateDbContextAsync(cancellationToken);

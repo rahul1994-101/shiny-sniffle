@@ -1,7 +1,5 @@
 using FluentValidation;
 using Application.Features.chat.ChatMessages;
-using Infrastructure.Persistence;
-using Microsoft.EntityFrameworkCore;
 
 namespace Application.Features.chat.ChatMessages.Queries;
 
@@ -23,7 +21,7 @@ public sealed class GetChatMessagesByChatThreadIdRequestValidator : AbstractVali
     }
 }
 
-public sealed class GetChatMessagesByChatThreadIdRequestHandler(IDbContextFactory<AppDbContext> dbContextFactory)
+public sealed class GetChatMessagesByChatThreadIdRequestHandler(ChatMessageRepository chatMessageRepo)
     : IRequestHandler<GetChatMessagesByChatThreadIdRequest, GetChatMessagesByChatThreadIdResponse>
 {
     public async ValueTask<Result<GetChatMessagesByChatThreadIdResponse>> HandleAsync(GetChatMessagesByChatThreadIdRequest request, CancellationToken cancellationToken = default)
@@ -32,7 +30,7 @@ public sealed class GetChatMessagesByChatThreadIdRequestHandler(IDbContextFactor
 
         #region # Execute
 
-        var messages = await GetByChatThreadIdAsync(request.ChatThreadId, cancellationToken);
+        var messages = await chatMessageRepo.GetByChatThreadIdAsync(request.ChatThreadId, cancellationToken);
 
         #endregion
 
@@ -44,23 +42,4 @@ public sealed class GetChatMessagesByChatThreadIdRequestHandler(IDbContextFactor
 
         return result;
     }
-
-    #region # Private Helpers
-
-    private async Task<List<ChatMessageDto>> GetByChatThreadIdAsync(Guid chatThreadId, CancellationToken cancellationToken)
-    {
-        await using var ctx = await dbContextFactory.CreateDbContextAsync(cancellationToken);
-        var messages = await ctx.ChatMessages
-            .AsNoTracking()
-            .Where(x =>
-                x.ChatThreadId == chatThreadId &&
-                x.IsActive &&
-                !x.IsDeleted)
-            .OrderBy(x => x.CreatedAt)
-            .ToListAsync(cancellationToken);
-
-        return ChatMessageDto.FromEntities(messages);
-    }
-
-    #endregion
 }

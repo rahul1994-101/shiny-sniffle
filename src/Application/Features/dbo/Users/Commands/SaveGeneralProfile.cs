@@ -1,6 +1,6 @@
 using FluentValidation;
 
-namespace Application.Features.dbo.UserSettings.Commands;
+namespace Application.Features.dbo.Users.Commands;
 
 public sealed record SaveGeneralProfileRequest(Guid UserId, string FirstName, string LastName)
     : ICommand<SaveGeneralProfileResponse>;
@@ -31,7 +31,7 @@ public sealed class SaveGeneralProfileRequestValidator : AbstractValidator<SaveG
     }
 }
 
-public sealed class SaveGeneralProfileRequestHandler(UserSettingsRepository userSettingsRepo)
+public sealed class SaveGeneralProfileRequestHandler(UserRepository userRepo)
     : IRequestHandler<SaveGeneralProfileRequest, SaveGeneralProfileResponse>
 {
     public async ValueTask<Result<SaveGeneralProfileResponse>> HandleAsync(SaveGeneralProfileRequest request, CancellationToken cancellationToken = default)
@@ -40,7 +40,12 @@ public sealed class SaveGeneralProfileRequestHandler(UserSettingsRepository user
 
         #region # Execute
 
-        var profile = await userSettingsRepo.UpdateUserProfileAsync(request.UserId, request.FirstName, request.LastName, request.UserId, cancellationToken);
+        var profile = await userRepo.UpdateUserProfileAsync(
+            request.UserId,
+            request.FirstName,
+            request.LastName,
+            request.UserId,
+            cancellationToken);
 
         #endregion
 

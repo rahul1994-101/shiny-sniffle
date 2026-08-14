@@ -1,6 +1,4 @@
 using FluentValidation;
-using Infrastructure.Persistence;
-using Microsoft.EntityFrameworkCore;
 
 namespace Application.Features.chat.ChatThreads.Queries;
 
@@ -22,7 +20,7 @@ public sealed class GetChatThreadsByUserIdRequestValidator : AbstractValidator<G
     }
 }
 
-public sealed class GetChatThreadsByUserIdRequestHandler(IDbContextFactory<AppDbContext> dbContextFactory)
+public sealed class GetChatThreadsByUserIdRequestHandler(ChatThreadRepository chatThreadRepo)
     : IRequestHandler<GetChatThreadsByUserIdRequest, GetChatThreadsByUserIdResponse>
 {
     public async ValueTask<Result<GetChatThreadsByUserIdResponse>> HandleAsync(GetChatThreadsByUserIdRequest request, CancellationToken cancellationToken = default)
@@ -31,7 +29,7 @@ public sealed class GetChatThreadsByUserIdRequestHandler(IDbContextFactory<AppDb
 
         #region # Execute
 
-        var threads = await GetActiveByUserIdAsync(request.UserId, cancellationToken);
+        var threads = await chatThreadRepo.ListActiveByUserIdAsync(request.UserId, cancellationToken);
 
         #endregion
 
@@ -43,23 +41,4 @@ public sealed class GetChatThreadsByUserIdRequestHandler(IDbContextFactory<AppDb
 
         return result;
     }
-
-    #region # Private Helpers
-
-    private async Task<List<ChatThreadDto>> GetActiveByUserIdAsync(Guid userId, CancellationToken cancellationToken)
-    {
-        await using var ctx = await dbContextFactory.CreateDbContextAsync(cancellationToken);
-        var threads = await ctx.ChatThreads
-            .AsNoTracking()
-            .Where(x =>
-                x.UserId == userId &&
-                x.IsActive &&
-                !x.IsDeleted)
-            .OrderByDescending(x => x.UpdatedAt)
-            .ToListAsync(cancellationToken);
-
-        return ChatThreadDto.FromEntities(threads);
-    }
-
-    #endregion
 }

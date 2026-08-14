@@ -32,8 +32,7 @@ Utilities/      technical cross-cutting only (crypto) — not slice business log
 
 | Folder | Namespace segment | Repository | Entity |
 |--------|-------------------|------------|--------|
-| `dbo/Users/` | `Application.Features.dbo.Users` | `UserRepository` | `dbo.User` |
-| `dbo/UserSettings/` | `…dbo.UserSettings` | `UserSettingsRepository` | `dbo.UserSetting` (+ General on `User`) |
+| `dbo/Users/` | `Application.Features.dbo.Users` | `UserRepository` | `dbo.User` (sign-in, profile, password) |
 | `dbo/EmailProviders/` | `…dbo.EmailProviders` | `EmailProviderRepository` | `dbo.EmailProvider` |
 | `chat/ChatThreads/` | `Application.Features.chat.ChatThreads` | `ChatThreadRepository` | `chat.ChatThread` |
 | `chat/ChatMessages/` | `…chat.ChatMessages` | `ChatMessageRepository` | `chat.ChatMessage` |
@@ -42,6 +41,8 @@ Utilities/      technical cross-cutting only (crypto) — not slice business log
 | `workspace/Tags/` | `…workspace.Tags` | `TagRepository` | `workspace.Tag` (+ `TagAssignment`) |
 | `workspace/Buckets/` | `…workspace.Buckets` | `BucketRepository` | `workspace.Bucket` (+ `BucketAssignment`) |
 | `Shared/` | `Application.Features.Shared` | `SharedRepository` (cross-slice taxonomy), `Helpers.cs`, `DTOs.cs`, `Services.cs` | — |
+
+`dbo.UserSetting` is persistence-only today (placeholder row per user). No Features slice until preference columns and use cases exist — profile/password stay on `dbo/Users/`.
 
 Physical folders may be `Chat/` / `Workspace/` on Windows; namespaces use lowercase `chat` / `workspace` to match `Infrastructure.Persistence.*`.
 
@@ -74,10 +75,11 @@ Mirror Infrastructure and **Slice ↔ Shared**: one `DTOs.cs`, one `Repository.c
 | `Helpers.cs` | Mapping, presets, validation | Cross-slice logic |
 | `Services.cs` | Slice-local facades | Cross-slice facades (`UserMailboxService`) |
 
-- Slice repos: `IDbContextFactory<AppDbContext>`; do **not** inherit `SharedRepository`
-- **Reads** → slice DTOs via `FromEntity` / `FromEntities`
-- **Writes** → accept entities; return DTOs
-- **Smallest scope first** — see `solution.mdc`; handler level 1 → slice repo → shared repo
+- Slice repos: `IDbContextFactory<AppDbContext>` in ctor; each method owns ctx → query/mutate → `SaveChanges`
+- **Handlers never inject `IDbContextFactory`** — all EF in slice repos (or `SharedRepository`)
+- **Reads** → slice DTOs via `FromEntity` / `FromEntities` / `*Mapping.ToDto`
+- **Writes** → repo methods; return DTOs or status tuples
+- **Repo → repo:** slice repo calls another slice repo or `SharedRepository` when cross-slice; promote to `SharedRepository` when query spans multiple entity folders
 
 ### Escalation (logic + data access)
 
@@ -103,28 +105,28 @@ Start in the handler. Move to `{Slice}/Helpers.cs` when reused within the slice.
 
 `Helpers` = stateless mapping/logic. `Services` = injectable facades (repos, Infrastructure ports). Example: `UserMailboxService` in `Shared/Services.cs`.
 
-#### Data access escalation
+#### Data access
 
-**Smallest scope first** — see `solution.mdc`. Promote to slice repo when a **second consumer** needs the **same** method; promote to Shared when cross-slice.
+**All EF in repos.** Handlers inject slice repos only; never `IDbContextFactory`.
 
 | Level | When | Where |
 |-------|------|--------|
-| **1 — Handler private** | Default for new data access | Private `*Async` methods on the **handler class** (alongside `HandleAsync`), in `#region # Private Helpers` last; inject `IDbContextFactory<AppDbContext>` |
-| **2 — Slice repo** | Same method promoted from level 1 | `{Slice}/Repository.cs` — class always registered in DI |
-| **3 — Shared repo** | Cross-slice query (multiple entity folders) | `Features/Shared/Repository.cs` — inject only when needed |
+| **1 — Slice repo** | Default for all slice data access | `{Slice}/Repository.cs` — registered in DI |
+| **2 — Shared repo** | Cross-slice query (multiple entity folders) | `Features/Shared/Repository.cs` |
+| **3 — Repo → repo** | One slice repo needs another slice’s data | Inject the other `{Slice}Repository` (e.g. `EmailAccounts` → `EmailProviderRepository`) |
 
-**Features owns all new EF.** Escalation applies to **handlers only**.
+Private `*Async(AppDbContext ctx, …)` helpers inside a repo method are fine — same unit of work, not handler-passed ctx.
 
-**Outside Features** (`AI/`, `Shared/Services.cs`): **slice repos** for single-slice data; **`SharedRepository`** when a query spans slices. **Never** `IDbContextFactory` outside Feature **handlers**.
+**Features owns all EF.** `AI/` and `Features/Shared/Services.cs` use slice repos or `SharedRepository` — never `IDbContextFactory`.
 
 | Consumer | Single-slice data | Cross-slice data |
 |----------|-------------------|------------------|
-| Feature handler | Level 1 private → level 2 slice repo | Level 3 `SharedRepository` |
+| Feature handler | `{Slice}Repository` | `SharedRepository` or second slice repo |
 | `AI/`, `Shared` services | `{Slice}Repository` | `SharedRepository` |
 
-If AI/Services need a method that does not exist yet, add it to the **slice repo** (not private EF in AI). Promote to **Shared** only when a second slice is involved.
+If a repo needs a capability on another slice, inject that slice’s repo. Promote to **`SharedRepository`** only when the query truly spans slices (e.g. taxonomy joins).
 
-`SharedRepository` is not a dump of every AI query — only true cross-slice access.
+`SharedRepository` is not a dump of every query — only true cross-slice access.
 
 ### Models / DTOs
 
@@ -149,14 +151,14 @@ Do **not** put use-case types or slice DTOs in Infrastructure or WebApp.
 3. `{UseCase}RequestValidator`
 4. `{UseCase}RequestHandler`
 
-**References:** `Users/Commands/SignIn.cs` (level 1), `Chat/ChatThreads/Queries/GetChatThreadById.cs` (level 2), `Chat/ChatMessages/Commands/SendChatMessage.cs` (slice repos + level 1).
+**References:** `dbo/EmailProviders/Queries/ListEmailProviders.cs`, `dbo/Users/Commands/SignIn.cs`, `Chat/ChatMessages/Commands/SendChatMessage.cs`.
 
-### Template A — command (level 1, default)
+### Template — handler (repo only)
 
-New data access starts here. Inject `IDbContextFactory<AppDbContext>`. Private instance `*Async` methods on the handler class, in `#region # Private Helpers` after `HandleAsync`.
+Inject slice repo(s). No `# Private Helpers` for data access.
 
 ```csharp
-public sealed class SignInRequestHandler(IDbContextFactory<AppDbContext> dbContextFactory)
+public sealed class SignInRequestHandler(UserRepository userRepo)
     : IRequestHandler<SignInRequest, SignInResponse>
 {
     public async ValueTask<Result<SignInResponse>> HandleAsync(SignInRequest request, CancellationToken cancellationToken = default)
@@ -164,7 +166,7 @@ public sealed class SignInRequestHandler(IDbContextFactory<AppDbContext> dbConte
         var result = new Result<SignInResponse>();
 
         #region # Execute
-        var session = await FindSessionByEmailAndPasswordAsync(request.EmailId, request.Password, cancellationToken);
+        var session = await userRepo.FindSessionByEmailAndPasswordAsync(request.EmailId, request.Password, cancellationToken);
         #endregion
 
         #region # Handle Result
@@ -176,47 +178,18 @@ public sealed class SignInRequestHandler(IDbContextFactory<AppDbContext> dbConte
 
         return result;
     }
-
-    #region # Private Helpers
-
-    private async Task<SessionDto?> FindSessionByEmailAndPasswordAsync(string emailId, string password, CancellationToken cancellationToken)
-    {
-        await using var ctx = await dbContextFactory.CreateDbContextAsync(cancellationToken);
-        // ...
-    }
-
-    #endregion
 }
 ```
 
-### Template B — query (level 1)
-
-Same as A with `IQuery<>` under `Queries/`.
-
-### Template C — promoted slice repo (level 2)
-
-Inject slice repo only for methods promoted after reuse. Example: `GetActiveByIdAsync` — used by `GetChatThreadById` and `SendChatMessage`.
+### Template — slice repo method
 
 ```csharp
-public sealed class GetChatThreadByIdRequestHandler(ChatThreadRepository chatThreadRepo)
-    : IRequestHandler<GetChatThreadByIdRequest, GetChatThreadByIdResponse>
+public sealed class EmailProviderRepository(IDbContextFactory<AppDbContext> _dbContextFactory)
 {
-    public async ValueTask<Result<GetChatThreadByIdResponse>> HandleAsync(GetChatThreadByIdRequest request, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<EmailProviderDto>> ListAsync(CancellationToken cancellationToken = default)
     {
-        var result = new Result<GetChatThreadByIdResponse>();
-
-        #region # Execute
-        var chatThread = await chatThreadRepo.GetActiveByIdAsync(request.Id, cancellationToken);
-        #endregion
-
-        #region # Handle Result
-        if (chatThread is null)
-            result.Failure(ErrorCode.NotFound, "Chat thread not found.");
-        else
-            result.Success(chatThread.AsResponse<GetChatThreadByIdResponse>());
-        #endregion
-
-        return result;
+        await using var ctx = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        // query → map → return (SaveChanges when mutating)
     }
 }
 ```
@@ -236,31 +209,30 @@ public sealed class GetChatThreadByIdRequestHandler(ChatThreadRepository chatThr
 1. `var result = new Result<T>();` first line
 2. `result.Success` / `result.Failure` — instance only
 3. `#region # Execute` + `#region # Handle Result` always
-4. `#region # Private Helpers` last when handler has level-1 data access (Template A/B)
-5. Inject slice repo only for promoted methods (Template C); `SharedRepository` only at level 3
+4. **No EF in handlers** — inject `{Slice}Repository` (and `SharedRepository` or second slice repo when needed)
+5. `#region # Private Helpers` only for **non-DB** orchestration (not data access)
 
 | Repo param | Name |
 |------------|------|
 | `UserRepository` | `userRepo` |
-| `UserSettingsRepository` | `userSettingsRepo` |
 | `ChatThreadRepository` | `chatThreadRepo` |
 | `ChatMessageRepository` | `chatMessageRepo` |
 | `EmailAccountRepository` | `emailAccountRepo` |
 | `ContactRepository` | `contactRepo` |
 | `TagRepository` | `tagRepo` |
 | `BucketRepository` | `bucketRepo` |
+| `EmailProviderRepository` | `emailProviderRepo` |
 | `SharedRepository` | `sharedRepo` |
-
-Inject slice repo only for **promoted** methods; handlers still use `IDbContextFactory` for level-1 access.
 
 Entry: `mediator.SendAsync(new SignInRequest(...))` — pipeline in `mediatr.mdc`.
 
 ### Settings naming
 
-| Section | Promoted in repo | Level 1 (handler private) |
-|---------|------------------|---------------------------|
-| General | `UpdateUserProfileAsync`, password match/update | `GetGeneralSettings` |
-| Email | `EmailAccountRepository` | `SaveEmailAccount`, list/get/delete/set default |
+| Section | Repository |
+|---------|------------|
+| General (Settings UI) | `UserRepository` |
+| Email providers (catalog) | `EmailProviderRepository` |
+| Email accounts | `EmailAccountRepository` |
 
 ---
 

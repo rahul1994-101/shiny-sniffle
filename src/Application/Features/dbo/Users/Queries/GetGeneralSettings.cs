@@ -1,8 +1,6 @@
 using FluentValidation;
-using Infrastructure.Persistence;
-using Microsoft.EntityFrameworkCore;
 
-namespace Application.Features.dbo.UserSettings.Queries;
+namespace Application.Features.dbo.Users.Queries;
 
 public sealed record GetGeneralSettingsRequest(Guid UserId)
     : IQuery<GetGeneralSettingsResponse>;
@@ -21,7 +19,7 @@ public sealed class GetGeneralSettingsRequestValidator : AbstractValidator<GetGe
     }
 }
 
-public sealed class GetGeneralSettingsRequestHandler(IDbContextFactory<AppDbContext> dbContextFactory)
+public sealed class GetGeneralSettingsRequestHandler(UserRepository userRepo)
     : IRequestHandler<GetGeneralSettingsRequest, GetGeneralSettingsResponse>
 {
     public async ValueTask<Result<GetGeneralSettingsResponse>> HandleAsync(GetGeneralSettingsRequest request, CancellationToken cancellationToken = default)
@@ -30,7 +28,7 @@ public sealed class GetGeneralSettingsRequestHandler(IDbContextFactory<AppDbCont
 
         #region # Execute
 
-        var profile = await GetGeneralSettingsAsync(request.UserId, cancellationToken);
+        var profile = await userRepo.GetGeneralSettingsAsync(request.UserId, cancellationToken);
 
         #endregion
 
@@ -49,22 +47,4 @@ public sealed class GetGeneralSettingsRequestHandler(IDbContextFactory<AppDbCont
 
         return result;
     }
-
-    #region # Private Helpers
-
-    private async Task<GeneralSettingsDto?> GetGeneralSettingsAsync(Guid userId, CancellationToken cancellationToken)
-    {
-        await using var ctx = await dbContextFactory.CreateDbContextAsync(cancellationToken);
-        var user = await ctx.Users
-            .AsNoTracking()
-            .Where(x =>
-                x.Id == userId &&
-                x.IsActive &&
-                !x.IsDeleted)
-            .FirstOrDefaultAsync(cancellationToken);
-
-        return user is null ? null : GeneralSettingsDto.FromEntity(user);
-    }
-
-    #endregion
 }
