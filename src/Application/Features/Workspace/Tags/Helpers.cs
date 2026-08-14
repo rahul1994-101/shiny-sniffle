@@ -1,17 +1,7 @@
-namespace Application.Features.workspace.Tags;
+namespace Application.Features.Workspace.Tags;
 
 internal static class TagMapping
 {
-    internal static TagDto ToDto(Tag entity) => new()
-    {
-        Id = entity.Id,
-        Name = entity.Name,
-        Alias = entity.Alias,
-        Color = entity.Color,
-        Context = entity.Context,
-        SortOrder = entity.SortOrder
-    };
-
     internal static string NormalizeName(string name) => name.Trim();
 
     internal static string? NormalizeAlias(string? value) => EntityAliasRules.NormalizeOptional(value);

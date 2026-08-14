@@ -1,6 +1,6 @@
 using FluentValidation;
 
-namespace Application.Features.workspace.EmailAccounts.Commands;
+namespace Application.Features.Workspace.EmailAccounts.Commands;
 
 public sealed record DeleteEmailAccountRequest(Guid UserId, Guid AccountId)
     : ICommand<DeleteEmailAccountResponse>;

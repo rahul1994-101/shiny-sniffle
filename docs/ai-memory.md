@@ -31,7 +31,7 @@ Current user message
 - **After successful send:** if message count > 12, incrementally summarize messages outside the window via gpt-4o-mini; persist on `ChatThread`.
 - **Short-term window** remains the last 12 `ChatMessage` rows (source of truth for recent turns).
 
-Thread memory columns live in `src/Infrastructure/Persistence/chat/Tables/ChatThread.sql`. For an older database missing them, apply an idempotent `ALTER TABLE` to match that script.
+Thread memory columns live in `src/Infrastructure/Database/chat/Tables/ChatThread.sql`. For an older database missing them, apply an idempotent `ALTER TABLE` to match that script.
 
 ### User memory (phase B — next)
 
@@ -58,14 +58,14 @@ Do **not** put user or working memory on `ChatThread`.
 
 ## Key files
 
-Paths use Windows folder names (`Chat/`, `Workspace/`); C# namespaces use lowercase schema segments (`Application.Features.chat.*`, `Application.Features.workspace.*`).
+C# folders and namespaces use PascalCase (`Chat/`, `Application.Features.Chat.*`, `Infrastructure.Persistence.Chat`).
 
 ```text
 src/Application/AI/ChatOrchestrator.cs
 src/Application/AI/Memory/ThreadMemoryService.cs
 src/Application/AI/Memory/ChatMemoryLimits.cs
-src/Application/Features/Chat/ChatMessages/Commands/SendChatMessage.cs  (namespace Application.Features.chat.ChatMessages)
-src/Infrastructure/Persistence/chat/ChatThread.cs
+src/Application/Features/Chat/ChatMessages/Commands/SendChatMessage.cs  (namespace Application.Features.Chat.ChatMessages)
+src/Infrastructure/Persistence/Chat/ChatThread.cs
 ```
 
 ## Implementation order

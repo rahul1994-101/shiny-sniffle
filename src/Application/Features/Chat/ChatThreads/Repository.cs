@@ -1,7 +1,7 @@
 using Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
-namespace Application.Features.chat.ChatThreads;
+namespace Application.Features.Chat.ChatThreads;
 
 public sealed class ChatThreadRepository(IDbContextFactory<AppDbContext> _dbContextFactory)
 {
@@ -20,7 +20,7 @@ public sealed class ChatThreadRepository(IDbContextFactory<AppDbContext> _dbCont
         return ChatThreadDto.FromEntities(threads);
     }
 
-    public async Task<ChatThreadDto?> AddAsync(ChatThread entity, CancellationToken cancellationToken = default)
+    public async Task<ChatThreadDto> AddAsync(ChatThread entity, CancellationToken cancellationToken = default)
     {
         await using var ctx = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
         await ctx.ChatThreads.AddAsync(entity, cancellationToken);
@@ -28,13 +28,14 @@ public sealed class ChatThreadRepository(IDbContextFactory<AppDbContext> _dbCont
         return ChatThreadDto.FromEntity(entity);
     }
 
-    public async Task<ChatThreadDto?> GetActiveByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    public async Task<ChatThreadDto?> GetActiveByIdAsync(Guid id, Guid userId, CancellationToken cancellationToken = default)
     {
         await using var ctx = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
         var thread = await ctx.ChatThreads
             .AsNoTracking()
             .Where(x =>
                 x.Id == id &&
+                x.UserId == userId &&
                 x.IsActive &&
                 !x.IsDeleted)
             .FirstOrDefaultAsync(cancellationToken);
@@ -91,13 +92,14 @@ public sealed class ChatThreadRepository(IDbContextFactory<AppDbContext> _dbCont
         return true;
     }
 
-    public async Task<ThreadMemoryState?> GetMemoryStateAsync(Guid id, CancellationToken cancellationToken = default)
+    public async Task<ThreadMemoryState?> GetMemoryStateAsync(Guid userId, Guid id, CancellationToken cancellationToken = default)
     {
         await using var ctx = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
         var thread = await ctx.ChatThreads
             .AsNoTracking()
             .Where(x =>
                 x.Id == id &&
+                x.UserId == userId &&
                 x.IsActive &&
                 !x.IsDeleted)
             .Select(x => new { x.MemorySummary, x.MemorySummaryThroughMessageId })

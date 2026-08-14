@@ -1,8 +1,8 @@
-namespace Application.Features.workspace.Buckets.Commands;
+namespace Application.Features.Workspace.Buckets.Commands;
 
 
 
-using Application.Features.workspace.Buckets;
+using Application.Features.Workspace.Buckets;
 
 using FluentValidation;
 

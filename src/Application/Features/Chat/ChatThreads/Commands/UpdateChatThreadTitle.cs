@@ -1,8 +1,8 @@
 using FluentValidation;
 
-namespace Application.Features.chat.ChatThreads.Commands;
+namespace Application.Features.Chat.ChatThreads.Commands;
 
-public sealed record UpdateChatThreadTitleRequest(Guid Id, string Title, Guid UserId)
+public sealed record UpdateChatThreadTitleRequest(Guid UserId, Guid Id, string Title)
     : ICommand<UpdateChatThreadTitleResponse>;
 
 public sealed class UpdateChatThreadTitleResponse : ChatThreadDto
@@ -13,6 +13,10 @@ public sealed class UpdateChatThreadTitleRequestValidator : AbstractValidator<Up
 {
     public UpdateChatThreadTitleRequestValidator()
     {
+        RuleFor(x => x.UserId)
+            .NotEmpty()
+            .WithMessage("User Id is required.");
+
         RuleFor(x => x.Id)
             .NotEmpty()
             .WithMessage("Thread Id is required.");
@@ -22,10 +26,6 @@ public sealed class UpdateChatThreadTitleRequestValidator : AbstractValidator<Up
             .WithMessage("Title is required.")
             .Length(1, 200)
             .WithMessage("Title must be between 1 and 200 characters.");
-
-        RuleFor(x => x.UserId)
-            .NotEmpty()
-            .WithMessage("User Id is required.");
     }
 }
 

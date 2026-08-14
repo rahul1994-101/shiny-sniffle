@@ -1,4 +1,4 @@
-namespace Application.Features.workspace.EmailAccounts;
+namespace Application.Features.Workspace.EmailAccounts;
 
 public sealed class EmailAccountSummaryDto
 {
@@ -22,6 +22,22 @@ public sealed class EmailAccountSummaryDto
     public IReadOnlyList<TagRefDto> Tags { get; init; } = [];
 
     public IReadOnlyList<BucketRefDto> Buckets { get; init; } = [];
+
+    public static EmailAccountSummaryDto FromEntity(
+        EmailAccount account,
+        EmailProvider provider,
+        ErTaxonomyDto? taxonomy = null) => new()
+    {
+        Id = account.Id,
+        Alias = account.Alias,
+        ProviderName = provider.Name,
+        ProviderSlug = provider.Slug,
+        EmailAddress = account.EmailAddress,
+        IsDefault = account.IsDefault,
+        SortOrder = account.SortOrder,
+        Tags = taxonomy?.Tags ?? [],
+        Buckets = taxonomy?.Buckets ?? []
+    };
 }
 
 public class EmailAccountDto
@@ -35,7 +51,7 @@ public class EmailAccountDto
 
     public bool IsDefault { get; init; }
 
-    public string ProviderSlug { get; init; } = "custom";
+    public string ProviderSlug { get; init; } = string.Empty;
 
     public string ProviderName { get; init; } = string.Empty;
 
@@ -62,6 +78,34 @@ public class EmailAccountDto
     public IReadOnlyList<TagRefDto> Tags { get; init; } = [];
 
     public IReadOnlyList<BucketRefDto> Buckets { get; init; } = [];
+
+    public static EmailAccountDto FromEntity(
+        EmailAccount account,
+        EmailProvider provider,
+        ErTaxonomyDto? taxonomy = null)
+    {
+        var settings = EmailAccountMapping.ToEmailSettings(account, provider);
+        return new EmailAccountDto
+        {
+            Id = account.Id,
+            Alias = account.Alias,
+            IsDefault = account.IsDefault,
+            ProviderSlug = settings.ProviderSlug,
+            ProviderName = provider.Name,
+            EmailAddress = settings.EmailAddress,
+            ImapHost = settings.ImapHost,
+            ImapPort = settings.ImapPort,
+            ImapUseSsl = settings.ImapUseSsl,
+            SmtpHost = settings.SmtpHost,
+            SmtpPort = settings.SmtpPort,
+            SmtpUseSsl = settings.SmtpUseSsl,
+            Username = settings.Username,
+            HasStoredPassword = !string.IsNullOrWhiteSpace(settings.Password),
+            Context = account.Context,
+            Tags = taxonomy?.Tags ?? [],
+            Buckets = taxonomy?.Buckets ?? []
+        };
+    }
 
     public T AsResponse<T>() where T : EmailAccountDto, new() => new()
     {
@@ -94,7 +138,7 @@ public sealed class SaveEmailAccountDto
 
     public bool IsDefault { get; init; }
 
-    public string ProviderSlug { get; init; } = "custom";
+    public string ProviderSlug { get; init; } = string.Empty;
 
     public string EmailAddress { get; init; } = string.Empty;
 
@@ -111,7 +155,7 @@ public sealed class SaveEmailAccountDto
 
 public class EmailSettingsDto
 {
-    public string ProviderSlug { get; set; } = "custom";
+    public string ProviderSlug { get; set; } = string.Empty;
 
     public string EmailAddress { get; set; } = string.Empty;
     public string ImapHost { get; set; } = string.Empty;

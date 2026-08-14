@@ -1,20 +1,20 @@
 using FluentValidation;
 
-namespace Application.Features.chat.ChatThreads.Commands;
+namespace Application.Features.Chat.ChatThreads.Commands;
 
-public sealed record DeleteChatThreadRequest(Guid Id, Guid UserId) : ICommand;
+public sealed record DeleteChatThreadRequest(Guid UserId, Guid Id) : ICommand;
 
 public sealed class DeleteChatThreadRequestValidator : AbstractValidator<DeleteChatThreadRequest>
 {
     public DeleteChatThreadRequestValidator()
     {
-        RuleFor(x => x.Id)
-            .NotEmpty()
-            .WithMessage("Thread Id is required.");
-
         RuleFor(x => x.UserId)
             .NotEmpty()
             .WithMessage("User Id is required.");
+
+        RuleFor(x => x.Id)
+            .NotEmpty()
+            .WithMessage("Thread Id is required.");
     }
 }
 

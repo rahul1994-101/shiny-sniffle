@@ -1,6 +1,6 @@
-namespace Application.Features.workspace.Contacts.Commands;
+namespace Application.Features.Workspace.Contacts.Commands;
 
-using Application.Features.workspace.Contacts;
+using Application.Features.Workspace.Contacts;
 using FluentValidation;
 
 public sealed record DeleteContactRequest(Guid UserId, Guid ContactId) : ICommand<DeleteContactResponse>;

@@ -1,17 +1,7 @@
-namespace Application.Features.workspace.Buckets;
+namespace Application.Features.Workspace.Buckets;
 
 internal static class BucketMapping
 {
-    internal static BucketDto ToDto(Bucket entity) => new()
-    {
-        Id = entity.Id,
-        Name = entity.Name,
-        Alias = entity.Alias,
-        Color = entity.Color,
-        Context = entity.Context,
-        SortOrder = entity.SortOrder
-    };
-
     internal static string NormalizeName(string name) => name.Trim();
 
     internal static string? NormalizeAlias(string? value) => EntityAliasRules.NormalizeOptional(value);

@@ -1,8 +1,8 @@
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Options;
-using Application.Features.chat.ChatMessages;
-using Application.Features.chat.ChatThreads;
+using Application.Features.Chat.ChatMessages;
+using Application.Features.Chat.ChatThreads;
 using Infrastructure.Foundry;
 using AiChatMessage = Microsoft.Extensions.AI.ChatMessage;
 using AiChatRole = Microsoft.Extensions.AI.ChatRole;
@@ -16,11 +16,12 @@ public sealed class ThreadMemoryService(
     ChatMessageRepository chatMessageRepo)
 {
     public async Task<IReadOnlyList<AiChatMessage>> EnrichHistoryAsync(
+        Guid userId,
         Guid chatThreadId,
         IReadOnlyList<AiChatMessage> shortTermHistory,
         CancellationToken cancellationToken = default)
     {
-        var memory = await chatThreadRepo.GetMemoryStateAsync(chatThreadId, cancellationToken);
+        var memory = await chatThreadRepo.GetMemoryStateAsync(userId, chatThreadId, cancellationToken);
         if (memory?.Summary is not { Length: > 0 } summary)
         {
             return shortTermHistory;
@@ -47,7 +48,7 @@ public sealed class ThreadMemoryService(
 
         cancellationToken.ThrowIfCancellationRequested();
 
-        var count = await chatMessageRepo.CountByChatThreadIdAsync(chatThreadId, cancellationToken);
+        var count = await chatMessageRepo.CountByChatThreadIdAsync(userId, chatThreadId, cancellationToken);
         if (count <= ChatMemoryLimits.ShortTermMessageLimit)
         {
             await chatThreadRepo.UpdateMemorySummaryAsync(
@@ -61,6 +62,7 @@ public sealed class ThreadMemoryService(
         }
 
         var beyondWindow = await chatMessageRepo.GetBeyondRecentWindowAsync(
+            userId,
             chatThreadId,
             ChatMemoryLimits.ShortTermMessageLimit,
             cancellationToken);
@@ -70,7 +72,7 @@ public sealed class ThreadMemoryService(
             return;
         }
 
-        var memory = await chatThreadRepo.GetMemoryStateAsync(chatThreadId, cancellationToken);
+        var memory = await chatThreadRepo.GetMemoryStateAsync(userId, chatThreadId, cancellationToken);
         var messagesToFold = SelectMessagesToSummarize(beyondWindow, memory?.SummaryThroughMessageId);
         if (messagesToFold.Count == 0)
         {

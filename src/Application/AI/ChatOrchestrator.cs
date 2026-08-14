@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Options;
 using Application.AI.Agents;
 using Application.AI.Memory;
-using Application.Features.chat.ChatMessages;
+using Application.Features.Chat.ChatMessages;
 using Infrastructure.Foundry;
 using AiChatRole = Microsoft.Extensions.AI.ChatRole;
 
@@ -32,8 +32,8 @@ public sealed class ChatOrchestrator(
 
         #region # Execute
 
-        var history = await LoadThreadHistoryAsync(request.ChatThreadId, cancellationToken);
-        history = await threadMemory.EnrichHistoryAsync(request.ChatThreadId, history, cancellationToken);
+        var history = await LoadThreadHistoryAsync(request.UserId, request.ChatThreadId, cancellationToken);
+        history = await threadMemory.EnrichHistoryAsync(request.UserId, request.ChatThreadId, history, cancellationToken);
         var response = request.ChatAgent switch
         {
             ChatAgent.Email => await emailTriageAgent.RunAsync(request, history, cancellationToken),
@@ -51,11 +51,12 @@ public sealed class ChatOrchestrator(
 
     #region # Private Helpers
 
-    private async Task<IReadOnlyList<Microsoft.Extensions.AI.ChatMessage>> LoadThreadHistoryAsync(Guid chatThreadId, CancellationToken cancellationToken)
+    private async Task<IReadOnlyList<Microsoft.Extensions.AI.ChatMessage>> LoadThreadHistoryAsync(Guid userId, Guid chatThreadId, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
         var messages = await chatMessageRepo.GetRecentByChatThreadIdAsync(
+            userId,
             chatThreadId,
             ChatMemoryLimits.ShortTermMessageLimit,
             cancellationToken);

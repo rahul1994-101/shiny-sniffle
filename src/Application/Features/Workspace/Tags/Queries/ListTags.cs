@@ -1,6 +1,6 @@
-namespace Application.Features.workspace.Tags.Queries;
+namespace Application.Features.Workspace.Tags.Queries;
 
-using Application.Features.workspace.Tags;
+using Application.Features.Workspace.Tags;
 using FluentValidation;
 
 public sealed record ListTagsRequest(Guid UserId) : IQuery<ListTagsResponse>;

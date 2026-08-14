@@ -1,8 +1,8 @@
-using Application.Features.dbo.EmailProviders;
+using Application.Features.Dbo.EmailProviders;
 using FluentValidation;
 using Infrastructure.Mailbox;
 
-namespace Application.Features.workspace.EmailAccounts.Commands;
+namespace Application.Features.Workspace.EmailAccounts.Commands;
 
 public sealed record SaveEmailAccountRequest(Guid UserId, SaveEmailAccountDto Account)
     : ICommand<SaveEmailAccountResponse>;
@@ -39,7 +39,7 @@ public sealed class SaveEmailAccountRequestHandler(
             return result;
         }
 
-        var (catalog, catalogError) = await EmailSettingsCatalog.LoadCatalogAsync(emailProviderRepo, cancellationToken);
+        var (catalog, catalogError) = await EmailSettingsCatalog.LoadCatalogAsync(emailProviderRepo, request.UserId, cancellationToken);
         if (catalogError is not null)
         {
             result.Failure(ErrorCode.BadRequest, catalogError);

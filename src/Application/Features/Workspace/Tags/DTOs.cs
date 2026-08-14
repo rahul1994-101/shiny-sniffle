@@ -1,4 +1,4 @@
-namespace Application.Features.workspace.Tags;
+namespace Application.Features.Workspace.Tags;
 
 public class TagDto
 {
@@ -15,6 +15,16 @@ public class TagDto
     public string? Context { get; init; }
 
     public int SortOrder { get; init; }
+
+    public static TagDto FromEntity(Tag entity) => new()
+    {
+        Id = entity.Id,
+        Name = entity.Name,
+        Alias = entity.Alias,
+        Color = entity.Color,
+        Context = entity.Context,
+        SortOrder = entity.SortOrder
+    };
 
     public TagRefDto AsRef() => new()
     {

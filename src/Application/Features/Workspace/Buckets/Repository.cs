@@ -1,7 +1,7 @@
 using Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
-namespace Application.Features.workspace.Buckets;
+namespace Application.Features.Workspace.Buckets;
 
 public sealed class BucketRepository(
     IDbContextFactory<AppDbContext> dbContextFactory,
@@ -17,7 +17,7 @@ public sealed class BucketRepository(
             .ThenBy(x => x.Name)
             .ToListAsync(cancellationToken);
 
-        return rows.ConvertAll(BucketMapping.ToDto);
+        return rows.ConvertAll(BucketDto.FromEntity);
     }
 
     public async Task<(BucketDto? Saved, string? Error, bool NotFound)> SaveAsync(
@@ -91,7 +91,7 @@ public sealed class BucketRepository(
         }
 
         await ctx.SaveChangesAsync(cancellationToken);
-        return (BucketMapping.ToDto(entity), null, false);
+        return (BucketDto.FromEntity(entity), null, false);
     }
 
     public async Task<bool> SoftDeleteAsync(

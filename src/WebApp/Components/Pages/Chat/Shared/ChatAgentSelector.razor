@@ -1,5 +1,5 @@
 @inherits BaseComponent
-@using ChatThreadCmd = Application.Features.chat.ChatThreads.Commands
+@using ChatThreadCmd = Application.Features.Chat.ChatThreads.Commands
 
 <div class="chat-agent-picker">
     @if (_open)
@@ -110,8 +110,8 @@
             #region # Execute
 
             var result = await Mediator.SendAsync(new ChatThreadCmd.UpdateChatThreadAgentRequest(
-                ThreadId,
                 CurrentUser.Id,
+                ThreadId,
                 selected));
 
             #endregion

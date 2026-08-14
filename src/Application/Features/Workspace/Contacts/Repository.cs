@@ -1,7 +1,7 @@
 using Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
-namespace Application.Features.workspace.Contacts;
+namespace Application.Features.Workspace.Contacts;
 
 public sealed class ContactRepository(
     IDbContextFactory<AppDbContext> _dbContextFactory,
@@ -29,7 +29,7 @@ public sealed class ContactRepository(
         return rows.ConvertAll(entity =>
         {
             taxonomy.TryGetValue(entity.Id, out var tax);
-            return ContactMapping.ToSummary(entity, tax);
+            return ContactSummaryDto.FromEntity(entity, tax);
         });
     }
 
@@ -49,7 +49,7 @@ public sealed class ContactRepository(
             [row.Id],
             cancellationToken);
         taxonomy.TryGetValue(row.Id, out var tax);
-        return ContactMapping.ToDto(row, tax);
+        return ContactDto.FromEntity(row, tax);
     }
 
     public async Task<(ContactDto? Saved, string? Error, bool NotFound)> SaveAsync(
@@ -176,7 +176,7 @@ public sealed class ContactRepository(
             [entity.Id],
             cancellationToken);
         taxonomy.TryGetValue(entity.Id, out var tax);
-        return (ContactMapping.ToDto(entity, tax), null, false);
+        return (ContactDto.FromEntity(entity, tax), null, false);
     }
 
     public async Task<bool> SoftDeleteAsync(

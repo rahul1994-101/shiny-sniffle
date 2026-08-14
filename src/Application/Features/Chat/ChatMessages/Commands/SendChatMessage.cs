@@ -1,12 +1,11 @@
 using FluentValidation;
 using Application.AI;
 using Application.AI.Memory;
-using Application.Features.chat.ChatMessages;
-using Application.Features.chat.ChatThreads;
+using Application.Features.Chat.ChatThreads;
 
-namespace Application.Features.chat.ChatMessages.Commands;
+namespace Application.Features.Chat.ChatMessages.Commands;
 
-public sealed record SendChatMessageRequest(Guid ChatThreadId, Guid UserId, ChatAgent ChatAgent, string Message)
+public sealed record SendChatMessageRequest(Guid UserId, Guid ChatThreadId, string Message)
     : ICommand<SendChatMessageResponse>;
 
 public sealed class SendChatMessageResponse
@@ -19,13 +18,13 @@ public sealed class SendChatMessageRequestValidator : AbstractValidator<SendChat
 {
     public SendChatMessageRequestValidator()
     {
-        RuleFor(x => x.ChatThreadId)
-            .NotEmpty()
-            .WithMessage("Chat Thread Id is required.");
-
         RuleFor(x => x.UserId)
             .NotEmpty()
             .WithMessage("User Id is required.");
+
+        RuleFor(x => x.ChatThreadId)
+            .NotEmpty()
+            .WithMessage("Chat Thread Id is required.");
 
         RuleFor(x => x.Message)
             .Must(message => !string.IsNullOrWhiteSpace(message))
@@ -47,15 +46,12 @@ public sealed class SendChatMessageRequestHandler(
 
         #region # Execute
 
-        var thread = await chatThreadRepo.GetActiveByIdAsync(request.ChatThreadId, cancellationToken);
-        ChatMessageDto? userMessage = null;
-        ChatMessageDto? assistantMessage = null;
+        var thread = await chatThreadRepo.GetActiveByIdAsync(request.ChatThreadId, request.UserId, cancellationToken);
+        SendChatMessageResponse? response = null;
 
-        if (thread is not null && thread.UserId == request.UserId)
+        if (thread is not null)
         {
-            var chatAgent = thread.ChatAgent;
-
-            userMessage = await chatMessageRepo.AddAsync(new ChatMessage
+            var userMessage = await chatMessageRepo.AddAsync(new ChatMessage
             {
                 ChatThreadId = request.ChatThreadId,
                 Role = ChatMessageRoles.User,
@@ -64,46 +60,37 @@ public sealed class SendChatMessageRequestHandler(
                 UpdatedBy = request.UserId
             }, cancellationToken);
 
-            if (userMessage is not null)
+            var agentRun = await chatOrchestrator.RunChatAgentAsync(new RunChatAgentRequest
             {
-                var agentRun = await chatOrchestrator.RunChatAgentAsync(new RunChatAgentRequest
-                {
-                    ChatThreadId = request.ChatThreadId,
-                    UserId = request.UserId,
-                    ChatAgent = chatAgent
-                }, cancellationToken);
+                ChatThreadId = request.ChatThreadId,
+                UserId = request.UserId,
+                ChatAgent = thread.ChatAgent
+            }, cancellationToken);
 
-                assistantMessage = await chatMessageRepo.AddAsync(new ChatMessage
-                {
-                    ChatThreadId = request.ChatThreadId,
-                    Role = ChatMessageRoles.Assistant,
-                    Content = agentRun.AssistantContent,
-                    CreatedBy = request.UserId,
-                    UpdatedBy = request.UserId
-                }, cancellationToken);
+            var assistantMessage = await chatMessageRepo.AddAsync(new ChatMessage
+            {
+                ChatThreadId = request.ChatThreadId,
+                Role = ChatMessageRoles.Assistant,
+                Content = agentRun.AssistantContent,
+                CreatedBy = request.UserId,
+                UpdatedBy = request.UserId
+            }, cancellationToken);
 
-                if (assistantMessage is not null)
-                {
-                    await threadMemory.RefreshAsync(request.ChatThreadId, request.UserId, cancellationToken);
-                }
-            }
+            await threadMemory.RefreshAsync(request.ChatThreadId, request.UserId, cancellationToken);
+            response = new SendChatMessageResponse { UserMessage = userMessage, AssistantMessage = assistantMessage };
         }
 
         #endregion
 
         #region # Handle Result
 
-        if (thread is null || thread.UserId != request.UserId)
+        if (thread is null)
         {
             result.Failure(ErrorCode.NotFound, "Chat thread not found.");
         }
-        else if (userMessage is null || assistantMessage is null)
-        {
-            result.Failure(ErrorCode.InternalServerError, "Failed to create chat message.");
-        }
         else
         {
-            result.Success(new SendChatMessageResponse { UserMessage = userMessage, AssistantMessage = assistantMessage });
+            result.Success(response!);
         }
 
         #endregion

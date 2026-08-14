@@ -14,7 +14,7 @@ else
                         EditorOpen="_editorOpen"
                         EditorTitle="@EditorTitle"
                         ListTitle="Provider catalog"
-                        ListLead="Manage provider templates used when connecting mailboxes."
+                        ListLead="System templates are read-only. Add custom templates for your own IMAP/SMTP servers."
                         BackLabel="Back to providers"
                         CloseAriaLabel="Close provider editor"
                         ListHeaderActionsAriaLabel="Provider catalog actions"
@@ -66,7 +66,7 @@ else
                                         class="ui-btn ui-btn-secondary ui-btn-sm"
                                         disabled="@IsFormBusy"
                                         @onclick="() => BeginEdit(provider)">
-                                    Edit
+                                    @(provider.IsSystem ? "View" : "Edit")
                                 </button>
                                 @if (!provider.IsSystem)
                                 {
@@ -324,7 +324,7 @@ else
         _busy = TabBusy.Loading;
         _status.Clear();
 
-        var result = await Mediator.SendAsync(new ListEmailProvidersRequest());
+        var result = await Mediator.SendAsync(new ListEmailProvidersRequest(CurrentUser.Id));
 
         if (result.HasError)
         {
@@ -383,7 +383,7 @@ else
         _deleting = true;
         _status.Clear();
 
-        var result = await Mediator.SendAsync(new DeleteEmailProviderRequest(provider.Id, CurrentUser.Id));
+        var result = await Mediator.SendAsync(new DeleteEmailProviderRequest(CurrentUser.Id, provider.Id));
 
         if (result.HasError)
         {

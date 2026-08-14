@@ -1,6 +1,6 @@
-namespace Application.Features.workspace.Contacts.Queries;
+namespace Application.Features.Workspace.Contacts.Queries;
 
-using Application.Features.workspace.Contacts;
+using Application.Features.Workspace.Contacts;
 using FluentValidation;
 
 public sealed record ListContactsRequest(Guid UserId) : IQuery<ListContactsResponse>;

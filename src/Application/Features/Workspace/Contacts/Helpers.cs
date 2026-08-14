@@ -1,35 +1,7 @@
-namespace Application.Features.workspace.Contacts;
+namespace Application.Features.Workspace.Contacts;
 
 internal static class ContactMapping
 {
-    internal static ContactSummaryDto ToSummary(Contact entity, ErTaxonomyDto? taxonomy = null) => new()
-    {
-        Id = entity.Id,
-        ListLabel = ResolveListLabel(entity),
-        Alias = entity.Alias,
-        Email = entity.Email,
-        Phone = entity.Phone,
-        SortOrder = entity.SortOrder,
-        Tags = taxonomy?.Tags ?? [],
-        Buckets = taxonomy?.Buckets ?? []
-    };
-
-    internal static ContactDto ToDto(Contact entity, ErTaxonomyDto? taxonomy = null) => new()
-    {
-        Id = entity.Id,
-        FirstName = entity.FirstName,
-        LastName = entity.LastName,
-        Alias = entity.Alias,
-        ListLabel = ResolveListLabel(entity),
-        Email = entity.Email,
-        Phone = entity.Phone,
-        Context = entity.Context,
-        Source = entity.Source,
-        SortOrder = entity.SortOrder,
-        Tags = taxonomy?.Tags ?? [],
-        Buckets = taxonomy?.Buckets ?? []
-    };
-
     internal static string ResolveListLabel(Contact entity) =>
         FormatFullName(entity.FirstName, entity.LastName);
 

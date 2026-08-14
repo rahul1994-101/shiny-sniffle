@@ -1,5 +1,5 @@
 @inherits BaseComponent
-@using ChatThreadCmd = Application.Features.chat.ChatThreads.Commands
+@using ChatThreadCmd = Application.Features.Chat.ChatThreads.Commands
 
 @attribute [Authorize]
 
@@ -152,7 +152,7 @@
 
     private async Task StartNewChatAsync()
     {
-        var result = await Mediator.SendAsync(new ChatThreadCmd.AddChatThreadRequest("New chat", CurrentUser.Id));
+        var result = await Mediator.SendAsync(new ChatThreadCmd.AddChatThreadRequest(CurrentUser.Id, "New chat"));
         if (result.HasError)
         {
             return;
@@ -166,7 +166,7 @@
 
     private async Task DeleteThreadAsync(Guid id)
     {
-        var result = await Mediator.SendAsync(new ChatThreadCmd.DeleteChatThreadRequest(id, CurrentUser.Id));
+        var result = await Mediator.SendAsync(new ChatThreadCmd.DeleteChatThreadRequest(CurrentUser.Id, id));
         if (result.HasError)
         {
             return;
@@ -176,7 +176,7 @@
 
         if (_threads.Count == 0)
         {
-            var created = await Mediator.SendAsync(new ChatThreadCmd.AddChatThreadRequest("New chat", CurrentUser.Id));
+            var created = await Mediator.SendAsync(new ChatThreadCmd.AddChatThreadRequest(CurrentUser.Id, "New chat"));
             if (!created.HasError)
             {
                 _threads.Insert(0, created.Payload!);
@@ -234,9 +234,9 @@
 
         var threadId = _editingId.Value;
         var result = await Mediator.SendAsync(new ChatThreadCmd.UpdateChatThreadTitleRequest(
+            CurrentUser.Id,
             threadId,
-            _editTitle,
-            CurrentUser.Id));
+            _editTitle));
 
         _editingId = null;
 

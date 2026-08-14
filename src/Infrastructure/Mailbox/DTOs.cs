@@ -111,7 +111,7 @@ public sealed class SendMailResult
 /// </summary>
 public class EmailSettings
 {
-    public string ProviderSlug { get; set; } = "custom";
+    public string ProviderSlug { get; set; } = string.Empty;
 
     public string EmailAddress { get; set; } = string.Empty;
 

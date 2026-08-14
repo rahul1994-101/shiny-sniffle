@@ -1,9 +1,8 @@
 using FluentValidation;
 
+namespace Application.Features.Chat.ChatThreads.Queries;
 
-namespace Application.Features.chat.ChatThreads.Queries;
-
-public sealed record GetChatThreadByIdRequest(Guid Id)
+public sealed record GetChatThreadByIdRequest(Guid UserId, Guid Id)
     : IQuery<GetChatThreadByIdResponse>;
 
 public sealed class GetChatThreadByIdResponse : ChatThreadDto
@@ -14,6 +13,10 @@ public sealed class GetChatThreadByIdRequestValidator : AbstractValidator<GetCha
 {
     public GetChatThreadByIdRequestValidator()
     {
+        RuleFor(x => x.UserId)
+            .NotEmpty()
+            .WithMessage("User Id is required.");
+
         RuleFor(x => x.Id)
             .NotEmpty()
             .WithMessage("Thread Id is required.");
@@ -29,7 +32,7 @@ public sealed class GetChatThreadByIdRequestHandler(ChatThreadRepository chatThr
 
         #region # Execute
 
-        var chatThread = await chatThreadRepo.GetActiveByIdAsync(request.Id, cancellationToken);
+        var chatThread = await chatThreadRepo.GetActiveByIdAsync(request.Id, request.UserId, cancellationToken);
 
         #endregion
 

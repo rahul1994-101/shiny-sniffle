@@ -1,55 +1,11 @@
-using Application.Features.dbo.EmailProviders;
+using Application.Features.Dbo.EmailProviders;
 using Application.Utilities.Extensions;
 using Infrastructure.Mailbox;
 
-namespace Application.Features.workspace.EmailAccounts;
+namespace Application.Features.Workspace.EmailAccounts;
 
 internal static class EmailAccountMapping
 {
-    internal static EmailAccountSummaryDto ToSummary(
-        EmailAccount account,
-        EmailProvider provider,
-        ErTaxonomyDto? taxonomy = null) => new()
-    {
-        Id = account.Id,
-        Alias = account.Alias,
-        ProviderName = provider.Name,
-        ProviderSlug = provider.Slug,
-        EmailAddress = account.EmailAddress,
-        IsDefault = account.IsDefault,
-        SortOrder = account.SortOrder,
-        Tags = taxonomy?.Tags ?? [],
-        Buckets = taxonomy?.Buckets ?? []
-    };
-
-    internal static EmailAccountDto ToDto(
-        EmailAccount account,
-        EmailProvider provider,
-        ErTaxonomyDto? taxonomy = null)
-    {
-        var settings = ToEmailSettings(account, provider);
-        return new EmailAccountDto
-        {
-            Id = account.Id,
-            Alias = account.Alias,
-            IsDefault = account.IsDefault,
-            ProviderSlug = settings.ProviderSlug,
-            ProviderName = provider.Name,
-            EmailAddress = settings.EmailAddress,
-            ImapHost = settings.ImapHost,
-            ImapPort = settings.ImapPort,
-            ImapUseSsl = settings.ImapUseSsl,
-            SmtpHost = settings.SmtpHost,
-            SmtpPort = settings.SmtpPort,
-            SmtpUseSsl = settings.SmtpUseSsl,
-            Username = settings.Username,
-            HasStoredPassword = !string.IsNullOrWhiteSpace(settings.Password),
-            Context = account.Context,
-            Tags = taxonomy?.Tags ?? [],
-            Buckets = taxonomy?.Buckets ?? []
-        };
-    }
-
     internal static EmailSettings ToEmailSettings(EmailAccount account, EmailProvider provider)
     {
         var slug = EmailProviderCatalog.NormalizeSlug(provider.Slug);
@@ -261,9 +217,10 @@ internal static class EmailSettingsCatalog
 {
     internal static async Task<(IReadOnlyList<EmailProviderDto> Catalog, string? Error)> LoadCatalogAsync(
         EmailProviderRepository emailProviderRepo,
+        Guid userId,
         CancellationToken cancellationToken)
     {
-        var catalog = await emailProviderRepo.ListAsync(cancellationToken);
+        var catalog = await emailProviderRepo.ListAsync(userId, cancellationToken);
         if (catalog.Count == 0)
         {
             return (catalog, "No mail providers are configured. Add templates under Settings → Email → Providers.");

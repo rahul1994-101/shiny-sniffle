@@ -400,7 +400,7 @@ else
         _status.Clear();
 
         var accountsResult = await Mediator.SendAsync(new ListEmailAccountsRequest(CurrentUser.Id));
-        var catalogResult = await Mediator.SendAsync(new ListEmailProvidersRequest());
+        var catalogResult = await Mediator.SendAsync(new ListEmailProvidersRequest(CurrentUser.Id));
         var tagsResult = await Mediator.SendAsync(new ListTagsRequest(CurrentUser.Id));
         var bucketsResult = await Mediator.SendAsync(new ListBucketsRequest(CurrentUser.Id));
 
@@ -629,11 +629,11 @@ else
     {
         if (_catalog.Count == 0)
         {
-            return "custom";
+            return string.Empty;
         }
 
         return EmailProviderCatalog.FindBySlug(_catalog, "gmail")?.Slug
-               ?? EmailProviderCatalog.FindBySlug(_catalog, "custom")?.Slug
+               ?? _catalog.FirstOrDefault(p => !p.IsSystem)?.Slug
                ?? _catalog[0].Slug;
     }
 
@@ -694,7 +694,7 @@ else
 
         public bool IsDefaultForced { get; set; }
 
-        public string ProviderSlug { get; set; } = "custom";
+        public string ProviderSlug { get; set; } = string.Empty;
 
         public string EmailAddress { get; set; } = string.Empty;
 

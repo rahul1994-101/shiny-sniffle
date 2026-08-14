@@ -9,7 +9,7 @@ alwaysApply: false
 Product logic. Register everything in `DependencyInjection.AddApplication()`.
 
 ```text
-Features/       vertical slices + Shared/; mirror SQL schema folders (dbo/, chat/, workspace/)
+Features/       vertical slices + Shared/; domain folders (Dbo/, Chat/, Workspace/)
 AI/             ChatOrchestrator, Agents, Tools, Memory, Workflows
 Models/         AI turn shapes, ChatMessageRoles
 Utilities/      technical cross-cutting only (crypto) — not slice business logic
@@ -32,24 +32,26 @@ Utilities/      technical cross-cutting only (crypto) — not slice business log
 
 | Folder | Namespace segment | Repository | Entity |
 |--------|-------------------|------------|--------|
-| `dbo/Users/` | `Application.Features.dbo.Users` | `UserRepository` | `dbo.User` (sign-in, profile, password) |
-| `dbo/EmailProviders/` | `…dbo.EmailProviders` | `EmailProviderRepository` | `dbo.EmailProvider` |
-| `chat/ChatThreads/` | `Application.Features.chat.ChatThreads` | `ChatThreadRepository` | `chat.ChatThread` |
-| `chat/ChatMessages/` | `…chat.ChatMessages` | `ChatMessageRepository` | `chat.ChatMessage` |
-| `workspace/EmailAccounts/` | `Application.Features.workspace.EmailAccounts` | `EmailAccountRepository` | `workspace.EmailAccount` |
-| `workspace/Contacts/` | `…workspace.Contacts` | `ContactRepository` | `workspace.Contact` |
-| `workspace/Tags/` | `…workspace.Tags` | `TagRepository` | `workspace.Tag` (+ `TagAssignment`) |
-| `workspace/Buckets/` | `…workspace.Buckets` | `BucketRepository` | `workspace.Bucket` (+ `BucketAssignment`) |
+| `Dbo/Users/` | `Application.Features.Dbo.Users` | `UserRepository` | `Dbo.User` (sign-in, profile, password) |
+| `Dbo/EmailProviders/` | `…Dbo.EmailProviders` | `EmailProviderRepository` | `Dbo.EmailProvider` — system templates (read-only) + per-user custom |
+| `Chat/ChatThreads/` | `Application.Features.Chat.ChatThreads` | `ChatThreadRepository` | `Chat.ChatThread` |
+| `Chat/ChatMessages/` | `…Chat.ChatMessages` | `ChatMessageRepository` | `Chat.ChatMessage` |
+| `Workspace/EmailAccounts/` | `Application.Features.Workspace.EmailAccounts` | `EmailAccountRepository` | `Workspace.EmailAccount` |
+| `Workspace/Contacts/` | `…Workspace.Contacts` | `ContactRepository` | `Workspace.Contact` |
+| `Workspace/Tags/` | `…Workspace.Tags` | `TagRepository` | `Workspace.Tag` (+ `TagAssignment`) |
+| `Workspace/Buckets/` | `…Workspace.Buckets` | `BucketRepository` | `Workspace.Bucket` (+ `BucketAssignment`) |
 | `Shared/` | `Application.Features.Shared` | `SharedRepository` (cross-slice taxonomy), `Helpers.cs`, `DTOs.cs`, `Services.cs` | — |
 
-`dbo.UserSetting` is persistence-only today (placeholder row per user). No Features slice until preference columns and use cases exist — profile/password stay on `dbo/Users/`.
+`Dbo.UserSetting` is persistence-only today (placeholder row per user). No Features slice until preference columns and use cases exist — profile/password stay on `Dbo/Users/`.
 
-Physical folders may be `Chat/` / `Workspace/` on Windows; namespaces use lowercase `chat` / `workspace` to match `Infrastructure.Persistence.*`.
+**`Dbo.EmailProvider` access:** `IsSystem = true`, `UserId = null` → global read-only templates (all users). `IsSystem = false`, `UserId` set → custom template owned by that user (create/update/delete). List/get/slug-resolve always scope to `UserId`: system rows + that user's custom rows. Slug unique among system rows; slug unique per user among custom rows. SQL `CK_EmailProvider_Ownership` enforces the system/custom ownership pairing.
+
+C# folders and namespaces use **PascalCase** (`Chat/`, `Application.Features.Chat.*`). SQL scripts live under `Infrastructure/Database/{schema}/` (lowercase SQL schema names).
 
 Each slice and `Shared/` use the **same file names** where needed: `DTOs.cs`, `Repository.cs`, `Helpers.cs`, `Services.cs`. **All DI** in **`Application/DependencyInjection.cs`**.
 
 ```text
-Features/{schema}/{Area}/     e.g. dbo/Users, chat/ChatThreads, workspace/Contacts
+Features/{Domain}/{Area}/     e.g. Dbo/Users, Chat/ChatThreads, Workspace/Contacts
   DTOs.cs
   Repository.cs
   Helpers.cs        when needed
@@ -72,12 +74,12 @@ Mirror Infrastructure and **Slice ↔ Shared**: one `DTOs.cs`, one `Repository.c
 |------|------------|-----------|
 | `DTOs.cs` | Slice read shapes | Cross-slice read shapes |
 | `Repository.cs` | Promoted EF for slice | Cross-slice EF |
-| `Helpers.cs` | Mapping, presets, validation | Cross-slice logic |
+| `Helpers.cs` | Validation, normalization, non-DTO transforms | Cross-slice logic |
 | `Services.cs` | Slice-local facades | Cross-slice facades (`UserMailboxService`) |
 
 - Slice repos: `IDbContextFactory<AppDbContext>` in ctor; each method owns ctx → query/mutate → `SaveChanges`
 - **Handlers never inject `IDbContextFactory`** — all EF in slice repos (or `SharedRepository`)
-- **Reads** → slice DTOs via `FromEntity` / `FromEntities` / `*Mapping.ToDto`
+- **Reads** → slice DTOs via `{Dto}.FromEntity(entity)` or `{Dto}.FromEntities(entities)` on `DTOs.cs`
 - **Writes** → repo methods; return DTOs or status tuples
 - **Repo → repo:** slice repo calls another slice repo or `SharedRepository` when cross-slice; promote to `SharedRepository` when query spans multiple entity folders
 
@@ -93,7 +95,7 @@ Promote **logic** and **data access** on separate tracks. Do not mix EF in `Help
 | **2 — Slice helpers** | 2+ handlers, or handler + repo/UI | `{Slice}/Helpers.cs` |
 | **3 — Cross-slice** | Multiple slices | `Features/Shared/Helpers.cs` |
 
-Start in the handler. Move to `{Slice}/Helpers.cs` when reused within the slice. Example: `workspace/EmailAccounts/Helpers.cs` (`EmailSettingsMapping`, `EmailSettingsCatalog`).
+Start in the handler. Move to `{Slice}/Helpers.cs` when reused within the slice. Example: `Workspace/EmailAccounts/Helpers.cs` (`EmailSettingsMapping`, `EmailSettingsCatalog`).
 
 #### Services escalation
 
@@ -132,7 +134,7 @@ If a repo needs a capability on another slice, inject that slice’s repo. Promo
 
 | Kind | Place |
 |------|--------|
-| Slice read shape | `Features/{schema}/{Area}/DTOs.cs` — `FromEntity`, `AsResponse<T>()` |
+| Slice read shape | `Features/{Domain}/{Area}/DTOs.cs` — static `FromEntity` / `FromEntities`, `AsResponse<T>()` |
 | Cross-slice read shape | `Features/Shared/DTOs.cs` |
 | Use-case message | `{UseCase}Request` : `ICommand<>` / `IQuery<>` |
 | Use-case result | `{UseCase}Response` (may extend slice DTO) |
@@ -140,7 +142,15 @@ If a repo needs a capability on another slice, inject that slice’s repo. Promo
 | App constants | `Models/Constants.cs` (`ChatMessageRoles`) |
 | `Result` / `ErrorCode` | `MediatR.Results` |
 
+**Entity → DTO mapping:** always `{Dto}.FromEntity(...)` on the DTO class in `DTOs.cs`. Extra parameters (joined provider, taxonomy, etc.) go on `FromEntity` overloads — not `*Mapping.ToDto` in `Helpers.cs`. `Helpers.cs` keeps validation, normalization, and non-DTO transforms (e.g. `ToEmailSettings`, `ToSettingsDto`).
+
+**Request parameters:** when a request includes ownership, put `UserId` first. Name entity ids descriptively (`ProviderId`, `TagId`, `ContactId`) — not bare `Id`.
+
+**Repo method names:** no redundant entity prefix on `{Slice}Repository` (`UpdateProfileAsync`, not `UpdateUserProfileAsync`; `TryChangePasswordAsync`, not split check/update methods). Prefer one atomic repo method when a use case needs read-then-write on the same row.
+
 **Naming:** keep `{UseCase}Request` / `{UseCase}Response` — not `SignInCommand`. CQRS kind = `Commands/` or `Queries/` folder + `ICommand` / `IQuery`.
+
+**FluentValidation ↔ SQL/EF lengths:** validator `MaximumLength` / `Length` upper bound must match EF `HasMaxLength` on the mapped column. Source of truth: `Infrastructure/Database/{schema}/Tables/*.sql` and `AppDbContext.OnModelCreating`.
 
 Do **not** put use-case types or slice DTOs in Infrastructure or WebApp.
 
@@ -151,7 +161,7 @@ Do **not** put use-case types or slice DTOs in Infrastructure or WebApp.
 3. `{UseCase}RequestValidator`
 4. `{UseCase}RequestHandler`
 
-**References:** `dbo/EmailProviders/Queries/ListEmailProviders.cs`, `dbo/Users/Commands/SignIn.cs`, `Chat/ChatMessages/Commands/SendChatMessage.cs`.
+**References:** `Dbo/EmailProviders/Queries/ListEmailProviders.cs`, `Dbo/Users/Commands/SignIn.cs`, `Chat/ChatMessages/Commands/SendChatMessage.cs`.
 
 ### Template — handler (repo only)
 
@@ -189,7 +199,12 @@ public sealed class EmailProviderRepository(IDbContextFactory<AppDbContext> _dbC
     public async Task<IReadOnlyList<EmailProviderDto>> ListAsync(CancellationToken cancellationToken = default)
     {
         await using var ctx = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
-        // query → map → return (SaveChanges when mutating)
+        var rows = await ctx.EmailProviders
+            .AsNoTracking()
+            .Where(x => x.IsActive && !x.IsDeleted)
+            .OrderBy(x => x.SortOrder)
+            .ToListAsync(cancellationToken);
+        return rows.ConvertAll(EmailProviderDto.FromEntity);
     }
 }
 ```

@@ -1,9 +1,9 @@
 using FluentValidation;
-using Application.Features.chat.ChatMessages;
+using Application.Features.Chat.ChatMessages;
 
-namespace Application.Features.chat.ChatMessages.Queries;
+namespace Application.Features.Chat.ChatMessages.Queries;
 
-public sealed record GetChatMessagesByChatThreadIdRequest(Guid ChatThreadId)
+public sealed record GetChatMessagesByChatThreadIdRequest(Guid UserId, Guid ChatThreadId)
     : IQuery<GetChatMessagesByChatThreadIdResponse>;
 
 public sealed class GetChatMessagesByChatThreadIdResponse
@@ -15,6 +15,10 @@ public sealed class GetChatMessagesByChatThreadIdRequestValidator : AbstractVali
 {
     public GetChatMessagesByChatThreadIdRequestValidator()
     {
+        RuleFor(x => x.UserId)
+            .NotEmpty()
+            .WithMessage("User Id is required.");
+
         RuleFor(x => x.ChatThreadId)
             .NotEmpty()
             .WithMessage("Chat Thread Id is required.");
@@ -30,13 +34,20 @@ public sealed class GetChatMessagesByChatThreadIdRequestHandler(ChatMessageRepos
 
         #region # Execute
 
-        var messages = await chatMessageRepo.GetByChatThreadIdAsync(request.ChatThreadId, cancellationToken);
+        var messages = await chatMessageRepo.GetByChatThreadIdAsync(request.UserId, request.ChatThreadId, cancellationToken);
 
         #endregion
 
         #region # Handle Result
 
-        result.Success(new GetChatMessagesByChatThreadIdResponse { Messages = messages });
+        if (messages is null)
+        {
+            result.Failure(ErrorCode.NotFound, "Chat thread not found.");
+        }
+        else
+        {
+            result.Success(new GetChatMessagesByChatThreadIdResponse { Messages = messages });
+        }
 
         #endregion
 

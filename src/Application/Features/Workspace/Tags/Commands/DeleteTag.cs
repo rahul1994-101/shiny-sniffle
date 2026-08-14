@@ -1,6 +1,6 @@
-namespace Application.Features.workspace.Tags.Commands;
+namespace Application.Features.Workspace.Tags.Commands;
 
-using Application.Features.workspace.Tags;
+using Application.Features.Workspace.Tags;
 using FluentValidation;
 
 public sealed record DeleteTagRequest(Guid UserId, Guid TagId) : ICommand<DeleteTagResponse>;

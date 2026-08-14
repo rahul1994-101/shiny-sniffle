@@ -1,6 +1,6 @@
-namespace Application.Features.workspace.Buckets.Queries;
+namespace Application.Features.Workspace.Buckets.Queries;
 
-using Application.Features.workspace.Buckets;
+using Application.Features.Workspace.Buckets;
 using FluentValidation;
 
 public sealed record ListBucketsRequest(Guid UserId) : IQuery<ListBucketsResponse>;

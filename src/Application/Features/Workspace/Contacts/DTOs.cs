@@ -1,4 +1,4 @@
-namespace Application.Features.workspace.Contacts;
+namespace Application.Features.Workspace.Contacts;
 
 public sealed class ContactSummaryDto
 {
@@ -19,6 +19,18 @@ public sealed class ContactSummaryDto
     public IReadOnlyList<TagRefDto> Tags { get; init; } = [];
 
     public IReadOnlyList<BucketRefDto> Buckets { get; init; } = [];
+
+    public static ContactSummaryDto FromEntity(Contact entity, ErTaxonomyDto? taxonomy = null) => new()
+    {
+        Id = entity.Id,
+        ListLabel = ContactMapping.ResolveListLabel(entity),
+        Alias = entity.Alias,
+        Email = entity.Email,
+        Phone = entity.Phone,
+        SortOrder = entity.SortOrder,
+        Tags = taxonomy?.Tags ?? [],
+        Buckets = taxonomy?.Buckets ?? []
+    };
 }
 
 public class ContactDto
@@ -48,6 +60,22 @@ public class ContactDto
     public IReadOnlyList<TagRefDto> Tags { get; init; } = [];
 
     public IReadOnlyList<BucketRefDto> Buckets { get; init; } = [];
+
+    public static ContactDto FromEntity(Contact entity, ErTaxonomyDto? taxonomy = null) => new()
+    {
+        Id = entity.Id,
+        FirstName = entity.FirstName,
+        LastName = entity.LastName,
+        Alias = entity.Alias,
+        ListLabel = ContactMapping.ResolveListLabel(entity),
+        Email = entity.Email,
+        Phone = entity.Phone,
+        Context = entity.Context,
+        Source = entity.Source,
+        SortOrder = entity.SortOrder,
+        Tags = taxonomy?.Tags ?? [],
+        Buckets = taxonomy?.Buckets ?? []
+    };
 
     public T AsResponse<T>() where T : ContactDto, new() => new()
     {

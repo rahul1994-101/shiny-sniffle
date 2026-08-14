@@ -1,7 +1,7 @@
 using Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
-namespace Application.Features.workspace.Tags;
+namespace Application.Features.Workspace.Tags;
 
 public sealed class TagRepository(
     IDbContextFactory<AppDbContext> dbContextFactory,
@@ -17,7 +17,7 @@ public sealed class TagRepository(
             .ThenBy(x => x.Name)
             .ToListAsync(cancellationToken);
 
-        return rows.ConvertAll(TagMapping.ToDto);
+        return rows.ConvertAll(TagDto.FromEntity);
     }
 
     public async Task<(TagDto? Saved, string? Error, bool NotFound)> SaveAsync(
@@ -91,7 +91,7 @@ public sealed class TagRepository(
         }
 
         await ctx.SaveChangesAsync(cancellationToken);
-        return (TagMapping.ToDto(entity), null, false);
+        return (TagDto.FromEntity(entity), null, false);
     }
 
     public async Task<bool> SoftDeleteAsync(

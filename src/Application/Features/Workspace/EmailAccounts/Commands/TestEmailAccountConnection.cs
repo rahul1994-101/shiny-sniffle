@@ -1,8 +1,8 @@
-using Application.Features.dbo.EmailProviders;
+using Application.Features.Dbo.EmailProviders;
 using FluentValidation;
 using Infrastructure.Mailbox;
 
-namespace Application.Features.workspace.EmailAccounts.Commands;
+namespace Application.Features.Workspace.EmailAccounts.Commands;
 
 public sealed record TestEmailAccountConnectionRequest(
     Guid UserId,
@@ -37,7 +37,7 @@ public sealed class TestEmailAccountConnectionRequestHandler(
         var result = new Result<TestEmailAccountConnectionResponse>();
         var dto = request.Account;
 
-        var (catalog, catalogError) = await EmailSettingsCatalog.LoadCatalogAsync(emailProviderRepo, cancellationToken);
+        var (catalog, catalogError) = await EmailSettingsCatalog.LoadCatalogAsync(emailProviderRepo, request.UserId, cancellationToken);
         if (catalogError is not null)
         {
             result.Failure(ErrorCode.BadRequest, catalogError);

@@ -1,8 +1,8 @@
 using FluentValidation;
 
-namespace Application.Features.chat.ChatThreads.Commands;
+namespace Application.Features.Chat.ChatThreads.Commands;
 
-public sealed record AddChatThreadRequest(string Title, Guid UserId, ChatAgent ChatAgent = default)
+public sealed record AddChatThreadRequest(Guid UserId, string Title, ChatAgent ChatAgent = default)
     : ICommand<AddChatThreadResponse>;
 
 public sealed class AddChatThreadResponse : ChatThreadDto
@@ -13,19 +13,19 @@ public sealed class AddChatThreadRequestValidator : AbstractValidator<AddChatThr
 {
     public AddChatThreadRequestValidator()
     {
+        RuleFor(x => x.UserId)
+            .NotEmpty()
+            .WithMessage("User Id is required.");
+
         RuleFor(x => x.Title)
             .NotEmpty()
             .WithMessage("Title is required.")
             .Length(1, 200)
             .WithMessage("Title must be between 1 and 200 characters.");
-
-        RuleFor(x => x.UserId)
-            .NotEmpty()
-            .WithMessage("User Id is required.");
     }
 }
 
-public sealed class AddChatThreadRequestHandler(ChatThreadRepository chatThreadRepo)
+public sealed class AddChatThreadRequestHandler(ChatThreadRepository chatThreadRepo, UserMailboxService mailboxService)
     : IRequestHandler<AddChatThreadRequest, AddChatThreadResponse>
 {
     public async ValueTask<Result<AddChatThreadResponse>> HandleAsync(AddChatThreadRequest request, CancellationToken cancellationToken = default)
@@ -34,28 +34,32 @@ public sealed class AddChatThreadRequestHandler(ChatThreadRepository chatThreadR
 
         #region # Execute
 
-        var entity = new ChatThread
+        var mailboxConfigured = request.ChatAgent != ChatAgent.Email
+            || await mailboxService.IsConfiguredAsync(request.UserId, cancellationToken);
+        ChatThreadDto? chatThread = null;
+        if (mailboxConfigured)
         {
-            Title = request.Title,
-            UserId = request.UserId,
-            ChatAgent = ChatAgentHelpers.ToPersistence(request.ChatAgent),
-            CreatedBy = request.UserId,
-            UpdatedBy = request.UserId
-        };
-
-        var chatThread = await chatThreadRepo.AddAsync(entity, cancellationToken);
+            chatThread = await chatThreadRepo.AddAsync(new ChatThread
+            {
+                Title = request.Title,
+                UserId = request.UserId,
+                ChatAgent = ChatAgentHelpers.ToPersistence(request.ChatAgent),
+                CreatedBy = request.UserId,
+                UpdatedBy = request.UserId
+            }, cancellationToken);
+        }
 
         #endregion
 
         #region # Handle Result
 
-        if (chatThread is null)
+        if (!mailboxConfigured)
         {
-            result.Failure(ErrorCode.InternalServerError, "Failed to create chat thread.");
+            result.Failure(ErrorCode.BadRequest, "Connect your mailbox in Workspace → Email accounts before using the Email agent.");
         }
         else
         {
-            result.Success(chatThread.AsResponse<AddChatThreadResponse>());
+            result.Success(chatThread!.AsResponse<AddChatThreadResponse>());
         }
 
         #endregion

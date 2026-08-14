@@ -1,10 +1,10 @@
-using Application.Features.dbo.EmailProviders;
+using Application.Features.Dbo.EmailProviders;
 using Application.Utilities.Extensions;
 using Infrastructure.Mailbox;
 using Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
-namespace Application.Features.workspace.EmailAccounts;
+namespace Application.Features.Workspace.EmailAccounts;
 
 public sealed class EmailAccountRepository(
     IDbContextFactory<AppDbContext> _dbContextFactory,
@@ -34,7 +34,7 @@ public sealed class EmailAccountRepository(
             .Select(x =>
             {
                 taxonomy.TryGetValue(x.Id, out var tax);
-                return EmailAccountMapping.ToSummary(x, x.EmailProvider!, tax);
+                return EmailAccountSummaryDto.FromEntity(x, x.EmailProvider!, tax);
             })
             .ToList();
     }
@@ -55,7 +55,7 @@ public sealed class EmailAccountRepository(
             [row.Id],
             cancellationToken);
         taxonomy.TryGetValue(row.Id, out var tax);
-        return EmailAccountMapping.ToDto(row, row.EmailProvider, tax);
+        return EmailAccountDto.FromEntity(row, row.EmailProvider, tax);
     }
 
     public async Task<EmailSettings?> GetEmailSettingsAsync(
@@ -137,7 +137,9 @@ public sealed class EmailAccountRepository(
         var slug = EmailProviderCatalog.NormalizeSlug(builtSettings.ProviderSlug);
         var provider = await ctx.EmailProviders
             .AsNoTracking()
-            .FirstOrDefaultAsync(x => x.Slug == slug && x.IsActive && !x.IsDeleted, cancellationToken);
+            .FirstOrDefaultAsync(
+                x => x.Slug == slug && x.IsActive && !x.IsDeleted && (x.IsSystem || x.UserId == userId),
+                cancellationToken);
 
         if (provider is null)
         {
@@ -244,7 +246,7 @@ public sealed class EmailAccountRepository(
             [entity.Id],
             cancellationToken);
         taxonomy.TryGetValue(entity.Id, out var tax);
-        return (EmailAccountMapping.ToDto(entity, providerEntity, tax), null, false);
+        return (EmailAccountDto.FromEntity(entity, providerEntity, tax), null, false);
     }
 
     public async Task<(bool Found, string? Error)> SoftDeleteAsync(
