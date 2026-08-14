@@ -26,6 +26,22 @@ public class EmailProviderDto
 
     public bool IsSystem { get; init; }
 
+    public static EmailProviderDto FromEntity(EmailProvider entity) => new()
+    {
+        Id = entity.Id,
+        Name = entity.Name,
+        Slug = entity.Slug,
+        ImapHost = entity.ImapHost,
+        ImapPort = entity.ImapPort,
+        ImapUseSsl = entity.ImapUseSsl,
+        SmtpHost = entity.SmtpHost,
+        SmtpPort = entity.SmtpPort,
+        SmtpUseSsl = entity.SmtpUseSsl,
+        SetupHelpUrl = entity.SetupHelpUrl,
+        SortOrder = entity.SortOrder,
+        IsSystem = entity.IsSystem
+    };
+
     public T AsResponse<T>() where T : EmailProviderDto, new() => new()
     {
         Id = Id,

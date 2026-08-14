@@ -2,7 +2,7 @@ namespace Infrastructure.Persistence.dbo;
 
 /// <summary>
 /// Row in <c>dbo.EmailProvider</c> — IMAP/SMTP catalog for Settings → Email providers.
-/// Not the same as <see cref="EmailProviderPreset"/> on runtime mail config DTOs.
+/// Runtime mail config resolves endpoints from this catalog via <c>workspace.EmailAccount.EmailProviderId</c>.
 /// </summary>
 public class EmailProvider : BaseAuditableEntity
 {

@@ -35,8 +35,6 @@ public class EmailAccountDto
 
     public bool IsDefault { get; init; }
 
-    public EmailProviderPreset Provider { get; init; } = EmailProviderPreset.Custom;
-
     public string ProviderSlug { get; init; } = "custom";
 
     public string ProviderName { get; init; } = string.Empty;
@@ -70,7 +68,6 @@ public class EmailAccountDto
         Id = Id,
         Alias = Alias,
         IsDefault = IsDefault,
-        Provider = Provider,
         ProviderSlug = ProviderSlug,
         ProviderName = ProviderName,
         EmailAddress = EmailAddress,
@@ -114,8 +111,6 @@ public sealed class SaveEmailAccountDto
 
 public class EmailSettingsDto
 {
-    public EmailProviderPreset Provider { get; set; } = EmailProviderPreset.Custom;
-
     public string ProviderSlug { get; set; } = "custom";
 
     public string EmailAddress { get; set; } = string.Empty;
@@ -144,7 +139,6 @@ public class EmailSettingsDto
 
     private EmailSettingsDto CloneShallow() => new()
     {
-        Provider = Provider,
         ProviderSlug = ProviderSlug,
         EmailAddress = EmailAddress,
         Username = Username,
@@ -160,7 +154,6 @@ public class EmailSettingsDto
 
     public T AsResponse<T>() where T : EmailSettingsDto, new() => new()
     {
-        Provider = Provider,
         ProviderSlug = ProviderSlug,
         EmailAddress = EmailAddress,
         ImapHost = ImapHost,

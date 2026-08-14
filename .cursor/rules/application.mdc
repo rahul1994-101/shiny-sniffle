@@ -93,7 +93,7 @@ Promote **logic** and **data access** on separate tracks. Do not mix EF in `Help
 | **2 — Slice helpers** | 2+ handlers, or handler + repo/UI | `{Slice}/Helpers.cs` |
 | **3 — Cross-slice** | Multiple slices | `Features/Shared/Helpers.cs` |
 
-Start in the handler. Move to `{Slice}/Helpers.cs` when reused within the slice. Example: `workspace/EmailAccounts/Helpers.cs` (`EmailSettingsMapping`, `EmailProviderPresets`).
+Start in the handler. Move to `{Slice}/Helpers.cs` when reused within the slice. Example: `workspace/EmailAccounts/Helpers.cs` (`EmailSettingsMapping`, `EmailSettingsCatalog`).
 
 #### Services escalation
 

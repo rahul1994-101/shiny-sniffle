@@ -12,13 +12,6 @@ public enum ChatThreadAgent
     Email = 1
 }
 
-/// <summary>Legacy provider preset on DTOs; endpoints come from <see cref="EmailProvider"/> catalog table.</summary>
-public enum EmailProviderPreset
-{
-    Custom = 0,
-    Gmail = 1
-}
-
 /// <summary>How a <see cref="Contact"/> row was created. Set by the app, not the contact editor.</summary>
 public enum ContactSource
 {

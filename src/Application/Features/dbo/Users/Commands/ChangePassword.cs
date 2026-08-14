@@ -40,22 +40,24 @@ public sealed class ChangePasswordRequestHandler(UserRepository userRepo)
     {
         var result = new Result();
 
-        var currentMatches = await userRepo.UserPasswordMatchesAsync(request.UserId, request.CurrentPassword, cancellationToken);
-        if (!currentMatches)
-        {
-            result.Failure(ErrorCode.BadRequest, "Current password is incorrect.");
-            return result;
-        }
-
         #region # Execute
 
-        var updated = await userRepo.UpdateUserPasswordAsync(request.UserId, request.NewPassword, request.UserId, cancellationToken);
+        var currentMatches = await userRepo.UserPasswordMatchesAsync(request.UserId, request.CurrentPassword, cancellationToken);
+        var updated = false;
+        if (currentMatches)
+        {
+            updated = await userRepo.UpdateUserPasswordAsync(request.UserId, request.NewPassword, request.UserId, cancellationToken);
+        }
 
         #endregion
 
         #region # Handle Result
 
-        if (!updated)
+        if (!currentMatches)
+        {
+            result.Failure(ErrorCode.BadRequest, "Current password is incorrect.");
+        }
+        else if (!updated)
         {
             result.Failure(ErrorCode.NotFound, "User not found.");
         }

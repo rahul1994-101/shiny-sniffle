@@ -1,26 +1,9 @@
 using Application.Features.workspace.EmailAccounts;
-using Infrastructure.Mailbox;
 
 namespace Application.Features.dbo.EmailProviders;
 
 internal static partial class EmailProviderMapping
 {
-    internal static EmailProviderDto FromEntity(EmailProvider entity) => new()
-    {
-        Id = entity.Id,
-        Name = entity.Name,
-        Slug = entity.Slug,
-        ImapHost = entity.ImapHost,
-        ImapPort = entity.ImapPort,
-        ImapUseSsl = entity.ImapUseSsl,
-        SmtpHost = entity.SmtpHost,
-        SmtpPort = entity.SmtpPort,
-        SmtpUseSsl = entity.SmtpUseSsl,
-        SetupHelpUrl = entity.SetupHelpUrl,
-        SortOrder = entity.SortOrder,
-        IsSystem = entity.IsSystem
-    };
-
     internal static string? ValidateSave(SaveEmailProviderDto dto)
     {
         if (string.IsNullOrWhiteSpace(dto.Name))
@@ -61,7 +44,6 @@ public static class EmailProviderCatalog
     public static void ApplyTo(EmailSettingsDto dto, EmailProviderDto catalog)
     {
         dto.ProviderSlug = catalog.Slug;
-        dto.Provider = ToLegacyProvider(catalog.Slug);
         dto.ImapHost = catalog.ImapHost;
         dto.ImapPort = catalog.ImapPort;
         dto.ImapUseSsl = catalog.ImapUseSsl;
@@ -69,23 +51,6 @@ public static class EmailProviderCatalog
         dto.SmtpPort = catalog.SmtpPort;
         dto.SmtpUseSsl = catalog.SmtpUseSsl;
     }
-
-    public static void ApplyTo(EmailSettings settings, EmailProviderDto catalog)
-    {
-        settings.ProviderSlug = catalog.Slug;
-        settings.Provider = ToLegacyProvider(catalog.Slug);
-        settings.ImapHost = catalog.ImapHost;
-        settings.ImapPort = catalog.ImapPort;
-        settings.ImapUseSsl = catalog.ImapUseSsl;
-        settings.SmtpHost = catalog.SmtpHost;
-        settings.SmtpPort = catalog.SmtpPort;
-        settings.SmtpUseSsl = catalog.SmtpUseSsl;
-    }
-
-    public static EmailProviderPreset ToLegacyProvider(string slug) =>
-        string.Equals(NormalizeSlug(slug), "gmail", StringComparison.OrdinalIgnoreCase)
-            ? EmailProviderPreset.Gmail
-            : EmailProviderPreset.Custom;
 
     public static string? ValidateCatalogEndpoints(EmailProviderDto catalog)
     {

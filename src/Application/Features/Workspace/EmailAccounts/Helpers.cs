@@ -33,7 +33,6 @@ internal static class EmailAccountMapping
             Id = account.Id,
             Alias = account.Alias,
             IsDefault = account.IsDefault,
-            Provider = settings.Provider,
             ProviderSlug = settings.ProviderSlug,
             ProviderName = provider.Name,
             EmailAddress = settings.EmailAddress,
@@ -56,7 +55,6 @@ internal static class EmailAccountMapping
         var slug = EmailProviderCatalog.NormalizeSlug(provider.Slug);
         return new EmailSettings
         {
-            Provider = EmailProviderCatalog.ToLegacyProvider(slug),
             ProviderSlug = slug,
             EmailAddress = account.EmailAddress,
             Username = account.Username,
@@ -72,7 +70,6 @@ internal static class EmailAccountMapping
 
     internal static EmailSettingsDto ToSettingsDto(EmailAccountDto account) => new()
     {
-        Provider = account.Provider,
         ProviderSlug = account.ProviderSlug,
         EmailAddress = account.EmailAddress,
         ImapHost = account.ImapHost,
@@ -87,7 +84,6 @@ internal static class EmailAccountMapping
 
     internal static EmailSettingsDto ToSettingsDto(SaveEmailAccountDto save, EmailSettingsDto catalogApplied) => new()
     {
-        Provider = catalogApplied.Provider,
         ProviderSlug = catalogApplied.ProviderSlug,
         EmailAddress = save.EmailAddress,
         ImapHost = catalogApplied.ImapHost,
@@ -132,122 +128,8 @@ internal enum EmailSettingsBuildMode
     Draft
 }
 
-internal readonly record struct EmailProviderEndpoints(
-    string ImapHost,
-    int ImapPort,
-    bool ImapUseSsl,
-    string SmtpHost,
-    int SmtpPort,
-    bool SmtpUseSsl);
-
-public static class EmailProviderPresets
-{
-    private static readonly EmailProviderEndpoints Gmail = new(
-        ImapHost: "imap.gmail.com",
-        ImapPort: 993,
-        ImapUseSsl: true,
-        SmtpHost: "smtp.gmail.com",
-        SmtpPort: 587,
-        SmtpUseSsl: true);
-
-    internal static EmailProviderEndpoints? GetEndpoints(EmailProviderPreset provider) =>
-        provider switch
-        {
-            EmailProviderPreset.Gmail => Gmail,
-            EmailProviderPreset.Custom => null,
-            _ => null
-        };
-
-    internal static void Apply(EmailSettings settings)
-    {
-        var endpoints = GetEndpoints(settings.Provider);
-        if (endpoints is null)
-        {
-            return;
-        }
-
-        settings.ImapHost = endpoints.Value.ImapHost;
-        settings.ImapPort = endpoints.Value.ImapPort;
-        settings.ImapUseSsl = endpoints.Value.ImapUseSsl;
-        settings.SmtpHost = endpoints.Value.SmtpHost;
-        settings.SmtpPort = endpoints.Value.SmtpPort;
-        settings.SmtpUseSsl = endpoints.Value.SmtpUseSsl;
-    }
-
-    public static void Apply(EmailSettingsDto response)
-    {
-        var endpoints = GetEndpoints(response.Provider);
-        if (endpoints is null)
-        {
-            return;
-        }
-
-        response.ImapHost = endpoints.Value.ImapHost;
-        response.ImapPort = endpoints.Value.ImapPort;
-        response.ImapUseSsl = endpoints.Value.ImapUseSsl;
-        response.SmtpHost = endpoints.Value.SmtpHost;
-        response.SmtpPort = endpoints.Value.SmtpPort;
-        response.SmtpUseSsl = endpoints.Value.SmtpUseSsl;
-    }
-
-    public static void ClearEndpoints(EmailSettingsDto response)
-    {
-        response.ImapHost = string.Empty;
-        response.SmtpHost = string.Empty;
-        response.ImapPort = 993;
-        response.SmtpPort = 587;
-        response.ImapUseSsl = true;
-        response.SmtpUseSsl = true;
-    }
-
-    internal static bool Matches(EmailSettings settings, EmailProviderPreset provider)
-    {
-        var endpoints = GetEndpoints(provider);
-        if (endpoints is null)
-        {
-            return false;
-        }
-
-        return HostEquals(settings.ImapHost, endpoints.Value.ImapHost) &&
-               settings.ImapPort == endpoints.Value.ImapPort &&
-               settings.ImapUseSsl == endpoints.Value.ImapUseSsl &&
-               HostEquals(settings.SmtpHost, endpoints.Value.SmtpHost) &&
-               settings.SmtpPort == endpoints.Value.SmtpPort &&
-               settings.SmtpUseSsl == endpoints.Value.SmtpUseSsl;
-    }
-
-    private static bool HostEquals(string left, string right) =>
-        string.Equals(left.Trim(), right, StringComparison.OrdinalIgnoreCase);
-}
-
 internal static class EmailSettingsMapping
 {
-    internal static EmailSettingsDto FromEntity(EmailSettings? stored)
-    {
-        if (stored is null)
-        {
-            return new EmailSettingsDto();
-        }
-
-        var provider = ResolveProvider(stored);
-
-        return new EmailSettingsDto
-        {
-            Provider = provider,
-            ProviderSlug = ResolveProviderSlug(stored, provider),
-            EmailAddress = stored.EmailAddress,
-            ImapHost = stored.ImapHost,
-            ImapPort = stored.ImapPort,
-            ImapUseSsl = stored.ImapUseSsl,
-            SmtpHost = stored.SmtpHost,
-            SmtpPort = stored.SmtpPort,
-            SmtpUseSsl = stored.SmtpUseSsl,
-            Username = stored.Username,
-            Password = string.Empty,
-            HasStoredPassword = !string.IsNullOrWhiteSpace(stored.Password)
-        };
-    }
-
     internal static string? TryBuildEntity(
         EmailSettingsDto response,
         EmailSettings? existing,
@@ -322,7 +204,6 @@ internal static class EmailSettingsMapping
 
         return new EmailSettings
         {
-            Provider = settings.Provider,
             ProviderSlug = settings.ProviderSlug,
             EmailAddress = settings.EmailAddress.Trim(),
             Username = settings.Username.Trim(),
@@ -340,7 +221,6 @@ internal static class EmailSettingsMapping
     {
         return new EmailSettings
         {
-            Provider = response.Provider,
             ProviderSlug = EmailProviderCatalog.NormalizeSlug(response.ProviderSlug),
             EmailAddress = response.EmailAddress.Trim(),
             Username = response.Username.Trim(),
@@ -352,31 +232,6 @@ internal static class EmailSettingsMapping
             SmtpPort = response.SmtpPort,
             SmtpUseSsl = response.SmtpUseSsl
         };
-    }
-
-    private static string ResolveProviderSlug(EmailSettings stored, EmailProviderPreset provider)
-    {
-        if (!string.IsNullOrWhiteSpace(stored.ProviderSlug))
-        {
-            return EmailProviderCatalog.NormalizeSlug(stored.ProviderSlug);
-        }
-
-        return provider == EmailProviderPreset.Gmail ? "gmail" : "custom";
-    }
-
-    private static EmailProviderPreset ResolveProvider(EmailSettings stored)
-    {
-        if (stored.Provider != EmailProviderPreset.Custom && Enum.IsDefined(stored.Provider))
-        {
-            return stored.Provider;
-        }
-
-        if (EmailProviderPresets.Matches(stored, EmailProviderPreset.Gmail))
-        {
-            return EmailProviderPreset.Gmail;
-        }
-
-        return EmailProviderPreset.Custom;
     }
 
     private static bool IsEmpty(EmailSettingsDto email)

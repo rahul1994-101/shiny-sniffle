@@ -15,7 +15,7 @@ public sealed class EmailProviderRepository(IDbContextFactory<AppDbContext> _dbC
             .ThenBy(x => x.Name)
             .ToListAsync(cancellationToken);
 
-        return rows.ConvertAll(EmailProviderMapping.FromEntity);
+        return rows.ConvertAll(EmailProviderDto.FromEntity);
     }
 
     public async Task<EmailProviderDto?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
@@ -25,7 +25,7 @@ public sealed class EmailProviderRepository(IDbContextFactory<AppDbContext> _dbC
             .AsNoTracking()
             .FirstOrDefaultAsync(x => x.Id == id && x.IsActive && !x.IsDeleted, cancellationToken);
 
-        return entity is null ? null : EmailProviderMapping.FromEntity(entity);
+        return entity is null ? null : EmailProviderDto.FromEntity(entity);
     }
 
     public async Task<(EmailProviderDto? Saved, string? Error, bool NotFound, bool BlockedSystem)> SaveAsync(
@@ -102,7 +102,7 @@ public sealed class EmailProviderRepository(IDbContextFactory<AppDbContext> _dbC
         }
 
         await ctx.SaveChangesAsync(cancellationToken);
-        return (EmailProviderMapping.FromEntity(entity), null, false, false);
+        return (EmailProviderDto.FromEntity(entity), null, false, false);
     }
 
     public async Task<(bool Found, bool Blocked)> TrySoftDeleteAsync(Guid id, Guid userId, CancellationToken cancellationToken = default)

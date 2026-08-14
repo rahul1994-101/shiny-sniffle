@@ -94,7 +94,13 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             entity.Property(e => e.CreatedAt).HasColumnName("createdAt");
             entity.Property(e => e.UpdatedBy).HasColumnName("updatedBy");
             entity.Property(e => e.UpdatedAt).HasColumnName("updatedAt");
-            entity.HasIndex(e => e.UserId).IsUnique();
+            entity.HasIndex(e => e.UserId)
+                .IsUnique()
+                .HasFilter("[isDeleted] = 0");
+            entity.HasOne<User>()
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
         modelBuilder.Entity<EmailProvider>(entity =>
         {
