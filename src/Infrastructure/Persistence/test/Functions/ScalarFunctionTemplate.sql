@@ -8,7 +8,7 @@
 -- =====================================================
 GO
 
-CREATE FUNCTION dbo.ScalarFunctionTemplate(
+CREATE FUNCTION test.ScalarFunctionTemplate(
     @Parameter1 INT,
     @Parameter2 NVARCHAR(100) = NULL
 )
@@ -27,5 +27,4 @@ GO
 -- =====================================================
 -- EXECUTION EXAMPLE
 -- =====================================================
--- SELECT dbo.ScalarFunctionTemplate(1, 'test');
-
+-- SELECT test.ScalarFunctionTemplate(1, 'test');

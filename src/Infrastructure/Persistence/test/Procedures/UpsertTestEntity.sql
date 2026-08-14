@@ -18,7 +18,7 @@
 -- =====================================================
 GO
 
-CREATE PROCEDURE dbo.UpsertTestEntity
+CREATE PROCEDURE test.UpsertTestEntity
     @Name NVARCHAR(100),
     @Id UNIQUEIDENTIFIER = NULL,
     @IsActive BIT = 1,
@@ -40,7 +40,7 @@ BEGIN
     -- Check if record exists (if ID is provided)
     IF @Id IS NOT NULL
     BEGIN
-        SELECT @RecordExists = CASE WHEN EXISTS(SELECT 1 FROM dbo.TestEntity WHERE id = @Id AND isDeleted = 0) THEN 1 ELSE 0 END;
+        SELECT @RecordExists = CASE WHEN EXISTS(SELECT 1 FROM test.TestEntity WHERE id = @Id AND isDeleted = 0) THEN 1 ELSE 0 END;
     END
     ELSE
     BEGIN
@@ -52,13 +52,13 @@ BEGIN
     BEGIN
         -- Update existing record
         -- Check for duplicate name (excluding current record)
-        IF EXISTS (SELECT 1 FROM dbo.TestEntity WHERE name = @Name AND id != @Id AND isDeleted = 0)
+        IF EXISTS (SELECT 1 FROM test.TestEntity WHERE name = @Name AND id != @Id AND isDeleted = 0)
         BEGIN
             THROW 50000, 'Test with name already exists', 1;
             RETURN;
         END;
         
-        UPDATE dbo.TestEntity
+        UPDATE test.TestEntity
         SET 
             name = @Name,
             isActive = @IsActive,
@@ -72,13 +72,13 @@ BEGIN
     BEGIN
         -- Insert new record
         -- Check for duplicate test name
-        IF EXISTS (SELECT 1 FROM dbo.TestEntity WHERE name = @Name AND isDeleted = 0)
+        IF EXISTS (SELECT 1 FROM test.TestEntity WHERE name = @Name AND isDeleted = 0)
         BEGIN
             THROW 50000, 'Test with name already exists', 1;
             RETURN;
         END;
         
-        INSERT INTO dbo.TestEntity (id, name, isActive, isDeleted, createdBy, updatedBy)
+        INSERT INTO test.TestEntity (id, name, isActive, isDeleted, createdBy, updatedBy)
         VALUES (
             ISNULL(@Id, NEWID()), 
             @Name, 
@@ -99,23 +99,22 @@ GO
 -- Uncomment the following lines to test the procedure:
 -- 
 -- -- Test insert (new record)
--- EXEC dbo.UpsertTestEntity
+-- EXEC test.UpsertTestEntity
 --     @Name = 'Test Record',
 --     @Id = NULL,
 --     @IsActive = 1,
 --     @CreatedBy = '00000000-0000-0000-0000-000000000001';
 -- 
 -- -- Test update (existing record)
--- EXEC dbo.UpsertTestEntity
+-- EXEC test.UpsertTestEntity
 --     @Name = 'Updated Test Record',
 --     @Id = '550e8400-e29b-41d4-a716-446655440001',
 --     @IsActive = 1,
 --     @UpdatedBy = '00000000-0000-0000-0000-000000000002';
 -- 
 -- -- Test validation (should fail)
--- EXEC dbo.UpsertTestEntity
+-- EXEC test.UpsertTestEntity
 --     @Name = NULL;
 -- 
 -- -- Clean up test data
--- DELETE FROM dbo.TestEntity WHERE name IN ('Test Record', 'Updated Test Record');
-
+-- DELETE FROM test.TestEntity WHERE name IN ('Test Record', 'Updated Test Record');

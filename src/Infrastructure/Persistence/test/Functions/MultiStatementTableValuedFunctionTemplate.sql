@@ -12,7 +12,7 @@
 -- =====================================================
 GO
 
-CREATE FUNCTION dbo.MultiStatementTableValuedFunctionTemplate(
+CREATE FUNCTION test.MultiStatementTableValuedFunctionTemplate(
     @Parameter1 INT = 1,
     @Parameter2 NVARCHAR(100) = NULL
 )
@@ -36,7 +36,7 @@ BEGIN
         t.name,
         t.isActive,
         t.createdAt
-    FROM dbo.TestEntity t
+    FROM test.TestEntity t
     WHERE 
         t.isActive = 1
         AND (@Parameter1 IS NULL OR t.id = CAST(@Parameter1 AS UNIQUEIDENTIFIER))
@@ -49,5 +49,4 @@ GO
 -- =====================================================
 -- EXECUTION EXAMPLE
 -- =====================================================
--- SELECT * FROM dbo.MultiStatementTableValuedFunctionTemplate(1, 'test');
-
+-- SELECT * FROM test.MultiStatementTableValuedFunctionTemplate(1, 'test');

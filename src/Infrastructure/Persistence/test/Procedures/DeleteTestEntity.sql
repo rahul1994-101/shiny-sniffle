@@ -16,7 +16,7 @@
 -- =====================================================
 GO
 
-CREATE PROCEDURE dbo.DeleteTestEntity
+CREATE PROCEDURE test.DeleteTestEntity
     @Id UNIQUEIDENTIFIER,
     @UpdatedBy UNIQUEIDENTIFIER = '00000000-0000-0000-0000-000000000000'
 AS
@@ -35,7 +35,7 @@ BEGIN
     -- Check if record exists and is not already deleted
     SELECT @RecordExists = CASE WHEN EXISTS(
         SELECT 1 
-        FROM dbo.TestEntity 
+        FROM test.TestEntity 
         WHERE id = @Id 
         AND isDeleted = 0
     ) THEN 1 ELSE 0 END;
@@ -47,7 +47,7 @@ BEGIN
     END;
     
     -- Perform soft delete
-    UPDATE dbo.TestEntity
+    UPDATE test.TestEntity
     SET 
         isDeleted = 1,
         isActive = 0,
@@ -66,15 +66,14 @@ GO
 -- Uncomment the following lines to test the procedure:
 -- 
 -- -- Test successful deletion
--- EXEC dbo.DeleteTestEntity
+-- EXEC test.DeleteTestEntity
 --     @Id = '550e8400-e29b-41d4-a716-446655440001',
 --     @UpdatedBy = '00000000-0000-0000-0000-000000000001';
 -- 
 -- -- Test validation (should fail - record not found)
--- EXEC dbo.DeleteTestEntity
+-- EXEC test.DeleteTestEntity
 --     @Id = '00000000-0000-0000-0000-000000000000';
 -- 
 -- -- Test validation (should fail - NULL ID)
--- EXEC dbo.DeleteTestEntity
+-- EXEC test.DeleteTestEntity
 --     @Id = NULL;
-

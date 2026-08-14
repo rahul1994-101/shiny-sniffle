@@ -13,7 +13,7 @@
 -- =====================================================
 GO
 
-CREATE PROCEDURE dbo.GetTestEntities
+CREATE PROCEDURE test.GetTestEntities
     @Page INT = 1,
     @PageSize INT = 10,
     @NameFilter NVARCHAR(100) = NULL
@@ -36,7 +36,7 @@ BEGIN
         t.createdBy,
         t.updatedAt,
         t.updatedBy
-    FROM dbo.TestEntity t
+    FROM test.TestEntity t
     WHERE 
         -- Only return active, non-deleted records
         t.isActive = 1 AND t.isDeleted = 0
@@ -54,11 +54,10 @@ GO
 -- Uncomment the following lines to test the procedure:
 -- 
 -- -- Test basic functionality (get first page)
--- EXEC dbo.GetTestEntities;
+-- EXEC test.GetTestEntities;
 -- 
 -- -- Test with filters
--- EXEC dbo.GetTestEntities @Page = 1, @PageSize = 5, @NameFilter = 'Test';
+-- EXEC test.GetTestEntities @Page = 1, @PageSize = 5, @NameFilter = 'Test';
 -- 
 -- -- Test pagination
--- EXEC dbo.GetTestEntities @Page = 2, @PageSize = 2, @NameFilter = NULL;
-
+-- EXEC test.GetTestEntities @Page = 2, @PageSize = 2, @NameFilter = NULL;

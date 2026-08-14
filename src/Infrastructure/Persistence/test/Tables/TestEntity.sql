@@ -1,15 +1,17 @@
 -- =====================================================
 -- TEST ENTITY TABLE
 -- =====================================================
--- This table stores test data for TenantDB.
--- 
+-- Reference table for SQL patterns (procs, views, functions, triggers).
+-- Not mapped in AppDbContext — for copy-paste examples only.
+--
 -- Business Rules:
 -- - Each record has a unique name
 -- - All records include audit fields for tracking changes
+-- - Apply after test/Schema.sql
 -- =====================================================
 GO
 
-CREATE TABLE dbo.TestEntity (
+CREATE TABLE test.TestEntity (
     -- Primary key with auto-generated sequential UUID
     [id]                                    UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWSEQUENTIALID(),
 
@@ -33,25 +35,25 @@ GO
 -- =====================================================
 
 -- Index for quick lookups by name (most common query)
-CREATE INDEX IX_TestEntity_Name ON dbo.TestEntity (name);
+CREATE INDEX IX_TestEntity_Name ON test.TestEntity (name);
 GO
 
 -- Index for filtering by active status (most common business query)
--- CREATE INDEX IX_TestEntity_IsActive ON dbo.TestEntity (isActive) WHERE isActive = 1;
+-- CREATE INDEX IX_TestEntity_IsActive ON test.TestEntity (isActive) WHERE isActive = 1;
 -- GO
 
 -- Index for filtering by deletion status (soft delete queries)
--- CREATE INDEX IX_TestEntity_IsDeleted ON dbo.TestEntity (isDeleted) WHERE isDeleted = 0;
+-- CREATE INDEX IX_TestEntity_IsDeleted ON test.TestEntity (isDeleted) WHERE isDeleted = 0;
 -- GO
 
 -- Composite index for active, non-deleted records (business queries)
--- CREATE INDEX IX_TestEntity_IsActive_IsDeleted ON dbo.TestEntity (isActive, isDeleted) WHERE isActive = 1 AND isDeleted = 0;
+-- CREATE INDEX IX_TestEntity_IsActive_IsDeleted ON test.TestEntity (isActive, isDeleted) WHERE isActive = 1 AND isDeleted = 0;
 -- GO
 
 -- Index for audit queries (finding records by creation/update time)
--- CREATE INDEX IX_TestEntity_CreatedAt ON dbo.TestEntity (createdAt DESC);
+-- CREATE INDEX IX_TestEntity_CreatedAt ON test.TestEntity (createdAt DESC);
 -- GO
 
 -- Index for finding records by creator/updater
--- CREATE INDEX IX_TestEntity_CreatedBy ON dbo.TestEntity (createdBy);
+-- CREATE INDEX IX_TestEntity_CreatedBy ON test.TestEntity (createdBy);
 -- GO

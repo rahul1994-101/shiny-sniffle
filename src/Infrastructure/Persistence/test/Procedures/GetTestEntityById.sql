@@ -10,7 +10,7 @@
 -- =====================================================
 GO
 
-CREATE PROCEDURE dbo.GetTestEntityById
+CREATE PROCEDURE test.GetTestEntityById
     @Id UNIQUEIDENTIFIER
 AS
 BEGIN
@@ -25,7 +25,7 @@ BEGIN
         t.createdBy,
         t.updatedAt,
         t.updatedBy
-    FROM dbo.TestEntity t
+    FROM test.TestEntity t
     WHERE 
         -- Match the provided ID
         t.id = @Id
@@ -41,8 +41,7 @@ GO
 -- Uncomment the following lines to test the procedure:
 -- 
 -- -- Test basic functionality (get by ID)
--- EXEC dbo.GetTestEntityById @Id = '550e8400-e29b-41d4-a716-446655440001';
+-- EXEC test.GetTestEntityById @Id = '550e8400-e29b-41d4-a716-446655440001';
 -- 
 -- -- Test with non-existent ID (should return empty)
--- EXEC dbo.GetTestEntityById @Id = '00000000-0000-0000-0000-000000000000';
-
+-- EXEC test.GetTestEntityById @Id = '00000000-0000-0000-0000-000000000000';

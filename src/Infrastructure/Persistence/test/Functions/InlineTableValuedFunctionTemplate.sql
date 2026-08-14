@@ -9,7 +9,7 @@
 -- =====================================================
 GO
 
-CREATE FUNCTION dbo.InlineTableValuedFunctionTemplate(
+CREATE FUNCTION test.InlineTableValuedFunctionTemplate(
     @Parameter1 INT,
     @Parameter2 NVARCHAR(100) = NULL
 )
@@ -20,7 +20,7 @@ RETURN
     SELECT 
         t.id,
         t.name
-    FROM dbo.TestEntity t
+    FROM test.TestEntity t
     WHERE 
         t.isActive = 1
         AND (@Parameter1 IS NULL OR t.id = @Parameter1)
@@ -31,5 +31,4 @@ GO
 -- =====================================================
 -- EXECUTION EXAMPLE
 -- =====================================================
--- SELECT * FROM dbo.InlineTableValuedFunctionTemplate(1, 'test');
-
+-- SELECT * FROM test.InlineTableValuedFunctionTemplate(1, 'test');

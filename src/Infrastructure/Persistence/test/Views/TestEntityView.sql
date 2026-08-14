@@ -12,7 +12,7 @@
 -- =====================================================
 GO
 
-CREATE VIEW dbo.TestEntityView
+CREATE VIEW test.TestEntityView
 AS
 SELECT 
     -- Test record identification
@@ -28,7 +28,7 @@ SELECT
     t.createdBy,
     t.updatedAt,
     t.updatedBy
-FROM dbo.TestEntity t
+FROM test.TestEntity t
 WHERE t.isActive = 1 AND t.isDeleted = 0;
 GO
 
@@ -38,9 +38,8 @@ GO
 -- Uncomment the following lines to test the view:
 -- 
 -- -- Test basic functionality
--- SELECT * FROM dbo.TestEntityView;
+-- SELECT * FROM test.TestEntityView;
 -- 
 -- -- Test filtering by name
--- SELECT * FROM dbo.TestEntityView 
+-- SELECT * FROM test.TestEntityView 
 -- WHERE name LIKE '%Test%';
-

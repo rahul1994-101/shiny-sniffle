@@ -12,8 +12,8 @@
 -- =====================================================
 GO
 
-CREATE TRIGGER dbo.TestEntityInsertTrigger
-ON dbo.TestEntity
+CREATE TRIGGER test.TestEntityInsertTrigger
+ON test.TestEntity
 AFTER INSERT
 AS
 BEGIN
@@ -36,12 +36,11 @@ GO
 -- Uncomment the following lines to test the trigger:
 -- 
 -- -- Test trigger by creating a test record
--- INSERT INTO dbo.TestEntity (name)
+-- INSERT INTO test.TestEntity (name)
 -- VALUES ('Test Record');
 -- 
 -- -- Verify the record was created (trigger does nothing, so record should exist)
--- SELECT * FROM dbo.TestEntity WHERE name = 'Test Record';
+-- SELECT * FROM test.TestEntity WHERE name = 'Test Record';
 -- 
 -- -- Clean up test data
--- DELETE FROM dbo.TestEntity WHERE name = 'Test Record';
-
+-- DELETE FROM test.TestEntity WHERE name = 'Test Record';
