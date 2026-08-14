@@ -5,10 +5,10 @@ namespace Application.Features.Chat.ChatMessages;
 
 public sealed class ChatMessageRepository(IDbContextFactory<AppDbContext> _dbContextFactory)
 {
-    public async Task<List<ChatMessageDto>?> GetByChatThreadIdAsync(Guid userId, Guid chatThreadId, CancellationToken cancellationToken = default)
+    public async Task<List<ChatMessageDto>?> GetAllChatMessagesByThreadIdAsync(Guid userId, Guid threadId, CancellationToken cancellationToken = default)
     {
         await using var ctx = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
-        if (!await IsThreadOwnedAsync(ctx, userId, chatThreadId, cancellationToken))
+        if (!await IsThreadOwnedAsync(ctx, userId, threadId, cancellationToken))
         {
             return null;
         }
@@ -16,7 +16,7 @@ public sealed class ChatMessageRepository(IDbContextFactory<AppDbContext> _dbCon
         var messages = await ctx.ChatMessages
             .AsNoTracking()
             .Where(x =>
-                x.ChatThreadId == chatThreadId &&
+                x.ChatThreadId == threadId &&
                 x.IsActive &&
                 !x.IsDeleted)
             .OrderBy(x => x.CreatedAt)
@@ -25,12 +25,16 @@ public sealed class ChatMessageRepository(IDbContextFactory<AppDbContext> _dbCon
         return ChatMessageDto.FromEntities(messages);
     }
 
-    public async Task<List<ChatMessageDto>> GetRecentByChatThreadIdAsync(Guid userId, Guid chatThreadId, int limit, CancellationToken cancellationToken = default)
+    public async Task<List<ChatMessageDto>> GetRecentChatMessagesByThreadIdForAIAsync(
+        Guid userId,
+        Guid threadId,
+        int limit,
+        CancellationToken cancellationToken = default)
     {
         var take = Math.Clamp(limit, 1, 100);
 
         await using var ctx = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
-        if (!await IsThreadOwnedAsync(ctx, userId, chatThreadId, cancellationToken))
+        if (!await IsThreadOwnedAsync(ctx, userId, threadId, cancellationToken))
         {
             return [];
         }
@@ -38,7 +42,7 @@ public sealed class ChatMessageRepository(IDbContextFactory<AppDbContext> _dbCon
         var messages = await ctx.ChatMessages
             .AsNoTracking()
             .Where(x =>
-                x.ChatThreadId == chatThreadId &&
+                x.ChatThreadId == threadId &&
                 x.IsActive &&
                 !x.IsDeleted)
             .OrderByDescending(x => x.CreatedAt)
@@ -57,10 +61,10 @@ public sealed class ChatMessageRepository(IDbContextFactory<AppDbContext> _dbCon
         return ChatMessageDto.FromEntity(entity);
     }
 
-    public async Task<int> CountByChatThreadIdAsync(Guid userId, Guid chatThreadId, CancellationToken cancellationToken = default)
+    public async Task<int> GetChatMessageCountByThreadIdForAIAsync(Guid userId, Guid threadId, CancellationToken cancellationToken = default)
     {
         await using var ctx = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
-        if (!await IsThreadOwnedAsync(ctx, userId, chatThreadId, cancellationToken))
+        if (!await IsThreadOwnedAsync(ctx, userId, threadId, cancellationToken))
         {
             return 0;
         }
@@ -68,22 +72,22 @@ public sealed class ChatMessageRepository(IDbContextFactory<AppDbContext> _dbCon
         return await ctx.ChatMessages
             .AsNoTracking()
             .Where(x =>
-                x.ChatThreadId == chatThreadId &&
+                x.ChatThreadId == threadId &&
                 x.IsActive &&
                 !x.IsDeleted)
             .CountAsync(cancellationToken);
     }
 
-    public async Task<List<ChatMessageDto>> GetBeyondRecentWindowAsync(
+    public async Task<List<ChatMessageDto>> GetAllChatMessagesBeyondRecentWindowByThreadIdForAIAsync(
         Guid userId,
-        Guid chatThreadId,
+        Guid threadId,
         int recentLimit,
         CancellationToken cancellationToken = default)
     {
         var take = Math.Clamp(recentLimit, 1, 100);
 
         await using var ctx = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
-        if (!await IsThreadOwnedAsync(ctx, userId, chatThreadId, cancellationToken))
+        if (!await IsThreadOwnedAsync(ctx, userId, threadId, cancellationToken))
         {
             return [];
         }
@@ -91,7 +95,7 @@ public sealed class ChatMessageRepository(IDbContextFactory<AppDbContext> _dbCon
         var recentIds = await ctx.ChatMessages
             .AsNoTracking()
             .Where(x =>
-                x.ChatThreadId == chatThreadId &&
+                x.ChatThreadId == threadId &&
                 x.IsActive &&
                 !x.IsDeleted)
             .OrderByDescending(x => x.CreatedAt)
@@ -102,7 +106,7 @@ public sealed class ChatMessageRepository(IDbContextFactory<AppDbContext> _dbCon
         var messages = await ctx.ChatMessages
             .AsNoTracking()
             .Where(x =>
-                x.ChatThreadId == chatThreadId &&
+                x.ChatThreadId == threadId &&
                 x.IsActive &&
                 !x.IsDeleted &&
                 !recentIds.Contains(x.Id))
@@ -112,11 +116,11 @@ public sealed class ChatMessageRepository(IDbContextFactory<AppDbContext> _dbCon
         return ChatMessageDto.FromEntities(messages);
     }
 
-    private static Task<bool> IsThreadOwnedAsync(AppDbContext ctx, Guid userId, Guid chatThreadId, CancellationToken cancellationToken) =>
+    private static Task<bool> IsThreadOwnedAsync(AppDbContext ctx, Guid userId, Guid threadId, CancellationToken cancellationToken) =>
         ctx.ChatThreads
             .AsNoTracking()
             .AnyAsync(x =>
-                x.Id == chatThreadId &&
+                x.Id == threadId &&
                 x.UserId == userId &&
                 x.IsActive &&
                 !x.IsDeleted,

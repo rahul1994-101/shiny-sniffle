@@ -43,9 +43,8 @@ GO
 -- INDEXES FOR CHAT THREAD TABLE
 -- =====================================================
 
-CREATE INDEX [IX_ChatThread_UserId]
-    ON [chat].[ChatThread] ([userId])
-    WHERE [isDeleted] = 0;
+-- Index for sidebar thread list by user
+CREATE INDEX [IX_ChatThread_UserId] ON [chat].[ChatThread] ([userId]) WHERE [isDeleted] = 0;
 GO
 
 -- Index for filtering by active status

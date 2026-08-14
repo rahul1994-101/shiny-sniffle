@@ -7,7 +7,7 @@ public sealed class ContactRepository(
     IDbContextFactory<AppDbContext> _dbContextFactory,
     SharedRepository _sharedRepo)
 {
-    public async Task<IReadOnlyList<ContactSummaryDto>> ListAsync(Guid userId, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<ContactSummaryDto>> GetAllContactsByUserIdAsync(Guid userId, CancellationToken cancellationToken = default)
     {
         await using var ctx = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
         var rows = await ctx.Contacts
@@ -33,7 +33,7 @@ public sealed class ContactRepository(
         });
     }
 
-    public async Task<ContactDto?> GetByIdAsync(Guid userId, Guid contactId, CancellationToken cancellationToken = default)
+    public async Task<ContactDto?> GetContactByIdAsync(Guid userId, Guid contactId, CancellationToken cancellationToken = default)
     {
         await using var ctx = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
         var row = await FindActiveAsync(ctx, userId, contactId, asNoTracking: true, cancellationToken);

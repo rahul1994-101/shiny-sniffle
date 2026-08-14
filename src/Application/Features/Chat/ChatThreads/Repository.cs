@@ -5,7 +5,7 @@ namespace Application.Features.Chat.ChatThreads;
 
 public sealed class ChatThreadRepository(IDbContextFactory<AppDbContext> _dbContextFactory)
 {
-    public async Task<List<ChatThreadDto>> ListActiveByUserIdAsync(Guid userId, CancellationToken cancellationToken = default)
+    public async Task<List<ChatThreadDto>> GetAllChatThreadsByUserIdAsync(Guid userId, CancellationToken cancellationToken = default)
     {
         await using var ctx = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
         var threads = await ctx.ChatThreads
@@ -28,13 +28,13 @@ public sealed class ChatThreadRepository(IDbContextFactory<AppDbContext> _dbCont
         return ChatThreadDto.FromEntity(entity);
     }
 
-    public async Task<ChatThreadDto?> GetActiveByIdAsync(Guid id, Guid userId, CancellationToken cancellationToken = default)
+    public async Task<ChatThreadDto?> GetChatThreadByIdAsync(Guid userId, Guid threadId, CancellationToken cancellationToken = default)
     {
         await using var ctx = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
         var thread = await ctx.ChatThreads
             .AsNoTracking()
             .Where(x =>
-                x.Id == id &&
+                x.Id == threadId &&
                 x.UserId == userId &&
                 x.IsActive &&
                 !x.IsDeleted)
@@ -43,10 +43,10 @@ public sealed class ChatThreadRepository(IDbContextFactory<AppDbContext> _dbCont
         return thread is null ? null : ChatThreadDto.FromEntity(thread);
     }
 
-    public async Task<ChatThreadDto?> UpdateTitleAsync(Guid id, Guid userId, string title, Guid updatedBy, CancellationToken cancellationToken = default)
+    public async Task<ChatThreadDto?> UpdateTitleAsync(Guid userId, Guid threadId, string title, Guid updatedBy, CancellationToken cancellationToken = default)
     {
         await using var ctx = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
-        var entity = await FindActiveTrackedAsync(ctx, id, userId, cancellationToken);
+        var entity = await FindActiveTrackedAsync(ctx, userId, threadId, cancellationToken);
         if (entity is null)
         {
             return null;
@@ -59,10 +59,10 @@ public sealed class ChatThreadRepository(IDbContextFactory<AppDbContext> _dbCont
         return ChatThreadDto.FromEntity(entity);
     }
 
-    public async Task<ChatThreadDto?> UpdateAgentAsync(Guid id, Guid userId, ChatAgent chatAgent, Guid updatedBy, CancellationToken cancellationToken = default)
+    public async Task<ChatThreadDto?> UpdateAgentAsync(Guid userId, Guid threadId, ChatAgent chatAgent, Guid updatedBy, CancellationToken cancellationToken = default)
     {
         await using var ctx = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
-        var entity = await FindActiveTrackedAsync(ctx, id, userId, cancellationToken);
+        var entity = await FindActiveTrackedAsync(ctx, userId, threadId, cancellationToken);
         if (entity is null)
         {
             return null;
@@ -75,30 +75,48 @@ public sealed class ChatThreadRepository(IDbContextFactory<AppDbContext> _dbCont
         return ChatThreadDto.FromEntity(entity);
     }
 
-    public async Task<bool> DeleteAsync(Guid id, Guid userId, Guid updatedBy, CancellationToken cancellationToken = default)
+    public async Task<bool> DeleteAsync(Guid userId, Guid threadId, Guid updatedBy, CancellationToken cancellationToken = default)
     {
         await using var ctx = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
-        var entity = await FindActiveTrackedAsync(ctx, id, userId, cancellationToken);
+        var entity = await FindActiveTrackedAsync(ctx, userId, threadId, cancellationToken);
         if (entity is null)
         {
             return false;
         }
 
+        var now = DateTime.UtcNow;
+        var messages = await ctx.ChatMessages
+            .Where(x =>
+                x.ChatThreadId == threadId &&
+                x.IsActive &&
+                !x.IsDeleted)
+            .ToListAsync(cancellationToken);
+
+        foreach (var message in messages)
+        {
+            message.IsDeleted = true;
+            message.IsActive = false;
+            message.UpdatedBy = updatedBy;
+            message.UpdatedAt = now;
+        }
+
         entity.IsDeleted = true;
         entity.IsActive = false;
+        entity.MemorySummary = null;
+        entity.MemorySummaryThroughMessageId = null;
         entity.UpdatedBy = updatedBy;
-        entity.UpdatedAt = DateTime.UtcNow;
+        entity.UpdatedAt = now;
         await ctx.SaveChangesAsync(cancellationToken);
         return true;
     }
 
-    public async Task<ThreadMemoryState?> GetMemoryStateAsync(Guid userId, Guid id, CancellationToken cancellationToken = default)
+    public async Task<ThreadMemoryState?> GetMemoryStateAsync(Guid userId, Guid threadId, CancellationToken cancellationToken = default)
     {
         await using var ctx = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
         var thread = await ctx.ChatThreads
             .AsNoTracking()
             .Where(x =>
-                x.Id == id &&
+                x.Id == threadId &&
                 x.UserId == userId &&
                 x.IsActive &&
                 !x.IsDeleted)
@@ -111,15 +129,15 @@ public sealed class ChatThreadRepository(IDbContextFactory<AppDbContext> _dbCont
     }
 
     public async Task<bool> UpdateMemorySummaryAsync(
-        Guid id,
         Guid userId,
+        Guid threadId,
         string? summary,
         Guid? summaryThroughMessageId,
         Guid updatedBy,
         CancellationToken cancellationToken = default)
     {
         await using var ctx = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
-        var entity = await FindActiveTrackedAsync(ctx, id, userId, cancellationToken);
+        var entity = await FindActiveTrackedAsync(ctx, userId, threadId, cancellationToken);
         if (entity is null)
         {
             return false;
@@ -133,10 +151,10 @@ public sealed class ChatThreadRepository(IDbContextFactory<AppDbContext> _dbCont
         return true;
     }
 
-    private static Task<ChatThread?> FindActiveTrackedAsync(AppDbContext ctx, Guid id, Guid userId, CancellationToken cancellationToken) =>
+    private static Task<ChatThread?> FindActiveTrackedAsync(AppDbContext ctx, Guid userId, Guid threadId, CancellationToken cancellationToken) =>
         ctx.ChatThreads
             .Where(x =>
-                x.Id == id &&
+                x.Id == threadId &&
                 x.UserId == userId &&
                 x.IsActive &&
                 !x.IsDeleted)

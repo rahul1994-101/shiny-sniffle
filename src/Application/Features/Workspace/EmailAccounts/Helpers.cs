@@ -220,7 +220,7 @@ internal static class EmailSettingsCatalog
         Guid userId,
         CancellationToken cancellationToken)
     {
-        var catalog = await emailProviderRepo.ListAsync(userId, cancellationToken);
+        var catalog = await emailProviderRepo.GetAllEmailProvidersByUserIdAsync(userId, cancellationToken);
         if (catalog.Count == 0)
         {
             return (catalog, "No mail providers are configured. Add templates under Settings → Email → Providers.");

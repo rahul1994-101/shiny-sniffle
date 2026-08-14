@@ -17,11 +17,11 @@ public sealed class ThreadMemoryService(
 {
     public async Task<IReadOnlyList<AiChatMessage>> EnrichHistoryAsync(
         Guid userId,
-        Guid chatThreadId,
+        Guid threadId,
         IReadOnlyList<AiChatMessage> shortTermHistory,
         CancellationToken cancellationToken = default)
     {
-        var memory = await chatThreadRepo.GetMemoryStateAsync(userId, chatThreadId, cancellationToken);
+        var memory = await chatThreadRepo.GetMemoryStateAsync(userId, threadId, cancellationToken);
         if (memory?.Summary is not { Length: > 0 } summary)
         {
             return shortTermHistory;
@@ -39,7 +39,7 @@ public sealed class ThreadMemoryService(
         return enriched;
     }
 
-    public async Task RefreshAsync(Guid chatThreadId, Guid userId, CancellationToken cancellationToken = default)
+    public async Task RefreshAsync(Guid userId, Guid threadId, CancellationToken cancellationToken = default)
     {
         if (!foundryOptions.Value.IsConfigured)
         {
@@ -48,12 +48,12 @@ public sealed class ThreadMemoryService(
 
         cancellationToken.ThrowIfCancellationRequested();
 
-        var count = await chatMessageRepo.CountByChatThreadIdAsync(userId, chatThreadId, cancellationToken);
+        var count = await chatMessageRepo.GetChatMessageCountByThreadIdForAIAsync(userId, threadId, cancellationToken);
         if (count <= ChatMemoryLimits.ShortTermMessageLimit)
         {
             await chatThreadRepo.UpdateMemorySummaryAsync(
-                chatThreadId,
                 userId,
+                threadId,
                 summary: null,
                 summaryThroughMessageId: null,
                 updatedBy: userId,
@@ -61,9 +61,9 @@ public sealed class ThreadMemoryService(
             return;
         }
 
-        var beyondWindow = await chatMessageRepo.GetBeyondRecentWindowAsync(
+        var beyondWindow = await chatMessageRepo.GetAllChatMessagesBeyondRecentWindowByThreadIdForAIAsync(
             userId,
-            chatThreadId,
+            threadId,
             ChatMemoryLimits.ShortTermMessageLimit,
             cancellationToken);
 
@@ -72,7 +72,7 @@ public sealed class ThreadMemoryService(
             return;
         }
 
-        var memory = await chatThreadRepo.GetMemoryStateAsync(userId, chatThreadId, cancellationToken);
+        var memory = await chatThreadRepo.GetMemoryStateAsync(userId, threadId, cancellationToken);
         var messagesToFold = SelectMessagesToSummarize(beyondWindow, memory?.SummaryThroughMessageId);
         if (messagesToFold.Count == 0)
         {
@@ -87,8 +87,8 @@ public sealed class ThreadMemoryService(
 
         var throughMessageId = beyondWindow[^1].Id;
         await chatThreadRepo.UpdateMemorySummaryAsync(
-            chatThreadId,
             userId,
+            threadId,
             summary.Trim(),
             throughMessageId,
             userId,

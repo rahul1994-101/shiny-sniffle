@@ -2,16 +2,16 @@ using FluentValidation;
 
 namespace Application.Features.Chat.ChatThreads.Commands;
 
-public sealed record AddChatThreadRequest(Guid UserId, string Title, ChatAgent ChatAgent = default)
-    : ICommand<AddChatThreadResponse>;
+public sealed record CreateChatThreadRequest(Guid UserId, string Title, ChatAgent ChatAgent = default)
+    : ICommand<CreateChatThreadResponse>;
 
-public sealed class AddChatThreadResponse : ChatThreadDto
+public sealed class CreateChatThreadResponse : ChatThreadDto
 {
 }
 
-public sealed class AddChatThreadRequestValidator : AbstractValidator<AddChatThreadRequest>
+public sealed class CreateChatThreadRequestValidator : AbstractValidator<CreateChatThreadRequest>
 {
-    public AddChatThreadRequestValidator()
+    public CreateChatThreadRequestValidator()
     {
         RuleFor(x => x.UserId)
             .NotEmpty()
@@ -22,15 +22,19 @@ public sealed class AddChatThreadRequestValidator : AbstractValidator<AddChatThr
             .WithMessage("Title is required.")
             .Length(1, 200)
             .WithMessage("Title must be between 1 and 200 characters.");
+
+        RuleFor(x => x.ChatAgent)
+            .IsInEnum()
+            .WithMessage("Chat agent is invalid.");
     }
 }
 
-public sealed class AddChatThreadRequestHandler(ChatThreadRepository chatThreadRepo, UserMailboxService mailboxService)
-    : IRequestHandler<AddChatThreadRequest, AddChatThreadResponse>
+public sealed class CreateChatThreadRequestHandler(ChatThreadRepository chatThreadRepo, UserMailboxService mailboxService)
+    : IRequestHandler<CreateChatThreadRequest, CreateChatThreadResponse>
 {
-    public async ValueTask<Result<AddChatThreadResponse>> HandleAsync(AddChatThreadRequest request, CancellationToken cancellationToken = default)
+    public async ValueTask<Result<CreateChatThreadResponse>> HandleAsync(CreateChatThreadRequest request, CancellationToken cancellationToken = default)
     {
-        var result = new Result<AddChatThreadResponse>();
+        var result = new Result<CreateChatThreadResponse>();
 
         #region # Execute
 
@@ -59,7 +63,7 @@ public sealed class AddChatThreadRequestHandler(ChatThreadRepository chatThreadR
         }
         else
         {
-            result.Success(chatThread!.AsResponse<AddChatThreadResponse>());
+            result.Success(chatThread!.AsResponse<CreateChatThreadResponse>());
         }
 
         #endregion

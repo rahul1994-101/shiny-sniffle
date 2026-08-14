@@ -25,7 +25,7 @@ public sealed class UserRepository(IDbContextFactory<AppDbContext> _dbContextFac
         return SessionDto.FromEntity(user);
     }
 
-    public async Task<GeneralSettingsDto?> GetGeneralSettingsAsync(Guid userId, CancellationToken cancellationToken = default)
+    public async Task<GeneralSettingsDto?> GetGeneralSettingsByUserIdAsync(Guid userId, CancellationToken cancellationToken = default)
     {
         await using var ctx = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
         var user = await ctx.Users

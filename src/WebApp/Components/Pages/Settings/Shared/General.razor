@@ -222,7 +222,7 @@ else
         _profileStatus.Clear();
         _passwordStatus.Clear();
 
-        var result = await Mediator.SendAsync(new GetGeneralSettingsRequest(CurrentUser.Id));
+        var result = await Mediator.SendAsync(new GetGeneralSettingsByUserIdRequest(CurrentUser.Id));
 
         #region # Handle Result
 

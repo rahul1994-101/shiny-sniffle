@@ -3,7 +3,9 @@ namespace Application.Features.Dbo.EmailProviders.Commands;
 using Application.Features.Dbo.EmailProviders;
 using FluentValidation;
 
-public sealed record DeleteEmailProviderRequest(Guid UserId, Guid ProviderId) : ICommand;
+public sealed record DeleteEmailProviderRequest(Guid UserId, Guid ProviderId) : ICommand<DeleteEmailProviderResponse>;
+
+public sealed class DeleteEmailProviderResponse;
 
 public sealed class DeleteEmailProviderRequestValidator : AbstractValidator<DeleteEmailProviderRequest>
 {
@@ -20,13 +22,13 @@ public sealed class DeleteEmailProviderRequestValidator : AbstractValidator<Dele
 }
 
 public sealed class DeleteEmailProviderRequestHandler(EmailProviderRepository emailProviderRepo)
-    : IRequestHandler<DeleteEmailProviderRequest>
+    : IRequestHandler<DeleteEmailProviderRequest, DeleteEmailProviderResponse>
 {
-    public async ValueTask<Result> HandleAsync(
+    public async ValueTask<Result<DeleteEmailProviderResponse>> HandleAsync(
         DeleteEmailProviderRequest request,
         CancellationToken cancellationToken = default)
     {
-        var result = new Result();
+        var result = new Result<DeleteEmailProviderResponse>();
 
         #region # Execute
 
@@ -49,7 +51,7 @@ public sealed class DeleteEmailProviderRequestHandler(EmailProviderRepository em
         }
         else
         {
-            result.Success();
+            result.Success(new DeleteEmailProviderResponse());
         }
 
         #endregion

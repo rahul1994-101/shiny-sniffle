@@ -7,7 +7,7 @@ public sealed class BucketRepository(
     IDbContextFactory<AppDbContext> dbContextFactory,
     SharedRepository sharedRepo)
 {
-    public async Task<IReadOnlyList<BucketDto>> ListAsync(Guid userId, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<BucketDto>> GetAllBucketsByUserIdAsync(Guid userId, CancellationToken cancellationToken = default)
     {
         await using var ctx = await dbContextFactory.CreateDbContextAsync(cancellationToken);
         var rows = await ctx.Buckets

@@ -5,7 +5,7 @@ namespace Application.Features.Dbo.EmailProviders;
 
 public sealed class EmailProviderRepository(IDbContextFactory<AppDbContext> _dbContextFactory)
 {
-    public async Task<IReadOnlyList<EmailProviderDto>> ListAsync(Guid userId, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<EmailProviderDto>> GetAllEmailProvidersByUserIdAsync(Guid userId, CancellationToken cancellationToken = default)
     {
         await using var ctx = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
         var rows = await ctx.EmailProviders
@@ -18,7 +18,7 @@ public sealed class EmailProviderRepository(IDbContextFactory<AppDbContext> _dbC
         return rows.ConvertAll(EmailProviderDto.FromEntity);
     }
 
-    public async Task<EmailProviderDto?> GetByIdAsync(Guid userId, Guid providerId, CancellationToken cancellationToken = default)
+    public async Task<EmailProviderDto?> GetEmailProviderByIdAsync(Guid userId, Guid providerId, CancellationToken cancellationToken = default)
     {
         await using var ctx = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
         var entity = await ctx.EmailProviders

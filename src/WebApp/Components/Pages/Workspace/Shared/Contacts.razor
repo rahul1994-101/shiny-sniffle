@@ -292,9 +292,9 @@ else
         _busy = TabBusy.Loading;
         _status.Clear();
 
-        var result = await Mediator.SendAsync(new ListContactsRequest(CurrentUser.Id));
-        var tagsResult = await Mediator.SendAsync(new ListTagsRequest(CurrentUser.Id));
-        var bucketsResult = await Mediator.SendAsync(new ListBucketsRequest(CurrentUser.Id));
+        var result = await Mediator.SendAsync(new GetAllContactsByUserIdRequest(CurrentUser.Id));
+        var tagsResult = await Mediator.SendAsync(new GetAllTagsByUserIdRequest(CurrentUser.Id));
+        var bucketsResult = await Mediator.SendAsync(new GetAllBucketsByUserIdRequest(CurrentUser.Id));
 
         _allTags.Clear();
         if (!tagsResult.HasError && tagsResult.Payload?.Tags is { } tagItems)
@@ -341,7 +341,7 @@ else
     private async Task BeginEditAsync(ContactSummaryDto summary)
     {
         _status.Clear();
-        var result = await Mediator.SendAsync(new GetContactRequest(CurrentUser.Id, summary.Id));
+        var result = await Mediator.SendAsync(new GetContactByIdRequest(CurrentUser.Id, summary.Id));
 
         if (result.HasError || result.Payload is null)
         {

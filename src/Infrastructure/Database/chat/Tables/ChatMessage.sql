@@ -36,12 +36,28 @@ CREATE TABLE [chat].[ChatMessage] (
 GO
 
 -- =====================================================
+-- FOREIGN KEYS (deferred — ChatThread.memorySummaryThroughMessageId)
+-- =====================================================
+
+-- Last message id folded into rolling memory summary
+IF NOT EXISTS (
+    SELECT 1
+    FROM sys.foreign_keys
+    WHERE name = N'FK_ChatThread_MemorySummaryThroughMessage'
+      AND parent_object_id = OBJECT_ID(N'[chat].[ChatThread]'))
+BEGIN
+    ALTER TABLE [chat].[ChatThread]
+        ADD CONSTRAINT [FK_ChatThread_MemorySummaryThroughMessage]
+            FOREIGN KEY ([memorySummaryThroughMessageId]) REFERENCES [chat].[ChatMessage] ([id]) ON DELETE SET NULL;
+END
+GO
+
+-- =====================================================
 -- INDEXES FOR CHAT MESSAGE TABLE
 -- =====================================================
 
-CREATE INDEX [IX_ChatMessage_ChatThreadId]
-    ON [chat].[ChatMessage] ([chatThreadId])
-    WHERE [isDeleted] = 0;
+-- Index for loading messages in a thread
+CREATE INDEX [IX_ChatMessage_ChatThreadId] ON [chat].[ChatMessage] ([chatThreadId]) WHERE [isDeleted] = 0;
 GO
 
 -- Index for filtering by active status
@@ -59,24 +75,6 @@ GO
 -- Index for audit queries
 -- CREATE INDEX [IX_ChatMessage_CreatedAt] ON [chat].[ChatMessage] ([createdAt] DESC);
 -- GO
-
--- =====================================================
--- CHAT THREAD MEMORY FK (requires ChatMessage)
--- =====================================================
-
-IF NOT EXISTS (
-    SELECT 1
-    FROM sys.foreign_keys
-    WHERE name = N'FK_ChatThread_MemorySummaryThroughMessage'
-      AND parent_object_id = OBJECT_ID(N'[chat].[ChatThread]'))
-BEGIN
-    ALTER TABLE [chat].[ChatThread]
-        ADD CONSTRAINT [FK_ChatThread_MemorySummaryThroughMessage]
-            FOREIGN KEY ([memorySummaryThroughMessageId])
-            REFERENCES [chat].[ChatMessage] ([id])
-            ON DELETE SET NULL;
-END
-GO
 
 -- =====================================================
 -- SEED DATA (optional — uncomment on new databases)

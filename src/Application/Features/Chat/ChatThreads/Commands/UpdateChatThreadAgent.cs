@@ -2,7 +2,7 @@ using FluentValidation;
 
 namespace Application.Features.Chat.ChatThreads.Commands;
 
-public sealed record UpdateChatThreadAgentRequest(Guid UserId, Guid Id, ChatAgent ChatAgent)
+public sealed record UpdateChatThreadAgentRequest(Guid UserId, Guid ThreadId, ChatAgent ChatAgent)
     : ICommand<UpdateChatThreadAgentResponse>;
 
 public sealed class UpdateChatThreadAgentResponse : ChatThreadDto
@@ -17,9 +17,13 @@ public sealed class UpdateChatThreadAgentRequestValidator : AbstractValidator<Up
             .NotEmpty()
             .WithMessage("User Id is required.");
 
-        RuleFor(x => x.Id)
+        RuleFor(x => x.ThreadId)
             .NotEmpty()
             .WithMessage("Thread Id is required.");
+
+        RuleFor(x => x.ChatAgent)
+            .IsInEnum()
+            .WithMessage("Chat agent is invalid.");
     }
 }
 
@@ -37,7 +41,7 @@ public sealed class UpdateChatThreadAgentRequestHandler(ChatThreadRepository cha
         ChatThreadDto? chatThread = null;
         if (mailboxConfigured)
         {
-            chatThread = await chatThreadRepo.UpdateAgentAsync(request.Id, request.UserId, request.ChatAgent, request.UserId, cancellationToken);
+            chatThread = await chatThreadRepo.UpdateAgentAsync(request.UserId, request.ThreadId, request.ChatAgent, request.UserId, cancellationToken);
         }
 
         #endregion

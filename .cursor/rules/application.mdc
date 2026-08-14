@@ -146,11 +146,22 @@ If a repo needs a capability on another slice, inject that slice’s repo. Promo
 
 **Entity → DTO mapping:** always `{Dto}.FromEntity(...)` on the DTO class in `DTOs.cs`. Extra parameters (joined provider, taxonomy, etc.) go on `FromEntity` overloads — not `*Mapping.ToDto` in `Helpers.cs`. `Helpers.cs` keeps validation, normalization, and non-DTO transforms (e.g. `ToEmailSettings`, `ToSettingsDto`).
 
-**Request parameters:** when a request includes ownership, put `UserId` first. Name entity ids descriptively (`ProviderId`, `TagId`, `ContactId`) — not bare `Id`.
+**Request parameters:** when a request includes ownership, put `UserId` first. Name entity ids descriptively (`ProviderId`, `TagId`, `ContactId`, `ThreadId`) — not bare `Id`. In **Chat**, use `ThreadId` everywhere (requests, DTOs, AI models) — not `ChatThreadId`; the entity/SQL column stays `ChatThreadId`.
 
 **Repo method names:** no redundant entity prefix on `{Slice}Repository` (`UpdateProfileAsync`, not `UpdateUserProfileAsync`; `TryChangePasswordAsync`, not split check/update methods). Prefer one atomic repo method when a use case needs read-then-write on the same row.
 
 **Naming:** keep `{UseCase}Request` / `{UseCase}Response` — not `SignInCommand`. CQRS kind = `Commands/` or `Queries/` folder + `ICommand` / `IQuery`.
+
+**Query naming (app-wide):** name reads as the operation — no ambiguity between list vs single-get.
+- `GetAll{Entity}By{Filter}` — collection (e.g. `GetAllTagsByUserId`, `GetAllChatMessagesByThreadId`)
+- `Get{Entity}ById` — single row by primary id (+ `UserId` for ownership)
+- `Get{Entity}For{Purpose}` — purpose-specific read when shape/consumer differs (e.g. future AI search)
+- Commands: `{Verb}{Entity}[{Detail}]` — e.g. `CreateChatThread`, `SaveContact`, `SendChatMessage`
+- Delete commands return `{UseCase}Response` (empty class when no payload) — `ICommand<{UseCase}Response>`, not bare `ICommand`
+
+**Repo read methods** mirror the query verb where the repo owns that read: `GetAllTagsByUserIdAsync`, `GetContactByIdAsync`, `GetChatThreadByIdAsync`. Soft-delete / active filters stay inside the method — not in the name.
+
+**Repo reads for AI only** (`Application/AI/`, `Memory/`): suffix `ForAI` on the method name — e.g. `GetRecentChatMessagesByThreadIdForAIAsync`, `GetChatMessageCountByThreadIdForAIAsync`, `GetAllChatMessagesBeyondRecentWindowByThreadIdForAIAsync`. Same `{GetAll|Get}{Entity}By{Filter}` verb pattern; `ForAI` marks consumers in the AI layer (not MediatR queries).
 
 **FluentValidation ↔ SQL/EF lengths:** validator `MaximumLength` / `Length` upper bound must match EF `HasMaxLength` on the mapped column. Source of truth: `Infrastructure/Database/{schema}/Tables/*.sql` and `AppDbContext.OnModelCreating`.
 
@@ -163,7 +174,7 @@ Do **not** put use-case types or slice DTOs in Infrastructure or WebApp.
 3. `{UseCase}RequestValidator`
 4. `{UseCase}RequestHandler`
 
-**References:** `Dbo/EmailProviders/Queries/ListEmailProviders.cs`, `Dbo/Users/Commands/SignIn.cs`, `Chat/ChatMessages/Commands/SendChatMessage.cs`.
+**References:** `Dbo/EmailProviders/Queries/GetAllEmailProvidersByUserId.cs`, `Dbo/Users/Commands/SignIn.cs`, `Chat/ChatMessages/Commands/SendChatMessage.cs`.
 
 ### Template — handler (repo only)
 
@@ -264,7 +275,7 @@ Roadmaps: `docs/ai-memory.md`, `docs/email-read-implementation-plan.md`.
 | **AI/** root | `ChatOrchestrator.RunChatAgentAsync` | Turn routing |
 | **Agents/** | `RunAsync` | `{Domain}TriageAgent` or `{Role}Agent` — see `AI/Agents/README.md` |
 | **Tools/** | `CreateTools` | `{Domain}TriageTools` for triage; MAF tools, no LLM |
-| **Memory/** | `EnrichHistoryAsync` / `RefreshAsync` | Enrich = DB only; Refresh summarizes via Foundry when over window — see `docs/ai-memory.md` |
+| **Memory/** | `EnrichHistoryAsync` / `RefreshAsync(userId, threadId, …)` | Enrich = DB only; Refresh summarizes via Foundry when over window — see `docs/ai-memory.md` |
 | **Workflows/** | `RunAsync` | Cross-cutting multi-step (not single agent turn) |
 
 Register in `AddApplication()` only. Foundry factory in Infrastructure.

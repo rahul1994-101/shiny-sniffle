@@ -4,7 +4,7 @@ public sealed class RunChatAgentRequest
 {
     public Guid UserId { get; init; }
 
-    public Guid ChatThreadId { get; init; }
+    public Guid ThreadId { get; init; }
 
     public ChatAgent ChatAgent { get; init; }
 }

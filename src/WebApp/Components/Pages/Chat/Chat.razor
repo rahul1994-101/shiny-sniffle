@@ -146,7 +146,7 @@
 
     private async Task LoadMessagesAsync()
     {
-        var result = await Mediator.SendAsync(new GetChatMessagesByChatThreadIdRequest(CurrentUser.Id, _activeThreadId));
+        var result = await Mediator.SendAsync(new GetAllChatMessagesByThreadIdRequest(CurrentUser.Id, _activeThreadId));
         _messages = result.HasError ? [] : result.Payload?.Messages ?? [];
     }
 
@@ -201,7 +201,7 @@
     {
         _messages.Add(new ChatMessageDto
         {
-            ChatThreadId = _activeThreadId,
+            ThreadId = _activeThreadId,
             Role = ChatMessageRoles.User,
             Content = text,
             CreatedAt = DateTime.UtcNow

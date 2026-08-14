@@ -7,9 +7,9 @@ namespace Application.AI.Tools;
 
 public sealed class EmailTriageTools(UserMailboxService _mailboxService)
 {
-    public IList<AITool> CreateTools(Guid userId, Guid chatThreadId)
+    public IList<AITool> CreateTools(Guid userId, Guid threadId)
     {
-        _ = chatThreadId;
+        _ = threadId;
         var sinceHint = EmailReadDateContext.SinceToolHint();
         var limitHint =
             $"{MailboxReadLimits.MinListLimit}-{MailboxReadLimits.MaxListLimit}, default {MailboxReadLimits.DefaultListLimit}";

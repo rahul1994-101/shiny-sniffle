@@ -41,6 +41,7 @@ CREATE TABLE [workspace].[EmailAccount] (
     [updatedBy]                              UNIQUEIDENTIFIER DEFAULT '00000000-0000-0000-0000-000000000000',
     [updatedAt]                              DATETIME2 DEFAULT SYSUTCDATETIME(),
 
+    -- Foreign keys
     CONSTRAINT [FK_EmailAccount_User] FOREIGN KEY ([userId]) REFERENCES [dbo].[User] ([id]),
     CONSTRAINT [FK_EmailAccount_EmailProvider] FOREIGN KEY ([emailProviderId]) REFERENCES [dbo].[EmailProvider] ([id])
 );
@@ -50,29 +51,24 @@ GO
 -- INDEXES FOR EMAIL ACCOUNT TABLE
 -- =====================================================
 
-CREATE UNIQUE INDEX [IX_EmailAccount_UserId_Alias]
-    ON [workspace].[EmailAccount] ([userId], [alias])
-    WHERE [isDeleted] = 0;
+-- Unique alias per user among non-deleted rows
+CREATE UNIQUE INDEX [IX_EmailAccount_UserId_Alias] ON [workspace].[EmailAccount] ([userId], [alias]) WHERE [isDeleted] = 0;
 GO
 
-CREATE UNIQUE INDEX [IX_EmailAccount_UserId_IsDefault]
-    ON [workspace].[EmailAccount] ([userId])
-    WHERE [isDefault] = 1 AND [isDeleted] = 0;
+-- At most one default mailbox per user
+CREATE UNIQUE INDEX [IX_EmailAccount_UserId_IsDefault] ON [workspace].[EmailAccount] ([userId]) WHERE [isDefault] = 1 AND [isDeleted] = 0;
 GO
 
-CREATE UNIQUE INDEX [IX_EmailAccount_UserId_EmailAddress]
-    ON [workspace].[EmailAccount] ([userId], [emailAddress])
-    WHERE [isDeleted] = 0;
+-- Unique email address per user among non-deleted rows
+CREATE UNIQUE INDEX [IX_EmailAccount_UserId_EmailAddress] ON [workspace].[EmailAccount] ([userId], [emailAddress]) WHERE [isDeleted] = 0;
 GO
 
-CREATE INDEX [IX_EmailAccount_UserId_SortOrder]
-    ON [workspace].[EmailAccount] ([userId], [sortOrder])
-    WHERE [isDeleted] = 0;
+-- Index for listing email accounts in sort order
+CREATE INDEX [IX_EmailAccount_UserId_SortOrder] ON [workspace].[EmailAccount] ([userId], [sortOrder]) WHERE [isDeleted] = 0;
 GO
 
-CREATE INDEX [IX_EmailAccount_EmailProviderId]
-    ON [workspace].[EmailAccount] ([emailProviderId])
-    WHERE [isDeleted] = 0;
+-- Index for lookups by email provider
+CREATE INDEX [IX_EmailAccount_EmailProviderId] ON [workspace].[EmailAccount] ([emailProviderId]) WHERE [isDeleted] = 0;
 GO
 
 -- =====================================================

@@ -114,7 +114,7 @@ else
     private async Task LoadAsync()
     {
         _busy = TabBusy.Loading;
-        var result = await Mediator.SendAsync(new ListBucketsRequest(CurrentUser.Id));
+        var result = await Mediator.SendAsync(new GetAllBucketsByUserIdRequest(CurrentUser.Id));
         _buckets.Clear();
         if (!result.HasError && result.Payload?.Buckets is { } items)
         {

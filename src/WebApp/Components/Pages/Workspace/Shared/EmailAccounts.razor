@@ -399,10 +399,10 @@ else
         _busy = TabBusy.Loading;
         _status.Clear();
 
-        var accountsResult = await Mediator.SendAsync(new ListEmailAccountsRequest(CurrentUser.Id));
-        var catalogResult = await Mediator.SendAsync(new ListEmailProvidersRequest(CurrentUser.Id));
-        var tagsResult = await Mediator.SendAsync(new ListTagsRequest(CurrentUser.Id));
-        var bucketsResult = await Mediator.SendAsync(new ListBucketsRequest(CurrentUser.Id));
+        var accountsResult = await Mediator.SendAsync(new GetAllEmailAccountsByUserIdRequest(CurrentUser.Id));
+        var catalogResult = await Mediator.SendAsync(new GetAllEmailProvidersByUserIdRequest(CurrentUser.Id));
+        var tagsResult = await Mediator.SendAsync(new GetAllTagsByUserIdRequest(CurrentUser.Id));
+        var bucketsResult = await Mediator.SendAsync(new GetAllBucketsByUserIdRequest(CurrentUser.Id));
 
         _allTags.Clear();
         if (!tagsResult.HasError && tagsResult.Payload?.Tags is { } tagItems)
@@ -487,7 +487,7 @@ else
         _status.Clear();
         _busy = TabBusy.Loading;
 
-        var result = await Mediator.SendAsync(new GetEmailAccountRequest(CurrentUser.Id, summary.Id));
+        var result = await Mediator.SendAsync(new GetEmailAccountByIdRequest(CurrentUser.Id, summary.Id));
 
         if (result.HasError)
         {

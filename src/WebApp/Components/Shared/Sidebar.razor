@@ -140,7 +140,7 @@
 
     private async Task LoadThreadsAsync()
     {
-        var result = await Mediator.SendAsync(new GetChatThreadsByUserIdRequest(CurrentUser.Id));
+        var result = await Mediator.SendAsync(new GetAllChatThreadsByUserIdRequest(CurrentUser.Id));
         _threads = result.HasError ? [] : result.Payload.Threads;
     }
 
@@ -152,7 +152,7 @@
 
     private async Task StartNewChatAsync()
     {
-        var result = await Mediator.SendAsync(new ChatThreadCmd.AddChatThreadRequest(CurrentUser.Id, "New chat"));
+        var result = await Mediator.SendAsync(new ChatThreadCmd.CreateChatThreadRequest(CurrentUser.Id, "New chat"));
         if (result.HasError)
         {
             return;
@@ -176,7 +176,7 @@
 
         if (_threads.Count == 0)
         {
-            var created = await Mediator.SendAsync(new ChatThreadCmd.AddChatThreadRequest(CurrentUser.Id, "New chat"));
+            var created = await Mediator.SendAsync(new ChatThreadCmd.CreateChatThreadRequest(CurrentUser.Id, "New chat"));
             if (!created.HasError)
             {
                 _threads.Insert(0, created.Payload!);

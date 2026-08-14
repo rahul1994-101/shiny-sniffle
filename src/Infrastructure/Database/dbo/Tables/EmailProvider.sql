@@ -57,13 +57,11 @@ GO
 -- =====================================================
 
 -- Unique slug among system templates
-CREATE UNIQUE INDEX [IX_EmailProvider_System_Slug] ON [dbo].[EmailProvider] ([slug])
-    WHERE [isSystem] = 1 AND [isDeleted] = 0;
+CREATE UNIQUE INDEX [IX_EmailProvider_System_Slug] ON [dbo].[EmailProvider] ([slug]) WHERE [isSystem] = 1 AND [isDeleted] = 0;
 GO
 
 -- Unique slug per user among custom templates
-CREATE UNIQUE INDEX [IX_EmailProvider_UserId_Slug] ON [dbo].[EmailProvider] ([userId], [slug])
-    WHERE [isSystem] = 0 AND [isDeleted] = 0;
+CREATE UNIQUE INDEX [IX_EmailProvider_UserId_Slug] ON [dbo].[EmailProvider] ([userId], [slug]) WHERE [isSystem] = 0 AND [isDeleted] = 0;
 GO
 
 -- Index for listing providers in sort order

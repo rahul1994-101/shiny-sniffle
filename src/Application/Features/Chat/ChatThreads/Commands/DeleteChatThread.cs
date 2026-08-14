@@ -2,7 +2,9 @@ using FluentValidation;
 
 namespace Application.Features.Chat.ChatThreads.Commands;
 
-public sealed record DeleteChatThreadRequest(Guid UserId, Guid Id) : ICommand;
+public sealed record DeleteChatThreadRequest(Guid UserId, Guid ThreadId) : ICommand<DeleteChatThreadResponse>;
+
+public sealed class DeleteChatThreadResponse;
 
 public sealed class DeleteChatThreadRequestValidator : AbstractValidator<DeleteChatThreadRequest>
 {
@@ -12,22 +14,22 @@ public sealed class DeleteChatThreadRequestValidator : AbstractValidator<DeleteC
             .NotEmpty()
             .WithMessage("User Id is required.");
 
-        RuleFor(x => x.Id)
+        RuleFor(x => x.ThreadId)
             .NotEmpty()
             .WithMessage("Thread Id is required.");
     }
 }
 
 public sealed class DeleteChatThreadRequestHandler(ChatThreadRepository chatThreadRepo)
-    : IRequestHandler<DeleteChatThreadRequest>
+    : IRequestHandler<DeleteChatThreadRequest, DeleteChatThreadResponse>
 {
-    public async ValueTask<Result> HandleAsync(DeleteChatThreadRequest request, CancellationToken cancellationToken = default)
+    public async ValueTask<Result<DeleteChatThreadResponse>> HandleAsync(DeleteChatThreadRequest request, CancellationToken cancellationToken = default)
     {
-        var result = new Result();
+        var result = new Result<DeleteChatThreadResponse>();
 
         #region # Execute
 
-        var deleted = await chatThreadRepo.DeleteAsync(request.Id, request.UserId, request.UserId, cancellationToken);
+        var deleted = await chatThreadRepo.DeleteAsync(request.UserId, request.ThreadId, request.UserId, cancellationToken);
 
         #endregion
 
@@ -39,7 +41,7 @@ public sealed class DeleteChatThreadRequestHandler(ChatThreadRepository chatThre
         }
         else
         {
-            result.Success();
+            result.Success(new DeleteChatThreadResponse());
         }
 
         #endregion

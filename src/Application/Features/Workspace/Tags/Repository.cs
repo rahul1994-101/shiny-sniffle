@@ -7,7 +7,7 @@ public sealed class TagRepository(
     IDbContextFactory<AppDbContext> dbContextFactory,
     SharedRepository sharedRepo)
 {
-    public async Task<IReadOnlyList<TagDto>> ListAsync(Guid userId, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<TagDto>> GetAllTagsByUserIdAsync(Guid userId, CancellationToken cancellationToken = default)
     {
         await using var ctx = await dbContextFactory.CreateDbContextAsync(cancellationToken);
         var rows = await ctx.Tags

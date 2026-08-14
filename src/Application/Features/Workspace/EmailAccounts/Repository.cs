@@ -10,7 +10,7 @@ public sealed class EmailAccountRepository(
     IDbContextFactory<AppDbContext> _dbContextFactory,
     SharedRepository _sharedRepo)
 {
-    public async Task<IReadOnlyList<EmailAccountSummaryDto>> ListAsync(Guid userId, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<EmailAccountSummaryDto>> GetAllEmailAccountsByUserIdAsync(Guid userId, CancellationToken cancellationToken = default)
     {
         await using var ctx = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
         var rows = await ctx.EmailAccounts
@@ -39,7 +39,7 @@ public sealed class EmailAccountRepository(
             .ToList();
     }
 
-    public async Task<EmailAccountDto?> GetByIdAsync(Guid userId, Guid accountId, CancellationToken cancellationToken = default)
+    public async Task<EmailAccountDto?> GetEmailAccountByIdAsync(Guid userId, Guid accountId, CancellationToken cancellationToken = default)
     {
         await using var ctx = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
         var row = await FindActiveAccountAsync(ctx, userId, accountId, asNoTracking: true, cancellationToken);

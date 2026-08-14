@@ -34,7 +34,7 @@ public sealed class GetEmailProviderByIdRequestHandler(EmailProviderRepository e
 
         #region # Execute
 
-        var provider = await emailProviderRepo.GetByIdAsync(request.UserId, request.ProviderId, cancellationToken);
+        var provider = await emailProviderRepo.GetEmailProviderByIdAsync(request.UserId, request.ProviderId, cancellationToken);
 
         #endregion
 

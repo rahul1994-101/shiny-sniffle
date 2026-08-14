@@ -324,7 +324,7 @@ else
         _busy = TabBusy.Loading;
         _status.Clear();
 
-        var result = await Mediator.SendAsync(new ListEmailProvidersRequest(CurrentUser.Id));
+        var result = await Mediator.SendAsync(new GetAllEmailProvidersByUserIdRequest(CurrentUser.Id));
 
         if (result.HasError)
         {

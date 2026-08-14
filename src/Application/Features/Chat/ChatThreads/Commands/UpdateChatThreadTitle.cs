@@ -2,7 +2,7 @@ using FluentValidation;
 
 namespace Application.Features.Chat.ChatThreads.Commands;
 
-public sealed record UpdateChatThreadTitleRequest(Guid UserId, Guid Id, string Title)
+public sealed record UpdateChatThreadTitleRequest(Guid UserId, Guid ThreadId, string Title)
     : ICommand<UpdateChatThreadTitleResponse>;
 
 public sealed class UpdateChatThreadTitleResponse : ChatThreadDto
@@ -17,7 +17,7 @@ public sealed class UpdateChatThreadTitleRequestValidator : AbstractValidator<Up
             .NotEmpty()
             .WithMessage("User Id is required.");
 
-        RuleFor(x => x.Id)
+        RuleFor(x => x.ThreadId)
             .NotEmpty()
             .WithMessage("Thread Id is required.");
 
@@ -38,7 +38,7 @@ public sealed class UpdateChatThreadTitleRequestHandler(ChatThreadRepository cha
 
         #region # Execute
 
-        var chatThread = await chatThreadRepo.UpdateTitleAsync(request.Id, request.UserId, request.Title, request.UserId, cancellationToken);
+        var chatThread = await chatThreadRepo.UpdateTitleAsync(request.UserId, request.ThreadId, request.Title, request.UserId, cancellationToken);
 
         #endregion
 

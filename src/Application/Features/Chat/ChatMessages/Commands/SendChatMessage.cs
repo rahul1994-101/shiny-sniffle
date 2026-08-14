@@ -5,7 +5,7 @@ using Application.Features.Chat.ChatThreads;
 
 namespace Application.Features.Chat.ChatMessages.Commands;
 
-public sealed record SendChatMessageRequest(Guid UserId, Guid ChatThreadId, string Message)
+public sealed record SendChatMessageRequest(Guid UserId, Guid ThreadId, string Message)
     : ICommand<SendChatMessageResponse>;
 
 public sealed class SendChatMessageResponse
@@ -22,9 +22,9 @@ public sealed class SendChatMessageRequestValidator : AbstractValidator<SendChat
             .NotEmpty()
             .WithMessage("User Id is required.");
 
-        RuleFor(x => x.ChatThreadId)
+        RuleFor(x => x.ThreadId)
             .NotEmpty()
-            .WithMessage("Chat Thread Id is required.");
+            .WithMessage("Thread Id is required.");
 
         RuleFor(x => x.Message)
             .Must(message => !string.IsNullOrWhiteSpace(message))
@@ -46,14 +46,14 @@ public sealed class SendChatMessageRequestHandler(
 
         #region # Execute
 
-        var thread = await chatThreadRepo.GetActiveByIdAsync(request.ChatThreadId, request.UserId, cancellationToken);
+        var thread = await chatThreadRepo.GetChatThreadByIdAsync(request.UserId, request.ThreadId, cancellationToken);
         SendChatMessageResponse? response = null;
 
         if (thread is not null)
         {
             var userMessage = await chatMessageRepo.AddAsync(new ChatMessage
             {
-                ChatThreadId = request.ChatThreadId,
+                ChatThreadId = request.ThreadId,
                 Role = ChatMessageRoles.User,
                 Content = text,
                 CreatedBy = request.UserId,
@@ -62,21 +62,21 @@ public sealed class SendChatMessageRequestHandler(
 
             var agentRun = await chatOrchestrator.RunChatAgentAsync(new RunChatAgentRequest
             {
-                ChatThreadId = request.ChatThreadId,
                 UserId = request.UserId,
+                ThreadId = request.ThreadId,
                 ChatAgent = thread.ChatAgent
             }, cancellationToken);
 
             var assistantMessage = await chatMessageRepo.AddAsync(new ChatMessage
             {
-                ChatThreadId = request.ChatThreadId,
+                ChatThreadId = request.ThreadId,
                 Role = ChatMessageRoles.Assistant,
                 Content = agentRun.AssistantContent,
                 CreatedBy = request.UserId,
                 UpdatedBy = request.UserId
             }, cancellationToken);
 
-            await threadMemory.RefreshAsync(request.ChatThreadId, request.UserId, cancellationToken);
+            await threadMemory.RefreshAsync(request.UserId, request.ThreadId, cancellationToken);
             response = new SendChatMessageResponse { UserMessage = userMessage, AssistantMessage = assistantMessage };
         }
 
