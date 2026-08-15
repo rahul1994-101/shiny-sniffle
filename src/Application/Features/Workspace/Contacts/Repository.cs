@@ -13,9 +13,7 @@ public sealed class ContactRepository(
         var rows = await ctx.Contacts
             .AsNoTracking()
             .Where(x => x.UserId == userId && x.IsActive && !x.IsDeleted)
-            .OrderBy(x => x.SortOrder)
-            .ThenBy(x => x.FirstName)
-            .ThenBy(x => x.LastName)
+            .OrderBy(x => x.CreatedAt)
             .ToListAsync(cancellationToken);
 
         var ids = rows.ConvertAll(x => x.Id);
@@ -119,11 +117,6 @@ public sealed class ContactRepository(
         }
         else
         {
-            var sortOrder = await ctx.Contacts
-                .Where(x => x.UserId == userId && !x.IsDeleted)
-                .Select(x => (int?)x.SortOrder)
-                .MaxAsync(cancellationToken) ?? 0;
-
             entity = new Contact
             {
                 Id = Guid.NewGuid(),
@@ -135,7 +128,6 @@ public sealed class ContactRepository(
                 Phone = phone,
                 Context = context,
                 Source = ContactSource.Manual,
-                SortOrder = sortOrder + 10,
                 CreatedBy = updatedBy,
                 UpdatedBy = updatedBy,
                 CreatedAt = now,

@@ -22,7 +22,6 @@ CREATE TABLE [workspace].[Tag] (
     -- Data fields
     [name]                                   NVARCHAR(64) NOT NULL,                     -- Display label (not unique)
     [color]                                  NVARCHAR(9) NULL,                          -- Optional UI color (e.g. #RRGGBB)
-    [sortOrder]                              INT NOT NULL DEFAULT 0,                    -- List order in Workspace UI
 
     -- Agent reference (alias + context for tools and prompts)
     [alias]                                  NVARCHAR(64) NOT NULL,                     -- Per-user handle (NOT NULL); optional in UI; auto-generated from name when blank
@@ -49,10 +48,6 @@ GO
 
 -- Unique alias per user among non-deleted rows (AI ref: tag:{alias})
 CREATE UNIQUE INDEX [IX_Tag_UserId_Alias] ON [workspace].[Tag] ([userId], [alias]) WHERE [isDeleted] = 0;
-GO
-
--- Index for listing tags in sort order
-CREATE INDEX [IX_Tag_UserId_SortOrder] ON [workspace].[Tag] ([userId], [sortOrder]) WHERE [isDeleted] = 0;
 GO
 
 -- Index for filtering by active status

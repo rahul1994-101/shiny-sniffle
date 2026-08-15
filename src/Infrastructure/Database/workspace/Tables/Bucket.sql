@@ -22,7 +22,6 @@ CREATE TABLE [workspace].[Bucket] (
     -- Data fields
     [name]                                   NVARCHAR(128) NOT NULL,                    -- Display label (not unique)
     [color]                                  NVARCHAR(9) NULL,                          -- Optional UI color (e.g. #RRGGBB)
-    [sortOrder]                              INT NOT NULL DEFAULT 0,                    -- List order in Workspace UI
 
     -- Agent reference (alias + context for tools and prompts)
     [alias]                                  NVARCHAR(64) NOT NULL,                     -- Per-user handle (NOT NULL); optional in UI; auto-generated from name when blank
@@ -49,10 +48,6 @@ GO
 
 -- Unique alias per user among non-deleted rows (AI ref: bucket:{alias})
 CREATE UNIQUE INDEX [IX_Bucket_UserId_Alias] ON [workspace].[Bucket] ([userId], [alias]) WHERE [isDeleted] = 0;
-GO
-
--- Index for listing buckets in sort order
-CREATE INDEX [IX_Bucket_UserId_SortOrder] ON [workspace].[Bucket] ([userId], [sortOrder]) WHERE [isDeleted] = 0;
 GO
 
 -- Index for filtering by active status

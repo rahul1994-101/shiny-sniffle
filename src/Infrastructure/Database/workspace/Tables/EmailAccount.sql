@@ -25,7 +25,6 @@ CREATE TABLE [workspace].[EmailAccount] (
     [username]                               NVARCHAR(255) NOT NULL,                    -- IMAP/SMTP login
     [password]                               NVARCHAR(512) NOT NULL,                    -- Encrypted mailbox password
     [isDefault]                              BIT NOT NULL DEFAULT 0,                    -- Default for Email agent
-    [sortOrder]                              INT NOT NULL DEFAULT 0,                    -- List order in UI
 
     -- Agent reference (alias + context for tools and prompts)
     [alias]                                  NVARCHAR(64) NOT NULL,                     -- Per-user handle (NOT NULL); optional in UI; auto-generated from email address when blank
@@ -61,10 +60,6 @@ GO
 
 -- Unique email address per user among non-deleted rows
 CREATE UNIQUE INDEX [IX_EmailAccount_UserId_EmailAddress] ON [workspace].[EmailAccount] ([userId], [emailAddress]) WHERE [isDeleted] = 0;
-GO
-
--- Index for listing email accounts in sort order
-CREATE INDEX [IX_EmailAccount_UserId_SortOrder] ON [workspace].[EmailAccount] ([userId], [sortOrder]) WHERE [isDeleted] = 0;
 GO
 
 -- Index for lookups by email provider

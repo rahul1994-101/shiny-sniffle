@@ -14,8 +14,6 @@ public sealed class ContactSummaryDto
 
     public string? Phone { get; init; }
 
-    public int SortOrder { get; init; }
-
     public IReadOnlyList<TagRefDto> Tags { get; init; } = [];
 
     public IReadOnlyList<BucketRefDto> Buckets { get; init; } = [];
@@ -27,7 +25,6 @@ public sealed class ContactSummaryDto
         Alias = entity.Alias,
         Email = entity.Email,
         Phone = entity.Phone,
-        SortOrder = entity.SortOrder,
         Tags = taxonomy?.Tags ?? [],
         Buckets = taxonomy?.Buckets ?? []
     };
@@ -55,8 +52,6 @@ public class ContactDto
 
     public ContactSource Source { get; init; }
 
-    public int SortOrder { get; init; }
-
     public IReadOnlyList<TagRefDto> Tags { get; init; } = [];
 
     public IReadOnlyList<BucketRefDto> Buckets { get; init; } = [];
@@ -72,7 +67,6 @@ public class ContactDto
         Phone = entity.Phone,
         Context = entity.Context,
         Source = entity.Source,
-        SortOrder = entity.SortOrder,
         Tags = taxonomy?.Tags ?? [],
         Buckets = taxonomy?.Buckets ?? []
     };
@@ -88,7 +82,6 @@ public class ContactDto
         Phone = Phone,
         Context = Context,
         Source = Source,
-        SortOrder = SortOrder,
         Tags = Tags,
         Buckets = Buckets
     };

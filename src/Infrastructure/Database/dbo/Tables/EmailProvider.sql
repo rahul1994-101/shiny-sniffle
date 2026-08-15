@@ -28,7 +28,6 @@ CREATE TABLE [dbo].[EmailProvider] (
     [smtpHost]                              NVARCHAR(255) NOT NULL DEFAULT '',         -- SMTP server host
     [smtpPort]                              INT NOT NULL DEFAULT 587 CHECK ([smtpPort] BETWEEN 1 AND 65535), -- SMTP port
     [smtpUseSsl]                            BIT DEFAULT 1,                             -- Use SSL/TLS for SMTP
-    [sortOrder]                             INT NOT NULL DEFAULT 0,                    -- List order in UI
     [isSystem]                              BIT DEFAULT 0,                             -- Seeded global template; app blocks edit/delete
 
     -- Status and lifecycle management
@@ -68,10 +67,6 @@ GO
 CREATE UNIQUE INDEX [IX_EmailProvider_UserId_Slug] ON [dbo].[EmailProvider] ([userId], [slug]) WHERE [isSystem] = 0 AND [isDeleted] = 0;
 GO
 
--- Index for listing providers in sort order
-CREATE INDEX [IX_EmailProvider_SortOrder] ON [dbo].[EmailProvider] ([sortOrder]) WHERE [isDeleted] = 0;
-GO
-
 -- Index for listing a user's custom providers
 CREATE INDEX [IX_EmailProvider_UserId] ON [dbo].[EmailProvider] ([userId]) WHERE [isSystem] = 0 AND [isDeleted] = 0;
 GO
@@ -88,10 +83,10 @@ GO
 -- BEGIN
 --     INSERT INTO [dbo].[EmailProvider] (
 --         [name], [slug], [imapHost], [imapPort], [imapUseSsl],
---         [smtpHost], [smtpPort], [smtpUseSsl], [sortOrder], [isSystem])
+--         [smtpHost], [smtpPort], [smtpUseSsl], [isSystem])
 --     VALUES (
 --         N'Gmail', N'gmail', N'imap.gmail.com', 993, 1,
---         N'smtp.gmail.com', 587, 1, 10, 1);
+--         N'smtp.gmail.com', 587, 1, 1);
 -- END
 -- GO
 
@@ -99,10 +94,10 @@ GO
 -- BEGIN
 --     INSERT INTO [dbo].[EmailProvider] (
 --         [name], [slug], [imapHost], [imapPort], [imapUseSsl],
---         [smtpHost], [smtpPort], [smtpUseSsl], [sortOrder], [isSystem])
+--         [smtpHost], [smtpPort], [smtpUseSsl], [isSystem])
 --     VALUES (
 --         N'Outlook.com', N'outlook', N'imap-mail.outlook.com', 993, 1,
---         N'smtp-mail.outlook.com', 587, 1, 20, 1);
+--         N'smtp-mail.outlook.com', 587, 1, 1);
 -- END
 -- GO
 
@@ -110,10 +105,10 @@ GO
 -- BEGIN
 --     INSERT INTO [dbo].[EmailProvider] (
 --         [name], [slug], [imapHost], [imapPort], [imapUseSsl],
---         [smtpHost], [smtpPort], [smtpUseSsl], [sortOrder], [isSystem])
+--         [smtpHost], [smtpPort], [smtpUseSsl], [isSystem])
 --     VALUES (
 --         N'Yahoo Mail', N'yahoo', N'imap.mail.yahoo.com', 993, 1,
---         N'smtp.mail.yahoo.com', 465, 1, 30, 1);
+--         N'smtp.mail.yahoo.com', 465, 1, 1);
 -- END
 -- GO
 
@@ -121,10 +116,10 @@ GO
 -- BEGIN
 --     INSERT INTO [dbo].[EmailProvider] (
 --         [name], [slug], [imapHost], [imapPort], [imapUseSsl],
---         [smtpHost], [smtpPort], [smtpUseSsl], [sortOrder], [isSystem])
+--         [smtpHost], [smtpPort], [smtpUseSsl], [isSystem])
 --     VALUES (
 --         N'iCloud Mail', N'icloud', N'imap.mail.me.com', 993, 1,
---         N'smtp.mail.me.com', 587, 1, 40, 1);
+--         N'smtp.mail.me.com', 587, 1, 1);
 -- END
 -- GO
 
@@ -132,10 +127,10 @@ GO
 -- BEGIN
 --     INSERT INTO [dbo].[EmailProvider] (
 --         [name], [slug], [imapHost], [imapPort], [imapUseSsl],
---         [smtpHost], [smtpPort], [smtpUseSsl], [sortOrder], [isSystem])
+--         [smtpHost], [smtpPort], [smtpUseSsl], [isSystem])
 --     VALUES (
 --         N'Zoho Mail', N'zoho', N'imap.zoho.com', 993, 1,
---         N'smtp.zoho.com', 587, 1, 50, 1);
+--         N'smtp.zoho.com', 587, 1, 1);
 -- END
 -- GO
 
@@ -143,9 +138,9 @@ GO
 -- BEGIN
 --     INSERT INTO [dbo].[EmailProvider] (
 --         [name], [slug], [imapHost], [imapPort], [imapUseSsl],
---         [smtpHost], [smtpPort], [smtpUseSsl], [sortOrder], [isSystem])
+--         [smtpHost], [smtpPort], [smtpUseSsl], [isSystem])
 --     VALUES (
 --         N'Fastmail', N'fastmail', N'imap.fastmail.com', 993, 1,
---         N'smtp.fastmail.com', 465, 1, 60, 1);
+--         N'smtp.fastmail.com', 465, 1, 1);
 -- END
 -- GO

@@ -151,7 +151,7 @@ John shows **many buckets and many tags** on one person—work and social overla
 - **`name`** (ER) = display label — rename freely in UI.
 - **`alias`** (ER) = stable handle — like `@username`; auto-generated from name when blank on save; unique per user per kind.
 - **`context`** (ER) = optional facts for UI and agent prompts.
-- **Catalog** rows use **`name`**, **`slug`**, and **`sortOrder`**.
+- **Catalog** rows use **`name`** and **`slug`**.
 - Do **not** add a separate **`slug`** column on Tag/Bucket; **`alias` already is the machine key.**
 
 Engineering: `EntityRefs.Format` / `EntityRefs.TryParse` at boundaries; DB column is always `alias` on workspace ERs.

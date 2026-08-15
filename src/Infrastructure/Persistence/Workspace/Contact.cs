@@ -23,6 +23,4 @@ public class Contact : BaseAuditableEntity
 
     /// <summary>Creation provenance (<see cref="ContactSource"/>). Set on insert by the feature that creates the row.</summary>
     public ContactSource Source { get; set; } = ContactSource.Manual;
-
-    public int SortOrder { get; set; }
 }

@@ -24,7 +24,5 @@ public class EmailAccount : BaseAuditableEntity
 
     public bool IsDefault { get; set; }
 
-    public int SortOrder { get; set; }
-
     public EmailProvider? EmailProvider { get; set; }
 }

@@ -18,8 +18,7 @@ public sealed class EmailAccountRepository(
             .AsNoTracking()
             .Include(x => x.EmailProvider)
             .Where(x => x.UserId == userId && x.IsActive && !x.IsDeleted)
-            .OrderBy(x => x.SortOrder)
-            .ThenBy(x => x.Alias)
+            .OrderBy(x => x.CreatedAt)
             .ToListAsync(cancellationToken);
 
         var accounts = rows.Where(x => x.EmailProvider is not null).ToList();
@@ -178,11 +177,6 @@ public sealed class EmailAccountRepository(
         }
         else
         {
-            var sortOrder = await ctx.EmailAccounts
-                .Where(x => x.UserId == userId && !x.IsDeleted)
-                .Select(x => (int?)x.SortOrder)
-                .MaxAsync(cancellationToken) ?? 0;
-
             entity = new EmailAccount
             {
                 UserId = userId,
@@ -193,7 +187,6 @@ public sealed class EmailAccountRepository(
                 Password = builtSettings.Password,
                 Context = context,
                 IsDefault = false,
-                SortOrder = sortOrder + 10,
                 CreatedBy = updatedBy,
                 UpdatedBy = updatedBy,
                 CreatedAt = now,
@@ -274,8 +267,7 @@ public sealed class EmailAccountRepository(
         {
             var next = await ctx.EmailAccounts
                 .Where(x => x.UserId == userId && !x.IsDeleted && x.Id != emailAccountId)
-                .OrderBy(x => x.SortOrder)
-                .ThenBy(x => x.Alias)
+                .OrderBy(x => x.CreatedAt)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (next is not null)

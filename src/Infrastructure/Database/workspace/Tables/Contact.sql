@@ -26,7 +26,6 @@ CREATE TABLE [workspace].[Contact] (
     [email]                                  NVARCHAR(255) NULL,                        -- Optional; unique per user when set
     [phone]                                  NVARCHAR(32) NULL,                         -- Optional contact phone
     [source]                                 TINYINT NOT NULL DEFAULT 0,                -- ContactSource enum; app-set on create (not user-edited)
-    [sortOrder]                              INT NOT NULL DEFAULT 0,                    -- List order in Workspace UI
 
     -- Agent reference (alias + context for tools and prompts)
     [alias]                                  NVARCHAR(64) NOT NULL,                     -- Per-user handle (NOT NULL); optional in UI; auto-generated from name when blank
@@ -57,10 +56,6 @@ GO
 
 -- Unique alias per user among non-deleted rows
 CREATE UNIQUE INDEX [IX_Contact_UserId_Alias] ON [workspace].[Contact] ([userId], [alias]) WHERE [isDeleted] = 0;
-GO
-
--- Index for listing contacts in sort order
-CREATE INDEX [IX_Contact_UserId_SortOrder] ON [workspace].[Contact] ([userId], [sortOrder]) WHERE [isDeleted] = 0;
 GO
 
 -- Index for filtering by active status

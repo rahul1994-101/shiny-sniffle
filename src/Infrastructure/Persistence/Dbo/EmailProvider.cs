@@ -27,8 +27,6 @@ public class EmailProvider : BaseAuditableEntity
 
     public bool SmtpUseSsl { get; set; } = true;
 
-    public int SortOrder { get; set; }
-
     /// <summary>When true, row is a seeded global template (read-only in app).</summary>
     public bool IsSystem { get; set; }
 }

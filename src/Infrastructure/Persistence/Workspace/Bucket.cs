@@ -13,8 +13,6 @@ public class Bucket : BaseAuditableEntity
     /// <summary>UI-only (e.g. #RRGGBB).</summary>
     public string? Color { get; set; }
 
-    public int SortOrder { get; set; }
-
     /// <summary>Per-user handle (NOT NULL in DB); optional in UI; auto-generated from name when blank on save.</summary>
     public string Alias { get; set; } = string.Empty;
 

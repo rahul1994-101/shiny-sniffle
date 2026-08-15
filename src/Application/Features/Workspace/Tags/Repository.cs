@@ -13,8 +13,7 @@ public sealed class TagRepository(
         var rows = await ctx.Tags
             .AsNoTracking()
             .Where(x => x.UserId == userId && x.IsActive && !x.IsDeleted)
-            .OrderBy(x => x.SortOrder)
-            .ThenBy(x => x.Name)
+            .OrderBy(x => x.CreatedAt)
             .ToListAsync(cancellationToken);
 
         return rows.ConvertAll(TagDto.FromEntity);
@@ -64,11 +63,6 @@ public sealed class TagRepository(
         }
         else
         {
-            var sortOrder = await ctx.Tags
-                .Where(x => x.UserId == userId && !x.IsDeleted)
-                .Select(x => (int?)x.SortOrder)
-                .MaxAsync(cancellationToken) ?? 0;
-
             entity = new Tag
             {
                 UserId = userId,
@@ -76,7 +70,6 @@ public sealed class TagRepository(
                 Alias = alias,
                 Color = color,
                 Context = context,
-                SortOrder = sortOrder + 10,
                 CreatedBy = updatedBy,
                 UpdatedBy = updatedBy,
                 CreatedAt = now,

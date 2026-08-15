@@ -215,7 +215,7 @@ public sealed class EmailProviderRepository(IDbContextFactory<AppDbContext> _dbC
         var rows = await ctx.EmailProviders
             .AsNoTracking()
             .Where(x => x.IsActive && !x.IsDeleted)
-            .OrderBy(x => x.SortOrder)
+            .OrderBy(x => x.CreatedAt)
             .ToListAsync(cancellationToken);
         return rows.ConvertAll(EmailProviderDto.FromEntity);
     }

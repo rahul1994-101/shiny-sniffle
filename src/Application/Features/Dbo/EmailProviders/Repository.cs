@@ -11,8 +11,7 @@ public sealed class EmailProviderRepository(IDbContextFactory<AppDbContext> _dbC
         var rows = await ctx.EmailProviders
             .AsNoTracking()
             .Where(x => x.IsActive && !x.IsDeleted && (x.IsSystem || x.UserId == userId))
-            .OrderBy(x => x.SortOrder)
-            .ThenBy(x => x.Name)
+            .OrderBy(x => x.CreatedAt)
             .ToListAsync(cancellationToken);
 
         return rows.ConvertAll(EmailProviderDto.FromEntity);
@@ -91,7 +90,6 @@ public sealed class EmailProviderRepository(IDbContextFactory<AppDbContext> _dbC
             entity.SmtpHost = dto.SmtpHost.Trim();
             entity.SmtpPort = dto.SmtpPort;
             entity.SmtpUseSsl = dto.SmtpUseSsl;
-            entity.SortOrder = dto.SortOrder;
             entity.UpdatedBy = userId;
             entity.UpdatedAt = now;
         }
@@ -108,7 +106,6 @@ public sealed class EmailProviderRepository(IDbContextFactory<AppDbContext> _dbC
                 SmtpHost = dto.SmtpHost.Trim(),
                 SmtpPort = dto.SmtpPort,
                 SmtpUseSsl = dto.SmtpUseSsl,
-                SortOrder = dto.SortOrder,
                 IsSystem = false,
                 CreatedBy = userId,
                 UpdatedBy = userId,

@@ -20,8 +20,6 @@ public class EmailProviderDto
 
     public bool SmtpUseSsl { get; init; }
 
-    public int SortOrder { get; init; }
-
     public bool IsSystem { get; init; }
 
     public static EmailProviderDto FromEntity(EmailProvider entity) => new()
@@ -35,7 +33,6 @@ public class EmailProviderDto
         SmtpHost = entity.SmtpHost,
         SmtpPort = entity.SmtpPort,
         SmtpUseSsl = entity.SmtpUseSsl,
-        SortOrder = entity.SortOrder,
         IsSystem = entity.IsSystem
     };
 
@@ -50,7 +47,6 @@ public class EmailProviderDto
         SmtpHost = SmtpHost,
         SmtpPort = SmtpPort,
         SmtpUseSsl = SmtpUseSsl,
-        SortOrder = SortOrder,
         IsSystem = IsSystem
     };
 
@@ -65,7 +61,6 @@ public class EmailProviderDto
         SmtpHost = SmtpHost,
         SmtpPort = SmtpPort,
         SmtpUseSsl = SmtpUseSsl,
-        SortOrder = SortOrder,
         IsSystem = IsSystem
     };
 }
@@ -89,6 +84,4 @@ public sealed class SaveEmailProviderDto
     public int SmtpPort { get; init; } = 587;
 
     public bool SmtpUseSsl { get; init; } = true;
-
-    public int SortOrder { get; init; }
 }

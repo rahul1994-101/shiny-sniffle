@@ -14,16 +14,13 @@ public class BucketDto
 
     public string? Context { get; init; }
 
-    public int SortOrder { get; init; }
-
     public static BucketDto FromEntity(Bucket entity) => new()
     {
         Id = entity.Id,
         Name = entity.Name,
         Alias = entity.Alias,
         Color = entity.Color,
-        Context = entity.Context,
-        SortOrder = entity.SortOrder
+        Context = entity.Context
     };
 
     public BucketRefDto AsRef() => new()
@@ -41,8 +38,7 @@ public class BucketDto
         Name = Name,
         Alias = Alias,
         Color = Color,
-        Context = Context,
-        SortOrder = SortOrder
+        Context = Context
     };
 }
 

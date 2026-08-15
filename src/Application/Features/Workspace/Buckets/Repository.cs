@@ -13,8 +13,7 @@ public sealed class BucketRepository(
         var rows = await ctx.Buckets
             .AsNoTracking()
             .Where(x => x.UserId == userId && x.IsActive && !x.IsDeleted)
-            .OrderBy(x => x.SortOrder)
-            .ThenBy(x => x.Name)
+            .OrderBy(x => x.CreatedAt)
             .ToListAsync(cancellationToken);
 
         return rows.ConvertAll(BucketDto.FromEntity);
@@ -64,11 +63,6 @@ public sealed class BucketRepository(
         }
         else
         {
-            var sortOrder = await ctx.Buckets
-                .Where(x => x.UserId == userId && !x.IsDeleted)
-                .Select(x => (int?)x.SortOrder)
-                .MaxAsync(cancellationToken) ?? 0;
-
             entity = new Bucket
             {
                 UserId = userId,
@@ -76,7 +70,6 @@ public sealed class BucketRepository(
                 Alias = alias,
                 Color = color,
                 Context = context,
-                SortOrder = sortOrder + 10,
                 CreatedBy = updatedBy,
                 UpdatedBy = updatedBy,
                 CreatedAt = now,

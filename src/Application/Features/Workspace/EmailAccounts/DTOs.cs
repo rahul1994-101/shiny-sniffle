@@ -17,8 +17,6 @@ public sealed class EmailAccountSummaryDto
 
     public bool IsDefault { get; init; }
 
-    public int SortOrder { get; init; }
-
     public IReadOnlyList<TagRefDto> Tags { get; init; } = [];
 
     public IReadOnlyList<BucketRefDto> Buckets { get; init; } = [];
@@ -34,7 +32,6 @@ public sealed class EmailAccountSummaryDto
         ProviderSlug = provider.Slug,
         EmailAddress = account.EmailAddress,
         IsDefault = account.IsDefault,
-        SortOrder = account.SortOrder,
         Tags = taxonomy?.Tags ?? [],
         Buckets = taxonomy?.Buckets ?? []
     };

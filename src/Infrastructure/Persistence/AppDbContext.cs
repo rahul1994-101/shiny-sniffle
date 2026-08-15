@@ -102,7 +102,6 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             entity.Property(e => e.SmtpHost).HasColumnName("smtpHost").HasMaxLength(255);
             entity.Property(e => e.SmtpPort).HasColumnName("smtpPort");
             entity.Property(e => e.SmtpUseSsl).HasColumnName("smtpUseSsl");
-            entity.Property(e => e.SortOrder).HasColumnName("sortOrder");
             entity.Property(e => e.IsSystem).HasColumnName("isSystem");
             entity.Property(e => e.IsActive).HasColumnName("isActive");
             entity.Property(e => e.IsDeleted).HasColumnName("isDeleted");
@@ -116,8 +115,6 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             entity.HasIndex(e => new { e.UserId, e.Slug })
                 .IsUnique()
                 .HasFilter("[isSystem] = 0 AND [isDeleted] = 0");
-            entity.HasIndex(e => e.SortOrder)
-                .HasFilter("[isDeleted] = 0");
             entity.HasIndex(e => e.UserId)
                 .HasFilter("[isSystem] = 0 AND [isDeleted] = 0");
             entity.HasOne<User>()
@@ -137,7 +134,6 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             entity.Property(e => e.Username).HasColumnName("username").HasMaxLength(255);
             entity.Property(e => e.Password).HasColumnName("password").HasMaxLength(512);
             entity.Property(e => e.IsDefault).HasColumnName("isDefault");
-            entity.Property(e => e.SortOrder).HasColumnName("sortOrder");
             entity.Property(e => e.Alias).HasColumnName("alias").HasMaxLength(64).IsRequired();
             entity.Property(e => e.Context).HasColumnName("context").HasMaxLength(2000);
             entity.Property(e => e.IsActive).HasColumnName("isActive");
@@ -163,8 +159,6 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             entity.HasIndex(e => new { e.UserId, e.EmailAddress })
                 .IsUnique()
                 .HasFilter("[isDeleted] = 0");
-            entity.HasIndex(e => new { e.UserId, e.SortOrder })
-                .HasFilter("[isDeleted] = 0");
             entity.HasIndex(e => e.EmailProviderId)
                 .HasFilter("[isDeleted] = 0");
         });
@@ -178,7 +172,6 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             entity.Property(e => e.Email).HasColumnName("email").HasMaxLength(255);
             entity.Property(e => e.Phone).HasColumnName("phone").HasMaxLength(32);
             entity.Property(e => e.Source).HasColumnName("source").HasConversion<byte>();
-            entity.Property(e => e.SortOrder).HasColumnName("sortOrder");
             entity.Property(e => e.Alias).HasColumnName("alias").HasMaxLength(64).IsRequired();
             entity.Property(e => e.Context).HasColumnName("context").HasMaxLength(2000);
             entity.Property(e => e.IsActive).HasColumnName("isActive");
@@ -193,8 +186,6 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             entity.HasIndex(e => new { e.UserId, e.Alias })
                 .IsUnique()
                 .HasFilter("[isDeleted] = 0");
-            entity.HasIndex(e => new { e.UserId, e.SortOrder })
-                .HasFilter("[isDeleted] = 0");
             entity.HasOne<User>()
                 .WithMany()
                 .HasForeignKey(e => e.UserId)
@@ -206,7 +197,6 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             entity.Property(e => e.UserId).HasColumnName("userId");
             entity.Property(e => e.Name).HasColumnName("name").HasMaxLength(64);
             entity.Property(e => e.Color).HasColumnName("color").HasMaxLength(9);
-            entity.Property(e => e.SortOrder).HasColumnName("sortOrder");
             entity.Property(e => e.Alias).HasColumnName("alias").HasMaxLength(64).IsRequired();
             entity.Property(e => e.Context).HasColumnName("context").HasMaxLength(2000);
             entity.Property(e => e.IsActive).HasColumnName("isActive");
@@ -217,8 +207,6 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             entity.Property(e => e.UpdatedAt).HasColumnName("updatedAt");
             entity.HasIndex(e => new { e.UserId, e.Alias })
                 .IsUnique()
-                .HasFilter("[isDeleted] = 0");
-            entity.HasIndex(e => new { e.UserId, e.SortOrder })
                 .HasFilter("[isDeleted] = 0");
             entity.HasOne<User>()
                 .WithMany()
@@ -231,7 +219,6 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             entity.Property(e => e.UserId).HasColumnName("userId");
             entity.Property(e => e.Name).HasColumnName("name").HasMaxLength(128);
             entity.Property(e => e.Color).HasColumnName("color").HasMaxLength(9);
-            entity.Property(e => e.SortOrder).HasColumnName("sortOrder");
             entity.Property(e => e.Alias).HasColumnName("alias").HasMaxLength(64).IsRequired();
             entity.Property(e => e.Context).HasColumnName("context").HasMaxLength(2000);
             entity.Property(e => e.IsActive).HasColumnName("isActive");
@@ -242,8 +229,6 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             entity.Property(e => e.UpdatedAt).HasColumnName("updatedAt");
             entity.HasIndex(e => new { e.UserId, e.Alias })
                 .IsUnique()
-                .HasFilter("[isDeleted] = 0");
-            entity.HasIndex(e => new { e.UserId, e.SortOrder })
                 .HasFilter("[isDeleted] = 0");
             entity.HasOne<User>()
                 .WithMany()

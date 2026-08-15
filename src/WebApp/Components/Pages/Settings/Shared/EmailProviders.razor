@@ -254,12 +254,6 @@ else
                     </div>
                 </div>
             </div>
-            <div class="settings-provider-extras">
-                <div class="settings-field settings-field-sort">
-                    <label class="settings-label" for="ep-sort">Sort order</label>
-                    <input id="ep-sort" type="number" class="settings-input" @bind="_form.SortOrder" disabled="@IsFieldDisabled" />
-                </div>
-            </div>
         </div>
     };
 
@@ -267,7 +261,7 @@ else
     {
         _status.Clear();
         _editorReadOnly = false;
-        _form = new ProviderForm { SortOrder = NextSortOrder() };
+        _form = new ProviderForm();
         _editorOpen = true;
     }
 
@@ -321,9 +315,6 @@ else
 
         _busy = TabBusy.None;
     }
-
-    private int NextSortOrder() =>
-        _providers.Count == 0 ? 10 : _providers.Max(p => p.SortOrder) + 10;
 
     private static bool IsProviderConfigured(EmailProviderDto provider) =>
         EmailProviderCatalog.ValidateCatalogEndpoints(provider) is null;
@@ -409,8 +400,6 @@ else
 
         public bool SmtpUseSsl { get; set; } = true;
 
-        public int SortOrder { get; set; }
-
         public bool IsSystem { get; set; }
 
         public static ProviderForm FromDto(EmailProviderDto dto) => new()
@@ -424,7 +413,6 @@ else
             SmtpHost = dto.SmtpHost,
             SmtpPort = dto.SmtpPort,
             SmtpUseSsl = dto.SmtpUseSsl,
-            SortOrder = dto.SortOrder,
             IsSystem = dto.IsSystem
         };
 
@@ -438,8 +426,7 @@ else
             ImapUseSsl = ImapUseSsl,
             SmtpHost = SmtpHost,
             SmtpPort = SmtpPort,
-            SmtpUseSsl = SmtpUseSsl,
-            SortOrder = SortOrder
+            SmtpUseSsl = SmtpUseSsl
         };
     }
 
