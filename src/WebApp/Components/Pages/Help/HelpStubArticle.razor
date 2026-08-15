@@ -1,0 +1,15 @@
+<div class="help-stub-article">
+    @if (!string.IsNullOrWhiteSpace(Summary))
+    {
+        <p class="help-article-summary">@Summary</p>
+    }
+    @ChildContent
+</div>
+
+@code {
+    [Parameter]
+    public string? Summary { get; set; }
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+}

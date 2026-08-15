@@ -15,5 +15,6 @@ public enum NavIconName
     EmailProviders,
     Chat,
     GettingStarted,
-    Help
+    Help,
+    OpenPage
 }

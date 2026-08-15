@@ -255,37 +255,9 @@ else
                 </div>
             </div>
             <div class="settings-provider-extras">
-                <div class="settings-extras-row">
-                    <div class="settings-field settings-field-help">
-                        <label class="settings-label" for="ep-help">
-                            Setup help URL <span class="settings-label-optional">@FormFieldCopy.OptionalMarker</span>
-                        </label>
-                        @if (_editorReadOnly)
-                        {
-                            @if (!string.IsNullOrWhiteSpace(_form.SetupHelpUrl))
-                            {
-                                <a id="ep-help"
-                                   class="settings-link settings-provider-help-link"
-                                   href="@_form.SetupHelpUrl"
-                                   target="_blank"
-                                   rel="noopener noreferrer">
-                                    @_form.SetupHelpUrl
-                                </a>
-                            }
-                            else
-                            {
-                                <p class="settings-hint" id="ep-help">No setup guide linked.</p>
-                            }
-                        }
-                        else
-                        {
-                            <input id="ep-help" type="url" class="settings-input" @bind="_form.SetupHelpUrl" disabled="@IsFieldDisabled" />
-                        }
-                    </div>
-                    <div class="settings-field settings-field-sort">
-                        <label class="settings-label" for="ep-sort">Sort order</label>
-                        <input id="ep-sort" type="number" class="settings-input" @bind="_form.SortOrder" disabled="@IsFieldDisabled" />
-                    </div>
+                <div class="settings-field settings-field-sort">
+                    <label class="settings-label" for="ep-sort">Sort order</label>
+                    <input id="ep-sort" type="number" class="settings-input" @bind="_form.SortOrder" disabled="@IsFieldDisabled" />
                 </div>
             </div>
         </div>
@@ -437,8 +409,6 @@ else
 
         public bool SmtpUseSsl { get; set; } = true;
 
-        public string? SetupHelpUrl { get; set; }
-
         public int SortOrder { get; set; }
 
         public bool IsSystem { get; set; }
@@ -454,7 +424,6 @@ else
             SmtpHost = dto.SmtpHost,
             SmtpPort = dto.SmtpPort,
             SmtpUseSsl = dto.SmtpUseSsl,
-            SetupHelpUrl = dto.SetupHelpUrl,
             SortOrder = dto.SortOrder,
             IsSystem = dto.IsSystem
         };
@@ -470,7 +439,6 @@ else
             SmtpHost = SmtpHost,
             SmtpPort = SmtpPort,
             SmtpUseSsl = SmtpUseSsl,
-            SetupHelpUrl = SetupHelpUrl,
             SortOrder = SortOrder
         };
     }

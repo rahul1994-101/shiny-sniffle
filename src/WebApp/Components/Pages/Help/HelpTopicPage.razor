@@ -1,0 +1,55 @@
+@page "/help/{ModuleSlug}/{TopicSlug}"
+@inherits BaseComponent
+
+@attribute [Authorize]
+
+<PageTitle>@(_topic?.Title ?? "Help")</PageTitle>
+
+@if (_module is null || _topic is null)
+{
+    <SettingsShell Title="Not found"
+                   Subtitle="That help topic does not exist.">
+        <div class="settings-sections">
+            <p class="settings-hint"><NavLink href="/help">Back to Help</NavLink></p>
+        </div>
+    </SettingsShell>
+}
+else
+{
+    <SettingsShell Title="@_topic.Title"
+                   Subtitle="@_topic.Lead"
+                   CrossLinkHref="@_topic.AppHref"
+                   CrossLinkIcon="NavIconName.OpenPage"
+                   CrossLinkAriaLabel="@($"Open {_topic.Title}")"
+                   Breadcrumbs="HelpBreadcrumbTrails.ForTopic(_module, _topic)">
+        <div class="settings-sections help-page">
+            <section class="settings-card help-article">
+                <HelpTopicArticle Module="@_module" Topic="@_topic" />
+            </section>
+        </div>
+    </SettingsShell>
+}
+
+@code {
+    [Parameter]
+    public string ModuleSlug { get; set; } = string.Empty;
+
+    [Parameter]
+    public string TopicSlug { get; set; } = string.Empty;
+
+    private HelpModule? _module;
+    private HelpTopic? _topic;
+
+    protected override void OnParametersSet()
+    {
+        var resolved = HelpCatalog.TryResolveTopic(ModuleSlug, TopicSlug);
+        if (resolved is null)
+        {
+            _module = null;
+            _topic = null;
+            return;
+        }
+
+        (_module, _topic) = resolved.Value;
+    }
+}

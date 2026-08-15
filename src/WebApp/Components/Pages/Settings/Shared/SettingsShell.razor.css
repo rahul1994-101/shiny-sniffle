@@ -1190,3 +1190,91 @@
         width: auto;
     }
 }
+
+/* Module index kickers (Settings, Workspace, Help) */
+.settings-content ::deep .module-section-kicker {
+    margin: 0 0 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--ui-text-muted, var(--app-text-muted));
+}
+
+.settings-content ::deep .module-section-kicker:not(:first-child) {
+    margin-top: 1.25rem;
+}
+
+/* Help module articles */
+.settings-content ::deep .help-page .help-article-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+}
+
+.settings-content ::deep .help-page .help-article-heading {
+    margin: 0.35rem 0 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--ui-text, var(--app-text));
+}
+
+.settings-content ::deep .help-page .help-article-lead,
+.settings-content ::deep .help-page .help-article-summary {
+    margin: 0;
+    color: var(--ui-text-secondary, var(--app-text-secondary));
+    line-height: 1.55;
+}
+
+.settings-content ::deep .help-page .help-article-body p {
+    margin: 0;
+    line-height: 1.55;
+    color: var(--ui-text-secondary, var(--app-text-secondary));
+}
+
+.settings-content ::deep .help-page .help-article-list {
+    margin: 0;
+    padding-left: 1.2rem;
+    line-height: 1.55;
+    color: var(--ui-text-secondary, var(--app-text-secondary));
+}
+
+.settings-content ::deep .help-page .help-article-dl {
+    margin: 0;
+    display: grid;
+    gap: 0.65rem;
+}
+
+.settings-content ::deep .help-page .help-article-dl dt {
+    margin: 0;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--ui-text, var(--app-text));
+}
+
+.settings-content ::deep .help-page .help-article-dl dd {
+    margin: 0.15rem 0 0;
+    line-height: 1.5;
+    color: var(--ui-text-secondary, var(--app-text-secondary));
+}
+
+.settings-content ::deep .help-page .help-provider-card {
+    padding: 0.85rem 1rem;
+    border: 1px solid var(--ui-border, var(--app-border));
+    border-radius: var(--ui-radius-md, 0.5rem);
+    background: var(--ui-surface-muted, var(--app-surface-muted));
+}
+
+.settings-content ::deep .help-page .help-provider-title {
+    margin: 0 0 0.35rem;
+    font-size: 0.9375rem;
+    font-weight: 600;
+}
+
+.settings-content ::deep .help-page .help-provider-card p {
+    margin: 0 0 0.5rem;
+}
+
+.settings-content ::deep .help-page .help-provider-card p:last-child {
+    margin-bottom: 0;
+}

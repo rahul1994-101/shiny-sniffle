@@ -1,0 +1,147 @@
+@inherits BaseComponent
+
+<div class="help-article-body">
+    @switch ($"{Module.Slug}/{Topic.Slug}")
+    {
+        case "settings/general":
+            <HelpStubArticle Summary="Update your profile, mobile number, and sign-in password.">
+                <p>Your general settings control how you appear in the app and how you sign in. Password uses the same “leave blank to keep” pattern as mailbox credentials.</p>
+            </HelpStubArticle>
+            break;
+
+        case "settings/email-providers":
+            <h2 class="help-article-heading">What this page is for</h2>
+            <p>Email providers are <strong>IMAP/SMTP templates</strong> — server presets the app uses when you connect a mailbox. They do not store your mailbox password; credentials live on each connected account under Workspace.</p>
+
+            <h2 class="help-article-heading">System vs custom templates</h2>
+            <ul class="help-article-list">
+                <li><strong>System</strong> templates (Gmail, Outlook, etc.) are read-only. Confirm hosts and ports match your provider, or ask your admin to update the seed data.</li>
+                <li><strong>Custom</strong> templates are yours to add, edit, or delete when you use a host that is not in the catalog.</li>
+            </ul>
+
+            <h2 class="help-article-heading">Fields on the page</h2>
+            <dl class="help-article-dl">
+                <div>
+                    <dt>Name</dt>
+                    <dd>Label shown when picking a provider for a mailbox.</dd>
+                </div>
+                <div>
+                    <dt>IMAP / SMTP</dt>
+                    <dd>Incoming and outgoing server host, port, and SSL. Required for every active template.</dd>
+                </div>
+                <div>
+                    <dt>Slug</dt>
+                    <dd>Internal key; auto-generated from the name if you leave it blank.</dd>
+                </div>
+                <div>
+                    <dt>Sort order</dt>
+                    <dd>Controls list order in Settings and the mailbox provider picker.</dd>
+                </div>
+            </dl>
+
+            <h2 class="help-article-heading">Preset providers</h2>
+            <p class="help-article-lead">When connecting an account, choose the matching preset. You usually need an <strong>app password</strong> or IMAP enabled — not your normal web-login password.</p>
+
+            <section class="help-provider-card">
+                <h3 class="help-provider-title">Gmail</h3>
+                <p>Enable IMAP in Google Account settings. Create an app password under Security → 2-Step Verification → App passwords. Use that app password when saving the mailbox.</p>
+                <p><a class="settings-link" href="https://support.google.com/mail/answer/185833" target="_blank" rel="noopener noreferrer">Google: Sign in with app passwords</a></p>
+            </section>
+
+            <section class="help-provider-card">
+                <h3 class="help-provider-title">Outlook.com / Microsoft 365</h3>
+                <p>Ensure IMAP is enabled for the mailbox. Microsoft may require an app password or modern auth depending on your tenant.</p>
+                <p><a class="settings-link" href="https://support.microsoft.com/office/outlook" target="_blank" rel="noopener noreferrer">Microsoft Outlook help</a></p>
+            </section>
+
+            <section class="help-provider-card">
+                <h3 class="help-provider-title">Yahoo Mail</h3>
+                <p>Generate an app password in Yahoo Account Security and use it as the mailbox password.</p>
+                <p><a class="settings-link" href="https://help.yahoo.com/kb/SLN4075.html" target="_blank" rel="noopener noreferrer">Yahoo: Generate app password</a></p>
+            </section>
+
+            <section class="help-provider-card">
+                <h3 class="help-provider-title">iCloud Mail</h3>
+                <p>Enable two-factor authentication, then create an app-specific password for mail.</p>
+                <p><a class="settings-link" href="https://support.apple.com/icloud" target="_blank" rel="noopener noreferrer">Apple iCloud support</a></p>
+            </section>
+
+            <section class="help-provider-card">
+                <h3 class="help-provider-title">Zoho Mail</h3>
+                <p>Enable IMAP in Zoho Mail settings and use your mailbox password or an application-specific password if required.</p>
+                <p><a class="settings-link" href="https://www.zoho.com/mail/help/imap-access.html" target="_blank" rel="noopener noreferrer">Zoho: IMAP access</a></p>
+            </section>
+
+            <section class="help-provider-card">
+                <h3 class="help-provider-title">Fastmail</h3>
+                <p>Use Fastmail’s documented IMAP/SMTP hostnames. App passwords are available under Password &amp; Security.</p>
+                <p><a class="settings-link" href="https://www.fastmail.com/help/technical/servernames.html" target="_blank" rel="noopener noreferrer">Fastmail: Server names</a></p>
+            </section>
+
+            <section class="help-provider-card">
+                <h3 class="help-provider-title">Custom provider</h3>
+                <p>Add a custom template with your host’s IMAP and SMTP settings. Ask your IT team or host documentation if you are unsure of the server names or ports.</p>
+            </section>
+            break;
+
+        case "settings/appearance":
+            <HelpStubArticle Summary="Choose light or dark theme for this browser.">
+                <p>Appearance is stored on this device only. It does not sync across browsers or machines.</p>
+            </HelpStubArticle>
+            break;
+
+        case "workspace/contacts":
+            <HelpStubArticle Summary="Store people you reference in workflows and agent context.">
+                <p>Contacts can carry tags, buckets, and optional context for prompts. Help content for each field will expand as the module is finalized.</p>
+            </HelpStubArticle>
+            break;
+
+        case "workspace/email-accounts":
+            <HelpStubArticle Summary="Connect a mailbox using a provider preset, then test the connection.">
+                <p>Pick a template from Settings → Email providers, enter your mailbox address and credentials, and set one account as default for the Email agent. See Help → Settings → Email providers for provider-specific setup notes.</p>
+            </HelpStubArticle>
+            break;
+
+        case "workspace/buckets":
+            <HelpStubArticle Summary="Group contacts and mailboxes under named buckets.">
+                <p>Buckets help organize workspace data for rules and agents. Detailed guidance will be added when this module is streamlined.</p>
+            </HelpStubArticle>
+            break;
+
+        case "workspace/tags":
+            <HelpStubArticle Summary="Label contacts and mailboxes for filtering and context.">
+                <p>Tags are lightweight labels shared across workspace entities. More detail coming in a later pass.</p>
+            </HelpStubArticle>
+            break;
+
+        case "chat/email-agent":
+            <HelpStubArticle Summary="Open chat, select the Email agent, and triage connected inboxes.">
+                <p>After Workspace has a default mailbox, start a chat and ask the Email agent to summarize or triage messages. Follow Getting started for the first end-to-end run.</p>
+            </HelpStubArticle>
+            break;
+
+        case "chat/threads":
+            <HelpStubArticle Summary="Manage your conversation history from the sidebar.">
+                <p>Use <strong>New chat</strong> to start fresh, rename threads for clarity, and switch between recent conversations.</p>
+            </HelpStubArticle>
+            break;
+
+        case "workflows/overview":
+            <HelpStubArticle Summary="Automations and scheduled triage are planned for a later release.">
+                <p>Set up mail under Settings and Workspace first. Workflows will build on connected accounts and workspace organization.</p>
+            </HelpStubArticle>
+            break;
+
+        default:
+            <p class="settings-hint">Help for this topic is coming soon.</p>
+            break;
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public required HelpModule Module { get; set; }
+
+    [Parameter, EditorRequired]
+    public required HelpTopic Topic { get; set; }
+}

@@ -91,7 +91,6 @@ public sealed class EmailProviderRepository(IDbContextFactory<AppDbContext> _dbC
             entity.SmtpHost = dto.SmtpHost.Trim();
             entity.SmtpPort = dto.SmtpPort;
             entity.SmtpUseSsl = dto.SmtpUseSsl;
-            entity.SetupHelpUrl = string.IsNullOrWhiteSpace(dto.SetupHelpUrl) ? null : dto.SetupHelpUrl.Trim();
             entity.SortOrder = dto.SortOrder;
             entity.UpdatedBy = userId;
             entity.UpdatedAt = now;
@@ -109,7 +108,6 @@ public sealed class EmailProviderRepository(IDbContextFactory<AppDbContext> _dbC
                 SmtpHost = dto.SmtpHost.Trim(),
                 SmtpPort = dto.SmtpPort,
                 SmtpUseSsl = dto.SmtpUseSsl,
-                SetupHelpUrl = string.IsNullOrWhiteSpace(dto.SetupHelpUrl) ? null : dto.SetupHelpUrl.Trim(),
                 SortOrder = dto.SortOrder,
                 IsSystem = false,
                 CreatedBy = userId,

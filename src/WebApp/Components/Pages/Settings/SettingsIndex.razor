@@ -5,54 +5,7 @@
 
 <PageTitle>Settings</PageTitle>
 
-<SettingsShell Title="Settings"
-               Subtitle="Choose an area to configure.">
-    <div class="settings-sections">
-        <nav class="ui-group" aria-label="Account settings">
-            @foreach (var area in _areas)
-            {
-                <NavLink class="ui-group-row" href="@area.Href">
-                    <span class="ui-group-row-leading">
-                        <NavIcon Name="@area.Icon" CssClass="ui-group-row-icon" />
-                        <span>
-                            <span class="ui-group-row-title">@area.Title</span>
-                            <span class="ui-group-row-desc">@area.Lead</span>
-                        </span>
-                    </span>
-                    <span class="ui-group-row-chevron" aria-hidden="true">›</span>
-                </NavLink>
-            }
-        </nav>
-
-        <nav class="ui-group" aria-label="This device">
-            @foreach (var area in _deviceAreas)
-            {
-                <NavLink class="ui-group-row" href="@area.Href">
-                    <span class="ui-group-row-leading">
-                        <NavIcon Name="@area.Icon" CssClass="ui-group-row-icon" />
-                        <span>
-                            <span class="ui-group-row-title">@area.Title</span>
-                            <span class="ui-group-row-desc">@area.Lead</span>
-                        </span>
-                    </span>
-                    <span class="ui-group-row-chevron" aria-hidden="true">›</span>
-                </NavLink>
-            }
-        </nav>
-    </div>
+<SettingsShell Title="@HelpCatalog.Settings.Title"
+               Subtitle="@HelpCatalog.Settings.Lead">
+    <ModuleIndexNav Module="HelpCatalog.Settings" />
 </SettingsShell>
-
-@code {
-    private static readonly SettingsArea[] _areas =
-    [
-        new("/settings/general", "General", "Profile, mobile, and sign-in password.", NavIconName.General),
-        new("/settings/email/providers", "Email providers", "IMAP/SMTP server presets.", NavIconName.EmailProviders)
-    ];
-
-    private static readonly SettingsArea[] _deviceAreas =
-    [
-        new("/settings/appearance", "Appearance", "Color theme for this device.", NavIconName.Appearance)
-    ];
-
-    private sealed record SettingsArea(string Href, string Title, string Lead, NavIconName Icon);
-}

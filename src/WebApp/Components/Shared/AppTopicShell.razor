@@ -1,0 +1,31 @@
+<SettingsShell Title="@_topic.Title"
+               Subtitle="@_topic.Lead"
+               CrossLinkHref="@_helpHref"
+               CrossLinkIcon="NavIconName.Help"
+               CrossLinkAriaLabel="Help for this page"
+               Breadcrumbs="Breadcrumbs">
+    @ChildContent
+</SettingsShell>
+
+@code {
+    [Parameter, EditorRequired]
+    public required HelpModule Module { get; set; }
+
+    [Parameter, EditorRequired]
+    public required string TopicSlug { get; set; }
+
+    [Parameter]
+    public IReadOnlyList<SettingsBreadcrumbItem>? Breadcrumbs { get; set; }
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    private HelpTopic _topic = default!;
+    private string _helpHref = string.Empty;
+
+    protected override void OnParametersSet()
+    {
+        _topic = HelpCatalog.RequireTopic(Module, TopicSlug);
+        _helpHref = Module.TopicHref(_topic);
+    }
+}

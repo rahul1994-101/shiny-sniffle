@@ -385,6 +385,51 @@ body.shell-sidebar-drawer-open {
     max-width: 100%;
 }
 
+.app-page-head-aside {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.45rem;
+    flex: 0 1 auto;
+    max-width: 100%;
+}
+
+.app-page-crosslink {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 1.625rem;
+    height: 1.625rem;
+    border-radius: 999px;
+    border: 1px solid var(--app-border);
+    background: var(--app-surface-muted);
+    color: var(--app-muted);
+    text-decoration: none;
+    transition:
+        color var(--ui-duration) var(--ui-ease),
+        background var(--ui-duration) var(--ui-ease),
+        border-color var(--ui-duration) var(--ui-ease),
+        box-shadow var(--ui-duration) var(--ui-ease);
+}
+
+.app-page-crosslink:hover {
+    color: var(--app-accent);
+    background: color-mix(in srgb, var(--app-accent) 8%, var(--app-surface-muted));
+    border-color: color-mix(in srgb, var(--app-accent) 28%, var(--app-border));
+}
+
+.app-page-crosslink:focus-visible {
+    outline: none;
+    box-shadow: var(--app-focus-ring-shadow);
+}
+
+.app-page-crosslink-icon {
+    width: 0.9rem;
+    height: 0.9rem;
+}
+
 .app-page-breadcrumb-list {
     display: flex;
     flex-wrap: wrap;
@@ -455,6 +500,11 @@ body.shell-sidebar-drawer-open {
     }
 
     .app-page-breadcrumb {
+        width: 100%;
+    }
+
+    .app-page-head-aside {
+        justify-content: flex-start;
         width: 100%;
     }
 

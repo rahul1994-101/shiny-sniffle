@@ -1,0 +1,36 @@
+@page "/help/{ModuleSlug}"
+@inherits BaseComponent
+
+@attribute [Authorize]
+
+<PageTitle>@(_module?.Title ?? "Help")</PageTitle>
+
+@if (_module is null)
+{
+    <SettingsShell Title="Not found"
+                   Subtitle="That help section does not exist.">
+        <div class="settings-sections">
+            <p class="settings-hint"><NavLink href="/help">Back to Help</NavLink></p>
+        </div>
+    </SettingsShell>
+}
+else
+{
+    <SettingsShell Title="@_module.Title"
+                   Subtitle="@_module.Lead"
+                   Breadcrumbs="HelpBreadcrumbTrails.ForModule(_module)">
+        <ModuleIndexNav Module="_module" LinkToHelp="true" CssClass="help-page" />
+    </SettingsShell>
+}
+
+@code {
+    [Parameter]
+    public string ModuleSlug { get; set; } = string.Empty;
+
+    private HelpModule? _module;
+
+    protected override void OnParametersSet()
+    {
+        _module = HelpCatalog.TryGetModule(ModuleSlug);
+    }
+}

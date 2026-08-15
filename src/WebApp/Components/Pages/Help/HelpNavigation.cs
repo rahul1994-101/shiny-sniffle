@@ -8,4 +8,15 @@ public static class HelpBreadcrumbTrails
     [
         new("Help", "/help")
     ];
+
+    public static IReadOnlyList<SettingsBreadcrumbItem> ForModule(HelpModule module) =>
+    [
+        new("Help", "/help")
+    ];
+
+    public static IReadOnlyList<SettingsBreadcrumbItem> ForTopic(HelpModule module, HelpTopic topic) =>
+    [
+        new("Help", "/help"),
+        new(module.Title, module.Href)
+    ];
 }

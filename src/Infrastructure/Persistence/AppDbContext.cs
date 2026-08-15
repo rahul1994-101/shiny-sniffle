@@ -102,7 +102,6 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             entity.Property(e => e.SmtpHost).HasColumnName("smtpHost").HasMaxLength(255);
             entity.Property(e => e.SmtpPort).HasColumnName("smtpPort");
             entity.Property(e => e.SmtpUseSsl).HasColumnName("smtpUseSsl");
-            entity.Property(e => e.SetupHelpUrl).HasColumnName("setupHelpUrl").HasMaxLength(500);
             entity.Property(e => e.SortOrder).HasColumnName("sortOrder");
             entity.Property(e => e.IsSystem).HasColumnName("isSystem");
             entity.Property(e => e.IsActive).HasColumnName("isActive");

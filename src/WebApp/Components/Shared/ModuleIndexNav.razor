@@ -1,0 +1,37 @@
+<div class="settings-sections @CssClass">
+    @foreach (var group in Module.Groups)
+    {
+        @if (!string.IsNullOrWhiteSpace(group.Label))
+        {
+            <p class="module-section-kicker">@group.Label</p>
+        }
+
+        <nav class="ui-group" aria-label="@(group.Label ?? Module.Title)">
+            @foreach (var topic in group.Topics)
+            {
+                var href = LinkToHelp ? Module.TopicHref(topic) : topic.AppHref;
+                <NavLink class="ui-group-row" href="@href">
+                    <span class="ui-group-row-leading">
+                        <NavIcon Name="@topic.Icon" CssClass="ui-group-row-icon" />
+                        <span>
+                            <span class="ui-group-row-title">@topic.Title</span>
+                            <span class="ui-group-row-desc">@topic.Lead</span>
+                        </span>
+                    </span>
+                    <span class="ui-group-row-chevron" aria-hidden="true">›</span>
+                </NavLink>
+            }
+        </nav>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public required HelpModule Module { get; set; }
+
+    [Parameter]
+    public bool LinkToHelp { get; set; }
+
+    [Parameter]
+    public string? CssClass { get; set; }
+}

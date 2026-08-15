@@ -6,7 +6,6 @@ internal static partial class EmailProviderMapping
 {
     private const int NameMaxLength = 100;
     private const int HostMaxLength = 255;
-    private const int SetupHelpUrlMaxLength = 500;
     private const int PortMin = 1;
     private const int PortMax = 65535;
 
@@ -69,11 +68,6 @@ internal static partial class EmailProviderMapping
         if (smtpPortError is not null)
         {
             return smtpPortError;
-        }
-
-        if (dto.SetupHelpUrl is not null && dto.SetupHelpUrl.Trim().Length > SetupHelpUrlMaxLength)
-        {
-            return $"Setup help URL must be {SetupHelpUrlMaxLength} characters or fewer.";
         }
 
         return null;

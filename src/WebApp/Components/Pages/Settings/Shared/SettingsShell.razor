@@ -5,28 +5,42 @@
         <div class="app-page-header-inner">
             <div class="app-page-head-row">
                 <h1 class="app-page-title">@Title</h1>
-                @if (Breadcrumbs is { Count: > 0 } trail)
+                @if (ShowHeadAside)
                 {
-                    <nav class="app-page-breadcrumb" aria-label="Breadcrumb">
-                        <ol class="app-page-breadcrumb-list">
-                            @foreach (var item in trail)
-                            {
-                                <li class="app-page-breadcrumb-item">
-                                    @if (string.IsNullOrEmpty(item.Href))
+                    <div class="app-page-head-aside">
+                        @if (Breadcrumbs is { Count: > 0 })
+                        {
+                            <nav class="app-page-breadcrumb" aria-label="Breadcrumb">
+                                <ol class="app-page-breadcrumb-list">
+                                    @foreach (var item in Breadcrumbs)
                                     {
-                                        <span>@item.Label</span>
+                                        <li class="app-page-breadcrumb-item">
+                                            @if (string.IsNullOrEmpty(item.Href))
+                                            {
+                                                <span>@item.Label</span>
+                                            }
+                                            else
+                                            {
+                                                <NavLink href="@item.Href">@item.Label</NavLink>
+                                            }
+                                        </li>
                                     }
-                                    else
-                                    {
-                                        <NavLink href="@item.Href">@item.Label</NavLink>
-                                    }
-                                </li>
-                            }
-                            <li class="app-page-breadcrumb-item app-page-breadcrumb-item-current" aria-current="page">
-                                <span>@Title</span>
-                            </li>
-                        </ol>
-                    </nav>
+                                    <li class="app-page-breadcrumb-item app-page-breadcrumb-item-current" aria-current="page">
+                                        <span>@Title</span>
+                                    </li>
+                                </ol>
+                            </nav>
+                        }
+                        @if (HasCrossLink)
+                        {
+                            <NavLink href="@CrossLinkHref"
+                                     class="app-page-crosslink"
+                                     aria-label="@CrossLinkAriaLabel"
+                                     title="@CrossLinkAriaLabel">
+                                <NavIcon Name="@CrossLinkIcon" CssClass="app-page-crosslink-icon" />
+                            </NavLink>
+                        }
+                    </div>
                 }
             </div>
             @if (!string.IsNullOrWhiteSpace(Subtitle))
@@ -57,6 +71,15 @@
     public string? Subtitle { get; set; }
 
     [Parameter]
+    public string? CrossLinkHref { get; set; }
+
+    [Parameter]
+    public NavIconName CrossLinkIcon { get; set; } = NavIconName.Help;
+
+    [Parameter]
+    public string? CrossLinkAriaLabel { get; set; }
+
+    [Parameter]
     public IReadOnlyList<SettingsBreadcrumbItem>? Breadcrumbs { get; set; }
 
     [Parameter]
@@ -64,4 +87,10 @@
 
     [Parameter]
     public RenderFragment? Nav { get; set; }
+
+    private bool HasCrossLink =>
+        !string.IsNullOrWhiteSpace(CrossLinkHref) && !string.IsNullOrWhiteSpace(CrossLinkAriaLabel);
+
+    private bool ShowHeadAside =>
+        (Breadcrumbs is { Count: > 0 }) || HasCrossLink;
 }

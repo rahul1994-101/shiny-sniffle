@@ -28,7 +28,6 @@ CREATE TABLE [dbo].[EmailProvider] (
     [smtpHost]                              NVARCHAR(255) NOT NULL DEFAULT '',         -- SMTP server host
     [smtpPort]                              INT NOT NULL DEFAULT 587 CHECK ([smtpPort] BETWEEN 1 AND 65535), -- SMTP port
     [smtpUseSsl]                            BIT DEFAULT 1,                             -- Use SSL/TLS for SMTP
-    [setupHelpUrl]                          NVARCHAR(500) NULL,                        -- Optional link to provider setup docs
     [sortOrder]                             INT NOT NULL DEFAULT 0,                    -- List order in UI
     [isSystem]                              BIT DEFAULT 0,                             -- Seeded global template; app blocks edit/delete
 
@@ -89,10 +88,10 @@ GO
 -- BEGIN
 --     INSERT INTO [dbo].[EmailProvider] (
 --         [name], [slug], [imapHost], [imapPort], [imapUseSsl],
---         [smtpHost], [smtpPort], [smtpUseSsl], [setupHelpUrl], [sortOrder], [isSystem])
+--         [smtpHost], [smtpPort], [smtpUseSsl], [sortOrder], [isSystem])
 --     VALUES (
 --         N'Gmail', N'gmail', N'imap.gmail.com', 993, 1,
---         N'smtp.gmail.com', 587, 1, N'https://support.google.com/mail/answer/185833', 10, 1);
+--         N'smtp.gmail.com', 587, 1, 10, 1);
 -- END
 -- GO
 
@@ -100,10 +99,10 @@ GO
 -- BEGIN
 --     INSERT INTO [dbo].[EmailProvider] (
 --         [name], [slug], [imapHost], [imapPort], [imapUseSsl],
---         [smtpHost], [smtpPort], [smtpUseSsl], [setupHelpUrl], [sortOrder], [isSystem])
+--         [smtpHost], [smtpPort], [smtpUseSsl], [sortOrder], [isSystem])
 --     VALUES (
 --         N'Outlook.com', N'outlook', N'imap-mail.outlook.com', 993, 1,
---         N'smtp-mail.outlook.com', 587, 1, N'https://support.microsoft.com/office/outlook', 20, 1);
+--         N'smtp-mail.outlook.com', 587, 1, 20, 1);
 -- END
 -- GO
 
@@ -111,10 +110,10 @@ GO
 -- BEGIN
 --     INSERT INTO [dbo].[EmailProvider] (
 --         [name], [slug], [imapHost], [imapPort], [imapUseSsl],
---         [smtpHost], [smtpPort], [smtpUseSsl], [setupHelpUrl], [sortOrder], [isSystem])
+--         [smtpHost], [smtpPort], [smtpUseSsl], [sortOrder], [isSystem])
 --     VALUES (
 --         N'Yahoo Mail', N'yahoo', N'imap.mail.yahoo.com', 993, 1,
---         N'smtp.mail.yahoo.com', 465, 1, N'https://help.yahoo.com/kb/SLN4075.html', 30, 1);
+--         N'smtp.mail.yahoo.com', 465, 1, 30, 1);
 -- END
 -- GO
 
@@ -122,10 +121,10 @@ GO
 -- BEGIN
 --     INSERT INTO [dbo].[EmailProvider] (
 --         [name], [slug], [imapHost], [imapPort], [imapUseSsl],
---         [smtpHost], [smtpPort], [smtpUseSsl], [setupHelpUrl], [sortOrder], [isSystem])
+--         [smtpHost], [smtpPort], [smtpUseSsl], [sortOrder], [isSystem])
 --     VALUES (
 --         N'iCloud Mail', N'icloud', N'imap.mail.me.com', 993, 1,
---         N'smtp.mail.me.com', 587, 1, N'https://support.apple.com/icloud', 40, 1);
+--         N'smtp.mail.me.com', 587, 1, 40, 1);
 -- END
 -- GO
 
@@ -133,10 +132,10 @@ GO
 -- BEGIN
 --     INSERT INTO [dbo].[EmailProvider] (
 --         [name], [slug], [imapHost], [imapPort], [imapUseSsl],
---         [smtpHost], [smtpPort], [smtpUseSsl], [setupHelpUrl], [sortOrder], [isSystem])
+--         [smtpHost], [smtpPort], [smtpUseSsl], [sortOrder], [isSystem])
 --     VALUES (
 --         N'Zoho Mail', N'zoho', N'imap.zoho.com', 993, 1,
---         N'smtp.zoho.com', 587, 1, N'https://www.zoho.com/mail/help/imap-access.html', 50, 1);
+--         N'smtp.zoho.com', 587, 1, 50, 1);
 -- END
 -- GO
 
@@ -144,9 +143,9 @@ GO
 -- BEGIN
 --     INSERT INTO [dbo].[EmailProvider] (
 --         [name], [slug], [imapHost], [imapPort], [imapUseSsl],
---         [smtpHost], [smtpPort], [smtpUseSsl], [setupHelpUrl], [sortOrder], [isSystem])
+--         [smtpHost], [smtpPort], [smtpUseSsl], [sortOrder], [isSystem])
 --     VALUES (
 --         N'Fastmail', N'fastmail', N'imap.fastmail.com', 993, 1,
---         N'smtp.fastmail.com', 465, 1, N'https://www.fastmail.com/help/technical/servernames.html', 60, 1);
+--         N'smtp.fastmail.com', 465, 1, 60, 1);
 -- END
 -- GO
