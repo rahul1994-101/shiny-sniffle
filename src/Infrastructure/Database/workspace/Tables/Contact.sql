@@ -52,21 +52,15 @@ GO
 -- =====================================================
 
 -- Unique email per user among non-deleted rows when email is set
-CREATE UNIQUE INDEX [IX_Contact_UserId_Email]
-    ON [workspace].[Contact] ([userId], [email])
-    WHERE [isDeleted] = 0 AND [email] IS NOT NULL;
+CREATE UNIQUE INDEX [IX_Contact_UserId_Email] ON [workspace].[Contact] ([userId], [email]) WHERE [isDeleted] = 0 AND [email] IS NOT NULL;
 GO
 
 -- Unique alias per user among non-deleted rows
-CREATE UNIQUE INDEX [IX_Contact_UserId_Alias]
-    ON [workspace].[Contact] ([userId], [alias])
-    WHERE [isDeleted] = 0;
+CREATE UNIQUE INDEX [IX_Contact_UserId_Alias] ON [workspace].[Contact] ([userId], [alias]) WHERE [isDeleted] = 0;
 GO
 
 -- Index for listing contacts in sort order
-CREATE INDEX [IX_Contact_UserId_SortOrder]
-    ON [workspace].[Contact] ([userId], [sortOrder])
-    WHERE [isDeleted] = 0;
+CREATE INDEX [IX_Contact_UserId_SortOrder] ON [workspace].[Contact] ([userId], [sortOrder]) WHERE [isDeleted] = 0;
 GO
 
 -- Index for filtering by active status

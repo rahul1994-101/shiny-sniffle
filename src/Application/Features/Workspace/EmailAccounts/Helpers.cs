@@ -86,6 +86,10 @@ internal enum EmailSettingsBuildMode
 
 internal static class EmailSettingsMapping
 {
+    private const int EmailAddressMaxLength = 255;
+    private const int UsernameMaxLength = 255;
+    private const int PasswordMaxLength = 512;
+
     internal static string? TryBuildEntity(
         EmailSettingsDto response,
         EmailSettings? existing,
@@ -128,7 +132,33 @@ internal static class EmailSettingsMapping
             return null;
         }
 
+        var lengthError = ValidateFieldLengths(response);
+        if (lengthError is not null)
+        {
+            return lengthError;
+        }
+
         settings = CreateEntity(response, password);
+        return null;
+    }
+
+    private static string? ValidateFieldLengths(EmailSettingsDto response)
+    {
+        if (response.EmailAddress.Trim().Length > EmailAddressMaxLength)
+        {
+            return $"Email address must be {EmailAddressMaxLength} characters or fewer.";
+        }
+
+        if (response.Username.Trim().Length > UsernameMaxLength)
+        {
+            return $"Mailbox username must be {UsernameMaxLength} characters or fewer.";
+        }
+
+        if (!string.IsNullOrWhiteSpace(response.Password) && response.Password.Trim().Length > PasswordMaxLength)
+        {
+            return $"Mailbox password must be {PasswordMaxLength} characters or fewer.";
+        }
+
         return null;
     }
 

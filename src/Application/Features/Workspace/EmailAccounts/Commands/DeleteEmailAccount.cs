@@ -30,7 +30,7 @@ public sealed class DeleteEmailAccountRequestHandler(EmailAccountRepository emai
 
         #region # Execute
 
-        var (found, error) = await emailAccountRepo.SoftDeleteAsync(
+        var (found, error) = await emailAccountRepo.DeleteAsync(
             request.UserId,
             request.AccountId,
             request.UserId,

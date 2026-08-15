@@ -27,7 +27,7 @@ public sealed class DeleteTagRequestHandler(TagRepository tagRepo)
 
         #region # Execute
 
-        var deleted = await tagRepo.SoftDeleteAsync(request.UserId, request.TagId, request.UserId, cancellationToken);
+        var deleted = await tagRepo.DeleteAsync(request.UserId, request.TagId, request.UserId, cancellationToken);
 
         #endregion
 

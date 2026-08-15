@@ -94,7 +94,7 @@ public sealed class BucketRepository(
         return (BucketDto.FromEntity(entity), null, false);
     }
 
-    public async Task<bool> SoftDeleteAsync(
+    public async Task<bool> DeleteAsync(
         Guid userId,
         Guid bucketId,
         Guid updatedBy,

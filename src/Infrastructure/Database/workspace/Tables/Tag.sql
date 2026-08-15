@@ -48,21 +48,15 @@ GO
 -- =====================================================
 
 -- Unique name per user among non-deleted rows
-CREATE UNIQUE INDEX [IX_Tag_UserId_Name]
-    ON [workspace].[Tag] ([userId], [name])
-    WHERE [isDeleted] = 0;
+CREATE UNIQUE INDEX [IX_Tag_UserId_Name] ON [workspace].[Tag] ([userId], [name]) WHERE [isDeleted] = 0;
 GO
 
 -- Unique alias per user among non-deleted rows
-CREATE UNIQUE INDEX [IX_Tag_UserId_Alias]
-    ON [workspace].[Tag] ([userId], [alias])
-    WHERE [isDeleted] = 0;
+CREATE UNIQUE INDEX [IX_Tag_UserId_Alias] ON [workspace].[Tag] ([userId], [alias]) WHERE [isDeleted] = 0;
 GO
 
 -- Index for listing tags in sort order
-CREATE INDEX [IX_Tag_UserId_SortOrder]
-    ON [workspace].[Tag] ([userId], [sortOrder])
-    WHERE [isDeleted] = 0;
+CREATE INDEX [IX_Tag_UserId_SortOrder] ON [workspace].[Tag] ([userId], [sortOrder]) WHERE [isDeleted] = 0;
 GO
 
 -- Index for filtering by active status

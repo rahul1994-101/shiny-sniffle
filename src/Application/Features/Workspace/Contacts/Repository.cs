@@ -179,7 +179,7 @@ public sealed class ContactRepository(
         return (ContactDto.FromEntity(entity, tax), null, false);
     }
 
-    public async Task<bool> SoftDeleteAsync(
+    public async Task<bool> DeleteAsync(
         Guid userId,
         Guid contactId,
         Guid updatedBy,

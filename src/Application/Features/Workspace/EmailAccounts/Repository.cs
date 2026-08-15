@@ -249,7 +249,7 @@ public sealed class EmailAccountRepository(
         return (EmailAccountDto.FromEntity(entity, providerEntity, tax), null, false);
     }
 
-    public async Task<(bool Found, string? Error)> SoftDeleteAsync(
+    public async Task<(bool Found, string? Error)> DeleteAsync(
         Guid userId,
         Guid accountId,
         Guid updatedBy,
@@ -313,19 +313,6 @@ public sealed class EmailAccountRepository(
         entity.UpdatedAt = now;
         await ctx.SaveChangesAsync(cancellationToken);
         return (true, null);
-    }
-
-    public async Task<bool> IsAliasTakenAsync(
-        Guid userId,
-        string alias,
-        Guid? excludeId,
-        CancellationToken cancellationToken = default)
-    {
-        var normalized = alias.Trim();
-        await using var ctx = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
-        return await ctx.EmailAccounts.AnyAsync(
-            x => x.UserId == userId && !x.IsDeleted && x.Alias == normalized && x.Id != excludeId,
-            cancellationToken);
     }
 
     private static async Task<EmailAccount?> FindActiveAccountAsync(

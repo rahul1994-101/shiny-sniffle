@@ -32,6 +32,8 @@ public sealed class SaveEmailAccountRequestHandler(
         var result = new Result<SaveEmailAccountResponse>();
         var dto = request.Account;
 
+        #region # Execute
+
         var fieldError = EmailAccountMapping.ValidateSave(dto);
         if (fieldError is not null)
         {
@@ -71,8 +73,6 @@ public sealed class SaveEmailAccountRequestHandler(
             result.Failure(ErrorCode.BadRequest, validationError);
             return result;
         }
-
-        #region # Execute
 
         var (saved, saveError, notFound) = await emailAccountRepo.SaveAsync(
             request.UserId,

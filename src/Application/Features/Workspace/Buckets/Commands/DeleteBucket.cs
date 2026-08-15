@@ -27,7 +27,7 @@ public sealed class DeleteBucketRequestHandler(BucketRepository bucketRepo)
 
         #region # Execute
 
-        var deleted = await bucketRepo.SoftDeleteAsync(request.UserId, request.BucketId, request.UserId, cancellationToken);
+        var deleted = await bucketRepo.DeleteAsync(request.UserId, request.BucketId, request.UserId, cancellationToken);
 
         #endregion
 

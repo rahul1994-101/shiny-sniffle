@@ -167,6 +167,10 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             entity.Property(e => e.CreatedAt).HasColumnName("createdAt");
             entity.Property(e => e.UpdatedBy).HasColumnName("updatedBy");
             entity.Property(e => e.UpdatedAt).HasColumnName("updatedAt");
+            entity.HasOne<User>()
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
             entity.HasOne(e => e.EmailProvider)
                 .WithMany()
                 .HasForeignKey(e => e.EmailProviderId)
@@ -212,6 +216,10 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
                 .HasFilter("[isDeleted] = 0");
             entity.HasIndex(e => new { e.UserId, e.SortOrder })
                 .HasFilter("[isDeleted] = 0");
+            entity.HasOne<User>()
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
         modelBuilder.Entity<Tag>(entity =>
         {
@@ -236,6 +244,10 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
                 .HasFilter("[isDeleted] = 0");
             entity.HasIndex(e => new { e.UserId, e.SortOrder })
                 .HasFilter("[isDeleted] = 0");
+            entity.HasOne<User>()
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
         modelBuilder.Entity<Bucket>(entity =>
         {
@@ -260,6 +272,10 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
                 .HasFilter("[isDeleted] = 0");
             entity.HasIndex(e => new { e.UserId, e.SortOrder })
                 .HasFilter("[isDeleted] = 0");
+            entity.HasOne<User>()
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
         modelBuilder.Entity<TagAssignment>(entity =>
         {
@@ -268,6 +284,10 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             entity.Property(e => e.TagId).HasColumnName("tagId");
             entity.Property(e => e.ReferableKind).HasColumnName("referableKind").HasConversion<byte>();
             entity.Property(e => e.ReferableId).HasColumnName("referableId");
+            entity.HasOne<User>()
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
             entity.HasOne(e => e.Tag)
                 .WithMany()
                 .HasForeignKey(e => e.TagId)
@@ -282,6 +302,10 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             entity.Property(e => e.BucketId).HasColumnName("bucketId");
             entity.Property(e => e.ReferableKind).HasColumnName("referableKind").HasConversion<byte>();
             entity.Property(e => e.ReferableId).HasColumnName("referableId");
+            entity.HasOne<User>()
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
             entity.HasOne(e => e.Bucket)
                 .WithMany()
                 .HasForeignKey(e => e.BucketId)

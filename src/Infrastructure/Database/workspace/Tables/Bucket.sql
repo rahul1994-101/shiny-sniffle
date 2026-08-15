@@ -48,21 +48,15 @@ GO
 -- =====================================================
 
 -- Unique name per user among non-deleted rows
-CREATE UNIQUE INDEX [IX_Bucket_UserId_Name]
-    ON [workspace].[Bucket] ([userId], [name])
-    WHERE [isDeleted] = 0;
+CREATE UNIQUE INDEX [IX_Bucket_UserId_Name] ON [workspace].[Bucket] ([userId], [name]) WHERE [isDeleted] = 0;
 GO
 
 -- Unique alias per user among non-deleted rows
-CREATE UNIQUE INDEX [IX_Bucket_UserId_Alias]
-    ON [workspace].[Bucket] ([userId], [alias])
-    WHERE [isDeleted] = 0;
+CREATE UNIQUE INDEX [IX_Bucket_UserId_Alias] ON [workspace].[Bucket] ([userId], [alias]) WHERE [isDeleted] = 0;
 GO
 
 -- Index for listing buckets in sort order
-CREATE INDEX [IX_Bucket_UserId_SortOrder]
-    ON [workspace].[Bucket] ([userId], [sortOrder])
-    WHERE [isDeleted] = 0;
+CREATE INDEX [IX_Bucket_UserId_SortOrder] ON [workspace].[Bucket] ([userId], [sortOrder]) WHERE [isDeleted] = 0;
 GO
 
 -- Index for filtering by active status

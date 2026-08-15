@@ -30,7 +30,7 @@ public sealed class DeleteContactRequestHandler(ContactRepository contactRepo)
 
         #region # Execute
 
-        var deleted = await contactRepo.SoftDeleteAsync(
+        var deleted = await contactRepo.DeleteAsync(
             request.UserId,
             request.ContactId,
             request.UserId,

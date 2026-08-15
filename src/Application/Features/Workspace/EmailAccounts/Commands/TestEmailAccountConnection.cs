@@ -37,6 +37,8 @@ public sealed class TestEmailAccountConnectionRequestHandler(
         var result = new Result<TestEmailAccountConnectionResponse>();
         var dto = request.Account;
 
+        #region # Execute
+
         var (catalog, catalogError) = await EmailSettingsCatalog.LoadCatalogAsync(emailProviderRepo, request.UserId, cancellationToken);
         if (catalogError is not null)
         {
@@ -70,8 +72,6 @@ public sealed class TestEmailAccountConnectionRequestHandler(
             result.Failure(ErrorCode.BadRequest, validationError);
             return result;
         }
-
-        #region # Execute
 
         var testResult = await mailboxService.TestConnectionAsync(request.UserId, settingsDto, cancellationToken);
 
