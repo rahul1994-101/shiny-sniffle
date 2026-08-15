@@ -32,12 +32,6 @@ internal static partial class EmailProviderMapping
             return $"Name must be {NameMaxLength} characters or fewer.";
         }
 
-        var slugError = CatalogFieldRules.ValidateSlug(dto.Slug, required: false);
-        if (slugError is not null)
-        {
-            return slugError;
-        }
-
         if (string.IsNullOrWhiteSpace(dto.ImapHost))
         {
             return "IMAP host is required.";
@@ -72,41 +66,42 @@ internal static partial class EmailProviderMapping
 
         return null;
     }
-
-    internal static async Task<string> ResolveSlugAsync(
-        Func<string, Guid?, CancellationToken, Task<bool>> isTakenAsync,
-        string displayName,
-        string? requestedSlug,
-        Guid? excludeId,
-        CancellationToken cancellationToken) =>
-        await WorkspaceErAliasResolver.ResolveAsync(
-            isTakenAsync,
-            displayName,
-            requestedSlug,
-            excludeId,
-            "provider",
-            cancellationToken);
 }
 
 public static class EmailProviderCatalog
 {
-    public static string NormalizeSlug(string? slug) => CatalogFieldRules.NormalizeSlug(slug);
-
-    public static EmailProviderDto? FindBySlug(IReadOnlyList<EmailProviderDto> catalog, string? slug)
+    /// <summary>
+    /// Known IDs for seeded system templates (see dbo/Tables/EmailProvider.sql).
+    /// Convention for cross-environment debug — app logic must not require these at runtime.
+    /// </summary>
+    public static class SystemIds
     {
-        var normalized = NormalizeSlug(slug);
-        if (string.IsNullOrEmpty(normalized))
+        public static readonly Guid Gmail = Guid.Parse("E1000001-0000-4000-8000-000000000001");
+
+        public static readonly Guid Outlook = Guid.Parse("E1000002-0000-4000-8000-000000000002");
+
+        public static readonly Guid Yahoo = Guid.Parse("E1000003-0000-4000-8000-000000000003");
+
+        public static readonly Guid ICloud = Guid.Parse("E1000004-0000-4000-8000-000000000004");
+
+        public static readonly Guid Zoho = Guid.Parse("E1000005-0000-4000-8000-000000000005");
+
+        public static readonly Guid Fastmail = Guid.Parse("E1000006-0000-4000-8000-000000000006");
+    }
+
+    public static EmailProviderDto? FindById(IReadOnlyList<EmailProviderDto> catalog, Guid providerId)
+    {
+        if (providerId == Guid.Empty)
         {
             return null;
         }
 
-        return catalog.FirstOrDefault(p =>
-            string.Equals(p.Slug, normalized, StringComparison.OrdinalIgnoreCase));
+        return catalog.FirstOrDefault(p => p.Id == providerId);
     }
 
     public static void ApplyTo(EmailSettingsDto dto, EmailProviderDto catalog)
     {
-        dto.ProviderSlug = catalog.Slug;
+        dto.EmailProviderId = catalog.Id;
         dto.ImapHost = catalog.ImapHost;
         dto.ImapPort = catalog.ImapPort;
         dto.ImapUseSsl = catalog.ImapUseSsl;

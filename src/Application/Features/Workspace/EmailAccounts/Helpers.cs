@@ -6,48 +6,23 @@ namespace Application.Features.Workspace.EmailAccounts;
 
 internal static class EmailAccountMapping
 {
-    internal static EmailSettings ToEmailSettings(EmailAccount account, EmailProvider provider)
+    internal static EmailSettings ToEmailSettings(EmailAccount account, EmailProvider provider) => new()
     {
-        var slug = EmailProviderCatalog.NormalizeSlug(provider.Slug);
-        return new EmailSettings
-        {
-            ProviderSlug = slug,
-            EmailAddress = account.EmailAddress,
-            Username = account.Username,
-            Password = account.Password,
-            ImapHost = provider.ImapHost,
-            ImapPort = provider.ImapPort,
-            ImapUseSsl = provider.ImapUseSsl,
-            SmtpHost = provider.SmtpHost,
-            SmtpPort = provider.SmtpPort,
-            SmtpUseSsl = provider.SmtpUseSsl
-        };
-    }
-
-    internal static EmailSettingsDto ToSettingsDto(EmailAccountDto account) => new()
-    {
-        ProviderSlug = account.ProviderSlug,
         EmailAddress = account.EmailAddress,
-        ImapHost = account.ImapHost,
-        ImapPort = account.ImapPort,
-        ImapUseSsl = account.ImapUseSsl,
-        SmtpHost = account.SmtpHost,
-        SmtpPort = account.SmtpPort,
-        SmtpUseSsl = account.SmtpUseSsl,
         Username = account.Username,
-        HasStoredPassword = account.HasStoredPassword
+        Password = account.Password,
+        ImapHost = provider.ImapHost,
+        ImapPort = provider.ImapPort,
+        ImapUseSsl = provider.ImapUseSsl,
+        SmtpHost = provider.SmtpHost,
+        SmtpPort = provider.SmtpPort,
+        SmtpUseSsl = provider.SmtpUseSsl
     };
 
-    internal static EmailSettingsDto ToSettingsDto(SaveEmailAccountDto save, EmailSettingsDto catalogApplied) => new()
+    internal static EmailSettingsDto ToSettingsDto(SaveEmailAccountDto save) => new()
     {
-        ProviderSlug = catalogApplied.ProviderSlug,
+        EmailProviderId = save.EmailProviderId,
         EmailAddress = save.EmailAddress,
-        ImapHost = catalogApplied.ImapHost,
-        ImapPort = catalogApplied.ImapPort,
-        ImapUseSsl = catalogApplied.ImapUseSsl,
-        SmtpHost = catalogApplied.SmtpHost,
-        SmtpPort = catalogApplied.SmtpPort,
-        SmtpUseSsl = catalogApplied.SmtpUseSsl,
         Username = save.Username,
         Password = save.Password,
         HasStoredPassword = false
@@ -63,6 +38,11 @@ internal static class EmailAccountMapping
 
     internal static string? ValidateSave(SaveEmailAccountDto dto)
     {
+        if (dto.EmailProviderId == Guid.Empty)
+        {
+            return "Select a mail provider.";
+        }
+
         var alias = NormalizeAlias(dto.Alias);
         if (alias is not null && alias.Length > EntityAliasRules.MaxLength)
         {
@@ -190,7 +170,6 @@ internal static class EmailSettingsMapping
 
         return new EmailSettings
         {
-            ProviderSlug = settings.ProviderSlug,
             EmailAddress = settings.EmailAddress.Trim(),
             Username = settings.Username.Trim(),
             Password = settings.Password.Decrypt(),
@@ -203,22 +182,18 @@ internal static class EmailSettingsMapping
         };
     }
 
-    private static EmailSettings CreateEntity(EmailSettingsDto response, string password)
+    private static EmailSettings CreateEntity(EmailSettingsDto response, string password) => new()
     {
-        return new EmailSettings
-        {
-            ProviderSlug = EmailProviderCatalog.NormalizeSlug(response.ProviderSlug),
-            EmailAddress = response.EmailAddress.Trim(),
-            Username = response.Username.Trim(),
-            Password = password,
-            ImapHost = response.ImapHost.Trim(),
-            ImapPort = response.ImapPort,
-            ImapUseSsl = response.ImapUseSsl,
-            SmtpHost = response.SmtpHost.Trim(),
-            SmtpPort = response.SmtpPort,
-            SmtpUseSsl = response.SmtpUseSsl
-        };
-    }
+        EmailAddress = response.EmailAddress.Trim(),
+        Username = response.Username.Trim(),
+        Password = password,
+        ImapHost = response.ImapHost.Trim(),
+        ImapPort = response.ImapPort,
+        ImapUseSsl = response.ImapUseSsl,
+        SmtpHost = response.SmtpHost.Trim(),
+        SmtpPort = response.SmtpPort,
+        SmtpUseSsl = response.SmtpUseSsl
+    };
 
     private static bool IsEmpty(EmailSettingsDto email)
     {
@@ -261,7 +236,7 @@ internal static class EmailSettingsCatalog
 
     internal static string? TryApplyCatalog(EmailSettingsDto dto, IReadOnlyList<EmailProviderDto> catalog)
     {
-        var row = EmailProviderCatalog.FindBySlug(catalog, dto.ProviderSlug);
+        var row = EmailProviderCatalog.FindById(catalog, dto.EmailProviderId);
         if (row is null)
         {
             return "Select a valid mail provider.";

@@ -6,8 +6,6 @@ public class EmailProviderDto
 
     public string Name { get; init; } = string.Empty;
 
-    public string Slug { get; init; } = string.Empty;
-
     public string ImapHost { get; init; } = string.Empty;
 
     public int ImapPort { get; init; }
@@ -26,7 +24,6 @@ public class EmailProviderDto
     {
         Id = entity.Id,
         Name = entity.Name,
-        Slug = entity.Slug,
         ImapHost = entity.ImapHost,
         ImapPort = entity.ImapPort,
         ImapUseSsl = entity.ImapUseSsl,
@@ -40,7 +37,6 @@ public class EmailProviderDto
     {
         Id = Id,
         Name = Name,
-        Slug = Slug,
         ImapHost = ImapHost,
         ImapPort = ImapPort,
         ImapUseSsl = ImapUseSsl,
@@ -54,7 +50,6 @@ public class EmailProviderDto
     {
         Id = Id,
         Name = Name,
-        Slug = Slug,
         ImapHost = ImapHost,
         ImapPort = ImapPort,
         ImapUseSsl = ImapUseSsl,
@@ -70,8 +65,6 @@ public sealed class SaveEmailProviderDto
     public Guid? Id { get; init; }
 
     public string Name { get; init; } = string.Empty;
-
-    public string Slug { get; init; } = string.Empty;
 
     public string ImapHost { get; init; } = string.Empty;
 

@@ -106,7 +106,7 @@ public static class EntityAliasRules
 
 /// <summary>
 /// Typed handles for AI, tools, and working memory.
-/// Plain <c>alias</c> stays in workspace tables; <c>dbo.EmailProvider.slug</c> is catalog-only (not part of this scheme).
+/// Plain <c>alias</c> stays in workspace tables; catalog rows (e.g. <c>dbo.EmailProvider</c>) use <c>id</c> — not part of this scheme.
 /// Use <see cref="Format"/> / <see cref="TryParse"/> at boundaries.
 /// </summary>
 public static class EntityRefs
@@ -217,17 +217,12 @@ public static class EntityAliasPreview
     }
 }
 
-/// <summary>Shared optional presentation fields on <c>dbo</c> catalog rows (e.g. email providers).</summary>
-public static partial class CatalogFieldRules
+/// <summary>Shared optional presentation fields on workspace catalog-style rows (tags, buckets).</summary>
+public static class CatalogFieldRules
 {
-    public const int SlugMaxLength = 64;
-
     public const int NoteMaxLength = 256;
 
     public const int ColorMaxLength = 9;
-
-    public static string NormalizeSlug(string? slug) =>
-        string.IsNullOrWhiteSpace(slug) ? string.Empty : slug.Trim().ToLowerInvariant();
 
     public static string? NormalizeColor(string? color)
     {
@@ -250,39 +245,6 @@ public static partial class CatalogFieldRules
         var trimmed = note.Trim();
         return trimmed.Length > NoteMaxLength ? trimmed[..NoteMaxLength] : trimmed;
     }
-
-    public static bool IsValidSlugFormat(string slug) =>
-        !string.IsNullOrEmpty(slug) && SlugRegex().IsMatch(slug);
-
-    public static string StemFromDisplayName(string displayName) =>
-        EntityAliasRules.StemFromLabel(displayName);
-
-    public static string SlugWithNumericSuffix(string stem, int index, string emptyStemFallback) =>
-        EntityAliasRules.WithNumericSuffix(stem, index, emptyStemFallback);
-
-    public static string? ValidateSlug(string? slug, bool required = true)
-    {
-        var normalized = NormalizeSlug(slug);
-        if (string.IsNullOrEmpty(normalized))
-        {
-            return required ? "Slug is required." : null;
-        }
-
-        if (normalized.Length > SlugMaxLength)
-        {
-            return $"Slug must be {SlugMaxLength} characters or fewer.";
-        }
-
-        if (!IsValidSlugFormat(normalized))
-        {
-            return "Slug must use lowercase letters, numbers, and hyphens only.";
-        }
-
-        return null;
-    }
-
-    [GeneratedRegex("^[a-z0-9]+(?:-[a-z0-9]+)*$", RegexOptions.CultureInvariant)]
-    private static partial Regex SlugRegex();
 }
 
 public static class ReferableKindMapping

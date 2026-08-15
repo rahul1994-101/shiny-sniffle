@@ -141,17 +141,17 @@ John shows **many buckets and many tags** on one person—work and social overla
 - **Soft-delete an ER** (contact, mailbox, tag, or bucket): remove junction rows where applicable; definitions remain unless the row itself is deleted.
 - **Rename** display name: UI uses the new name; **alias** (and handles) are unchanged unless the user edits alias.
 
-#### Alias vs slug (two layers)
+#### Alias vs catalog keys (two layers)
 
 | Layer | Table / schema | Stable key | AI handles | Purpose |
 |-------|----------------|------------|------------|---------|
 | **Workspace ER** | `workspace.*` (Contact, EmailAccount, Tag, Bucket) | **`alias`** | yes — `{kind}:{alias}` | User-owned things agents and rules point at |
-| **Catalog** | `dbo.EmailProvider` (and similar) | **`slug`** | no | Infra/templates (IMAP/SMTP presets); not workspace referables |
+| **Catalog** | `dbo.EmailProvider` (and similar) | **`id`** | no | Infra/templates (IMAP/SMTP presets); not workspace referables |
 
 - **`name`** (ER) = display label — rename freely in UI.
 - **`alias`** (ER) = stable handle — like `@username`; auto-generated from name when blank on save; unique per user per kind.
 - **`context`** (ER) = optional facts for UI and agent prompts.
-- **Catalog** rows use **`name`** and **`slug`**.
+- **Catalog** rows use **`id`** + **`name`**; pickers and FKs use id. System templates use **fixed seed IDs** (see `EmailProviderCatalog.SystemIds`) for cross-environment debug — app logic must not require them at runtime. Future catalog alias/context is optional if settings need AI referability.
 - Do **not** add a separate **`slug`** column on Tag/Bucket; **`alias` already is the machine key.**
 
 Engineering: `EntityRefs.Format` / `EntityRefs.TryParse` at boundaries; DB column is always `alias` on workspace ERs.
@@ -175,7 +175,7 @@ Social-style typing **on top of** existing handles — no extra DB columns.
 2. **UI** shows **name**; chips/tooltips may show handle (e.g. `tag:marketing`).
 3. **Tag/bucket assignment** on contacts/mailboxes stays **picker-based** (dictionary rows), not free-text at assign time.
 4. **Triage suggestions** on mail: suggest → user confirms; do not auto-create tag/bucket defs from model output without explicit user action.
-5. **Catalog `slug`** (e.g. `gmail`) stays in provider/mailbox config — never mixed into `@`/`#` ER mention resolution.
+5. **Catalog rows** (e.g. email providers) are referenced by **`id`** in FKs and pickers — never mixed into `@`/`#` ER mention resolution.
 
 **Out of scope until mention UI lands:** chat composer `@`/`#` picker, rule builder token insertion, resolving mentions in stored prompt templates.
 
@@ -324,4 +324,4 @@ For technical work, use **`docs/README.md`** and the engineering roadmaps listed
 
 ---
 
-*Last updated: §5.5 alias/slug layers + future @/# mention syntax.*
+*Last updated: §5.5 alias/catalog keys + future @/# mention syntax.*

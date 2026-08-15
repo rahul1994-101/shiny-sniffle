@@ -95,7 +95,6 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             entity.ToTable("EmailProvider", "dbo");
             entity.Property(e => e.UserId).HasColumnName("userId");
             entity.Property(e => e.Name).HasColumnName("name").HasMaxLength(100);
-            entity.Property(e => e.Slug).HasColumnName("slug").HasMaxLength(64);
             entity.Property(e => e.ImapHost).HasColumnName("imapHost").HasMaxLength(255);
             entity.Property(e => e.ImapPort).HasColumnName("imapPort");
             entity.Property(e => e.ImapUseSsl).HasColumnName("imapUseSsl");
@@ -109,12 +108,6 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             entity.Property(e => e.CreatedAt).HasColumnName("createdAt");
             entity.Property(e => e.UpdatedBy).HasColumnName("updatedBy");
             entity.Property(e => e.UpdatedAt).HasColumnName("updatedAt");
-            entity.HasIndex(e => e.Slug)
-                .IsUnique()
-                .HasFilter("[isSystem] = 1 AND [isDeleted] = 0");
-            entity.HasIndex(e => new { e.UserId, e.Slug })
-                .IsUnique()
-                .HasFilter("[isSystem] = 0 AND [isDeleted] = 0");
             entity.HasIndex(e => e.UserId)
                 .HasFilter("[isSystem] = 0 AND [isDeleted] = 0");
             entity.HasOne<User>()

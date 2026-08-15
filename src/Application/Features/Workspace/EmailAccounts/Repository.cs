@@ -134,9 +134,9 @@ public sealed class EmailAccountRepository(
             return (null, "This email address is already connected.", false);
         }
 
-        var provider = await _emailProviderRepo.GetEmailProviderBySlugAsync(
+        var provider = await _emailProviderRepo.GetEmailProviderByIdAsync(
             userId,
-            builtSettings.ProviderSlug,
+            dto.EmailProviderId,
             cancellationToken);
 
         if (provider is null)

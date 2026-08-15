@@ -273,7 +273,7 @@ else
                             <div class="settings-provider-menu ui-dropdown-menu" role="listbox" aria-labelledby="acc-provider-label">
                                 @foreach (var provider in _catalog)
                                 {
-                                    var selected = string.Equals(provider.Slug, _form.ProviderSlug, StringComparison.OrdinalIgnoreCase);
+                                    var selected = _form.EmailProviderId == provider.Id;
                                     <button type="button"
                                             role="option"
                                             aria-selected="@selected"
@@ -475,9 +475,9 @@ else
         {
             IsDefault = _accounts.Count == 0,
             IsDefaultForced = _accounts.Count == 0,
-            ProviderSlug = ResolveInitialProviderSlug()
+            EmailProviderId = ResolveInitialProviderId()
         };
-        EnsureProviderSlugInForm();
+        EnsureProviderInForm();
         _editorOpen = true;
         _showPassword = false;
     }
@@ -499,7 +499,7 @@ else
         }
 
         _form = AccountForm.FromDto(result.Payload, _accounts.Count <= 1 && result.Payload.IsDefault);
-        EnsureProviderSlugInForm();
+        EnsureProviderInForm();
         _editorOpen = true;
         _showPassword = false;
         _busy = TabBusy.None;
@@ -625,37 +625,36 @@ else
 
     #region # Helpers
 
-    private string ResolveInitialProviderSlug()
+    private Guid ResolveInitialProviderId()
     {
         if (_catalog.Count == 0)
         {
-            return string.Empty;
+            return Guid.Empty;
         }
 
-        return EmailProviderCatalog.FindBySlug(_catalog, "gmail")?.Slug
-               ?? _catalog.FirstOrDefault(p => !p.IsSystem)?.Slug
-               ?? _catalog[0].Slug;
+        return _catalog.FirstOrDefault(p => p.IsSystem)?.Id
+               ?? _catalog[0].Id;
     }
 
     private EmailProviderDto? SelectedProvider() =>
-        EmailProviderCatalog.FindBySlug(_catalog, _form.ProviderSlug);
+        EmailProviderCatalog.FindById(_catalog, _form.EmailProviderId);
 
     private string SelectedProviderName() =>
         SelectedProvider()?.Name ?? "Select provider";
 
-    private void EnsureProviderSlugInForm()
+    private void EnsureProviderInForm()
     {
         if (_catalog.Count == 0)
         {
             return;
         }
 
-        if (EmailProviderCatalog.FindBySlug(_catalog, _form.ProviderSlug) is not null)
+        if (EmailProviderCatalog.FindById(_catalog, _form.EmailProviderId) is not null)
         {
             return;
         }
 
-        _form.ProviderSlug = ResolveInitialProviderSlug();
+        _form.EmailProviderId = ResolveInitialProviderId();
     }
 
     private void ToggleProviderPicker()
@@ -672,7 +671,7 @@ else
 
     private void SelectProvider(EmailProviderDto provider)
     {
-        _form.ProviderSlug = provider.Slug;
+        _form.EmailProviderId = provider.Id;
         CloseProviderPicker();
     }
 
@@ -694,7 +693,7 @@ else
 
         public bool IsDefaultForced { get; set; }
 
-        public string ProviderSlug { get; set; } = string.Empty;
+        public Guid EmailProviderId { get; set; }
 
         public string EmailAddress { get; set; } = string.Empty;
 
@@ -718,7 +717,7 @@ else
                 Alias = dto.Alias,
                 IsDefault = dto.IsDefault,
                 IsDefaultForced = defaultForced,
-                ProviderSlug = dto.ProviderSlug,
+                EmailProviderId = dto.EmailProviderId,
                 EmailAddress = dto.EmailAddress,
                 Username = dto.Username,
                 HasStoredPassword = dto.HasStoredPassword,
@@ -742,7 +741,7 @@ else
             Id = Id,
             Alias = Alias,
             IsDefault = IsDefault,
-            ProviderSlug = ProviderSlug,
+            EmailProviderId = EmailProviderId,
             EmailAddress = EmailAddress,
             Username = Username,
             Password = Password,

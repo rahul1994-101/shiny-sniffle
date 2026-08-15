@@ -12,9 +12,6 @@ public class EmailProvider : BaseAuditableEntity
 
     public string Name { get; set; } = string.Empty;
 
-    /// <summary>URL-safe unique key (e.g. gmail, outlook, my-work-mail).</summary>
-    public string Slug { get; set; } = string.Empty;
-
     public string ImapHost { get; set; } = string.Empty;
 
     public int ImapPort { get; set; } = 993;

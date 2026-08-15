@@ -62,7 +62,7 @@ else
                                     }
                                 </span>
                                 <span class="ui-group-row-desc">
-                                    @provider.Slug · IMAP @provider.ImapHost:@provider.ImapPort @(provider.ImapUseSsl ? "SSL" : "plain") · SMTP @provider.SmtpHost:@provider.SmtpPort @(provider.SmtpUseSsl ? "SSL" : "plain")
+                                    IMAP @provider.ImapHost:@provider.ImapPort @(provider.ImapUseSsl ? "SSL" : "plain") · SMTP @provider.SmtpHost:@provider.SmtpPort @(provider.SmtpUseSsl ? "SSL" : "plain")
                                 </span>
                             </div>
                             <div class="ui-list-row-rich-actions">
@@ -197,16 +197,6 @@ else
             <div class="settings-field">
                 <label class="settings-label" for="ep-name">Name</label>
                 <input id="ep-name" type="text" class="settings-input" @bind="_form.Name" disabled="@IsFieldDisabled" />
-            </div>
-            <div class="settings-field">
-                <label class="settings-label" for="ep-slug">
-                    @CatalogFieldCopy.SlugLabel <span class="settings-label-optional">@FormFieldCopy.OptionalMarker</span>
-                </label>
-                <input id="ep-slug" type="text" class="settings-input" @bind="_form.Slug" disabled="@IsFieldDisabled" autocomplete="off" placeholder="Auto from name" />
-                @if (!_editorReadOnly)
-                {
-                    <p class="settings-hint">@CatalogFieldCopy.SlugHint</p>
-                }
             </div>
             <div class="settings-mail-server">
                 <div class="settings-endpoint-row">
@@ -386,8 +376,6 @@ else
 
         public string Name { get; set; } = string.Empty;
 
-        public string Slug { get; set; } = string.Empty;
-
         public string ImapHost { get; set; } = string.Empty;
 
         public int ImapPort { get; set; } = 993;
@@ -406,7 +394,6 @@ else
         {
             Id = dto.Id,
             Name = dto.Name,
-            Slug = dto.Slug,
             ImapHost = dto.ImapHost,
             ImapPort = dto.ImapPort,
             ImapUseSsl = dto.ImapUseSsl,
@@ -420,7 +407,6 @@ else
         {
             Id = Id,
             Name = Name,
-            Slug = string.IsNullOrWhiteSpace(Slug) ? string.Empty : Slug.Trim(),
             ImapHost = ImapHost,
             ImapPort = ImapPort,
             ImapUseSsl = ImapUseSsl,

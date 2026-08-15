@@ -11,8 +11,6 @@ public sealed class EmailAccountSummaryDto
 
     public string ProviderName { get; init; } = string.Empty;
 
-    public string ProviderSlug { get; init; } = string.Empty;
-
     public string EmailAddress { get; init; } = string.Empty;
 
     public bool IsDefault { get; init; }
@@ -29,7 +27,6 @@ public sealed class EmailAccountSummaryDto
         Id = account.Id,
         Alias = account.Alias,
         ProviderName = provider.Name,
-        ProviderSlug = provider.Slug,
         EmailAddress = account.EmailAddress,
         IsDefault = account.IsDefault,
         Tags = taxonomy?.Tags ?? [],
@@ -48,7 +45,7 @@ public class EmailAccountDto
 
     public bool IsDefault { get; init; }
 
-    public string ProviderSlug { get; init; } = string.Empty;
+    public Guid EmailProviderId { get; init; }
 
     public string ProviderName { get; init; } = string.Empty;
 
@@ -87,7 +84,7 @@ public class EmailAccountDto
             Id = account.Id,
             Alias = account.Alias,
             IsDefault = account.IsDefault,
-            ProviderSlug = settings.ProviderSlug,
+            EmailProviderId = provider.Id,
             ProviderName = provider.Name,
             EmailAddress = settings.EmailAddress,
             ImapHost = settings.ImapHost,
@@ -109,7 +106,7 @@ public class EmailAccountDto
         Id = Id,
         Alias = Alias,
         IsDefault = IsDefault,
-        ProviderSlug = ProviderSlug,
+        EmailProviderId = EmailProviderId,
         ProviderName = ProviderName,
         EmailAddress = EmailAddress,
         ImapHost = ImapHost,
@@ -135,7 +132,7 @@ public sealed class SaveEmailAccountDto
 
     public bool IsDefault { get; init; }
 
-    public string ProviderSlug { get; init; } = string.Empty;
+    public Guid EmailProviderId { get; init; }
 
     public string EmailAddress { get; init; } = string.Empty;
 
@@ -152,7 +149,7 @@ public sealed class SaveEmailAccountDto
 
 public class EmailSettingsDto
 {
-    public string ProviderSlug { get; set; } = string.Empty;
+    public Guid EmailProviderId { get; set; }
 
     public string EmailAddress { get; set; } = string.Empty;
     public string ImapHost { get; set; } = string.Empty;
@@ -173,14 +170,14 @@ public class EmailSettingsDto
     }
 
     public bool ContentEquals(EmailSettingsDto other) =>
-        string.Equals(ProviderSlug, other.ProviderSlug, StringComparison.OrdinalIgnoreCase)
+        EmailProviderId == other.EmailProviderId
         && string.Equals(EmailAddress, other.EmailAddress, StringComparison.Ordinal)
         && string.Equals(Username, other.Username, StringComparison.Ordinal)
         && HasStoredPassword == other.HasStoredPassword;
 
     private EmailSettingsDto CloneShallow() => new()
     {
-        ProviderSlug = ProviderSlug,
+        EmailProviderId = EmailProviderId,
         EmailAddress = EmailAddress,
         Username = Username,
         ImapHost = ImapHost,
@@ -195,7 +192,7 @@ public class EmailSettingsDto
 
     public T AsResponse<T>() where T : EmailSettingsDto, new() => new()
     {
-        ProviderSlug = ProviderSlug,
+        EmailProviderId = EmailProviderId,
         EmailAddress = EmailAddress,
         ImapHost = ImapHost,
         ImapPort = ImapPort,

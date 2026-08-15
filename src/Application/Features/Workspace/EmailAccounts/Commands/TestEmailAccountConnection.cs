@@ -46,7 +46,7 @@ public sealed class TestEmailAccountConnectionRequestHandler(
             return result;
         }
 
-        var settingsDto = EmailAccountMapping.ToSettingsDto(dto, new EmailSettingsDto { ProviderSlug = dto.ProviderSlug });
+        var settingsDto = EmailAccountMapping.ToSettingsDto(dto);
         var applyError = EmailSettingsCatalog.TryApplyCatalog(settingsDto, catalog);
         if (applyError is not null)
         {

@@ -29,22 +29,6 @@ public sealed class EmailProviderRepository(IDbContextFactory<AppDbContext> _dbC
         return entity is null ? null : EmailProviderDto.FromEntity(entity);
     }
 
-    public async Task<EmailProviderDto?> GetEmailProviderBySlugAsync(
-        Guid userId,
-        string slug,
-        CancellationToken cancellationToken = default)
-    {
-        var normalized = EmailProviderCatalog.NormalizeSlug(slug);
-        await using var ctx = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
-        var entity = await ctx.EmailProviders
-            .AsNoTracking()
-            .FirstOrDefaultAsync(
-                x => x.Slug == normalized && x.IsActive && !x.IsDeleted && (x.IsSystem || x.UserId == userId),
-                cancellationToken);
-
-        return entity is null ? null : EmailProviderDto.FromEntity(entity);
-    }
-
     public async Task<(EmailProviderDto? Saved, string? Error, bool NotFound, bool BlockedSystem)> SaveAsync(
         SaveEmailProviderDto dto,
         Guid userId,
@@ -53,18 +37,6 @@ public sealed class EmailProviderRepository(IDbContextFactory<AppDbContext> _dbC
         await using var ctx = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
         var name = dto.Name.Trim();
         var now = DateTime.UtcNow;
-
-        var slug = await EmailProviderMapping.ResolveSlugAsync(
-            (candidate, excludeId, ct) => IsSlugTakenAsync(ctx, userId, candidate, excludeId, ct),
-            name,
-            dto.Slug,
-            dto.Id,
-            cancellationToken);
-
-        if (await IsSlugTakenAsync(ctx, userId, slug, dto.Id, cancellationToken))
-        {
-            return (null, "Slug is already in use.", false, false);
-        }
 
         EmailProvider entity;
 
@@ -83,7 +55,6 @@ public sealed class EmailProviderRepository(IDbContextFactory<AppDbContext> _dbC
 
             entity = existing;
             entity.Name = name;
-            entity.Slug = slug;
             entity.ImapHost = dto.ImapHost.Trim();
             entity.ImapPort = dto.ImapPort;
             entity.ImapUseSsl = dto.ImapUseSsl;
@@ -99,7 +70,6 @@ public sealed class EmailProviderRepository(IDbContextFactory<AppDbContext> _dbC
             {
                 UserId = userId,
                 Name = name,
-                Slug = slug,
                 ImapHost = dto.ImapHost.Trim(),
                 ImapPort = dto.ImapPort,
                 ImapUseSsl = dto.ImapUseSsl,
@@ -151,14 +121,4 @@ public sealed class EmailProviderRepository(IDbContextFactory<AppDbContext> _dbC
         await ctx.SaveChangesAsync(cancellationToken);
         return (true, false, false);
     }
-
-    private static Task<bool> IsSlugTakenAsync(
-        AppDbContext ctx,
-        Guid userId,
-        string slug,
-        Guid? excludeId,
-        CancellationToken cancellationToken) =>
-        ctx.EmailProviders.AnyAsync(
-            x => x.Slug == slug && !x.IsDeleted && x.Id != excludeId && (x.IsSystem || x.UserId == userId),
-            cancellationToken);
 }
