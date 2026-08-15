@@ -12,7 +12,7 @@ internal static class ContactMapping
         return string.IsNullOrEmpty(last) ? first : $"{first} {last}";
     }
 
-    internal static string? NormalizeAlias(string? value) => EntityAliasRules.NormalizeOptional(value);
+    internal static string? NormalizeAlias(string? value) => EntityAliasRules.SlugifyOptional(value);
 
     internal static string BuildAliasStem(string firstName, string lastName) =>
         EntityAliasRules.StemFromPersonName(firstName, lastName);

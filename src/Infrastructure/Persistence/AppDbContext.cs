@@ -236,9 +236,6 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             entity.Property(e => e.CreatedAt).HasColumnName("createdAt");
             entity.Property(e => e.UpdatedBy).HasColumnName("updatedBy");
             entity.Property(e => e.UpdatedAt).HasColumnName("updatedAt");
-            entity.HasIndex(e => new { e.UserId, e.Name })
-                .IsUnique()
-                .HasFilter("[isDeleted] = 0");
             entity.HasIndex(e => new { e.UserId, e.Alias })
                 .IsUnique()
                 .HasFilter("[isDeleted] = 0");
@@ -264,9 +261,6 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             entity.Property(e => e.CreatedAt).HasColumnName("createdAt");
             entity.Property(e => e.UpdatedBy).HasColumnName("updatedBy");
             entity.Property(e => e.UpdatedAt).HasColumnName("updatedAt");
-            entity.HasIndex(e => new { e.UserId, e.Name })
-                .IsUnique()
-                .HasFilter("[isDeleted] = 0");
             entity.HasIndex(e => new { e.UserId, e.Alias })
                 .IsUnique()
                 .HasFilter("[isDeleted] = 0");

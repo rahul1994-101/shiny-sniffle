@@ -42,6 +42,22 @@ public class EmailProviderDto
         IsSystem = entity.IsSystem
     };
 
+    public EmailProvider ToEntity() => new()
+    {
+        Id = Id,
+        Name = Name,
+        Slug = Slug,
+        ImapHost = ImapHost,
+        ImapPort = ImapPort,
+        ImapUseSsl = ImapUseSsl,
+        SmtpHost = SmtpHost,
+        SmtpPort = SmtpPort,
+        SmtpUseSsl = SmtpUseSsl,
+        SetupHelpUrl = SetupHelpUrl,
+        SortOrder = SortOrder,
+        IsSystem = IsSystem
+    };
+
     public T AsResponse<T>() where T : EmailProviderDto, new() => new()
     {
         Id = Id,

@@ -17,6 +17,19 @@ public static class EntityAliasRules
     public static string? NormalizeOptional(string? value) =>
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
+    /// <summary>Slugify optional user-provided alias; null when blank or slugifies to empty.</summary>
+    public static string? SlugifyOptional(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
+        var slug = SlugifySegment(value.Trim());
+        slug = CollapseHyphens.Replace(NonSlugChars.Replace(slug, "-"), "-").Trim('-');
+        return slug.Length > 0 ? Truncate(slug) : null;
+    }
+
     /// <summary>Slug stem from a single display label (catalog name, etc.).</summary>
     public static string StemFromLabel(string value, string emptyFallback = "item")
     {
@@ -292,7 +305,7 @@ internal static class WorkspaceErAliasResolver
         string emptyStemFallback,
         CancellationToken cancellationToken)
     {
-        var normalized = EntityAliasRules.NormalizeOptional(requestedAlias);
+        var normalized = EntityAliasRules.SlugifyOptional(requestedAlias);
         if (normalized is not null)
         {
             return normalized;

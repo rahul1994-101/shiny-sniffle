@@ -46,6 +46,8 @@ Utilities/      technical cross-cutting only (crypto) — not slice business log
 
 **Deferred — theme in `UserSetting`:** Color theme (Settings → Appearance, navbar toggle) stays **device-local** via `localStorage` (`webAppTheme` in `webapp.js`). Do not add a `theme` column, migration, or Get/Save Appearance handlers until cross-device theme sync is an explicit product requirement. Revisit with timezone and other server-backed prefs when `UserSetting` gets its first real column.
 
+**Workspace referables — display vs identifier:** all workspace ER rows share one pattern. **`alias`** is the per-user unique handle (slugified on save via `EntityAliasRules.SlugifyOptional`); AI refs use `EntityRefs.Format` (`contact:`, `mailbox:`, `tag:`, `bucket:`). Display fields are not unique. **Contact** — `firstName`/`lastName` + optional `email` (unique when set). **EmailAccount** — no separate display name; `alias` is the primary label; `emailAddress` unique per user. **Tag/Bucket** — `name` is display-only; `alias` is the identifier. Only `alias` (+ domain keys like email) get unique indexes — not display labels.
+
 **`Dbo.EmailProvider` access:** `IsSystem = true`, `UserId = null` → global read-only templates (all users). `IsSystem = false`, `UserId` set → custom template owned by that user (create/update/delete). List/get/slug-resolve always scope to `UserId`: system rows + that user's custom rows. Slug unique among system rows; slug unique per user among custom rows. SQL `CK_EmailProvider_Ownership` enforces the system/custom ownership pairing.
 
 C# folders and namespaces use **PascalCase** (`Chat/`, `Application.Features.Chat.*`). SQL scripts live under `Infrastructure/Database/{schema}/` (lowercase SQL schema names).
@@ -146,7 +148,7 @@ If a repo needs a capability on another slice, inject that slice’s repo. Promo
 
 **Entity → DTO mapping:** always `{Dto}.FromEntity(...)` on the DTO class in `DTOs.cs`. Extra parameters (joined provider, taxonomy, etc.) go on `FromEntity` overloads — not `*Mapping.ToDto` in `Helpers.cs`. `Helpers.cs` keeps validation, normalization, and non-DTO transforms (e.g. `ToEmailSettings`, `ToSettingsDto`).
 
-**Request parameters:** when a request includes ownership, put `UserId` first. Name entity ids descriptively (`ProviderId`, `TagId`, `ContactId`, `ThreadId`) — not bare `Id`. In **Chat**, use `ThreadId` everywhere (requests, DTOs, AI models) — not `ChatThreadId`; the entity/SQL column stays `ChatThreadId`.
+**Request parameters:** when a request includes ownership, put `UserId` first. Name entity ids descriptively (`ProviderId`, `TagId`, `ContactId`, `EmailAccountId`, `ThreadId`) — not bare `Id`. In **Chat**, use `ThreadId` everywhere (requests, DTOs, AI models) — not `ChatThreadId`; the entity/SQL column stays `ChatThreadId`.
 
 **Repo method names:** no redundant entity prefix on `{Slice}Repository` (`UpdateProfileAsync`, not `UpdateUserProfileAsync`; `TryChangePasswordAsync`, not split check/update methods). Prefer one atomic repo method when a use case needs read-then-write on the same row.
 

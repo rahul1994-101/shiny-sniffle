@@ -8,7 +8,8 @@ namespace Application.Features.Workspace.EmailAccounts;
 
 public sealed class EmailAccountRepository(
     IDbContextFactory<AppDbContext> _dbContextFactory,
-    SharedRepository _sharedRepo)
+    SharedRepository _sharedRepo,
+    EmailProviderRepository _emailProviderRepo)
 {
     public async Task<IReadOnlyList<EmailAccountSummaryDto>> GetAllEmailAccountsByUserIdAsync(Guid userId, CancellationToken cancellationToken = default)
     {
@@ -39,10 +40,10 @@ public sealed class EmailAccountRepository(
             .ToList();
     }
 
-    public async Task<EmailAccountDto?> GetEmailAccountByIdAsync(Guid userId, Guid accountId, CancellationToken cancellationToken = default)
+    public async Task<EmailAccountDto?> GetEmailAccountByIdAsync(Guid userId, Guid emailAccountId, CancellationToken cancellationToken = default)
     {
         await using var ctx = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
-        var row = await FindActiveAccountAsync(ctx, userId, accountId, asNoTracking: true, cancellationToken);
+        var row = await FindActiveAccountAsync(ctx, userId, emailAccountId, asNoTracking: true, cancellationToken);
         if (row?.EmailProvider is null)
         {
             return null;
@@ -60,13 +61,13 @@ public sealed class EmailAccountRepository(
 
     public async Task<EmailSettings?> GetEmailSettingsAsync(
         Guid userId,
-        Guid? accountId = null,
+        Guid? emailAccountId = null,
         CancellationToken cancellationToken = default)
     {
         await using var ctx = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
         EmailAccount? row;
 
-        if (accountId is { } id)
+        if (emailAccountId is { } id)
         {
             row = await FindActiveAccountAsync(ctx, userId, id, asNoTracking: true, cancellationToken);
         }
@@ -92,7 +93,7 @@ public sealed class EmailAccountRepository(
     }
 
     public async Task<EmailSettings?> GetDefaultEmailSettingsAsync(Guid userId, CancellationToken cancellationToken = default) =>
-        await GetEmailSettingsAsync(userId, accountId: null, cancellationToken);
+        await GetEmailSettingsAsync(userId, emailAccountId: null, cancellationToken);
 
     public async Task<(EmailAccountDto? Saved, string? Error, bool NotFound)> SaveAsync(
         Guid userId,
@@ -134,12 +135,10 @@ public sealed class EmailAccountRepository(
             return (null, "This email address is already connected.", false);
         }
 
-        var slug = EmailProviderCatalog.NormalizeSlug(builtSettings.ProviderSlug);
-        var provider = await ctx.EmailProviders
-            .AsNoTracking()
-            .FirstOrDefaultAsync(
-                x => x.Slug == slug && x.IsActive && !x.IsDeleted && (x.IsSystem || x.UserId == userId),
-                cancellationToken);
+        var provider = await _emailProviderRepo.GetEmailProviderBySlugAsync(
+            userId,
+            builtSettings.ProviderSlug,
+            cancellationToken);
 
         if (provider is null)
         {
@@ -221,7 +220,7 @@ public sealed class EmailAccountRepository(
         }
 
         await ctx.Entry(entity).Reference(x => x.EmailProvider).LoadAsync(cancellationToken);
-        var providerEntity = entity.EmailProvider ?? provider;
+        var providerEntity = entity.EmailProvider ?? provider.ToEntity();
 
         var (syncOk, syncError) = await _sharedRepo.SyncTaxonomyAsync(
             ctx,
@@ -251,12 +250,12 @@ public sealed class EmailAccountRepository(
 
     public async Task<(bool Found, string? Error)> DeleteAsync(
         Guid userId,
-        Guid accountId,
+        Guid emailAccountId,
         Guid updatedBy,
         CancellationToken cancellationToken = default)
     {
         await using var ctx = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
-        var entity = await FindActiveAccountAsync(ctx, userId, accountId, asNoTracking: false, cancellationToken);
+        var entity = await FindActiveAccountAsync(ctx, userId, emailAccountId, asNoTracking: false, cancellationToken);
         if (entity is null)
         {
             return (false, null);
@@ -274,7 +273,7 @@ public sealed class EmailAccountRepository(
         if (wasDefault)
         {
             var next = await ctx.EmailAccounts
-                .Where(x => x.UserId == userId && !x.IsDeleted && x.Id != accountId)
+                .Where(x => x.UserId == userId && !x.IsDeleted && x.Id != emailAccountId)
                 .OrderBy(x => x.SortOrder)
                 .ThenBy(x => x.Alias)
                 .FirstOrDefaultAsync(cancellationToken);
@@ -288,19 +287,19 @@ public sealed class EmailAccountRepository(
             }
         }
 
-        await _sharedRepo.RemoveTaxonomyForReferableAsync(ctx, userId, ReferableKind.Mailbox, accountId, cancellationToken);
+        await _sharedRepo.RemoveTaxonomyForReferableAsync(ctx, userId, ReferableKind.Mailbox, emailAccountId, cancellationToken);
         await ctx.SaveChangesAsync(cancellationToken);
         return (true, null);
     }
 
     public async Task<(bool Found, string? Error)> SetDefaultAsync(
         Guid userId,
-        Guid accountId,
+        Guid emailAccountId,
         Guid updatedBy,
         CancellationToken cancellationToken = default)
     {
         await using var ctx = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
-        var entity = await FindActiveAccountAsync(ctx, userId, accountId, asNoTracking: false, cancellationToken);
+        var entity = await FindActiveAccountAsync(ctx, userId, emailAccountId, asNoTracking: false, cancellationToken);
         if (entity is null)
         {
             return (false, null);
@@ -318,14 +317,14 @@ public sealed class EmailAccountRepository(
     private static async Task<EmailAccount?> FindActiveAccountAsync(
         AppDbContext ctx,
         Guid userId,
-        Guid accountId,
+        Guid emailAccountId,
         bool asNoTracking,
         CancellationToken cancellationToken)
     {
         var query = ctx.EmailAccounts
             .Include(x => x.EmailProvider)
             .Where(x =>
-                x.Id == accountId &&
+                x.Id == emailAccountId &&
                 x.UserId == userId &&
                 x.IsActive &&
                 !x.IsDeleted);

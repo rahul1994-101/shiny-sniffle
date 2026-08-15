@@ -2,7 +2,7 @@ using FluentValidation;
 
 namespace Application.Features.Workspace.EmailAccounts.Queries;
 
-public sealed record GetEmailAccountByIdRequest(Guid UserId, Guid AccountId)
+public sealed record GetEmailAccountByIdRequest(Guid UserId, Guid EmailAccountId)
     : IQuery<GetEmailAccountByIdResponse>;
 
 public sealed class GetEmailAccountByIdResponse : EmailAccountDto
@@ -14,7 +14,7 @@ public sealed class GetEmailAccountByIdRequestValidator : AbstractValidator<GetE
     public GetEmailAccountByIdRequestValidator()
     {
         RuleFor(x => x.UserId).NotEmpty().WithMessage("User Id is required.");
-        RuleFor(x => x.AccountId).NotEmpty().WithMessage("Account Id is required.");
+        RuleFor(x => x.EmailAccountId).NotEmpty().WithMessage("Email account Id is required.");
     }
 }
 
@@ -29,7 +29,7 @@ public sealed class GetEmailAccountByIdRequestHandler(EmailAccountRepository ema
 
         #region # Execute
 
-        var account = await emailAccountRepo.GetEmailAccountByIdAsync(request.UserId, request.AccountId, cancellationToken);
+        var account = await emailAccountRepo.GetEmailAccountByIdAsync(request.UserId, request.EmailAccountId, cancellationToken);
 
         #endregion
 

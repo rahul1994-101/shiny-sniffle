@@ -2,7 +2,7 @@ using FluentValidation;
 
 namespace Application.Features.Workspace.EmailAccounts.Commands;
 
-public sealed record DeleteEmailAccountRequest(Guid UserId, Guid AccountId)
+public sealed record DeleteEmailAccountRequest(Guid UserId, Guid EmailAccountId)
     : ICommand<DeleteEmailAccountResponse>;
 
 public sealed class DeleteEmailAccountResponse
@@ -15,7 +15,7 @@ public sealed class DeleteEmailAccountRequestValidator : AbstractValidator<Delet
     public DeleteEmailAccountRequestValidator()
     {
         RuleFor(x => x.UserId).NotEmpty().WithMessage("User Id is required.");
-        RuleFor(x => x.AccountId).NotEmpty().WithMessage("Account Id is required.");
+        RuleFor(x => x.EmailAccountId).NotEmpty().WithMessage("Email account Id is required.");
     }
 }
 
@@ -32,7 +32,7 @@ public sealed class DeleteEmailAccountRequestHandler(EmailAccountRepository emai
 
         var (found, error) = await emailAccountRepo.DeleteAsync(
             request.UserId,
-            request.AccountId,
+            request.EmailAccountId,
             request.UserId,
             cancellationToken);
 

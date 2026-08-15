@@ -34,13 +34,11 @@ GO
 -- =====================================================
 
 -- One tag assignment per referable target
-CREATE UNIQUE INDEX [IX_TagAssignment_TagId_ReferableKind_ReferableId]
-    ON [workspace].[TagAssignment] ([tagId], [referableKind], [referableId]);
+CREATE UNIQUE INDEX [IX_TagAssignment_TagId_ReferableKind_ReferableId] ON [workspace].[TagAssignment] ([tagId], [referableKind], [referableId]);
 GO
 
 -- Load all tags for a referable object
-CREATE INDEX [IX_TagAssignment_UserId_ReferableKind_ReferableId]
-    ON [workspace].[TagAssignment] ([userId], [referableKind], [referableId]);
+CREATE INDEX [IX_TagAssignment_UserId_ReferableKind_ReferableId] ON [workspace].[TagAssignment] ([userId], [referableKind], [referableId]);
 GO
 
 -- =====================================================

@@ -34,13 +34,11 @@ GO
 -- =====================================================
 
 -- One bucket assignment per referable target
-CREATE UNIQUE INDEX [IX_BucketAssignment_BucketId_ReferableKind_ReferableId]
-    ON [workspace].[BucketAssignment] ([bucketId], [referableKind], [referableId]);
+CREATE UNIQUE INDEX [IX_BucketAssignment_BucketId_ReferableKind_ReferableId] ON [workspace].[BucketAssignment] ([bucketId], [referableKind], [referableId]);
 GO
 
 -- Load all buckets for a referable object
-CREATE INDEX [IX_BucketAssignment_UserId_ReferableKind_ReferableId]
-    ON [workspace].[BucketAssignment] ([userId], [referableKind], [referableId]);
+CREATE INDEX [IX_BucketAssignment_UserId_ReferableKind_ReferableId] ON [workspace].[BucketAssignment] ([userId], [referableKind], [referableId]);
 GO
 
 -- =====================================================

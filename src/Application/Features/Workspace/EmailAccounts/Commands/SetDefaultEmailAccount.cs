@@ -2,7 +2,7 @@ using FluentValidation;
 
 namespace Application.Features.Workspace.EmailAccounts.Commands;
 
-public sealed record SetDefaultEmailAccountRequest(Guid UserId, Guid AccountId)
+public sealed record SetDefaultEmailAccountRequest(Guid UserId, Guid EmailAccountId)
     : ICommand<SetDefaultEmailAccountResponse>;
 
 public sealed class SetDefaultEmailAccountResponse
@@ -15,7 +15,7 @@ public sealed class SetDefaultEmailAccountRequestValidator : AbstractValidator<S
     public SetDefaultEmailAccountRequestValidator()
     {
         RuleFor(x => x.UserId).NotEmpty().WithMessage("User Id is required.");
-        RuleFor(x => x.AccountId).NotEmpty().WithMessage("Account Id is required.");
+        RuleFor(x => x.EmailAccountId).NotEmpty().WithMessage("Email account Id is required.");
     }
 }
 
@@ -32,7 +32,7 @@ public sealed class SetDefaultEmailAccountRequestHandler(EmailAccountRepository 
 
         var (found, error) = await emailAccountRepo.SetDefaultAsync(
             request.UserId,
-            request.AccountId,
+            request.EmailAccountId,
             request.UserId,
             cancellationToken);
 

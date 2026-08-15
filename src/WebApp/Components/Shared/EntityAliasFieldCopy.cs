@@ -11,7 +11,7 @@ public static class EntityAliasFieldCopy
     public const string EntityRefLead = "AI reference:";
 
     public static string EmptyFieldHint(string autoGenerateFrom, string scopePlural) =>
-        $"Short handle for agents and settings. Leave blank to auto-generate from {autoGenerateFrom}; unique among your {scopePlural}.";
+        $"Short handle for agents and settings (stored as a lowercase slug). Leave blank to auto-generate from {autoGenerateFrom}; unique among your {scopePlural}.";
 
     public const string PlaceholderAutoFromName = "Leave blank to auto-generate from name";
 

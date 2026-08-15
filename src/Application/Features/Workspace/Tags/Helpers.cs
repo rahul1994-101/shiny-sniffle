@@ -4,7 +4,7 @@ internal static class TagMapping
 {
     internal static string NormalizeName(string name) => name.Trim();
 
-    internal static string? NormalizeAlias(string? value) => EntityAliasRules.NormalizeOptional(value);
+    internal static string? NormalizeAlias(string? value) => EntityAliasRules.SlugifyOptional(value);
 
     internal static string? NormalizeContext(string? value)
     {

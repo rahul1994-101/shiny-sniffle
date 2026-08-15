@@ -32,11 +32,6 @@ public sealed class BucketRepository(
         var context = BucketMapping.NormalizeContext(dto.Context);
         var now = DateTime.UtcNow;
 
-        if (await IsNameTakenAsync(ctx, userId, name, dto.Id, cancellationToken))
-        {
-            return (null, "A bucket with this name already exists.", false);
-        }
-
         var alias = await WorkspaceErAliasResolver.ResolveAsync(
             (candidate, excludeId, ct) => IsAliasTakenAsync(ctx, userId, candidate, excludeId, ct),
             name,
@@ -115,23 +110,6 @@ public sealed class BucketRepository(
         await sharedRepo.RemoveBucketAssignmentsAsync(ctx, userId, bucketId, cancellationToken);
         await ctx.SaveChangesAsync(cancellationToken);
         return true;
-    }
-
-    private static async Task<bool> IsNameTakenAsync(
-        AppDbContext ctx,
-        Guid userId,
-        string name,
-        Guid? excludeId,
-        CancellationToken cancellationToken)
-    {
-        var lower = name.ToLowerInvariant();
-        return await ctx.Buckets.AnyAsync(
-            x =>
-                x.UserId == userId &&
-                !x.IsDeleted &&
-                x.Name.ToLower() == lower &&
-                x.Id != excludeId,
-            cancellationToken);
     }
 
     private static async Task<bool> IsAliasTakenAsync(

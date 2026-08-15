@@ -53,7 +53,7 @@ internal static class EmailAccountMapping
         HasStoredPassword = false
     };
 
-    internal static string? NormalizeAlias(string? value) => EntityAliasRules.NormalizeOptional(value);
+    internal static string? NormalizeAlias(string? value) => EntityAliasRules.SlugifyOptional(value);
 
     internal static string BuildAliasStem(string emailAddress) =>
         EntityAliasRules.StemFromEmailAddress(emailAddress);

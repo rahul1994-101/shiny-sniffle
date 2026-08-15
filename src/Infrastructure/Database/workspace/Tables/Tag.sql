@@ -7,7 +7,7 @@
 -- Business Rules:
 -- - Scoped to userId; soft delete via isDeleted
 -- - alias + context: see Agent reference section (alias NOT NULL; optional in UI with auto-generate)
--- - name unique per user among non-deleted rows (app compares case-insensitive)
+-- - name is display-only (not unique); alias is the per-user handle for AI refs (tag:{alias})
 -- - color is UI-only (optional hex)
 -- - Apply after dbo.User ([workspace] schema must already exist)
 -- - All records include audit fields for tracking changes
@@ -20,7 +20,7 @@ CREATE TABLE [workspace].[Tag] (
     [userId]                                 UNIQUEIDENTIFIER NOT NULL,                 -- Owner (FK to User)
 
     -- Data fields
-    [name]                                   NVARCHAR(64) NOT NULL,                     -- Display label (unique per user when not deleted)
+    [name]                                   NVARCHAR(64) NOT NULL,                     -- Display label (not unique)
     [color]                                  NVARCHAR(9) NULL,                          -- Optional UI color (e.g. #RRGGBB)
     [sortOrder]                              INT NOT NULL DEFAULT 0,                    -- List order in Workspace UI
 
@@ -47,11 +47,7 @@ GO
 -- INDEXES FOR TAG TABLE
 -- =====================================================
 
--- Unique name per user among non-deleted rows
-CREATE UNIQUE INDEX [IX_Tag_UserId_Name] ON [workspace].[Tag] ([userId], [name]) WHERE [isDeleted] = 0;
-GO
-
--- Unique alias per user among non-deleted rows
+-- Unique alias per user among non-deleted rows (AI ref: tag:{alias})
 CREATE UNIQUE INDEX [IX_Tag_UserId_Alias] ON [workspace].[Tag] ([userId], [alias]) WHERE [isDeleted] = 0;
 GO
 

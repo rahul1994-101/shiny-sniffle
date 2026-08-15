@@ -7,7 +7,7 @@ namespace Application.Features.Workspace.EmailAccounts.Commands;
 public sealed record TestEmailAccountConnectionRequest(
     Guid UserId,
     SaveEmailAccountDto Account,
-    Guid? AccountId = null)
+    Guid? EmailAccountId = null)
     : ICommand<TestEmailAccountConnectionResponse>;
 
 public sealed class TestEmailAccountConnectionResponse
@@ -54,9 +54,9 @@ public sealed class TestEmailAccountConnectionRequestHandler(
             return result;
         }
 
-        var accountId = request.AccountId ?? dto.Id;
+        var emailAccountId = request.EmailAccountId ?? dto.Id;
         EmailSettings? stored = null;
-        if (accountId is { } id)
+        if (emailAccountId is { } id)
         {
             stored = await emailAccountRepo.GetEmailSettingsAsync(request.UserId, id, cancellationToken);
         }

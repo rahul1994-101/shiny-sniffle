@@ -30,6 +30,22 @@ public sealed class EmailProviderRepository(IDbContextFactory<AppDbContext> _dbC
         return entity is null ? null : EmailProviderDto.FromEntity(entity);
     }
 
+    public async Task<EmailProviderDto?> GetEmailProviderBySlugAsync(
+        Guid userId,
+        string slug,
+        CancellationToken cancellationToken = default)
+    {
+        var normalized = EmailProviderCatalog.NormalizeSlug(slug);
+        await using var ctx = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var entity = await ctx.EmailProviders
+            .AsNoTracking()
+            .FirstOrDefaultAsync(
+                x => x.Slug == normalized && x.IsActive && !x.IsDeleted && (x.IsSystem || x.UserId == userId),
+                cancellationToken);
+
+        return entity is null ? null : EmailProviderDto.FromEntity(entity);
+    }
+
     public async Task<(EmailProviderDto? Saved, string? Error, bool NotFound, bool BlockedSystem)> SaveAsync(
         SaveEmailProviderDto dto,
         Guid userId,
