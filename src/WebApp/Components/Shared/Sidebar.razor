@@ -84,22 +84,26 @@
 
             <footer class="sidebar-footer">
                 <nav class="sidebar-footer-nav" aria-label="App">
+                    <NavLink class="sidebar-footer-link" href="workflows" ActiveClass="sidebar-footer-link-active" @onclick="FooterNavAsync">
+                        <NavIcon Name="NavIconName.Workflows" CssClass="sidebar-footer-link-ico" />
+                        <span>Workflows</span>
+                    </NavLink>
                     <NavLink class="sidebar-footer-link" href="workspace" ActiveClass="sidebar-footer-link-active" @onclick="FooterNavAsync" Match="NavLinkMatch.Prefix">
                         <NavIcon Name="NavIconName.Workspace" CssClass="sidebar-footer-link-ico" />
                         <span>Workspace</span>
                     </NavLink>
-                    <NavLink class="sidebar-footer-link" href="workflows" ActiveClass="sidebar-footer-link-active" @onclick="FooterNavAsync">
-                        <NavIcon Name="NavIconName.Workflows" CssClass="sidebar-footer-link-ico" />
-                        <span>Workflows</span>
+                    <NavLink class="sidebar-footer-link" href="settings" ActiveClass="sidebar-footer-link-active" @onclick="FooterNavAsync" Match="NavLinkMatch.Prefix">
+                        <NavIcon Name="NavIconName.Settings" CssClass="sidebar-footer-link-ico" />
+                        <span>Settings</span>
                     </NavLink>
                 </nav>
 
                 <div class="sidebar-footer-divider" role="separator"></div>
 
-                <nav class="sidebar-footer-nav" aria-label="Account">
-                    <NavLink class="sidebar-footer-link" href="settings" ActiveClass="sidebar-footer-link-active" @onclick="FooterNavAsync">
-                        <NavIcon Name="NavIconName.Settings" CssClass="sidebar-footer-link-ico" />
-                        <span>Settings</span>
+                <nav class="sidebar-footer-nav" aria-label="Support and account">
+                    <NavLink class="sidebar-footer-link" href="help" ActiveClass="sidebar-footer-link-active" @onclick="FooterNavAsync" Match="NavLinkMatch.Prefix">
+                        <NavIcon Name="NavIconName.Help" CssClass="sidebar-footer-link-ico" />
+                        <span>Help</span>
                     </NavLink>
                     <SignOutForm ButtonClass="sidebar-footer-link" OnClick="FooterNavAsync">
                         <NavIcon Name="NavIconName.SignOut" CssClass="sidebar-footer-link-ico" />

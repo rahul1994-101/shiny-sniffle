@@ -507,3 +507,71 @@ window.settingsEditorSplit = (function () {
 
   return { wire: wire, unwire: unwire, unwireElement: unwireElement };
 })();
+
+window.webAppOnboarding = (function () {
+  var storageKey = "app-onboarding";
+
+  function read() {
+    try {
+      var raw = localStorage.getItem(storageKey);
+      if (!raw) {
+        return { completed: [] };
+      }
+
+      var parsed = JSON.parse(raw);
+      if (!parsed || !Array.isArray(parsed.completed)) {
+        return { completed: [] };
+      }
+
+      return { completed: parsed.completed.filter(function (id) {
+        return typeof id === "string" && id.length > 0;
+      }) };
+    } catch (e) {
+      return { completed: [] };
+    }
+  }
+
+  function write(state) {
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(state));
+    } catch (e) {
+      /* private mode */
+    }
+  }
+
+  function indexOf(completed, id) {
+    for (var i = 0; i < completed.length; i++) {
+      if (completed[i] === id) {
+        return i;
+      }
+    }
+
+    return -1;
+  }
+
+  return {
+    getCompletedJson: function () {
+      return JSON.stringify(read().completed);
+    },
+    setStepCompleted: function (stepId, completed) {
+      if (!stepId) {
+        return;
+      }
+
+      var state = read();
+      var idx = indexOf(state.completed, stepId);
+      if (completed) {
+        if (idx === -1) {
+          state.completed.push(stepId);
+        }
+      } else if (idx !== -1) {
+        state.completed.splice(idx, 1);
+      }
+
+      write(state);
+    },
+    reset: function () {
+      write({ completed: [] });
+    }
+  };
+})();

@@ -7,6 +7,18 @@ internal static partial class EmailProviderMapping
     private const int NameMaxLength = 100;
     private const int HostMaxLength = 255;
     private const int SetupHelpUrlMaxLength = 500;
+    private const int PortMin = 1;
+    private const int PortMax = 65535;
+
+    internal static string? ValidatePort(int port, string label)
+    {
+        if (port is < PortMin or > PortMax)
+        {
+            return $"{label} port must be between {PortMin} and {PortMax}.";
+        }
+
+        return null;
+    }
 
     internal static string? ValidateSave(SaveEmailProviderDto dto)
     {
@@ -45,6 +57,18 @@ internal static partial class EmailProviderMapping
         if (dto.SmtpHost.Trim().Length > HostMaxLength)
         {
             return $"SMTP host must be {HostMaxLength} characters or fewer.";
+        }
+
+        var imapPortError = ValidatePort(dto.ImapPort, "IMAP");
+        if (imapPortError is not null)
+        {
+            return imapPortError;
+        }
+
+        var smtpPortError = ValidatePort(dto.SmtpPort, "SMTP");
+        if (smtpPortError is not null)
+        {
+            return smtpPortError;
         }
 
         if (dto.SetupHelpUrl is not null && dto.SetupHelpUrl.Trim().Length > SetupHelpUrlMaxLength)
@@ -101,7 +125,19 @@ public static class EmailProviderCatalog
     {
         if (string.IsNullOrWhiteSpace(catalog.ImapHost) || string.IsNullOrWhiteSpace(catalog.SmtpHost))
         {
-            return "This provider has no IMAP/SMTP hosts configured. Update it under Settings → Email → Providers.";
+            return "This provider has no IMAP/SMTP hosts configured. Update it under Settings → Email providers.";
+        }
+
+        var imapPortError = EmailProviderMapping.ValidatePort(catalog.ImapPort, "IMAP");
+        if (imapPortError is not null)
+        {
+            return imapPortError;
+        }
+
+        var smtpPortError = EmailProviderMapping.ValidatePort(catalog.SmtpPort, "SMTP");
+        if (smtpPortError is not null)
+        {
+            return smtpPortError;
         }
 
         return null;

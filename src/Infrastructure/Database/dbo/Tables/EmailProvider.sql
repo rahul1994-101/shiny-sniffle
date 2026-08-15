@@ -23,10 +23,10 @@ CREATE TABLE [dbo].[EmailProvider] (
     [name]                                  NVARCHAR(100) NOT NULL,                    -- Display name (e.g. Gmail)
     [slug]                                  NVARCHAR(64) NOT NULL,                     -- URL-safe key (e.g. gmail, my-work-mail)
     [imapHost]                              NVARCHAR(255) NOT NULL DEFAULT '',         -- IMAP server host
-    [imapPort]                              INT NOT NULL DEFAULT 993,                  -- IMAP port
+    [imapPort]                              INT NOT NULL DEFAULT 993 CHECK ([imapPort] BETWEEN 1 AND 65535), -- IMAP port
     [imapUseSsl]                            BIT DEFAULT 1,                             -- Use SSL/TLS for IMAP
     [smtpHost]                              NVARCHAR(255) NOT NULL DEFAULT '',         -- SMTP server host
-    [smtpPort]                              INT NOT NULL DEFAULT 587,                  -- SMTP port
+    [smtpPort]                              INT NOT NULL DEFAULT 587 CHECK ([smtpPort] BETWEEN 1 AND 65535), -- SMTP port
     [smtpUseSsl]                            BIT DEFAULT 1,                             -- Use SSL/TLS for SMTP
     [setupHelpUrl]                          NVARCHAR(500) NULL,                        -- Optional link to provider setup docs
     [sortOrder]                             INT NOT NULL DEFAULT 0,                    -- List order in UI
@@ -48,6 +48,11 @@ CREATE TABLE [dbo].[EmailProvider] (
     -- System rows are global (userId NULL); custom rows are user-owned (userId required)
     CONSTRAINT [CK_EmailProvider_Ownership] CHECK (
         ([isSystem] = 1 AND [userId] IS NULL) OR ([isSystem] = 0 AND [userId] IS NOT NULL)
+    ),
+
+    -- Active providers must have non-empty server hosts
+    CONSTRAINT [CK_EmailProvider_Hosts] CHECK (
+        LEN(LTRIM(RTRIM([imapHost]))) > 0 AND LEN(LTRIM(RTRIM([smtpHost]))) > 0
     )
 );
 GO

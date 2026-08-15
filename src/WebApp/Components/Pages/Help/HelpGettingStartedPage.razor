@@ -1,0 +1,287 @@
+@page "/help/getting-started"
+@inherits BaseComponent
+
+@attribute [Authorize]
+
+@inject OnboardingProgressService OnboardingProgress
+
+<PageTitle>Getting started</PageTitle>
+
+<SettingsShell Title="Getting started"
+               Subtitle="Follow the setup path in order. Each step opens in a new tab so you can keep this guide open."
+               Breadcrumbs="HelpBreadcrumbTrails.GettingStarted">
+    <div class="settings-sections onboarding-page">
+        <div class="settings-status-row onboarding-progress-head">
+            <div class="onboarding-progress-summary">
+                <p class="ui-status-pill @ProgressPillClass" role="status" aria-live="polite">
+                    <span class="ui-status-pill-label">@ProgressLabel</span>
+                    @if (!string.IsNullOrWhiteSpace(ProgressDetail))
+                    {
+                        <span class="ui-status-pill-detail">@ProgressDetail</span>
+                    }
+                </p>
+                <div class="onboarding-progress-track"
+                     role="progressbar"
+                     aria-valuemin="0"
+                     aria-valuemax="@_summary.Total"
+                     aria-valuenow="@_summary.Completed"
+                     aria-label="Setup progress">
+                    <span class="onboarding-progress-fill" style="width: @($"{ProgressPercent:0.#}")%"></span>
+                </div>
+            </div>
+        </div>
+
+        @if (_nextStep is not null)
+        {
+            <section class="settings-card onboarding-next-card" aria-labelledby="onboarding-next-heading">
+                <p class="onboarding-next-kicker">Next step · Step @NextStepNumber of @_summary.Total</p>
+                <div class="onboarding-next-head">
+                    <NavIcon Name="@_nextStep.Icon" CssClass="onboarding-next-icon" />
+                    <div class="onboarding-next-copy">
+                        <h2 id="onboarding-next-heading" class="settings-section-title">@_nextStep.Title</h2>
+                        <p class="onboarding-step-module-pill">@OnboardingJourney.GetModuleLabel(_nextStep.Module)</p>
+                    </div>
+                </div>
+
+                <dl class="onboarding-step-details">
+                    <div>
+                        <dt>What you configure</dt>
+                        <dd>@_nextStep.What</dd>
+                    </div>
+                    <div>
+                        <dt>Why it matters</dt>
+                        <dd>@_nextStep.Why</dd>
+                    </div>
+                </dl>
+
+                <div class="onboarding-next-actions">
+                    <a class="ui-btn ui-btn-primary"
+                       href="@_nextStep.Href"
+                       target="_blank"
+                       rel="noopener noreferrer">
+                        Open @_nextStep.Title
+                    </a>
+                    <button type="button"
+                            class="ui-btn ui-btn-secondary"
+                            disabled="@_busy"
+                            @onclick="MarkNextStepDoneAsync">
+                        Mark as done
+                    </button>
+                </div>
+            </section>
+        }
+        else if (_summary.IsComplete)
+        {
+            <section class="settings-card onboarding-next-card onboarding-next-card-complete" aria-labelledby="onboarding-done-heading">
+                <h2 id="onboarding-done-heading" class="settings-section-title">You are ready to triage</h2>
+                <p class="settings-hint">All required steps are done on this device. Reopen any step below if you need to change something.</p>
+            </section>
+        }
+
+        <section class="settings-card" aria-labelledby="onboarding-path-heading">
+            <h2 id="onboarding-path-heading" class="settings-section-title">Setup path</h2>
+            <p class="settings-hint onboarding-path-lead">Work top to bottom. Mark each step done here when you finish it.</p>
+
+            <ol class="onboarding-path">
+                @foreach (var step in OnboardingJourney.ProgressSteps)
+                {
+                    var complete = IsComplete(step);
+                    var isNext = _nextStep?.Id == step.Id;
+                    var stepNumber = OnboardingJourney.GetStepNumber(step);
+                    <li class="onboarding-path-item @(complete ? "onboarding-path-item-complete" : null) @(isNext ? "onboarding-path-item-next" : null)">
+                        <div class="onboarding-path-rail" aria-hidden="true">
+                            <span class="onboarding-path-marker @(complete ? "onboarding-path-marker-done" : null) @(isNext ? "onboarding-path-marker-next" : null)">
+                                @if (complete)
+                                {
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                        <path d="M20 6L9 17l-5-5" />
+                                    </svg>
+                                }
+                                else
+                                {
+                                    @stepNumber
+                                }
+                            </span>
+                        </div>
+
+                        <div class="onboarding-path-content">
+                            <div class="onboarding-path-item-head">
+                                <div class="onboarding-path-item-copy">
+                                    <div class="onboarding-path-item-meta">
+                                        <span class="onboarding-step-module-pill">@OnboardingJourney.GetModuleLabel(step.Module)</span>
+                                        @if (isNext)
+                                        {
+                                            <span class="ui-list-row-badge onboarding-path-badge">Up next</span>
+                                        }
+                                        else if (complete)
+                                        {
+                                            <span class="ui-list-row-badge onboarding-path-badge onboarding-path-badge-done">Done</span>
+                                        }
+                                    </div>
+                                    <h3 class="onboarding-path-item-title">@step.Title</h3>
+                                    <p class="onboarding-path-item-lead">@step.Lead</p>
+                                </div>
+                            </div>
+
+                            <div class="onboarding-path-actions">
+                                <a class="ui-btn ui-btn-secondary ui-btn-sm"
+                                   href="@step.Href"
+                                   target="_blank"
+                                   rel="noopener noreferrer">
+                                    Open
+                                </a>
+                                @if (!complete)
+                                {
+                                    <button type="button"
+                                            class="ui-btn ui-btn-secondary ui-btn-sm"
+                                            disabled="@_busy"
+                                            @onclick="() => MarkStepDoneAsync(step)">
+                                        Mark as done
+                                    </button>
+                                }
+                                else
+                                {
+                                    <button type="button"
+                                            class="ui-btn ui-btn-secondary ui-btn-sm"
+                                            disabled="@_busy"
+                                            @onclick="() => ToggleStepAsync(step)">
+                                        Undo
+                                    </button>
+                                }
+                            </div>
+                        </div>
+                    </li>
+                }
+            </ol>
+        </section>
+
+        @{
+            var comingSoon = OnboardingJourney.Groups
+                .First(g => g.Module == AppModule.Workflows)
+                .Steps
+                .First(s => !s.CountsTowardProgress);
+        }
+        <section class="settings-card settings-card-muted onboarding-later-card" aria-labelledby="onboarding-later-heading">
+            <h2 id="onboarding-later-heading" class="settings-section-title">Later</h2>
+            <p class="settings-hint onboarding-path-lead">Optional once mail and triage are working.</p>
+            <div class="ui-group-row ui-group-row-static onboarding-later-row">
+                <span>
+                    <span class="ui-list-row-meta">
+                        <span class="ui-group-row-title">@comingSoon.Title</span>
+                        <span class="ui-list-row-badge">Soon</span>
+                    </span>
+                    <span class="ui-group-row-desc">@comingSoon.Why</span>
+                </span>
+            </div>
+        </section>
+
+        <div class="onboarding-actions">
+            <button type="button"
+                    class="ui-btn ui-btn-secondary"
+                    disabled="@_busy"
+                    @onclick="ResetAsync">
+                Reset progress
+            </button>
+        </div>
+    </div>
+</SettingsShell>
+
+@code {
+    private HashSet<string> _completedIds = new(StringComparer.Ordinal);
+    private OnboardingProgressSummary _summary = new(0, OnboardingJourney.ProgressSteps.Count);
+    private OnboardingStep? _nextStep;
+    private bool _busy;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        await ReloadAsync();
+        StateHasChanged();
+    }
+
+    private async Task ReloadAsync()
+    {
+        _completedIds = (await OnboardingProgress.GetCompletedIdsAsync()).ToHashSet(StringComparer.Ordinal);
+        _summary = OnboardingProgress.Summarize(_completedIds);
+        _nextStep = OnboardingJourney.TryGetNextStep(_completedIds);
+    }
+
+    private bool IsComplete(OnboardingStep step) => _completedIds.Contains(step.Id);
+
+    private int NextStepNumber =>
+        _nextStep is null ? 0 : OnboardingJourney.GetStepNumber(_nextStep);
+
+    private double ProgressPercent =>
+        _summary.Total <= 0 ? 0 : (_summary.Completed * 100.0) / _summary.Total;
+
+    private string ProgressPillClass =>
+        _summary.IsComplete ? "ui-status-pill-success" : "ui-status-pill-warning";
+
+    private string ProgressLabel =>
+        _summary.IsComplete
+            ? "Setup complete"
+            : $"{_summary.Completed} of {_summary.Total} steps done";
+
+    private string ProgressDetail =>
+        _summary.IsComplete
+            ? "You can revisit these steps anytime."
+            : _nextStep is null
+                ? $"{_summary.Remaining} remaining on this device."
+                : $"Next: {_nextStep.Title}.";
+
+    private async Task MarkNextStepDoneAsync()
+    {
+        if (_nextStep is null || IsComplete(_nextStep))
+        {
+            return;
+        }
+
+        await MarkStepDoneAsync(_nextStep);
+    }
+
+    private async Task MarkStepDoneAsync(OnboardingStep step)
+    {
+        if (IsComplete(step))
+        {
+            return;
+        }
+
+        _busy = true;
+        await OnboardingProgress.MarkCompleteAsync(step.Id);
+        await ReloadAsync();
+        _busy = false;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task ToggleStepAsync(OnboardingStep step)
+    {
+        _busy = true;
+        var next = !IsComplete(step);
+        await OnboardingProgress.SetStepCompletedAsync(step.Id, next);
+        await ReloadAsync();
+        _busy = false;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task ResetAsync()
+    {
+        var confirm = await JsRuntime.InvokeAsync<bool>(
+            "confirm",
+            "Reset setup progress on this device? Completed steps will be cleared.");
+
+        if (!confirm)
+        {
+            return;
+        }
+
+        _busy = true;
+        await OnboardingProgress.ResetAsync();
+        await ReloadAsync();
+        _busy = false;
+        await InvokeAsync(StateHasChanged);
+    }
+}

@@ -189,6 +189,7 @@
             RemoveOptimisticUserMessage();
             _messages.Add(sendResult.Payload!.UserMessage);
             _messages.Add(sendResult.Payload.AssistantMessage);
+
             _scrollMessagesAfterRender = true;
         }
         finally

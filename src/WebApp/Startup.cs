@@ -89,6 +89,7 @@ public static class DependencyInject
     {
         services.AddInfrastructure(configuration);
         services.AddScoped<CurrentUser>();
+        services.AddScoped<OnboardingProgressService>();
     }
 
 

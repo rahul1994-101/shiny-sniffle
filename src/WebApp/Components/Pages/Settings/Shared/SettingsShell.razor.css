@@ -375,25 +375,6 @@
     gap: var(--ui-space-4);
 }
 
-.settings-content ::deep .settings-journey-next {
-    min-width: 0;
-}
-
-.settings-content ::deep .settings-journey-next-kicker {
-    margin: 0 0 var(--ui-space-2);
-    font-size: 0.6875rem;
-    font-weight: 600;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: var(--app-fg-muted);
-}
-
-.settings-content ::deep .settings-journey-next-link.ui-group-row {
-    border-radius: var(--app-radius-md);
-    border: 1px solid var(--app-border-subtle);
-    background: var(--app-surface-elevated);
-}
-
 .settings-content ::deep .settings-panel {
     display: grid;
     grid-template-rows: auto auto auto;
@@ -933,4 +914,279 @@
     width: 1rem;
     height: 1rem;
     accent-color: var(--app-accent);
+}
+
+.settings-content ::deep .onboarding-page .onboarding-progress-head {
+    margin-bottom: var(--ui-space-4);
+}
+
+.settings-content ::deep .onboarding-page .onboarding-progress-summary {
+    display: grid;
+    gap: var(--ui-space-2);
+}
+
+.settings-content ::deep .onboarding-page .onboarding-progress-track {
+    height: 0.25rem;
+    border-radius: 999px;
+    background: var(--app-surface-muted);
+    overflow: hidden;
+}
+
+.settings-content ::deep .onboarding-page .onboarding-progress-fill {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: var(--app-accent);
+    transition: width var(--ui-duration-normal) var(--ui-ease-out);
+}
+
+.settings-content ::deep .onboarding-page .onboarding-next-card {
+    border-color: color-mix(in srgb, var(--app-accent) 24%, var(--app-border));
+    background: color-mix(in srgb, var(--app-accent) 5%, var(--settings-surface));
+}
+
+.settings-content ::deep .onboarding-page .onboarding-next-card-complete {
+    border-color: color-mix(in srgb, var(--app-accent) 20%, var(--app-border));
+    background: color-mix(in srgb, var(--app-accent) 4%, var(--settings-surface));
+}
+
+.settings-content ::deep .onboarding-page .onboarding-next-kicker {
+    margin: 0 0 var(--ui-space-2);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: var(--app-accent);
+}
+
+.settings-content ::deep .onboarding-page .onboarding-next-head {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--ui-space-3);
+    margin-bottom: var(--ui-space-3);
+}
+
+.settings-content ::deep .onboarding-page .onboarding-next-icon {
+    width: 1.375rem;
+    height: 1.375rem;
+    margin-top: 0.15rem;
+    color: var(--app-accent);
+    flex-shrink: 0;
+}
+
+.settings-content ::deep .onboarding-page .onboarding-next-copy {
+    min-width: 0;
+}
+
+.settings-content ::deep .onboarding-page .onboarding-next-head .settings-section-title {
+    margin: 0 0 var(--ui-space-2);
+}
+
+.settings-content ::deep .onboarding-page .onboarding-step-module-pill {
+    display: inline-flex;
+    align-items: center;
+    margin: 0;
+    padding: 0.12rem 0.45rem;
+    border: 1px solid var(--app-border);
+    border-radius: 999px;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--app-muted);
+    background: var(--app-surface-muted);
+}
+
+.settings-content ::deep .onboarding-page .onboarding-step-details {
+    display: grid;
+    gap: var(--ui-space-3);
+    margin: 0 0 var(--ui-space-4);
+}
+
+.settings-content ::deep .onboarding-page .onboarding-step-details > div {
+    display: grid;
+    gap: 0.25rem;
+}
+
+.settings-content ::deep .onboarding-page .onboarding-step-details dt {
+    margin: 0;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: var(--app-muted);
+}
+
+.settings-content ::deep .onboarding-page .onboarding-step-details dd {
+    margin: 0;
+    font-size: 0.9375rem;
+    line-height: 1.45;
+    color: var(--app-fg);
+}
+
+.settings-content ::deep .onboarding-page .onboarding-next-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--ui-space-2);
+}
+
+.settings-content ::deep .onboarding-page .onboarding-next-actions .ui-btn {
+    flex: 1 1 calc(50% - var(--ui-space-2));
+    min-width: min(100%, 10rem);
+    margin-top: 0;
+}
+
+.settings-content ::deep .onboarding-page .onboarding-path-lead {
+    margin-top: 0.35rem;
+}
+
+.settings-content ::deep .onboarding-page .onboarding-path {
+    list-style: none;
+    margin: var(--ui-space-4) 0 0;
+    padding: 0;
+    display: grid;
+}
+
+.settings-content ::deep .onboarding-page .onboarding-path-item {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: var(--ui-space-3);
+    margin: 0;
+    padding: var(--ui-space-3) 0;
+}
+
+.settings-content ::deep .onboarding-page .onboarding-path-item:not(:last-child) {
+    border-bottom: 1px solid var(--app-border);
+}
+
+.settings-content ::deep .onboarding-page .onboarding-path-rail {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 2rem;
+    padding-top: 0.1rem;
+}
+
+.settings-content ::deep .onboarding-page .onboarding-path-rail::after {
+    content: "";
+    flex: 1 1 auto;
+    width: 2px;
+    min-height: 1.25rem;
+    margin-top: 0.35rem;
+    background: var(--app-border);
+}
+
+.settings-content ::deep .onboarding-page .onboarding-path-item:last-child .onboarding-path-rail::after {
+    display: none;
+}
+
+.settings-content ::deep .onboarding-page .onboarding-path-marker {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    border: 2px solid var(--app-border-strong);
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--app-muted);
+    background: var(--app-surface-subtle);
+}
+
+.settings-content ::deep .onboarding-page .onboarding-path-marker-next {
+    border-color: var(--app-accent);
+    color: var(--app-accent);
+    background: color-mix(in srgb, var(--app-accent) 10%, transparent);
+}
+
+.settings-content ::deep .onboarding-page .onboarding-path-marker-done {
+    border-color: color-mix(in srgb, var(--app-accent) 35%, var(--app-border));
+    color: var(--app-accent);
+    background: color-mix(in srgb, var(--app-accent) 12%, transparent);
+}
+
+.settings-content ::deep .onboarding-page .onboarding-path-marker svg {
+    width: 0.95rem;
+    height: 0.95rem;
+}
+
+.settings-content ::deep .onboarding-page .onboarding-path-content {
+    min-width: 0;
+    padding-bottom: var(--ui-space-1);
+}
+
+.settings-content ::deep .onboarding-page .onboarding-path-item-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem 0.5rem;
+    margin-bottom: 0.35rem;
+}
+
+.settings-content ::deep .onboarding-page .onboarding-path-badge {
+    background: color-mix(in srgb, var(--app-accent) 12%, var(--app-surface-muted));
+    color: var(--app-accent);
+}
+
+.settings-content ::deep .onboarding-page .onboarding-path-badge-done {
+    background: color-mix(in srgb, var(--app-accent) 8%, var(--app-surface-muted));
+    color: var(--app-success-fg, var(--app-accent));
+}
+
+.settings-content ::deep .onboarding-page .onboarding-path-item-title {
+    margin: 0 0 0.25rem;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--app-fg);
+}
+
+.settings-content ::deep .onboarding-page .onboarding-path-item-lead {
+    margin: 0;
+    font-size: 0.875rem;
+    line-height: 1.45;
+    color: var(--app-muted);
+}
+
+.settings-content ::deep .onboarding-page .onboarding-path-item-complete .onboarding-path-item-title,
+.settings-content ::deep .onboarding-page .onboarding-path-item-complete .onboarding-path-item-lead {
+    color: var(--app-muted);
+}
+
+.settings-content ::deep .onboarding-page .onboarding-path-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--ui-space-2);
+    margin-top: var(--ui-space-3);
+}
+
+.settings-content ::deep .onboarding-page .onboarding-path-actions .ui-btn-sm {
+    min-width: 5.5rem;
+}
+
+.settings-content ::deep .onboarding-page .onboarding-later-card .settings-section-title {
+    margin-bottom: 0.15rem;
+}
+
+.settings-content ::deep .onboarding-page .onboarding-later-row {
+    margin-top: var(--ui-space-3);
+    padding-inline: 0;
+}
+
+.settings-content ::deep .onboarding-page .onboarding-actions {
+    display: flex;
+    justify-content: flex-start;
+    margin-top: var(--ui-space-1);
+}
+
+@media (min-width: 641px) {
+    .settings-content ::deep .onboarding-page .onboarding-next-actions .ui-btn {
+        flex: 0 1 auto;
+        min-width: 9.5rem;
+    }
+
+    .settings-content ::deep .onboarding-page .onboarding-actions .ui-btn-secondary {
+        width: auto;
+    }
 }

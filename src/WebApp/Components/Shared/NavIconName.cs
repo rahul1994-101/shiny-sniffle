@@ -12,5 +12,8 @@ public enum NavIconName
     Tags,
     General,
     Appearance,
-    EmailProviders
+    EmailProviders,
+    Chat,
+    GettingStarted,
+    Help
 }

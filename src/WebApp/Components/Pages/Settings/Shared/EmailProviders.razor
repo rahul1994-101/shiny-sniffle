@@ -33,7 +33,7 @@ else
             {
                 <div class="ui-empty-state">
                     <p class="ui-empty-state-title">No providers yet</p>
-                    <p class="ui-empty-state-lead">Add a template or run the database migration to seed defaults.</p>
+                    <p class="ui-empty-state-lead">Add a custom template with your IMAP and SMTP server settings.</p>
                     <button type="button"
                             class="ui-btn ui-btn-primary"
                             disabled="@IsFormBusy"
@@ -55,6 +55,10 @@ else
                                     @if (provider.IsSystem)
                                     {
                                         <span class="ui-list-row-badge">System</span>
+                                    }
+                                    @if (!IsProviderConfigured(provider))
+                                    {
+                                        <span class="ui-list-row-badge">Incomplete</span>
                                     }
                                 </span>
                                 <span class="ui-group-row-desc">
@@ -146,7 +150,11 @@ else
     private bool CanSaveEditor =>
         !IsFormBusy
         && !_editorReadOnly
-        && !string.IsNullOrWhiteSpace(_form.Name);
+        && !string.IsNullOrWhiteSpace(_form.Name)
+        && !string.IsNullOrWhiteSpace(_form.ImapHost)
+        && !string.IsNullOrWhiteSpace(_form.SmtpHost)
+        && IsValidPort(_form.ImapPort)
+        && IsValidPort(_form.SmtpPort);
 
     private string EditorTitle =>
         _form.Id is null
@@ -344,6 +352,11 @@ else
 
     private int NextSortOrder() =>
         _providers.Count == 0 ? 10 : _providers.Max(p => p.SortOrder) + 10;
+
+    private static bool IsProviderConfigured(EmailProviderDto provider) =>
+        EmailProviderCatalog.ValidateCatalogEndpoints(provider) is null;
+
+    private static bool IsValidPort(int port) => port is >= 1 and <= 65535;
 
     private async Task SaveEditorAsync()
     {

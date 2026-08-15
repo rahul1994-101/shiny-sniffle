@@ -1,0 +1,72 @@
+@page "/help"
+@inherits BaseComponent
+
+@attribute [Authorize]
+
+@inject OnboardingProgressService OnboardingProgress
+
+<PageTitle>Help</PageTitle>
+
+<SettingsShell Title="Help"
+               Subtitle="Guides and setup for the app.">
+    <div class="settings-sections">
+        <nav class="ui-group" aria-label="Help topics">
+            @foreach (var area in _areas)
+            {
+                <NavLink class="ui-group-row" href="@area.Href">
+                    <span class="ui-group-row-leading">
+                        <NavIcon Name="@area.Icon" CssClass="ui-group-row-icon" />
+                        <span>
+                            @if (area.ShowRemainingBadge && _onboardingSummary is { IsComplete: false })
+                            {
+                                <span class="ui-list-row-meta">
+                                    <span class="ui-group-row-title">@area.Title</span>
+                                    <span class="ui-list-row-badge">@_onboardingSummary.Remaining left</span>
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="ui-group-row-title">@area.Title</span>
+                            }
+                            <span class="ui-group-row-desc">@area.Lead</span>
+                        </span>
+                    </span>
+                    <span class="ui-group-row-chevron" aria-hidden="true">›</span>
+                </NavLink>
+            }
+        </nav>
+    </div>
+</SettingsShell>
+
+@code {
+    private OnboardingProgressSummary? _onboardingSummary;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        var completed = await OnboardingProgress.GetCompletedIdsAsync();
+        _onboardingSummary = OnboardingProgress.Summarize(completed);
+        StateHasChanged();
+    }
+
+    private static readonly HelpArea[] _areas =
+    [
+        new(
+            "/help/getting-started",
+            "Getting started",
+            "Profile, mail presets, inbox connection, and first triage.",
+            NavIconName.GettingStarted,
+            ShowRemainingBadge: true)
+    ];
+
+    private sealed record HelpArea(
+        string Href,
+        string Title,
+        string Lead,
+        NavIconName Icon,
+        bool ShowRemainingBadge = false);
+}

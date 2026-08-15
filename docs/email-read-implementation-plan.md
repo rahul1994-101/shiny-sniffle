@@ -274,7 +274,7 @@ When you implement actions, they should accept **`(folder, uid)`** from Layer 6 
 ## Out of scope (this doc)
 
 - **Send** scenarios (separate pass)
-- Mailbox connection UI (Workspace → Email accounts; provider templates stay under Settings → Email → Providers)
+- Mailbox connection UI (Workspace → Email accounts; provider templates stay under Settings → Email providers)
 - Assistant agent routing
 
 ---

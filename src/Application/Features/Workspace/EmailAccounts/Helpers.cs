@@ -124,7 +124,7 @@ internal static class EmailSettingsMapping
 
             if (string.IsNullOrWhiteSpace(response.ImapHost) || string.IsNullOrWhiteSpace(response.SmtpHost))
             {
-                return "Mail provider server settings are missing. Configure them under Settings → Email → Providers.";
+                return "Mail provider server settings are missing. Configure them under Settings → Email providers.";
             }
         }
         else if (string.IsNullOrWhiteSpace(password))
@@ -253,7 +253,7 @@ internal static class EmailSettingsCatalog
         var catalog = await emailProviderRepo.GetAllEmailProvidersByUserIdAsync(userId, cancellationToken);
         if (catalog.Count == 0)
         {
-            return (catalog, "No mail providers are configured. Add templates under Settings → Email → Providers.");
+            return (catalog, "No mail providers are configured. Add templates under Settings → Email providers.");
         }
 
         return (catalog, null);
