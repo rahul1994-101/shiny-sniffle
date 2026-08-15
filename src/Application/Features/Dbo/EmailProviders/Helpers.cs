@@ -27,9 +27,19 @@ internal static partial class EmailProviderMapping
             return slugError;
         }
 
+        if (string.IsNullOrWhiteSpace(dto.ImapHost))
+        {
+            return "IMAP host is required.";
+        }
+
         if (dto.ImapHost.Trim().Length > HostMaxLength)
         {
             return $"IMAP host must be {HostMaxLength} characters or fewer.";
+        }
+
+        if (string.IsNullOrWhiteSpace(dto.SmtpHost))
+        {
+            return "SMTP host is required.";
         }
 
         if (dto.SmtpHost.Trim().Length > HostMaxLength)

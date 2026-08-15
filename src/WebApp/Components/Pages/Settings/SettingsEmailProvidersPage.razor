@@ -5,10 +5,11 @@
 
 <PageTitle>Email providers</PageTitle>
 
-<SettingsShell Title="Providers"
-               Subtitle="IMAP/SMTP templates for mailbox connections."
-               Breadcrumbs="SettingsBreadcrumbTrails.Email">
-    <ChildContent>
+<SettingsShell Title="Email providers"
+               Subtitle="IMAP/SMTP server presets for mailbox connections."
+               Breadcrumbs="SettingsBreadcrumbTrails.EmailProviders">
+    <div class="settings-sections">
         <EmailProviders />
-    </ChildContent>
+        <SettingsJourneyNext Step="OnboardingJourney.AfterEmailProviders" />
+    </div>
 </SettingsShell>

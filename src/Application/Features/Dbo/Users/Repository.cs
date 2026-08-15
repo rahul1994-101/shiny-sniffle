@@ -39,7 +39,14 @@ public sealed class UserRepository(IDbContextFactory<AppDbContext> _dbContextFac
         return user is null ? null : GeneralSettingsDto.FromEntity(user);
     }
 
-    public async Task<GeneralSettingsDto?> UpdateProfileAsync(Guid userId, string firstName, string lastName, Guid updatedBy, CancellationToken cancellationToken = default)
+    public async Task<GeneralSettingsDto?> UpdateProfileAsync(
+        Guid userId,
+        string firstName,
+        string lastName,
+        string? mobile,
+        string? password,
+        Guid updatedBy,
+        CancellationToken cancellationToken = default)
     {
         await using var ctx = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
         var user = await FindActiveTrackedUserAsync(ctx, userId, cancellationToken);
@@ -50,36 +57,17 @@ public sealed class UserRepository(IDbContextFactory<AppDbContext> _dbContextFac
 
         user.FirstName = firstName.Trim();
         user.LastName = lastName.Trim();
+        user.Mobile = string.IsNullOrWhiteSpace(mobile) ? null : mobile.Trim();
+
+        if (!string.IsNullOrWhiteSpace(password))
+        {
+            user.Password = password.Trim().Encrypt();
+        }
+
         user.UpdatedBy = updatedBy;
         user.UpdatedAt = DateTime.UtcNow;
         await ctx.SaveChangesAsync(cancellationToken);
         return GeneralSettingsDto.FromEntity(user);
-    }
-
-    public async Task<(bool Updated, bool WrongPassword)> TryChangePasswordAsync(
-        Guid userId,
-        string currentPassword,
-        string newPassword,
-        Guid updatedBy,
-        CancellationToken cancellationToken = default)
-    {
-        await using var ctx = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
-        var user = await FindActiveTrackedUserAsync(ctx, userId, cancellationToken);
-        if (user is null)
-        {
-            return (false, false);
-        }
-
-        if (!UserPasswordHelpers.MatchesStoredPassword(user.Password, currentPassword))
-        {
-            return (false, true);
-        }
-
-        user.Password = newPassword.Trim().Encrypt();
-        user.UpdatedBy = updatedBy;
-        user.UpdatedAt = DateTime.UtcNow;
-        await ctx.SaveChangesAsync(cancellationToken);
-        return (true, false);
     }
 
     private static Task<User?> FindActiveTrackedUserAsync(AppDbContext ctx, Guid userId, CancellationToken cancellationToken) =>

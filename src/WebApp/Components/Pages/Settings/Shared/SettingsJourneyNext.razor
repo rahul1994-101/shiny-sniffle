@@ -1,0 +1,21 @@
+<nav class="settings-journey-next" aria-label="Next setup step">
+    <p class="settings-journey-next-kicker">Next step</p>
+    <NavLink class="ui-group-row settings-journey-next-link" href="@Step.Href">
+        <span class="ui-group-row-leading">
+            @if (Step.Icon is { } icon)
+            {
+                <NavIcon Name="@icon" CssClass="ui-group-row-icon" />
+            }
+            <span>
+                <span class="ui-group-row-title">@Step.Title</span>
+                <span class="ui-group-row-desc">@Step.Lead</span>
+            </span>
+        </span>
+        <span class="ui-group-row-chevron" aria-hidden="true">›</span>
+    </NavLink>
+</nav>
+
+@code {
+    [Parameter, EditorRequired]
+    public OnboardingJourneyStep Step { get; set; } = null!;
+}

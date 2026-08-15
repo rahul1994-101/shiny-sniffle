@@ -7,9 +7,9 @@
 
 <SettingsShell Title="Email accounts"
                Subtitle="Connect IMAP/SMTP for the Email agent."
-               Breadcrumbs="WorkspaceBreadcrumbTrails.EmailAccounts"
->
-    <ChildContent>
+               Breadcrumbs="WorkspaceBreadcrumbTrails.EmailAccounts">
+    <div class="settings-sections">
         <EmailAccounts />
-    </ChildContent>
+        <SettingsJourneyNext Step="OnboardingJourney.AfterEmailAccounts" />
+    </div>
 </SettingsShell>

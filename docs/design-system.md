@@ -2,7 +2,7 @@
 
 One UI–inspired, **no external UI library**. Tokens and shared components live in `src/WebApp/wwwroot/app.css`. Theme is **dark-first** with `[data-theme="light"]` overrides; user choice is persisted **per device** via `webAppTheme` in `wwwroot/js/webapp.js` (`localStorage` key `app-theme`).
 
-**Deferred:** Saving theme to `dbo.UserSetting` (cross-device sync) is intentionally out of scope — cosmetic, instant client toggle, and first paint depends on inline script in `App.razor`. Revisit only if product requires the same theme after sign-in on every device.
+**Deferred:** Server-side theme persistence (cross-device sync) is intentionally out of scope — cosmetic, instant client toggle, and first paint depends on inline script in `App.razor`. Revisit only if product requires the same theme after sign-in on every device.
 
 **Cursor rule (short):** [`.cursor/rules/design-system.mdc`](../.cursor/rules/design-system.mdc)
 

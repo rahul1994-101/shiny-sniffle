@@ -43,31 +43,31 @@ public static class SettingsFormValidation
         return null;
     }
 
-    public static string? ValidatePasswordChange(string current, string newPassword, string confirm)
+    public static string? ValidateMobile(string? mobile)
     {
-        if (string.IsNullOrWhiteSpace(current))
+        if (string.IsNullOrWhiteSpace(mobile))
         {
-            return "Current password is required.";
+            return null;
         }
 
-        if (string.IsNullOrWhiteSpace(newPassword))
+        if (mobile.Length > 20)
         {
-            return "New password is required.";
+            return "Mobile must be 20 characters or fewer.";
         }
 
-        if (newPassword.Length is < 6 or > 255)
+        return null;
+    }
+
+    public static string? ValidateOptionalPassword(string password)
+    {
+        if (string.IsNullOrWhiteSpace(password))
         {
-            return "New password must be between 6 and 255 characters.";
+            return null;
         }
 
-        if (string.IsNullOrWhiteSpace(confirm))
+        if (password.Length is < 6 or > 255)
         {
-            return "Confirm password is required.";
-        }
-
-        if (!string.Equals(newPassword, confirm, StringComparison.Ordinal))
-        {
-            return "New password and confirmation do not match.";
+            return "Password must be between 6 and 255 characters.";
         }
 
         return null;

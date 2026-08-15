@@ -124,18 +124,29 @@ public sealed class EmailProviderRepository(IDbContextFactory<AppDbContext> _dbC
         return (EmailProviderDto.FromEntity(entity), null, false, false);
     }
 
-    public async Task<(bool Found, bool Blocked)> TrySoftDeleteAsync(Guid providerId, Guid userId, CancellationToken cancellationToken = default)
+    public async Task<(bool Found, bool BlockedSystem, bool InUseByAccounts)> TrySoftDeleteAsync(
+        Guid providerId,
+        Guid userId,
+        CancellationToken cancellationToken = default)
     {
         await using var ctx = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
         var entity = await ctx.EmailProviders.FirstOrDefaultAsync(x => x.Id == providerId && !x.IsDeleted, cancellationToken);
         if (entity is null || (!entity.IsSystem && entity.UserId != userId))
         {
-            return (false, false);
+            return (false, false, false);
         }
 
         if (entity.IsSystem)
         {
-            return (true, true);
+            return (true, true, false);
+        }
+
+        var inUse = await ctx.EmailAccounts.AnyAsync(
+            x => x.EmailProviderId == providerId && !x.IsDeleted,
+            cancellationToken);
+        if (inUse)
+        {
+            return (true, false, true);
         }
 
         entity.IsDeleted = true;
@@ -143,7 +154,7 @@ public sealed class EmailProviderRepository(IDbContextFactory<AppDbContext> _dbC
         entity.UpdatedBy = userId;
         entity.UpdatedAt = DateTime.UtcNow;
         await ctx.SaveChangesAsync(cancellationToken);
-        return (true, false);
+        return (true, false, false);
     }
 
     private static Task<bool> IsSlugTakenAsync(

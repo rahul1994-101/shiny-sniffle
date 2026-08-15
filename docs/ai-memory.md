@@ -22,7 +22,7 @@ Current user message
 |---|--------|---------|--------|
 | 1 | **Short-term** | `ChatMessage` — last N rows | Done — `ChatMemoryLimits.ShortTermMessageLimit` (12) |
 | 2 | **Thread** | `ChatThread.memorySummary`, `memorySummaryThroughMessageId` | Done — `ThreadMemoryService` rolls summary when count > 12 |
-| 3 | **User** | `User` + `UserSetting`; future `UserMemoryFact` | Not injected into prompts yet |
+| 3 | **User** | `User`; future `UserSetting` + `UserMemoryFact` | Not injected into prompts yet |
 | 4 | **Working** | Future `ChatThreadWorkingMemory` (JSON) or cache | Not started |
 
 ### Thread memory (phase A)
@@ -35,7 +35,7 @@ Thread memory columns live in `src/Infrastructure/Database/chat/Tables/ChatThrea
 
 ### User memory (phase B — next)
 
-- `UserMemoryService` loads profile + `UserSetting` (e.g. email config summary).
+- `UserMemoryService` loads profile (and later `UserSetting` when re-added for prefs / email config summary).
 - Orchestrator injects as system context; agents unchanged.
 
 ### User facts (phase C)

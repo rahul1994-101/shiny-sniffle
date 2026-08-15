@@ -1,11 +1,9 @@
 @inherits BaseComponent
-
-@inject IHttpContextAccessor HttpContextAccessor
+@implements IDisposable
 
 @if (_busy == TabBusy.Loading)
 {
     <div class="settings-loading" role="status" aria-busy="true" aria-label="Loading account settings">
-        <div class="settings-skeleton settings-skeleton-card"></div>
         <div class="settings-skeleton settings-skeleton-card"></div>
     </div>
 }
@@ -14,7 +12,7 @@ else
     <div class="settings-sections">
         <section class="settings-card" aria-labelledby="profile-heading">
             <h2 id="profile-heading" class="settings-section-title">Profile</h2>
-            <p class="settings-section-lead">Your name is shown in the app, sidebar, and chat.</p>
+            <p class="settings-section-lead">Your account details for sign-in and display in the app.</p>
 
             <div class="settings-profile-header">
                 <div class="settings-account-avatar" aria-hidden="true">@Initials()</div>
@@ -32,7 +30,7 @@ else
                            @bind="_profile.FirstName"
                            @bind:after="OnProfileEdited"
                            autocomplete="given-name"
-                           disabled="@IsProfileSaving" />
+                           disabled="@IsSaving" />
                     @if (_firstNameError is not null)
                     {
                         <p class="settings-field-error" role="alert">@_firstNameError</p>
@@ -46,7 +44,7 @@ else
                            @bind="_profile.LastName"
                            @bind:after="OnProfileEdited"
                            autocomplete="family-name"
-                           disabled="@IsProfileSaving" />
+                           disabled="@IsSaving" />
                     @if (_lastNameError is not null)
                     {
                         <p class="settings-field-error" role="alert">@_lastNameError</p>
@@ -65,116 +63,58 @@ else
                 <p class="settings-hint">Sign-in email cannot be changed here.</p>
             </div>
 
-            <div class="settings-card-footer">
-                <button type="button"
-                        class="ui-btn ui-btn-primary"
-                        disabled="@(!CanSaveProfile)"
-                        @onclick="SaveProfileAsync">
-                    @(_profileSaving ? "Saving…" : "Save profile")
-                </button>
-            </div>
-
-            @if (_profileStatus.Current is not null)
-            {
-                <p class="ui-status-pill @(_profileStatus.Current.IsError ? "ui-status-pill-error" : "ui-status-pill-success") @(_profileStatus.Current.Fading ? "ui-status-pill-fading" : null)"
-                   role="status"
-                   aria-live="polite">
-                    <span class="ui-status-pill-label">@_profileStatus.Current.Message</span>
-                </p>
-            }
-        </section>
-
-        <section class="settings-card" aria-labelledby="password-heading">
-            <h2 id="password-heading" class="settings-section-title">Password</h2>
-            <p class="settings-section-lead">Choose a new sign-in password. No reset email is sent.</p>
-
-            <form autocomplete="off" @onsubmit:preventDefault>
-            <div class="settings-field @(string.IsNullOrWhiteSpace(_currentPasswordError) ? null : "settings-field-invalid")">
-                <label class="settings-label" for="settings-pw-current">Current password</label>
-                <div class="settings-password-wrap">
-                    <input id="settings-pw-current"
-                           name="settings-pw-current"
-                           type="@(_showCurrentPassword ? "text" : "password")"
-                           class="settings-input"
-                           @bind="_currentPassword"
-                           @bind:after="OnPasswordEdited"
-                           autocomplete="off"
-                           readonly="@_blockPasswordAutofill"
-                           @onfocus="OnPasswordFieldFocus"
-                           disabled="@IsPasswordSaving" />
-                    <PasswordVisibilityButton Visible="_showCurrentPassword"
-                                              Disabled="@IsPasswordSaving"
-                                              OnToggle="@(() => _showCurrentPassword = !_showCurrentPassword)" />
-                </div>
-                @if (_currentPasswordError is not null)
+            <div class="settings-field @(string.IsNullOrWhiteSpace(_mobileError) ? null : "settings-field-invalid")">
+                <label class="settings-label" for="profile-mobile">Mobile</label>
+                <input id="profile-mobile"
+                       type="tel"
+                       class="settings-input"
+                       @bind="_profile.Mobile"
+                       @bind:after="OnProfileEdited"
+                       autocomplete="tel"
+                       disabled="@IsSaving" />
+                @if (_mobileError is not null)
                 {
-                    <p class="settings-field-error" role="alert">@_currentPasswordError</p>
+                    <p class="settings-field-error" role="alert">@_mobileError</p>
                 }
             </div>
 
-            <div class="settings-field @(string.IsNullOrWhiteSpace(_newPasswordError) ? null : "settings-field-invalid")">
-                <label class="settings-label" for="settings-pw-new">New password</label>
+            <div class="settings-field @(string.IsNullOrWhiteSpace(_passwordError) ? null : "settings-field-invalid")">
+                <label class="settings-label" for="profile-password">Password</label>
                 <div class="settings-password-wrap">
-                    <input id="settings-pw-new"
-                           name="settings-pw-new"
-                           type="@(_showNewPassword ? "text" : "password")"
+                    <input id="profile-password"
+                           type="@(_showPassword ? "text" : "password")"
                            class="settings-input"
-                           @bind="_newPassword"
-                           @bind:after="OnPasswordEdited"
-                           autocomplete="off"
-                           readonly="@_blockPasswordAutofill"
-                           @onfocus="OnPasswordFieldFocus"
-                           disabled="@IsPasswordSaving" />
-                    <PasswordVisibilityButton Visible="_showNewPassword"
-                                              Disabled="@IsPasswordSaving"
-                                              OnToggle="@(() => _showNewPassword = !_showNewPassword)" />
+                           @bind="_password"
+                           @bind:after="OnProfileEdited"
+                           autocomplete="new-password"
+                           placeholder="@(_profile.HasStoredPassword ? "Saved — leave blank to keep" : "Sign-in password")"
+                           disabled="@IsSaving" />
+                    <PasswordVisibilityButton Visible="_showPassword"
+                                              Disabled="@IsSaving"
+                                              OnToggle="@(() => _showPassword = !_showPassword)" />
                 </div>
-                <p class="settings-hint">Must be between 6 and 255 characters.</p>
-                @if (_newPasswordError is not null)
+                <p class="settings-hint">Stored encrypted. Leave blank on save to keep the existing password.</p>
+                @if (_passwordError is not null)
                 {
-                    <p class="settings-field-error" role="alert">@_newPasswordError</p>
-                }
-            </div>
-
-            <div class="settings-field @(string.IsNullOrWhiteSpace(_confirmPasswordError) ? null : "settings-field-invalid")">
-                <label class="settings-label" for="settings-pw-confirm">Confirm new password</label>
-                <div class="settings-password-wrap">
-                    <input id="settings-pw-confirm"
-                           name="settings-pw-confirm"
-                           type="@(_showConfirmPassword ? "text" : "password")"
-                           class="settings-input"
-                           @bind="_confirmPassword"
-                           @bind:after="OnPasswordEdited"
-                           autocomplete="off"
-                           readonly="@_blockPasswordAutofill"
-                           @onfocus="OnPasswordFieldFocus"
-                           disabled="@IsPasswordSaving" />
-                    <PasswordVisibilityButton Visible="_showConfirmPassword"
-                                              Disabled="@IsPasswordSaving"
-                                              OnToggle="@(() => _showConfirmPassword = !_showConfirmPassword)" />
-                </div>
-                @if (_confirmPasswordError is not null)
-                {
-                    <p class="settings-field-error" role="alert">@_confirmPasswordError</p>
+                    <p class="settings-field-error" role="alert">@_passwordError</p>
                 }
             </div>
 
             <div class="settings-card-footer">
                 <button type="button"
                         class="ui-btn ui-btn-primary"
-                        disabled="@(!CanChangePassword)"
-                        @onclick="ChangePasswordAsync">
-                    @(_passwordSaving ? "Updating…" : "Update password")
+                        disabled="@(!CanSave)"
+                        @onclick="SaveAsync">
+                    @(_saving ? "Saving…" : "Save")
                 </button>
             </div>
-            </form>
 
-            @if (_passwordStatus.Current is not null)
+            @if (_status.Current is not null)
             {
-                <p class="ui-status-pill @(_passwordStatus.Current.IsError ? "ui-status-pill-error" : "ui-status-pill-success") @(_passwordStatus.Current.Fading ? "ui-status-pill-fading" : null)"
+                <p class="ui-status-pill @(_status.Current.IsError ? "ui-status-pill-error" : "ui-status-pill-success") @(_status.Current.Fading ? "ui-status-pill-fading" : null)"
                    role="status"
                    aria-live="polite">
-                    <span class="ui-status-pill-label">@_passwordStatus.Current.Message</span>
+                    <span class="ui-status-pill-label">@_status.Current.Message</span>
                 </p>
             }
         </section>
@@ -184,43 +124,29 @@ else
 @code {
     private GeneralSettingsDto _profile = new();
     private TabBusy _busy = TabBusy.Loading;
-    private bool _profileSaving;
-    private bool _passwordSaving;
-    private SettingsSectionStatusHandle _profileStatus = null!;
-    private SettingsSectionStatusHandle _passwordStatus = null!;
-    private string _currentPassword = string.Empty;
-    private string _newPassword = string.Empty;
-    private string _confirmPassword = string.Empty;
+    private bool _saving;
+    private SettingsSectionStatusHandle _status = null!;
+    private string _password = string.Empty;
     private string? _firstNameError;
     private string? _lastNameError;
-    private string? _currentPasswordError;
-    private string? _newPasswordError;
-    private string? _confirmPasswordError;
-    private bool _showCurrentPassword;
-    private bool _showNewPassword;
-    private bool _showConfirmPassword;
-    private bool _blockPasswordAutofill = true;
+    private string? _mobileError;
+    private string? _passwordError;
+    private bool _showPassword;
 
     protected override async Task OnInitializedAsync()
     {
-        _profileStatus = new SettingsSectionStatusHandle(() => InvokeAsync(StateHasChanged));
-        _passwordStatus = new SettingsSectionStatusHandle(() => InvokeAsync(StateHasChanged));
+        _status = new SettingsSectionStatusHandle(() => InvokeAsync(StateHasChanged));
         await LoadAsync();
     }
 
-    public void Dispose()
-    {
-        _profileStatus.Dispose();
-        _passwordStatus.Dispose();
-    }
+    public void Dispose() => _status.Dispose();
 
     #region # Load
 
     private async Task LoadAsync()
     {
         _busy = TabBusy.Loading;
-        _profileStatus.Clear();
-        _passwordStatus.Clear();
+        _status.Clear();
 
         var result = await Mediator.SendAsync(new GetGeneralSettingsByUserIdRequest(CurrentUser.Id));
 
@@ -228,13 +154,15 @@ else
 
         if (result.HasError)
         {
-            _profileStatus.Set(
+            _status.Set(
                 result.Errors.FirstOrDefault()?.Message ?? "Failed to load account settings.",
                 isError: true);
         }
         else
         {
             _profile = result.Payload;
+            _password = string.Empty;
+            _showPassword = false;
         }
 
         #endregion
@@ -244,27 +172,29 @@ else
 
     #endregion
 
-    #region # Profile
+    #region # Save
 
-    private void OnProfileEdited() => ValidateProfileFields();
+    private void OnProfileEdited() => ValidateFields();
 
-    private async Task SaveProfileAsync()
+    private async Task SaveAsync()
     {
-        ValidateProfileFields();
-        if (_firstNameError is not null || _lastNameError is not null)
+        ValidateFields();
+        if (_firstNameError is not null || _lastNameError is not null || _mobileError is not null || _passwordError is not null)
         {
             return;
         }
 
-        _profileSaving = true;
-        _profileStatus.Clear();
+        _saving = true;
+        _status.Clear();
 
         #region # Execute
 
         var result = await Mediator.SendAsync(new SaveGeneralProfileRequest(
             CurrentUser.Id,
             _profile.FirstName,
-            _profile.LastName));
+            _profile.LastName,
+            _profile.Mobile,
+            _password));
 
         #endregion
 
@@ -272,161 +202,45 @@ else
 
         if (result.HasError)
         {
-            _profileStatus.Set(
+            _status.Set(
                 result.Errors.FirstOrDefault()?.Message ?? "Failed to save profile.",
                 isError: true);
         }
         else
         {
             _profile = result.Payload;
-            _profileStatus.Set("Profile saved.", isError: false, autoClear: true);
-
-            var httpContext = HttpContextAccessor.HttpContext;
-            if (httpContext is not null)
-            {
-                await AuthCookieHelpers.SignInAsync(
-                    httpContext,
-                    CurrentUser.Id,
-                    _profile.Email,
-                    $"{_profile.FirstName} {_profile.LastName}".Trim());
-            }
+            _password = string.Empty;
+            _showPassword = false;
+            _status.Set("Profile saved.", isError: false, autoClear: true);
+            CurrentUser.UpdateDisplayName($"{_profile.FirstName} {_profile.LastName}".Trim());
+            await RefreshLayoutAsync();
         }
 
         #endregion
 
-        _profileSaving = false;
-    }
-
-    #endregion
-
-    #region # Password
-
-    private void OnPasswordFieldFocus()
-    {
-        if (_blockPasswordAutofill)
-        {
-            _blockPasswordAutofill = false;
-        }
-    }
-
-    private void OnPasswordEdited()
-    {
-        if (HasPasswordInput)
-        {
-            ValidatePasswordFields();
-        }
-        else
-        {
-            ClearPasswordFieldErrors();
-        }
-    }
-
-    private async Task ChangePasswordAsync()
-    {
-        ValidatePasswordFields();
-        if (_currentPasswordError is not null || _newPasswordError is not null || _confirmPasswordError is not null)
-        {
-            return;
-        }
-
-        _passwordSaving = true;
-        _passwordStatus.Clear();
-
-        #region # Execute
-
-        var result = await Mediator.SendAsync(new ChangePasswordRequest(
-            CurrentUser.Id,
-            _currentPassword,
-            _newPassword,
-            _confirmPassword));
-
-        #endregion
-
-        #region # Handle Result
-
-        if (result.HasError)
-        {
-            _passwordStatus.Set(
-                result.Errors.FirstOrDefault()?.Message ?? "Failed to change password.",
-                isError: true);
-        }
-        else
-        {
-            _currentPassword = string.Empty;
-            _newPassword = string.Empty;
-            _confirmPassword = string.Empty;
-            _showCurrentPassword = false;
-            _showNewPassword = false;
-            _showConfirmPassword = false;
-            _blockPasswordAutofill = true;
-            ClearPasswordFieldErrors();
-            _passwordStatus.Set("Password updated.", isError: false, autoClear: true);
-        }
-
-        #endregion
-
-        _passwordSaving = false;
+        _saving = false;
     }
 
     #endregion
 
     #region # Helpers
 
-    private void ValidateProfileFields()
+    private void ValidateFields()
     {
         _firstNameError = SettingsFormValidation.ValidateFirstName(_profile.FirstName);
         _lastNameError = SettingsFormValidation.ValidateLastName(_profile.LastName);
+        _mobileError = SettingsFormValidation.ValidateMobile(_profile.Mobile);
+        _passwordError = SettingsFormValidation.ValidateOptionalPassword(_password);
     }
 
-    private void ValidatePasswordFields()
-    {
-        ClearPasswordFieldErrors();
+    private bool IsSaving => _saving;
 
-        var message = SettingsFormValidation.ValidatePasswordChange(_currentPassword, _newPassword, _confirmPassword);
-        if (message is null)
-        {
-            return;
-        }
-
-        if (message.Contains("Current password", StringComparison.OrdinalIgnoreCase))
-        {
-            _currentPasswordError = message;
-        }
-        else if (message.Contains("Confirm", StringComparison.OrdinalIgnoreCase)
-            || message.Contains("match", StringComparison.OrdinalIgnoreCase))
-        {
-            _confirmPasswordError = message;
-        }
-        else
-        {
-            _newPasswordError = message;
-        }
-    }
-
-    private void ClearPasswordFieldErrors()
-    {
-        _currentPasswordError = null;
-        _newPasswordError = null;
-        _confirmPasswordError = null;
-    }
-
-    private bool IsProfileSaving => _profileSaving;
-
-    private bool IsPasswordSaving => _passwordSaving;
-
-    private bool HasPasswordInput =>
-        !string.IsNullOrEmpty(_currentPassword)
-        || !string.IsNullOrEmpty(_newPassword)
-        || !string.IsNullOrEmpty(_confirmPassword);
-
-    private bool CanSaveProfile =>
-        !IsProfileSaving && _firstNameError is null && _lastNameError is null;
-
-    private bool CanChangePassword =>
-        !IsPasswordSaving
-        && _currentPasswordError is null
-        && _newPasswordError is null
-        && _confirmPasswordError is null;
+    private bool CanSave =>
+        !IsSaving
+        && _firstNameError is null
+        && _lastNameError is null
+        && _mobileError is null
+        && _passwordError is null;
 
     private string DisplayName()
     {

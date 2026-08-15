@@ -18,10 +18,9 @@ public static class SettingsBreadcrumbTrails
         new("Settings", "/settings")
     ];
 
-    public static readonly IReadOnlyList<SettingsBreadcrumbItem> Email =
+    public static readonly IReadOnlyList<SettingsBreadcrumbItem> EmailProviders =
     [
-        new("Settings", "/settings"),
-        new("Email", "/settings/email/providers")
+        new("Settings", "/settings")
     ];
 }
 

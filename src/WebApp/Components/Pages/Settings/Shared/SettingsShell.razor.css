@@ -375,6 +375,25 @@
     gap: var(--ui-space-4);
 }
 
+.settings-content ::deep .settings-journey-next {
+    min-width: 0;
+}
+
+.settings-content ::deep .settings-journey-next-kicker {
+    margin: 0 0 var(--ui-space-2);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--app-fg-muted);
+}
+
+.settings-content ::deep .settings-journey-next-link.ui-group-row {
+    border-radius: var(--app-radius-md);
+    border: 1px solid var(--app-border-subtle);
+    background: var(--app-surface-elevated);
+}
+
 .settings-content ::deep .settings-panel {
     display: grid;
     grid-template-rows: auto auto auto;

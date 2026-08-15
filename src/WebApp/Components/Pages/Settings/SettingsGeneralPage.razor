@@ -6,7 +6,10 @@
 <PageTitle>General settings</PageTitle>
 
 <SettingsShell Title="General"
-               Subtitle="Profile and sign-in password."
+               Subtitle="Profile, mobile, and sign-in password."
                Breadcrumbs="SettingsBreadcrumbTrails.General">
-    <General />
+    <div class="settings-sections">
+        <General />
+        <SettingsJourneyNext Step="OnboardingJourney.AfterGeneral" />
+    </div>
 </SettingsShell>

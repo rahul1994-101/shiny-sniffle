@@ -32,7 +32,7 @@ public sealed class DeleteEmailProviderRequestHandler(EmailProviderRepository em
 
         #region # Execute
 
-        var (found, blocked) = await emailProviderRepo.TrySoftDeleteAsync(
+        var (found, blockedSystem, inUseByAccounts) = await emailProviderRepo.TrySoftDeleteAsync(
             request.ProviderId,
             request.UserId,
             cancellationToken);
@@ -45,9 +45,15 @@ public sealed class DeleteEmailProviderRequestHandler(EmailProviderRepository em
         {
             result.Failure(ErrorCode.NotFound, "Email provider not found.");
         }
-        else if (blocked)
+        else if (blockedSystem)
         {
             result.Failure(ErrorCode.BadRequest, "System providers cannot be deleted.");
+        }
+        else if (inUseByAccounts)
+        {
+            result.Failure(
+                ErrorCode.BadRequest,
+                "This provider is used by one or more email accounts. Remove or reassign those accounts first.");
         }
         else
         {

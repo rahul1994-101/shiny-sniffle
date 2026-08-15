@@ -26,18 +26,24 @@ public class GeneralSettingsDto
     public string Email { get; set; } = string.Empty;
     public string FirstName { get; set; } = string.Empty;
     public string LastName { get; set; } = string.Empty;
+    public string Mobile { get; set; } = string.Empty;
+    public bool HasStoredPassword { get; set; }
 
     public static GeneralSettingsDto FromEntity(User user) => new()
     {
         Email = user.Email,
         FirstName = user.FirstName,
-        LastName = user.LastName
+        LastName = user.LastName,
+        Mobile = user.Mobile ?? string.Empty,
+        HasStoredPassword = !string.IsNullOrWhiteSpace(user.Password)
     };
 
     public T AsResponse<T>() where T : GeneralSettingsDto, new() => new()
     {
         Email = Email,
         FirstName = FirstName,
-        LastName = LastName
+        LastName = LastName,
+        Mobile = Mobile,
+        HasStoredPassword = HasStoredPassword
     };
 }

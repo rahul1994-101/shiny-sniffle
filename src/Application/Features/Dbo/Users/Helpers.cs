@@ -18,7 +18,7 @@ internal static class UserPasswordHelpers
             return true;
         }
 
-        // Legacy plain-text rows (pre-encryption dev data) — removed on next password change.
+        // Legacy plain-text rows (pre-encryption dev data) — Keeping this fallback intentionally.
         return string.Equals(storedPassword, plain, StringComparison.OrdinalIgnoreCase);
     }
 }

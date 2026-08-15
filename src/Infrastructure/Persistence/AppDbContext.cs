@@ -10,8 +10,6 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
 
     public DbSet<ChatMessage> ChatMessages { get; set; }
 
-    public DbSet<UserSetting> UserSettings { get; set; }
-
     public DbSet<EmailProvider> EmailProviders { get; set; }
 
     public DbSet<EmailAccount> EmailAccounts { get; set; }
@@ -90,24 +88,6 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             entity.HasOne<ChatThread>()
                 .WithMany()
                 .HasForeignKey(e => e.ChatThreadId)
-                .OnDelete(DeleteBehavior.Restrict);
-        });
-        modelBuilder.Entity<UserSetting>(entity =>
-        {
-            entity.ToTable("UserSetting", "dbo");
-            entity.Property(e => e.UserId).HasColumnName("userId");
-            entity.Property(e => e.IsActive).HasColumnName("isActive");
-            entity.Property(e => e.IsDeleted).HasColumnName("isDeleted");
-            entity.Property(e => e.CreatedBy).HasColumnName("createdBy");
-            entity.Property(e => e.CreatedAt).HasColumnName("createdAt");
-            entity.Property(e => e.UpdatedBy).HasColumnName("updatedBy");
-            entity.Property(e => e.UpdatedAt).HasColumnName("updatedAt");
-            entity.HasIndex(e => e.UserId)
-                .IsUnique()
-                .HasFilter("[isDeleted] = 0");
-            entity.HasOne<User>()
-                .WithMany()
-                .HasForeignKey(e => e.UserId)
                 .OnDelete(DeleteBehavior.Restrict);
         });
         modelBuilder.Entity<EmailProvider>(entity =>
