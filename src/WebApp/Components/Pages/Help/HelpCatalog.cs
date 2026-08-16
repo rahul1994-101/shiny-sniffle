@@ -67,24 +67,24 @@ public static class HelpCatalog
     public static readonly HelpModule Workspace = new(
         "workspace",
         "Workspace",
-        "Contacts, connected inboxes, tags, and buckets.",
+        "Connected inboxes, contacts, tags, and buckets.",
         NavIconName.Workspace,
         [
             new HelpTopicGroup(
                 "Data",
                 [
                     new HelpTopic(
-                        "contacts",
-                        "Contacts",
-                        "People you reference in rules and workflows.",
-                        NavIconName.Contacts,
-                        "/workspace/contacts"),
-                    new HelpTopic(
                         "email-accounts",
                         "Email accounts",
                         "Connected inboxes for the Email agent.",
                         NavIconName.EmailAccounts,
-                        "/workspace/email/accounts")
+                        "/workspace/email/accounts"),
+                    new HelpTopic(
+                        "contacts",
+                        "Contacts",
+                        "People you reference in rules and workflows.",
+                        NavIconName.Contacts,
+                        "/workspace/contacts")
                 ]),
             new HelpTopicGroup(
                 "Organization",

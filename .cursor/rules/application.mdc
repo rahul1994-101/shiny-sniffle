@@ -222,6 +222,19 @@ public sealed class EmailProviderRepository(IDbContextFactory<AppDbContext> _dbC
 }
 ```
 
+### Lifecycle flags (`isActive` / `isDeleted`)
+
+All auditable tables share the same two-flag model (see `infrastructure.mdc`):
+
+| Flag | User meaning | Runtime |
+|------|----------------|---------|
+| `isDeleted` | Removed — gone from UI permanently | Row retained internally; excluded from all reads |
+| `isActive` | Paused — deactivate without deleting | Reversible; excluded from mail/agent until reactivated |
+
+- **Reads / lists:** `IsActive && !IsDeleted` for usable rows.
+- **Delete:** sets `IsDeleted = true` (and `IsActive = false` for consistency).
+- **Deactivate / reactivate:** toggles `IsActive` only — UI not built yet on most slices; keep the column and filter ready.
+
 ### Data access outside Features
 
 `AI/` and `Features/Shared/Services.cs` inject **slice repos** or **`SharedRepository`** — never `IDbContextFactory`. If a capability needs DB access that is not on a repo yet, add the method to the slice repo first.

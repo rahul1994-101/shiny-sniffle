@@ -66,14 +66,14 @@ else
                             <div class="ui-group-row ui-group-row-static ui-list-row-rich @(rowActive ? "settings-editor-row-active" : null)">
                                 <div class="ui-list-row-rich-body">
                                     <span class="ui-list-row-meta">
-                                        <span class="ui-group-row-title">@account.EmailAddress</span>
+                                        <span class="ui-group-row-title">@account.Alias</span>
                                         @if (account.IsDefault)
                                         {
                                             <span class="ui-list-row-badge">Default</span>
                                         }
                                     </span>
                                     <span class="ui-group-row-desc">
-                                        @account.EntityRef · @account.ProviderName
+                                        @FormatAccountReach(account)
                                     </span>
                                     @if (account.Buckets.Count > 0 || account.Tags.Count > 0)
                                     {
@@ -204,7 +204,20 @@ else
         !IsFormBusy
         && _catalog.Count > 0
         && !string.IsNullOrWhiteSpace(_form.EmailAddress)
-        && !string.IsNullOrWhiteSpace(_form.Username);
+        && !string.IsNullOrWhiteSpace(_form.Username)
+        && HasRequiredPassword;
+
+    private bool HasRequiredPassword =>
+        _form.Id is null
+            ? !string.IsNullOrWhiteSpace(_form.Password)
+            : _form.HasStoredPassword || !string.IsNullOrWhiteSpace(_form.Password);
+
+    private string PasswordFieldHint =>
+        _form.Id is null
+            ? "Required. Stored encrypted."
+            : _form.HasStoredPassword
+                ? "Stored encrypted. Leave blank on save to keep the existing password."
+                : "Required. Stored encrypted.";
 
     private string ListStatusTitle =>
         _accounts.Count == 0 ? "No accounts connected" : $"{_accounts.Count} account{(_accounts.Count == 1 ? "" : "s")} connected";
@@ -331,7 +344,7 @@ else
                                                       Disabled="@IsFormBusy"
                                                       OnToggle="@(() => _showPassword = !_showPassword)" />
                         </div>
-                        <p class="settings-hint">Stored encrypted. Leave blank on save to keep the existing password.</p>
+                        <p class="settings-hint">@PasswordFieldHint</p>
                     </div>
                     <SettingsDropdownField Label="Default"
                                            CssClass="settings-field-ssl"
@@ -450,6 +463,9 @@ else
     }
 
     #endregion
+
+    private static string FormatAccountReach(EmailAccountSummaryDto account) =>
+        string.Join(" · ", new[] { account.EntityRef, account.EmailAddress, account.ProviderName });
 
     private static string FormatAccountTaxonomy(EmailAccountSummaryDto account)
     {

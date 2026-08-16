@@ -138,7 +138,12 @@ John shows **many buckets and many tags** on one person—work and social overla
 
 #### Lifecycle
 
-- **Soft-delete an ER** (contact, mailbox, tag, or bucket): remove junction rows where applicable; definitions remain unless the row itself is deleted.
+All tables use **`isDeleted`** and **`isActive`** with the same meaning:
+
+- **`isDeleted`**: user removed the record — gone from UI permanently; row retained internally.
+- **`isActive`**: user paused the record — reversible; excluded from runtime until reactivated.
+
+- **Delete an ER** (contact, mailbox, tag, or bucket): set `isDeleted`; remove junction rows where applicable.
 - **Rename** display name: UI uses the new name; **alias** (and handles) are unchanged unless the user edits alias.
 
 #### Alias vs catalog keys (two layers)

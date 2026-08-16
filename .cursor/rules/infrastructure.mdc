@@ -42,6 +42,19 @@ Per concern: **`Abstractions.cs`** + **`DTOs.cs`** + **`Helpers.cs`** + implemen
 - Per-user mail connections: `Workspace.EmailAccount`; catalog: `Dbo.EmailProvider` (system templates + per-user custom rows via `userId`)
 - **Deferred — server-backed prefs:** no `UserSetting` table until prefs or user memory need persistence; color theme stays client-only (`localStorage`)
 
+## Lifecycle flags (`isActive` / `isDeleted`)
+
+All auditable tables use both flags with the same meaning:
+
+| Flag | User meaning | Backend |
+|------|----------------|---------|
+| `isDeleted` | Removed — gone from UI permanently | Row retained internally; excluded from all reads |
+| `isActive` | Paused — deactivate without deleting | Reversible; excluded from runtime until reactivated |
+
+- **Reads / lists:** `IsActive && !IsDeleted`.
+- **Delete:** sets `IsDeleted = true` (and `IsActive = false` for consistency).
+- **Deactivate / reactivate:** toggles `IsActive` only — UI not built yet on most slices.
+
 ## EF (`AppDbContext`)
 
 - Map camelCase columns + `HasMaxLength` to match `Database/{schema}/Tables/` scripts

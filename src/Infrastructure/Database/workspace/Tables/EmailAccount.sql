@@ -9,6 +9,8 @@
 -- - At most one row per user with isDefault = 1 among non-deleted rows
 -- - IMAP/SMTP hosts come from dbo.EmailProvider via emailProviderId (not stored here in v1)
 -- - Password is encrypted at rest
+-- - isDeleted: user removed the row — gone from UI; retained internally (soft delete)
+-- - isActive: user paused the row — reversible; excluded from mail/runtime until reactivated
 -- - Apply after dbo.User, dbo.EmailProvider, and workspace/Tables/Contact.sql
 -- - All records include audit fields for tracking changes
 -- =====================================================
@@ -31,8 +33,8 @@ CREATE TABLE [workspace].[EmailAccount] (
     [context]                                NVARCHAR(2000) NULL,                       -- Optional facts for the UI and agent prompts
 
     -- Status and lifecycle management
-    [isActive]                               BIT DEFAULT 1,
-    [isDeleted]                              BIT DEFAULT 0,
+    [isActive]                               BIT DEFAULT 1,                             -- Paused by user; reversible (deactivate / reactivate)
+    [isDeleted]                              BIT DEFAULT 0,                             -- Removed by user; hidden permanently; row retained
 
     -- Audit fields for tracking changes
     [createdBy]                              UNIQUEIDENTIFIER DEFAULT '00000000-0000-0000-0000-000000000000',

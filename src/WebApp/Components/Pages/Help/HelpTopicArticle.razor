@@ -89,9 +89,53 @@
             break;
 
         case "workspace/email-accounts":
-            <HelpStubArticle Summary="Connect a mailbox using a provider preset, then test the connection.">
-                <p>Pick a template from Settings → Email providers, enter your mailbox address and credentials, and set one account as default for the Email agent. See Help → Settings → Email providers for provider-specific setup notes.</p>
-            </HelpStubArticle>
+            <h2 class="help-article-heading">What this page is for</h2>
+            <p>Email accounts are your <strong>connected mailboxes</strong>. Each account stores the address, login credentials, and agent reference for one inbox. IMAP/SMTP server settings come from a provider preset under Settings — not from this page.</p>
+
+            <h2 class="help-article-heading">Before you start</h2>
+            <p>Pick or add an IMAP/SMTP template under <NavLink href="/help/settings/email-providers">Settings → Email providers</NavLink> first. When saving an account here, choose the matching provider preset. See that help article for Gmail app passwords, Outlook IMAP, and other host-specific setup.</p>
+
+            <h2 class="help-article-heading">Fields on the page</h2>
+            <dl class="help-article-dl">
+                <div>
+                    <dt>Provider</dt>
+                    <dd>IMAP/SMTP template for this mailbox. Changing it updates which servers the app uses on the next connection test or mail operation.</dd>
+                </div>
+                <div>
+                    <dt>Email</dt>
+                    <dd>The mailbox address you receive mail at. Must be unique among your connected accounts.</dd>
+                </div>
+                <div>
+                    <dt>Username</dt>
+                    <dd>IMAP/SMTP login. Often the same as the email address, but some hosts use a different username.</dd>
+                </div>
+                <div>
+                    <dt>Password</dt>
+                    <dd>Mailbox or app password, stored encrypted. Required when adding an account. When editing, leave blank to keep the saved password.</dd>
+                </div>
+                <div>
+                    <dt>Default</dt>
+                    <dd>Marks which account the Email agent uses when no specific mailbox is named. Exactly one account should be default. Your first account is set as default automatically.</dd>
+                </div>
+                <div>
+                    <dt>Alias</dt>
+                    <dd>Short handle for agents and settings (for example <code>work</code> → <code>mailbox:work</code>). Optional in the form — if left blank, the app generates one from your email address. Must be unique among your accounts.</dd>
+                </div>
+                <div>
+                    <dt>Context</dt>
+                    <dd>Optional facts for agents — how this mailbox is used, who it belongs to, or triage preferences.</dd>
+                </div>
+                <div>
+                    <dt>Buckets / Tags</dt>
+                    <dd>Optional organization shared with contacts and other workspace records. Useful for grouping mailboxes in rules and agent context later.</dd>
+                </div>
+            </dl>
+
+            <h2 class="help-article-heading">Test connection</h2>
+            <p>After entering credentials, use <strong>Test connection</strong> to verify IMAP and SMTP before saving. The test uses what is in the form — including a new password you typed, or the stored password when the field is left blank on edit.</p>
+
+            <h2 class="help-article-heading">Multiple accounts</h2>
+            <p>You can connect more than one inbox. The list shows each account by its alias; the default account drives the Email agent today. Use <strong>Make default</strong> to switch which inbox the agent uses when none is specified.</p>
             break;
 
         case "workspace/buckets":

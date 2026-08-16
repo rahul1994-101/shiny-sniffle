@@ -7,6 +7,8 @@
 -- Business Rules:
 -- - Each chat thread belongs to exactly one user
 -- - memorySummaryThroughMessageId FK to ChatMessage is applied in chat/Tables/ChatMessage.sql
+-- - isDeleted: user removed the row — gone from UI; retained internally (soft delete)
+-- - isActive: user paused the row — reversible; excluded from runtime until reactivated
 -- - Apply after dbo.User ([chat] schema must already exist)
 -- - All records include audit fields for tracking changes
 -- =====================================================
@@ -25,8 +27,8 @@ CREATE TABLE [chat].[ChatThread] (
     [memorySummaryThroughMessageId]         UNIQUEIDENTIFIER NULL,                     -- Last message id folded into summary
 
     -- Status and lifecycle management
-    [isActive]                               BIT DEFAULT 1,                            -- Whether the thread row is active
-    [isDeleted]                              BIT DEFAULT 0,                            -- Soft delete flag for data retention
+    [isActive]                               BIT DEFAULT 1,                            -- Paused by user; reversible (deactivate / reactivate)
+    [isDeleted]                              BIT DEFAULT 0,                            -- Removed by user; hidden permanently; row retained
 
     -- Audit fields for tracking changes
     [createdBy]                              UNIQUEIDENTIFIER DEFAULT '00000000-0000-0000-0000-000000000000',

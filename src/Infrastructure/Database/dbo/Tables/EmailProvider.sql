@@ -8,6 +8,8 @@
 -- - Custom rows (isSystem = 0, userId set): owned by one user; that user may add/update/delete
 -- - Identified by [id]; [name] is display-only for pickers
 -- - Does not store mailbox passwords; per-user credentials live in workspace.EmailAccount
+-- - isDeleted: user removed the row — gone from UI; retained internally (soft delete)
+-- - isActive: user paused the row — reversible; excluded from runtime until reactivated
 -- - All records include audit fields for tracking changes
 -- =====================================================
 GO
@@ -28,8 +30,8 @@ CREATE TABLE [dbo].[EmailProvider] (
     [isSystem]                              BIT DEFAULT 0,                             -- Seeded global template; app blocks edit/delete
 
     -- Status and lifecycle management
-    [isActive]                               BIT DEFAULT 1,                            -- Whether the provider row is active
-    [isDeleted]                              BIT DEFAULT 0,                            -- Soft delete flag for data retention
+    [isActive]                               BIT DEFAULT 1,                            -- Paused by user; reversible (deactivate / reactivate)
+    [isDeleted]                              BIT DEFAULT 0,                            -- Removed by user; hidden permanently; row retained
 
     -- Audit fields for tracking changes
     [createdBy]                              UNIQUEIDENTIFIER DEFAULT '00000000-0000-0000-0000-000000000000',

@@ -6,6 +6,8 @@
 --
 -- Business Rules:
 -- - Each record has a unique name
+-- - isDeleted: user removed the row — gone from UI; retained internally (soft delete)
+-- - isActive: user paused the row — reversible; excluded from runtime until reactivated
 -- - All records include audit fields for tracking changes
 -- - Apply after test/Schema.sql
 -- =====================================================
@@ -19,8 +21,8 @@ CREATE TABLE test.TestEntity (
     [name]                                  NVARCHAR(100) NOT NULL,                   -- Test name (must be unique)
 
     -- Status and lifecycle management
-    [isActive]                              BIT DEFAULT 1,                            -- Whether the record is active
-    [isDeleted]                             BIT DEFAULT 0,                            -- Soft delete flag for data retention  
+    [isActive]                              BIT DEFAULT 1,                            -- Paused by user; reversible (deactivate / reactivate)
+    [isDeleted]                             BIT DEFAULT 0,                            -- Removed by user; hidden permanently; row retained
 
     -- Audit fields for tracking changes
     [createdBy]                             UNIQUEIDENTIFIER DEFAULT '00000000-0000-0000-0000-000000000000',

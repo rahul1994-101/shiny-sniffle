@@ -5,7 +5,9 @@
 -- Not app login (dbo.User) and not a personal phonebook card.
 --
 -- Business Rules:
--- - Scoped to userId; soft delete via isDeleted
+-- - Scoped to userId
+-- - isDeleted: user removed the row — gone from UI; retained internally (soft delete)
+-- - isActive: user paused the row — reversible; excluded from runtime until reactivated
 -- - alias + context: see Agent reference section (alias NOT NULL; optional in UI with auto-generate)
 -- - email and phone optional (use-case oriented)
 -- - email unique per user among non-deleted rows when set
@@ -32,8 +34,8 @@ CREATE TABLE [workspace].[Contact] (
     [context]                                NVARCHAR(2000) NULL,                       -- Optional facts for UI, rules, and agent prompts
 
     -- Status and lifecycle management
-    [isActive]                               BIT DEFAULT 1,                            -- Whether the contact row is active
-    [isDeleted]                              BIT DEFAULT 0,                            -- Soft delete flag for data retention
+    [isActive]                               BIT DEFAULT 1,                            -- Paused by user; reversible (deactivate / reactivate)
+    [isDeleted]                              BIT DEFAULT 0,                            -- Removed by user; hidden permanently; row retained
 
     -- Audit fields for tracking changes
     [createdBy]                              UNIQUEIDENTIFIER DEFAULT '00000000-0000-0000-0000-000000000000',

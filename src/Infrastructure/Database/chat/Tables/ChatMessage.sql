@@ -6,6 +6,8 @@
 -- Business Rules:
 -- - Each message belongs to exactly one chat thread
 -- - Adds FK from ChatThread.memorySummaryThroughMessageId after this table exists
+-- - isDeleted: user removed the row — gone from UI; retained internally (soft delete)
+-- - isActive: user paused the row — reversible; excluded from runtime until reactivated
 -- - Apply after chat/Tables/ChatThread.sql
 -- - All records include audit fields for tracking changes
 -- =====================================================
@@ -21,8 +23,8 @@ CREATE TABLE [chat].[ChatMessage] (
     [content]                               NVARCHAR(MAX) NOT NULL,                    -- Message body
 
     -- Status and lifecycle management
-    [isActive]                               BIT DEFAULT 1,                            -- Whether the message row is active
-    [isDeleted]                              BIT DEFAULT 0,                            -- Soft delete flag for data retention
+    [isActive]                               BIT DEFAULT 1,                            -- Paused by user; reversible (deactivate / reactivate)
+    [isDeleted]                              BIT DEFAULT 0,                            -- Removed by user; hidden permanently; row retained
 
     -- Audit fields for tracking changes
     [createdBy]                              UNIQUEIDENTIFIER DEFAULT '00000000-0000-0000-0000-000000000000',
