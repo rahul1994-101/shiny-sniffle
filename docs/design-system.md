@@ -208,7 +208,7 @@ Section list header: `ListTitle`, `ListLead` or `ListLeadContent`, and **`ListHe
 |--------|---------|--------|
 | Identity | `settings-field` | Name, slug + hint |
 | Mail | `settings-mail-server` | Top border; each protocol is `settings-endpoint-row` |
-| Endpoint row | `settings-endpoint-port-ssl` | **Mobile:** host 100%; port **80%** + SSL **20%** (`4fr 1fr`). **≥641px:** **host 60% \| port 30% \| SSL 10%** (`6fr 3fr 1fr`). SSL: `settings-select` **SSL / Plain** |
+| Endpoint row | `settings-endpoint-port-ssl` | **Mobile:** host 100%; port **80%** + SSL **20%** (`4fr 1fr`). **≥641px:** **host 60% \| port 30% \| SSL 10%** (`6fr 3fr 1fr`). SSL: `SettingsDropdownField` (same trigger/menu as Provider) **SSL / Plain** |
 | Extras | `settings-provider-extras` | Help URL first; **mobile** `4fr 1fr`; **desktop** `9fr 1fr` |
 
 **Account**

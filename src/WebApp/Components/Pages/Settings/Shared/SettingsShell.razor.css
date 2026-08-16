@@ -896,6 +896,11 @@
     box-shadow: var(--app-elev-1);
 }
 
+.settings-content ::deep .ui-segmented button.ui-segmented-btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
 .settings-content ::deep .settings-card > .ui-group {
     margin-top: var(--ui-space-3);
 }

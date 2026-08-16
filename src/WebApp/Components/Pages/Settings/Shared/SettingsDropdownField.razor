@@ -1,0 +1,121 @@
+<div class="settings-field @CssClass">
+    <label class="settings-label" id="@_labelId">@Label</label>
+    <div class="settings-provider-picker">
+        @if (_open)
+        {
+            <button type="button"
+                    class="settings-provider-backdrop"
+                    tabindex="-1"
+                    aria-hidden="true"
+                    @onclick="Close"></button>
+        }
+
+        <button type="button"
+                id="@_triggerId"
+                class="settings-provider-trigger"
+                aria-haspopup="listbox"
+                aria-expanded="@_open"
+                aria-labelledby="@($"{_labelId} {_triggerId}")"
+                disabled="@Disabled"
+                @onclick="Toggle">
+            <span class="settings-provider-trigger-label">@SelectedLabel()</span>
+            <svg class="settings-provider-chevron @(_open ? "settings-provider-chevron-open" : null)"
+                 viewBox="0 0 24 24"
+                 fill="none"
+                 stroke="currentColor"
+                 stroke-width="2"
+                 aria-hidden="true">
+                <path d="M6 9l6 6 6-6" />
+            </svg>
+        </button>
+
+        @if (_open)
+        {
+            <div class="settings-provider-menu ui-dropdown-menu"
+                 role="listbox"
+                 aria-labelledby="@_labelId">
+                @foreach (var option in Options)
+                {
+                    var selected = IsSelected(option.Value);
+                    <button type="button"
+                            role="option"
+                            aria-selected="@selected"
+                            class="settings-provider-option ui-dropdown-option @(selected ? "settings-provider-option-active ui-dropdown-option-active" : null)"
+                            @onclick="() => SelectAsync(option.Value)">
+                        @option.Label
+                    </button>
+                }
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private readonly string _labelId = $"sdf-label-{Guid.NewGuid():N}";
+    private readonly string _triggerId = $"sdf-trigger-{Guid.NewGuid():N}";
+    private bool _open;
+
+    [Parameter, EditorRequired]
+    public string Label { get; set; } = string.Empty;
+
+    [Parameter]
+    public string? CssClass { get; set; }
+
+    [Parameter, EditorRequired]
+    public string Value { get; set; } = string.Empty;
+
+    [Parameter]
+    public EventCallback<string> ValueChanged { get; set; }
+
+    [Parameter]
+    public bool Disabled { get; set; }
+
+    [Parameter, EditorRequired]
+    public IReadOnlyList<SettingsDropdownOption> Options { get; set; } = [];
+
+    private bool IsSelected(string optionValue) =>
+        string.Equals(Value, optionValue, StringComparison.Ordinal);
+
+    private string SelectedLabel()
+    {
+        foreach (var option in Options)
+        {
+            if (IsSelected(option.Value))
+            {
+                return option.Label;
+            }
+        }
+
+        return Options.Count > 0 ? Options[0].Label : string.Empty;
+    }
+
+    private void Toggle()
+    {
+        if (Disabled)
+        {
+            return;
+        }
+
+        _open = !_open;
+    }
+
+    private void Close()
+    {
+        _open = false;
+    }
+
+    private async Task SelectAsync(string optionValue)
+    {
+        if (Disabled || IsSelected(optionValue))
+        {
+            Close();
+            return;
+        }
+
+        Value = optionValue;
+        await ValueChanged.InvokeAsync(optionValue);
+        Close();
+    }
+
+    public readonly record struct SettingsDropdownOption(string Value, string Label);
+}

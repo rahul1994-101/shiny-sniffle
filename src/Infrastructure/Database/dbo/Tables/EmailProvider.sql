@@ -15,9 +15,7 @@ GO
 CREATE TABLE [dbo].[EmailProvider] (
     -- Primary key with auto-generated sequential UUID
     [id]                                    UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWSEQUENTIALID(),
-
-    -- Ownership (NULL = system template)
-    [userId]                                UNIQUEIDENTIFIER NULL,
+    [userId]                                UNIQUEIDENTIFIER NULL,                     -- Ownership (NULL = system template)
 
     -- Data fields
     [name]                                  NVARCHAR(100) NOT NULL,                    -- Display name (e.g. Gmail)

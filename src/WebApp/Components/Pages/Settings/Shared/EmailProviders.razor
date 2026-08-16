@@ -163,6 +163,18 @@ else
                 ? $"View {_form.Name}"
                 : $"Edit {_form.Name}";
 
+    private static readonly SettingsDropdownField.SettingsDropdownOption[] SslOptions =
+    [
+        new("ssl", "SSL"),
+        new("plain", "Plain")
+    ];
+
+    private static readonly SettingsDropdownField.SettingsDropdownOption[] DefaultOptions =
+    [
+        new("default", "Yes"),
+        new("no", "No")
+    ];
+
     private string ImapSslSelect
     {
         get => _form.ImapUseSsl ? "ssl" : "plain";
@@ -209,16 +221,11 @@ else
                             <label class="settings-label" for="ep-imap-port">IMAP port</label>
                             <input id="ep-imap-port" type="number" class="settings-input" @bind="_form.ImapPort" disabled="@IsFieldDisabled" />
                         </div>
-                        <div class="settings-field settings-field-ssl">
-                            <label class="settings-label" for="ep-imap-ssl">IMAP SSL</label>
-                            <select id="ep-imap-ssl"
-                                    class="settings-input settings-select settings-ssl-select"
-                                    @bind="ImapSslSelect"
-                                    disabled="@IsFieldDisabled">
-                                <option value="ssl">SSL</option>
-                                <option value="plain">Plain</option>
-                            </select>
-                        </div>
+                        <SettingsDropdownField Label="IMAP SSL"
+                                               CssClass="settings-field-ssl"
+                                               @bind-Value="ImapSslSelect"
+                                               Options="SslOptions"
+                                               Disabled="@IsFieldDisabled" />
                     </div>
                 </div>
                 <div class="settings-endpoint-row">
@@ -231,16 +238,11 @@ else
                             <label class="settings-label" for="ep-smtp-port">SMTP port</label>
                             <input id="ep-smtp-port" type="number" class="settings-input" @bind="_form.SmtpPort" disabled="@IsFieldDisabled" />
                         </div>
-                        <div class="settings-field settings-field-ssl">
-                            <label class="settings-label" for="ep-smtp-ssl">SMTP SSL</label>
-                            <select id="ep-smtp-ssl"
-                                    class="settings-input settings-select settings-ssl-select"
-                                    @bind="SmtpSslSelect"
-                                    disabled="@IsFieldDisabled">
-                                <option value="ssl">SSL</option>
-                                <option value="plain">Plain</option>
-                            </select>
-                        </div>
+                        <SettingsDropdownField Label="SMTP SSL"
+                                               CssClass="settings-field-ssl"
+                                               @bind-Value="SmtpSslSelect"
+                                               Options="SslOptions"
+                                               Disabled="@IsFieldDisabled" />
                     </div>
                 </div>
             </div>

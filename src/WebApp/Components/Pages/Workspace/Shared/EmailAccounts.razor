@@ -177,6 +177,12 @@ else
     private string EditorTitle =>
         _form.Id is null ? "New account" : "Edit account";
 
+    private static readonly SettingsDropdownField.SettingsDropdownOption[] DefaultOptions =
+    [
+        new("default", "Yes"),
+        new("no", "No")
+    ];
+
     private string DefaultSelect
     {
         get => _form.IsDefault ? "default" : "no";
@@ -327,16 +333,11 @@ else
                         </div>
                         <p class="settings-hint">Stored encrypted. Leave blank on save to keep the existing password.</p>
                     </div>
-                    <div class="settings-field settings-field-ssl">
-                        <label class="settings-label" for="acc-default">Default</label>
-                        <select id="acc-default"
-                                class="settings-input settings-select settings-ssl-select"
-                                @bind="DefaultSelect"
-                                disabled="@(IsFormBusy || _form.IsDefaultForced)">
-                            <option value="default">Yes</option>
-                            <option value="no">No</option>
-                        </select>
-                    </div>
+                    <SettingsDropdownField Label="Default"
+                                           CssClass="settings-field-ssl"
+                                           @bind-Value="DefaultSelect"
+                                           Options="DefaultOptions"
+                                           Disabled="@(IsFormBusy || _form.IsDefaultForced)" />
                 </div>
             </div>
 
