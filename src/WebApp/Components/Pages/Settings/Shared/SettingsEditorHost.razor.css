@@ -275,6 +275,21 @@
     border-top: 1px solid var(--app-border);
 }
 
+.settings-editor-host ::deep .settings-editor-form > .settings-mail-server:first-child,
+.settings-editor-host ::deep .settings-editor-form > .settings-account-connection:first-child {
+    margin-top: 0;
+    padding-top: 0;
+    border-top: none;
+}
+
+.settings-editor-host ::deep .settings-account-default-row {
+    max-width: 14rem;
+}
+
+.settings-editor-host ::deep .settings-account-default-row > .settings-field-ssl {
+    max-width: 100%;
+}
+
 .settings-editor-host ::deep .settings-editor-form .settings-mail-server {
     display: flex;
     flex-direction: column;
@@ -418,6 +433,19 @@
 }
 
 @media (max-width: 640px) {
+    .settings-editor-host ::deep .settings-endpoint-row-duo {
+        grid-template-columns: minmax(0, 1fr);
+        gap: var(--ui-space-2);
+    }
+
+    .settings-editor-host ::deep .settings-editor-form .settings-mail-server {
+        gap: var(--ui-space-2);
+    }
+
+    .settings-editor-host ::deep .settings-account-default-row {
+        max-width: none;
+    }
+
     .settings-editor-host ::deep .settings-editor-dialog-footer .settings-card-footer.settings-actions:has(.ui-btn-primary ~ .ui-btn-secondary ~ .ui-btn-secondary) {
         grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     }

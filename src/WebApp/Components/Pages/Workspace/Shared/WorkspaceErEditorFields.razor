@@ -18,9 +18,14 @@
     <div class="settings-provider-extras">
         <p class="settings-label">@EntityContextFieldCopy.SectionTitle</p>
         <div class="settings-field">
-            <label class="settings-label" for="@($"{IdPrefix}-alias")">
-                Alias <span class="settings-label-optional">@FormFieldCopy.OptionalMarker</span>
-            </label>
+            <div class="settings-label-row">
+                <label class="settings-label" for="@($"{IdPrefix}-alias")">
+                    Alias <span class="settings-label-optional">@FormFieldCopy.OptionalMarker</span>
+                </label>
+                <FieldHint AriaLabel="Alias help">
+                    @EntityAliasFieldCopy.EmptyFieldHint("name", ScopePlural)
+                </FieldHint>
+            </div>
             <input id="@($"{IdPrefix}-alias")"
                    type="text"
                    class="settings-input"
@@ -33,22 +38,22 @@
             {
                 <p class="settings-hint">@EntityAliasFieldCopy.EntityRefLead @EntityRefs.Format(Kind, EffectiveAlias)</p>
             }
-            else
-            {
-                <p class="settings-hint">@EntityAliasFieldCopy.EmptyFieldHint("name", ScopePlural)</p>
-            }
         </div>
         <div class="settings-field">
-            <label class="settings-label" for="@($"{IdPrefix}-context")">
-                @EntityContextFieldCopy.Label <span class="settings-label-optional">@FormFieldCopy.OptionalMarker</span>
-            </label>
+            <div class="settings-label-row">
+                <label class="settings-label" for="@($"{IdPrefix}-context")">
+                    @EntityContextFieldCopy.Label <span class="settings-label-optional">@FormFieldCopy.OptionalMarker</span>
+                </label>
+                <FieldHint AriaLabel="Context help">
+                    @EntityContextFieldCopy.Hint
+                </FieldHint>
+            </div>
             <textarea id="@($"{IdPrefix}-context")"
                       class="settings-input settings-textarea"
                       rows="3"
                       maxlength="2000"
                       @bind="Context"
                       disabled="@Disabled"></textarea>
-            <p class="settings-hint">@EntityContextFieldCopy.Hint</p>
         </div>
     </div>
 </div>

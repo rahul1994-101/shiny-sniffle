@@ -16,5 +16,6 @@ public enum NavIconName
     Chat,
     GettingStarted,
     Help,
-    OpenPage
+    OpenPage,
+    Info
 }

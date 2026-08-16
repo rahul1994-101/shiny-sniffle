@@ -430,6 +430,124 @@ body.shell-sidebar-drawer-open {
     height: 0.9rem;
 }
 
+.settings-label-row {
+    position: relative;
+    display: flex;
+    align-items: baseline;
+    gap: 0;
+    flex-wrap: wrap;
+    max-width: 100%;
+    margin-bottom: 0.4rem;
+}
+
+.settings-label-row > .settings-label {
+    margin: 0;
+    display: inline;
+}
+
+.ui-field-hint {
+    display: inline;
+    margin-left: 0.28rem;
+    vertical-align: baseline;
+    cursor: help;
+    outline: none;
+}
+
+.ui-field-hint-mark {
+    font-size: 0.68em;
+    font-weight: 600;
+    font-style: italic;
+    vertical-align: super;
+    line-height: 0;
+    color: var(--app-fg-subtle);
+    transition: color var(--ui-duration) var(--ui-ease);
+}
+
+.ui-field-hint:not(.ui-field-hint-disabled):hover .ui-field-hint-mark,
+.ui-field-hint:not(.ui-field-hint-disabled):focus-visible .ui-field-hint-mark {
+    color: var(--app-accent);
+}
+
+.ui-field-hint:focus-visible {
+    outline: none;
+}
+
+.ui-field-hint:focus-visible .ui-field-hint-mark {
+    border-radius: 0.15rem;
+    box-shadow: var(--app-focus-ring-shadow);
+}
+
+.ui-field-hint-disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.ui-field-hint-tooltip {
+    position: absolute;
+    z-index: 36;
+    left: 0;
+    right: auto;
+    bottom: calc(100% + 0.35rem);
+    top: auto;
+    transform: none;
+    width: max-content;
+    max-width: min(18rem, calc(100vw - 2rem));
+    padding: 0.55rem 0.65rem;
+    border-radius: var(--ui-radius-sm);
+    border: 1px solid var(--app-border-strong);
+    background: color-mix(in srgb, var(--app-overlay-scrim) 92%, var(--app-surface-elevated));
+    color: var(--app-fg);
+    box-shadow: var(--app-elev-3), inset 0 1px 0 var(--app-glass-highlight);
+    -webkit-backdrop-filter: blur(var(--app-glass-blur-float)) saturate(var(--app-glass-saturate));
+    backdrop-filter: blur(var(--app-glass-blur-float)) saturate(var(--app-glass-saturate));
+    font-size: 0.78rem;
+    font-weight: 400;
+    font-style: normal;
+    line-height: 1.45;
+    text-align: left;
+    white-space: normal;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition:
+        opacity var(--ui-duration-fast) var(--ui-ease),
+        visibility var(--ui-duration-fast) var(--ui-ease);
+}
+
+.ui-field-hint-tooltip::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    height: 0.45rem;
+}
+
+.ui-field-hint:not(.ui-field-hint-disabled):hover .ui-field-hint-tooltip,
+.ui-field-hint:not(.ui-field-hint-disabled):focus-within .ui-field-hint-tooltip,
+.ui-field-hint-tooltip:hover {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+}
+
+.ui-field-hint-tooltip a {
+    color: var(--app-link);
+    text-decoration: none;
+}
+
+.ui-field-hint-tooltip a:hover {
+    color: var(--app-link-hover);
+    text-decoration: underline;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ui-field-hint-mark,
+    .ui-field-hint-tooltip {
+        transition: none;
+    }
+}
+
 .app-page-breadcrumb-list {
     display: flex;
     flex-wrap: wrap;

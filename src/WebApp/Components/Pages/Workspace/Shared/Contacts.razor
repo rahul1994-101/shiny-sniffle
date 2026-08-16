@@ -133,6 +133,9 @@ else
     private ContactForm _form = new();
     private SettingsSectionStatusHandle _status = null!;
 
+    // Deferred — taxonomy linking UI; save/load/sync code stays in place.
+    private const bool ShowTaxonomyPicker = false;
+
     private bool IsFormBusy => _saving || _deleting;
 
     private bool CanSaveEditor =>
@@ -202,9 +205,14 @@ else
             <div class="settings-provider-extras">
                 <p class="settings-label">@EntityContextFieldCopy.SectionTitle</p>
                 <div class="settings-field">
-                    <label class="settings-label" for="contact-alias">
-                        Alias <span class="settings-label-optional">@FormFieldCopy.OptionalMarker</span>
-                    </label>
+                    <div class="settings-label-row">
+                        <label class="settings-label" for="contact-alias">
+                            Alias <span class="settings-label-optional">@FormFieldCopy.OptionalMarker</span>
+                        </label>
+                        <FieldHint AriaLabel="Alias help">
+                            @EntityAliasFieldCopy.EmptyFieldHint("first and last name", "contacts")
+                        </FieldHint>
+                    </div>
                     <input id="contact-alias"
                            type="text"
                            class="settings-input"
@@ -216,29 +224,32 @@ else
                     {
                         <p class="settings-hint">@EntityAliasFieldCopy.EntityRefLead @EntityRefs.Format(EntityRefs.Kind.Contact, _form.EffectiveAlias)</p>
                     }
-                    else
-                    {
-                        <p class="settings-hint">@EntityAliasFieldCopy.EmptyFieldHint("first and last name", "contacts")</p>
-                    }
                 </div>
                 <div class="settings-field">
-                    <label class="settings-label" for="contact-context">
-                        @EntityContextFieldCopy.Label <span class="settings-label-optional">@FormFieldCopy.OptionalMarker</span>
-                    </label>
+                    <div class="settings-label-row">
+                        <label class="settings-label" for="contact-context">
+                            @EntityContextFieldCopy.Label <span class="settings-label-optional">@FormFieldCopy.OptionalMarker</span>
+                        </label>
+                        <FieldHint AriaLabel="Context help">
+                            @EntityContextFieldCopy.Hint
+                        </FieldHint>
+                    </div>
                     <textarea id="contact-context"
                               class="settings-input settings-textarea"
                               rows="3"
                               @bind="_form.Context"
                               maxlength="2000"
                               disabled="@IsFormBusy"></textarea>
-                    <p class="settings-hint">@EntityContextFieldCopy.Hint</p>
                 </div>
             </div>
-            <ErTaxonomyPicker Buckets="_bucketRefs"
-                              Tags="_tagRefs"
-                              SelectedBucketIds="_form.SelectedBucketIds"
-                              SelectedTagIds="_form.SelectedTagIds"
-                              Disabled="@IsFormBusy" />
+            @if (ShowTaxonomyPicker)
+            {
+                <ErTaxonomyPicker Buckets="_bucketRefs"
+                                  Tags="_tagRefs"
+                                  SelectedBucketIds="_form.SelectedBucketIds"
+                                  SelectedTagIds="_form.SelectedTagIds"
+                                  Disabled="@IsFormBusy" />
+            }
         </div>
     };
 

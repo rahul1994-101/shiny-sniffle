@@ -53,14 +53,18 @@ else
             </div>
 
             <div class="settings-field">
-                <label class="settings-label" for="profile-email">Email</label>
+                <div class="settings-label-row">
+                    <label class="settings-label" for="profile-email">Email</label>
+                    <FieldHint AriaLabel="Email help">
+                        Sign-in email cannot be changed here.
+                    </FieldHint>
+                </div>
                 <input id="profile-email"
                        type="email"
                        class="settings-input"
                        value="@_profile.Email"
                        disabled
                        aria-readonly="true" />
-                <p class="settings-hint">Sign-in email cannot be changed here.</p>
             </div>
 
             <div class="settings-field @(string.IsNullOrWhiteSpace(_mobileError) ? null : "settings-field-invalid")">
@@ -79,7 +83,12 @@ else
             </div>
 
             <div class="settings-field @(string.IsNullOrWhiteSpace(_passwordError) ? null : "settings-field-invalid")">
-                <label class="settings-label" for="profile-password">Password</label>
+                <div class="settings-label-row">
+                    <label class="settings-label" for="profile-password">Password</label>
+                    <FieldHint AriaLabel="Password help">
+                        @PasswordFieldCopy.ProfileHint
+                    </FieldHint>
+                </div>
                 <div class="settings-password-wrap">
                     <input id="profile-password"
                            type="@(_showPassword ? "text" : "password")"
@@ -93,7 +102,6 @@ else
                                               Disabled="@IsSaving"
                                               OnToggle="@(() => _showPassword = !_showPassword)" />
                 </div>
-                <p class="settings-hint">Stored encrypted. Leave blank on save to keep the existing password.</p>
                 @if (_passwordError is not null)
                 {
                     <p class="settings-field-error" role="alert">@_passwordError</p>

@@ -1,0 +1,24 @@
+@namespace WebApp.Components.Shared
+
+<span class="ui-field-hint @CssClass @(Disabled ? "ui-field-hint-disabled" : null)"
+      tabindex="@(Disabled ? -1 : 0)"
+      aria-label="@AriaLabel">
+    <span class="ui-field-hint-mark" aria-hidden="true">i</span>
+    <span class="ui-field-hint-tooltip" role="tooltip">
+        @ChildContent
+    </span>
+</span>
+
+@code {
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    [Parameter]
+    public string AriaLabel { get; set; } = "Field help";
+
+    [Parameter]
+    public string? CssClass { get; set; }
+
+    [Parameter]
+    public bool Disabled { get; set; }
+}

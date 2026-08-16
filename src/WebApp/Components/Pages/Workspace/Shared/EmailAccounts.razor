@@ -174,6 +174,9 @@ else
     private SettingsEditorLayout _editorLayout = SettingsEditorLayout.FullPage;
     private SettingsSectionStatusHandle _status = null!;
 
+    // Deferred — taxonomy linking UI; save/load/sync code stays in place.
+    private const bool ShowTaxonomyPicker = false;
+
     private string EditorTitle =>
         _form.Id is null ? "New account" : "Edit account";
 
@@ -212,13 +215,6 @@ else
             ? !string.IsNullOrWhiteSpace(_form.Password)
             : _form.HasStoredPassword || !string.IsNullOrWhiteSpace(_form.Password);
 
-    private string PasswordFieldHint =>
-        _form.Id is null
-            ? "Required. Stored encrypted."
-            : _form.HasStoredPassword
-                ? "Stored encrypted. Leave blank on save to keep the existing password."
-                : "Required. Stored encrypted.";
-
     private string ListStatusTitle =>
         _accounts.Count == 0 ? "No accounts connected" : $"{_accounts.Count} account{(_accounts.Count == 1 ? "" : "s")} connected";
 
@@ -250,66 +246,72 @@ else
     private RenderFragment EditorFields => __builder =>
     {
         <div class="settings-editor-form">
-            @if (_catalog.Count == 0)
-            {
-                <p class="settings-hint" role="status">No provider templates found. Add providers first.</p>
-            }
-            else
-            {
-                <div class="settings-field">
-                    <label class="settings-label" id="acc-provider-label">Provider</label>
-                    <div class="settings-provider-picker">
-                        @if (_providerOpen)
+            <div class="settings-mail-server settings-account-connection">
+                <div class="settings-endpoint-row settings-endpoint-row-duo">
+                    <div class="settings-field">
+                        <div class="settings-label-row">
+                            <label class="settings-label" id="acc-provider-label">Provider</label>
+                            @if (_catalog.Count > 0)
+                            {
+                                <FieldHint AriaLabel="Provider help">
+                                    IMAP/SMTP preset — manage under <NavLink href="/settings/email/providers">Providers</NavLink>.
+                                </FieldHint>
+                            }
+                        </div>
+                        @if (_catalog.Count == 0)
                         {
-                            <button type="button"
-                                    class="settings-provider-backdrop"
-                                    tabindex="-1"
-                                    aria-hidden="true"
-                                    @onclick="CloseProviderPicker"></button>
+                            <p class="settings-hint" role="status">No presets yet — add under <NavLink href="/settings/email/providers">Providers</NavLink>.</p>
                         }
-
-                        <button type="button"
-                                id="acc-provider"
-                                class="settings-provider-trigger"
-                                aria-haspopup="listbox"
-                                aria-expanded="@_providerOpen"
-                                aria-labelledby="acc-provider-label acc-provider"
-                                disabled="@IsFormBusy"
-                                @onclick="ToggleProviderPicker">
-                            <span class="settings-provider-trigger-label">@SelectedProviderName()</span>
-                            <svg class="settings-provider-chevron @(_providerOpen ? "settings-provider-chevron-open" : null)"
-                                 viewBox="0 0 24 24"
-                                 fill="none"
-                                 stroke="currentColor"
-                                 stroke-width="2"
-                                 aria-hidden="true">
-                                <path d="M6 9l6 6 6-6" />
-                            </svg>
-                        </button>
-
-                        @if (_providerOpen)
+                        else
                         {
-                            <div class="settings-provider-menu ui-dropdown-menu" role="listbox" aria-labelledby="acc-provider-label">
-                                @foreach (var provider in _catalog)
+                            <div class="settings-provider-picker">
+                                @if (_providerOpen)
                                 {
-                                    var selected = _form.EmailProviderId == provider.Id;
                                     <button type="button"
-                                            role="option"
-                                            aria-selected="@selected"
-                                            class="settings-provider-option ui-dropdown-option @(selected ? "settings-provider-option-active ui-dropdown-option-active" : null)"
-                                            @onclick="() => SelectProvider(provider)">
-                                        @provider.Name
-                                    </button>
+                                            class="settings-provider-backdrop"
+                                            tabindex="-1"
+                                            aria-hidden="true"
+                                            @onclick="CloseProviderPicker"></button>
+                                }
+
+                                <button type="button"
+                                        id="acc-provider"
+                                        class="settings-provider-trigger"
+                                        aria-haspopup="listbox"
+                                        aria-expanded="@_providerOpen"
+                                        aria-labelledby="acc-provider-label acc-provider"
+                                        disabled="@IsFormBusy"
+                                        @onclick="ToggleProviderPicker">
+                                    <span class="settings-provider-trigger-label">@SelectedProviderName()</span>
+                                    <svg class="settings-provider-chevron @(_providerOpen ? "settings-provider-chevron-open" : null)"
+                                         viewBox="0 0 24 24"
+                                         fill="none"
+                                         stroke="currentColor"
+                                         stroke-width="2"
+                                         aria-hidden="true">
+                                        <path d="M6 9l6 6 6-6" />
+                                    </svg>
+                                </button>
+
+                                @if (_providerOpen)
+                                {
+                                    <div class="settings-provider-menu ui-dropdown-menu" role="listbox" aria-labelledby="acc-provider-label">
+                                        @foreach (var provider in _catalog)
+                                        {
+                                            var selected = _form.EmailProviderId == provider.Id;
+                                            <button type="button"
+                                                    role="option"
+                                                    aria-selected="@selected"
+                                                    class="settings-provider-option ui-dropdown-option @(selected ? "settings-provider-option-active ui-dropdown-option-active" : null)"
+                                                    @onclick="() => SelectProvider(provider)">
+                                                @provider.Name
+                                            </button>
+                                        }
+                                    </div>
                                 }
                             </div>
                         }
                     </div>
-                    <p class="settings-hint">IMAP/SMTP template for this mailbox. Manage templates under <NavLink href="/settings/email/providers">Providers</NavLink>.</p>
-                </div>
-            }
-
-            <div class="settings-mail-server">
-                <div class="settings-endpoint-row settings-endpoint-row-duo">
                     <div class="settings-field">
                         <label class="settings-label" for="acc-email">Email</label>
                         <input id="acc-email"
@@ -319,6 +321,9 @@ else
                                autocomplete="email"
                                disabled="@IsFormBusy" />
                     </div>
+                </div>
+
+                <div class="settings-endpoint-row settings-endpoint-row-duo">
                     <div class="settings-field">
                         <label class="settings-label" for="acc-username">Username</label>
                         <input id="acc-username"
@@ -328,10 +333,13 @@ else
                                autocomplete="username"
                                disabled="@IsFormBusy" />
                     </div>
-                </div>
-                <div class="settings-extras-row settings-password-default-row">
                     <div class="settings-field">
-                        <label class="settings-label" for="acc-password">Password</label>
+                        <div class="settings-label-row">
+                            <label class="settings-label" for="acc-password">Password</label>
+                            <FieldHint AriaLabel="Password help">
+                                @PasswordFieldCopy.MailboxHint(_form.Id is null)
+                            </FieldHint>
+                        </div>
                         <div class="settings-password-wrap">
                             <input id="acc-password"
                                    type="@(_showPassword ? "text" : "password")"
@@ -344,8 +352,10 @@ else
                                                       Disabled="@IsFormBusy"
                                                       OnToggle="@(() => _showPassword = !_showPassword)" />
                         </div>
-                        <p class="settings-hint">@PasswordFieldHint</p>
                     </div>
+                </div>
+
+                <div class="settings-endpoint-row settings-account-default-row">
                     <SettingsDropdownField Label="Default"
                                            CssClass="settings-field-ssl"
                                            @bind-Value="DefaultSelect"
@@ -357,9 +367,14 @@ else
             <div class="settings-provider-extras">
                 <p class="settings-label">@EntityContextFieldCopy.SectionTitle</p>
                 <div class="settings-field">
-                    <label class="settings-label" for="acc-alias">
-                        Alias <span class="settings-label-optional">@FormFieldCopy.OptionalMarker</span>
-                    </label>
+                    <div class="settings-label-row">
+                        <label class="settings-label" for="acc-alias">
+                            Alias <span class="settings-label-optional">@FormFieldCopy.OptionalMarker</span>
+                        </label>
+                        <FieldHint AriaLabel="Alias help">
+                            @EntityAliasFieldCopy.EmptyFieldHint("email address", "mailboxes")
+                        </FieldHint>
+                    </div>
                     <input id="acc-alias"
                            type="text"
                            class="settings-input"
@@ -371,30 +386,33 @@ else
                     {
                         <p class="settings-hint">@EntityAliasFieldCopy.EntityRefLead @EntityRefs.Format(EntityRefs.Kind.Mailbox, _form.EffectiveAlias)</p>
                     }
-                    else
-                    {
-                        <p class="settings-hint">@EntityAliasFieldCopy.EmptyFieldHint("email address", "mailboxes")</p>
-                    }
                 </div>
                 <div class="settings-field">
-                    <label class="settings-label" for="acc-context">
-                        @EntityContextFieldCopy.Label <span class="settings-label-optional">@FormFieldCopy.OptionalMarker</span>
-                    </label>
+                    <div class="settings-label-row">
+                        <label class="settings-label" for="acc-context">
+                            @EntityContextFieldCopy.Label <span class="settings-label-optional">@FormFieldCopy.OptionalMarker</span>
+                        </label>
+                        <FieldHint AriaLabel="Context help">
+                            @EntityContextFieldCopy.Hint
+                        </FieldHint>
+                    </div>
                     <textarea id="acc-context"
                               class="settings-input settings-textarea"
                               rows="3"
                               @bind="_form.Context"
                               maxlength="2000"
                               disabled="@IsFormBusy"></textarea>
-                    <p class="settings-hint">@EntityContextFieldCopy.Hint</p>
                 </div>
             </div>
 
-            <ErTaxonomyPicker Buckets="_bucketRefs"
-                              Tags="_tagRefs"
-                              SelectedBucketIds="_form.SelectedBucketIds"
-                              SelectedTagIds="_form.SelectedTagIds"
-                              Disabled="@IsFormBusy" />
+            @if (ShowTaxonomyPicker)
+            {
+                <ErTaxonomyPicker Buckets="_bucketRefs"
+                                  Tags="_tagRefs"
+                                  SelectedBucketIds="_form.SelectedBucketIds"
+                                  SelectedTagIds="_form.SelectedTagIds"
+                                  Disabled="@IsFormBusy" />
+            }
         </div>
     };
 

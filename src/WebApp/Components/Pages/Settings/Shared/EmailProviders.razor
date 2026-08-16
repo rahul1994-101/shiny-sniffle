@@ -207,7 +207,12 @@ else
                 <p class="settings-hint" role="status">System template — read only. Server settings are updated with product releases.</p>
             }
             <div class="settings-field">
-                <label class="settings-label" for="ep-name">Name</label>
+                <div class="settings-label-row">
+                    <label class="settings-label" for="ep-name">Name</label>
+                    <FieldHint AriaLabel="Name help">
+                        Label shown when picking a provider for a mailbox.
+                    </FieldHint>
+                </div>
                 <input id="ep-name" type="text" class="settings-input" @bind="_form.Name" disabled="@IsFieldDisabled" />
             </div>
             <div class="settings-mail-server">
