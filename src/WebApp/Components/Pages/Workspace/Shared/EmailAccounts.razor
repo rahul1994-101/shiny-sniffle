@@ -366,27 +366,11 @@ else
 
             <div class="settings-provider-extras">
                 <p class="settings-label">@EntityContextFieldCopy.SectionTitle</p>
-                <div class="settings-field">
-                    <div class="settings-label-row">
-                        <label class="settings-label" for="acc-alias">
-                            Alias <span class="settings-label-optional">@FormFieldCopy.OptionalMarker</span>
-                        </label>
-                        <FieldHint AriaLabel="Alias help">
-                            @EntityAliasFieldCopy.EmptyFieldHint("email address", "mailboxes")
-                        </FieldHint>
-                    </div>
-                    <input id="acc-alias"
-                           type="text"
-                           class="settings-input"
-                           @bind="_form.Alias"
-                           maxlength="64"
-                           placeholder="@EntityAliasFieldCopy.PlaceholderAutoFromEmail"
-                           disabled="@IsFormBusy" />
-                    @if (_form.CanPreviewEntityRef)
-                    {
-                        <p class="settings-hint">@EntityAliasFieldCopy.EntityRefLead @EntityRefs.Format(EntityRefs.Kind.Mailbox, _form.EffectiveAlias)</p>
-                    }
-                </div>
+                <EntityAliasInput InputId="acc-alias"
+                                  Kind="EntityRefs.Kind.Mailbox"
+                                  @bind-Alias="_form.Alias"
+                                  SourcePrimary="@_form.EmailAddress"
+                                  Disabled="@IsFormBusy" />
                 <div class="settings-field">
                     <div class="settings-label-row">
                         <label class="settings-label" for="acc-context">
@@ -715,14 +699,6 @@ else
         public Guid? Id { get; set; }
 
         public string Alias { get; set; } = string.Empty;
-
-        public string EffectiveAlias =>
-            !string.IsNullOrWhiteSpace(Alias)
-                ? EntityAliasPreview.FromNameOrAlias(Alias, string.Empty, "mailbox")
-                : EmailAccountAliases.StemFromEmailAddress(EmailAddress);
-
-        public bool CanPreviewEntityRef =>
-            !string.IsNullOrWhiteSpace(Alias) || !string.IsNullOrWhiteSpace(EmailAddress);
 
         public bool IsDefault { get; set; }
 

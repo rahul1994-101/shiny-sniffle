@@ -204,27 +204,12 @@ else
             </div>
             <div class="settings-provider-extras">
                 <p class="settings-label">@EntityContextFieldCopy.SectionTitle</p>
-                <div class="settings-field">
-                    <div class="settings-label-row">
-                        <label class="settings-label" for="contact-alias">
-                            Alias <span class="settings-label-optional">@FormFieldCopy.OptionalMarker</span>
-                        </label>
-                        <FieldHint AriaLabel="Alias help">
-                            @EntityAliasFieldCopy.EmptyFieldHint("first and last name", "contacts")
-                        </FieldHint>
-                    </div>
-                    <input id="contact-alias"
-                           type="text"
-                           class="settings-input"
-                           @bind="_form.Alias"
-                           maxlength="64"
-                           placeholder="@EntityAliasFieldCopy.PlaceholderAutoFromName"
-                           disabled="@IsFormBusy" />
-                    @if (_form.CanPreviewEntityRef)
-                    {
-                        <p class="settings-hint">@EntityAliasFieldCopy.EntityRefLead @EntityRefs.Format(EntityRefs.Kind.Contact, _form.EffectiveAlias)</p>
-                    }
-                </div>
+                <EntityAliasInput InputId="contact-alias"
+                                  Kind="EntityRefs.Kind.Contact"
+                                  @bind-Alias="_form.Alias"
+                                  SourcePrimary="@_form.FirstName"
+                                  SourceSecondary="@_form.LastName"
+                                  Disabled="@IsFormBusy" />
                 <div class="settings-field">
                     <div class="settings-label-row">
                         <label class="settings-label" for="contact-context">
@@ -460,17 +445,6 @@ else
         public HashSet<Guid> SelectedTagIds { get; } = [];
 
         public HashSet<Guid> SelectedBucketIds { get; } = [];
-
-        /// <summary>Alias entered in the form, or slug preview when blank.</summary>
-        public string EffectiveAlias =>
-            !string.IsNullOrWhiteSpace(Alias)
-                ? EntityAliasPreview.FromNameOrAlias(Alias, string.Empty, "contact")
-                : string.IsNullOrWhiteSpace(FirstName)
-                    ? string.Empty
-                    : ContactAliases.StemFromName(FirstName, LastName);
-
-        public bool CanPreviewEntityRef =>
-            !string.IsNullOrWhiteSpace(Alias) || !string.IsNullOrWhiteSpace(FirstName);
 
         public string ListLabel =>
             string.IsNullOrWhiteSpace(LastName)

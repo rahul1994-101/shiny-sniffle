@@ -265,6 +265,76 @@
     box-sizing: border-box;
 }
 
+.settings-content ::deep .settings-input-affix {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    min-height: 2.5rem;
+    border: 1px solid var(--app-input-border);
+    border-radius: var(--settings-radius-sm);
+    background: var(--app-input-bg);
+    box-sizing: border-box;
+    transition:
+        border-color var(--ui-duration) var(--ui-ease),
+        box-shadow var(--ui-duration) var(--ui-ease),
+        background var(--ui-duration) var(--ui-ease);
+}
+
+.settings-content ::deep .settings-input-affix:focus-within {
+    border-color: var(--app-accent);
+    box-shadow: var(--app-focus-ring-shadow);
+}
+
+.settings-content ::deep .settings-input-affix:has(.settings-input-affix-control:disabled) {
+    opacity: 0.72;
+    cursor: not-allowed;
+    background: var(--app-surface-muted);
+}
+
+.settings-content ::deep .settings-input-affix-prefix {
+    flex-shrink: 0;
+    padding: 0.5rem 0 0.5rem 0.7rem;
+    color: var(--app-fg-subtle);
+    font-size: 0.875rem;
+    line-height: 1.25;
+    font-weight: 400;
+    white-space: nowrap;
+    user-select: none;
+}
+
+.settings-content ::deep .settings-input-affix-control {
+    display: block;
+    flex: 1 1 auto;
+    width: 100%;
+    min-width: 0;
+    min-height: 0;
+    margin: 0;
+    padding: 0.5rem 0.7rem 0.5rem 0.2rem;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    color: var(--app-fg);
+    font-size: 0.875rem;
+    line-height: 1.25;
+    box-sizing: border-box;
+}
+
+.settings-content ::deep .settings-input-affix-control:focus {
+    outline: none;
+    border-color: transparent;
+    box-shadow: none;
+}
+
+.settings-content ::deep .settings-input-affix-control:disabled {
+    background: transparent;
+}
+
+.settings-content ::deep .settings-input-affix-control::placeholder {
+    color: var(--app-fg-subtle);
+    opacity: 0.82;
+}
+
 .settings-content ::deep .settings-password-toggle {
     position: absolute;
     top: 0;
@@ -541,7 +611,26 @@
     font-size: 0.8125rem;
     font-weight: 500;
     color: color-mix(in srgb, var(--app-fg) 92%, var(--app-muted));
-    margin-bottom: 0.4rem;
+    min-height: var(--settings-label-band-min-height);
+    line-height: var(--settings-label-band-min-height);
+    margin-bottom: var(--settings-label-gap);
+}
+
+.settings-content ::deep .settings-label-row {
+    position: relative;
+    display: flex;
+    align-items: center;
+    flex-wrap: nowrap;
+    max-width: 100%;
+    min-height: var(--settings-label-band-min-height);
+    margin-bottom: var(--settings-label-gap);
+}
+
+.settings-content ::deep .settings-label-row > .settings-label {
+    display: inline;
+    margin: 0;
+    min-height: 0;
+    line-height: 1;
 }
 
 .settings-content ::deep .settings-label-optional {
@@ -589,6 +678,7 @@
     justify-content: space-between;
     gap: 0.75rem;
     width: 100%;
+    min-height: 2.5rem;
     padding: 0.5rem 0.65rem;
     background: var(--app-input-bg);
     border: 1px solid var(--app-input-border);

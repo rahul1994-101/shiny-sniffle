@@ -17,28 +17,11 @@
     </div>
     <div class="settings-provider-extras">
         <p class="settings-label">@EntityContextFieldCopy.SectionTitle</p>
-        <div class="settings-field">
-            <div class="settings-label-row">
-                <label class="settings-label" for="@($"{IdPrefix}-alias")">
-                    Alias <span class="settings-label-optional">@FormFieldCopy.OptionalMarker</span>
-                </label>
-                <FieldHint AriaLabel="Alias help">
-                    @EntityAliasFieldCopy.EmptyFieldHint("name", ScopePlural)
-                </FieldHint>
-            </div>
-            <input id="@($"{IdPrefix}-alias")"
-                   type="text"
-                   class="settings-input"
-                   maxlength="64"
-                   placeholder="@EntityAliasFieldCopy.PlaceholderAutoFromName"
-                   @bind="Alias"
-                   disabled="@Disabled"
-                   autocomplete="off" />
-            @if (CanPreviewEntityRef)
-            {
-                <p class="settings-hint">@EntityAliasFieldCopy.EntityRefLead @EntityRefs.Format(Kind, EffectiveAlias)</p>
-            }
-        </div>
+        <EntityAliasInput InputId="@($"{IdPrefix}-alias")"
+                          Kind="Kind"
+                          @bind-Alias="Alias"
+                          SourcePrimary="@Name"
+                          Disabled="Disabled" />
         <div class="settings-field">
             <div class="settings-label-row">
                 <label class="settings-label" for="@($"{IdPrefix}-context")">
@@ -64,9 +47,6 @@
 
     [Parameter]
     public int NameMaxLength { get; set; } = 64;
-
-    [Parameter]
-    public string ScopePlural { get; set; } = "items";
 
     [Parameter]
     public EntityRefs.Kind Kind { get; set; }
@@ -97,10 +77,4 @@
 
     [Parameter]
     public EventCallback<string?> ContextChanged { get; set; }
-
-    [Parameter]
-    public string EffectiveAlias { get; set; } = string.Empty;
-
-    [Parameter]
-    public bool CanPreviewEntityRef { get; set; }
 }

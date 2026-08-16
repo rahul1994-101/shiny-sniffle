@@ -56,6 +56,49 @@ public static class EntityAliasRules
         return slug.Length > 0 ? Truncate(slug) : "mailbox";
     }
 
+    /// <summary>UI placeholder preview — empty when nothing slugifiable (no kind fallback).</summary>
+    public static string PreviewPersonNameOrEmpty(string firstName, string lastName)
+    {
+        var parts = new[] { firstName.Trim(), lastName.Trim() }
+            .Where(x => x.Length > 0)
+            .Select(SlugifySegment);
+
+        var combined = string.Join("-", parts.Where(x => x.Length > 0));
+        return combined.Length > 0 ? Truncate(combined) : string.Empty;
+    }
+
+    /// <summary>UI placeholder preview — empty when no email local part (no kind fallback).</summary>
+    public static string PreviewEmailLocalOrEmpty(string emailAddress)
+    {
+        if (string.IsNullOrWhiteSpace(emailAddress))
+        {
+            return string.Empty;
+        }
+
+        var trimmed = emailAddress.Trim();
+        var at = trimmed.IndexOf('@');
+        var local = at > 0 ? trimmed[..at] : trimmed;
+        if (string.IsNullOrWhiteSpace(local))
+        {
+            return string.Empty;
+        }
+
+        var slug = SlugifySegment(local);
+        return slug.Length > 0 ? Truncate(slug) : string.Empty;
+    }
+
+    /// <summary>UI placeholder preview — empty when label slugifies to nothing.</summary>
+    public static string PreviewLabelOrEmpty(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return string.Empty;
+        }
+
+        var slug = SlugifySegment(value.Trim());
+        return slug.Length > 0 ? Truncate(slug) : string.Empty;
+    }
+
     public static string WithNumericSuffix(string stem, int index, string emptyStemFallback)
     {
         if (index <= 1)
@@ -130,6 +173,8 @@ public static class EntityRefs
 
         return $"{Prefix(kind)}{Separator}{alias.Trim()}";
     }
+
+    public static string PrefixWithSeparator(Kind kind) => $"{Prefix(kind)}{Separator}";
 
     public static bool TryParse(string? value, out Kind kind, out string alias)
     {
@@ -214,6 +259,27 @@ public static class EntityAliasPreview
         }
 
         return EntityAliasRules.StemFromLabel(displayName.Trim(), emptyFallback);
+    }
+
+    /// <summary>Alias input placeholder stem — real slug preview only; never kind fallback tokens.</summary>
+    public static string PlaceholderStem(
+        EntityRefs.Kind kind,
+        string? alias,
+        string? primarySource,
+        string? secondarySource = null)
+    {
+        if (!string.IsNullOrWhiteSpace(alias))
+        {
+            return EntityAliasRules.SlugifyOptional(alias) ?? string.Empty;
+        }
+
+        return kind switch
+        {
+            EntityRefs.Kind.Contact => EntityAliasRules.PreviewPersonNameOrEmpty(primarySource ?? string.Empty, secondarySource ?? string.Empty),
+            EntityRefs.Kind.Mailbox => EntityAliasRules.PreviewEmailLocalOrEmpty(primarySource ?? string.Empty),
+            EntityRefs.Kind.Tag or EntityRefs.Kind.Bucket => EntityAliasRules.PreviewLabelOrEmpty(primarySource ?? string.Empty),
+            _ => string.Empty
+        };
     }
 }
 

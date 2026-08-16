@@ -65,15 +65,12 @@ else
         <EditorContent>
             <WorkspaceErEditorFields IdPrefix="bucket"
                                      NameMaxLength="128"
-                                     ScopePlural="buckets"
                                      Kind="@EntityRefs.Kind.Bucket"
                                      Disabled="@IsFormBusy"
                                      @bind-Name="_form.Name"
                                      @bind-Color="_form.Color"
                                      @bind-Alias="_form.Alias"
-                                     @bind-Context="_form.Context"
-                                     EffectiveAlias="@_form.EffectiveAlias"
-                                     CanPreviewEntityRef="@_form.CanPreviewEntityRef" />
+                                     @bind-Context="_form.Context" />
         </EditorContent>
         <EditorFooter>
             <div class="settings-card-footer settings-actions">
@@ -203,11 +200,6 @@ else
         public string? Alias { get; set; }
         public string? Color { get; set; }
         public string? Context { get; set; }
-
-        public string EffectiveAlias =>
-            EntityAliasPreview.FromNameOrAlias(Alias, Name, "bucket");
-
-        public bool CanPreviewEntityRef => !string.IsNullOrWhiteSpace(Name) || !string.IsNullOrWhiteSpace(Alias);
 
         public static BucketForm FromDto(BucketDto dto) => new()
         {

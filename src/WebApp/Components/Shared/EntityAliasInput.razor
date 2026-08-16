@@ -1,0 +1,68 @@
+@namespace WebApp.Components.Shared
+
+<div class="settings-field">
+    <div class="settings-label-row">
+        <label class="settings-label" for="@InputId">
+            Alias <span class="settings-label-optional">@FormFieldCopy.OptionalMarker</span>
+        </label>
+        <FieldHint AriaLabel="Alias help">
+            @EntityAliasFieldCopy.EmptyFieldHint(Kind)
+        </FieldHint>
+    </div>
+    <div class="settings-input-affix">
+        <span class="settings-input-affix-prefix" id="@($"{InputId}-prefix")" aria-hidden="true">@EntityRefs.PrefixWithSeparator(Kind)</span>
+        <input id="@InputId"
+               type="text"
+               class="settings-input-affix-control"
+               maxlength="@MaxLength"
+               placeholder="@InputPlaceholder"
+               value="@Alias"
+               @oninput="OnAliasInputAsync"
+               disabled="@Disabled"
+               autocomplete="off"
+               aria-describedby="@($"{InputId}-prefix")" />
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public string InputId { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public EntityRefs.Kind Kind { get; set; }
+
+    [Parameter]
+    public string? Alias { get; set; }
+
+    [Parameter]
+    public EventCallback<string?> AliasChanged { get; set; }
+
+    [Parameter]
+    public string? SourcePrimary { get; set; }
+
+    [Parameter]
+    public string? SourceSecondary { get; set; }
+
+    [Parameter]
+    public int MaxLength { get; set; } = 64;
+
+    [Parameter]
+    public bool Disabled { get; set; }
+
+    private string PreviewStem =>
+        EntityAliasPreview.PlaceholderStem(Kind, Alias, SourcePrimary, SourceSecondary);
+
+    private string InputPlaceholder =>
+        string.IsNullOrWhiteSpace(Alias)
+            ? !string.IsNullOrWhiteSpace(PreviewStem)
+                ? PreviewStem
+                : EntityAliasFieldCopy.PlaceholderAuto
+            : string.Empty;
+
+    private async Task OnAliasInputAsync(ChangeEventArgs args)
+    {
+        Alias = args.Value?.ToString();
+        await AliasChanged.InvokeAsync(Alias);
+    }
+}
+
