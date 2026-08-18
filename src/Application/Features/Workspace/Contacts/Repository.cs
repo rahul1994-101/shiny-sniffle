@@ -60,11 +60,29 @@ public sealed class ContactRepository(
         var now = DateTime.UtcNow;
         var firstName = dto.FirstName.Trim();
         var lastName = dto.LastName.Trim();
-        var resolvedAlias = await ResolveAliasAsync(
-            ctx, userId, dto.Id, ContactMapping.NormalizeAlias(dto.Alias), firstName, lastName, cancellationToken);
         var email = ContactMapping.NormalizeEmail(dto.Email);
         var phone = ContactMapping.NormalizePhone(dto.Phone);
-        var context = string.IsNullOrWhiteSpace(dto.Context) ? null : dto.Context.Trim();
+        var context = CatalogFieldRules.NormalizeContext(dto.Context);
+
+        Contact? existing = null;
+        if (dto.Id is { } existingId)
+        {
+            existing = await FindActiveAsync(ctx, userId, existingId, asNoTracking: false, cancellationToken);
+            if (existing is null)
+            {
+                return (null, null, true);
+            }
+        }
+
+        var resolvedAlias = await WorkspaceErAliasResolver.ResolveAsync(
+            (candidate, excludeId, ct) => IsAliasTakenAsync(ctx, userId, candidate, excludeId, ct),
+            EntityRefs.Kind.Contact,
+            dto.Alias,
+            dto.Id,
+            existing?.Alias,
+            firstName,
+            lastName,
+            cancellationToken);
 
         if (email is not null)
         {
@@ -82,29 +100,15 @@ public sealed class ContactRepository(
             }
         }
 
-        var aliasTaken = await ctx.Contacts.AnyAsync(
-            x =>
-                x.UserId == userId &&
-                !x.IsDeleted &&
-                x.Alias == resolvedAlias &&
-                x.Id != dto.Id,
-            cancellationToken);
-
-        if (aliasTaken)
+        if (await IsAliasTakenAsync(ctx, userId, resolvedAlias, dto.Id, cancellationToken))
         {
             return (null, "A contact with this alias already exists.", false);
         }
 
         Contact entity;
 
-        if (dto.Id is { } id)
+        if (existing is not null)
         {
-            var existing = await FindActiveAsync(ctx, userId, id, asNoTracking: false, cancellationToken);
-            if (existing is null)
-            {
-                return (null, null, true);
-            }
-
             entity = existing;
             entity.FirstName = firstName;
             entity.LastName = lastName;
@@ -119,7 +123,6 @@ public sealed class ContactRepository(
         {
             entity = new Contact
             {
-                Id = Guid.NewGuid(),
                 UserId = userId,
                 FirstName = firstName,
                 LastName = lastName,
@@ -215,41 +218,17 @@ public sealed class ContactRepository(
         return await query.FirstOrDefaultAsync(cancellationToken);
     }
 
-    private static async Task<string> ResolveAliasAsync(
+    private static Task<bool> IsAliasTakenAsync(
         AppDbContext ctx,
         Guid userId,
-        Guid? excludeContactId,
-        string? normalizedAlias,
-        string firstName,
-        string lastName,
-        CancellationToken cancellationToken)
-    {
-        if (normalizedAlias is not null)
-        {
-            return normalizedAlias;
-        }
-
-        var stem = ContactMapping.BuildAliasStem(firstName, lastName);
-        for (var index = 1; index < 10_000; index++)
-        {
-            var candidate = ContactMapping.AliasWithNumericSuffix(stem, index);
-            var taken = await ctx.Contacts.AnyAsync(
-                x =>
-                    x.UserId == userId &&
-                    !x.IsDeleted &&
-                    x.Alias == candidate &&
-                    x.Id != excludeContactId,
-                cancellationToken);
-
-            if (!taken)
-            {
-                return candidate;
-            }
-        }
-
-        var fallback = ContactMapping.AliasWithNumericSuffix(
-            stem,
-            Random.Shared.Next(1000, 9999));
-        return fallback;
-    }
+        string alias,
+        Guid? excludeId,
+        CancellationToken cancellationToken) =>
+        ctx.Contacts.AnyAsync(
+            x =>
+                x.UserId == userId &&
+                !x.IsDeleted &&
+                x.Alias == alias &&
+                x.Id != excludeId,
+            cancellationToken);
 }

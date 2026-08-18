@@ -288,6 +288,8 @@ public static class CatalogFieldRules
 {
     public const int NoteMaxLength = 256;
 
+    public const int ContextMaxLength = 2000;
+
     public const int ColorMaxLength = 9;
 
     public static string? NormalizeColor(string? color)
@@ -311,6 +313,17 @@ public static class CatalogFieldRules
         var trimmed = note.Trim();
         return trimmed.Length > NoteMaxLength ? trimmed[..NoteMaxLength] : trimmed;
     }
+
+    public static string? NormalizeContext(string? context)
+    {
+        if (string.IsNullOrWhiteSpace(context))
+        {
+            return null;
+        }
+
+        var trimmed = context.Trim();
+        return trimmed.Length > ContextMaxLength ? trimmed[..ContextMaxLength] : trimmed;
+    }
 }
 
 public static class ReferableKindMapping
@@ -325,12 +338,18 @@ public static class ReferableKindMapping
 
 internal static class WorkspaceErAliasResolver
 {
+    /// <summary>
+    /// Shared alias rules for workspace ER rows: slugify when provided; on edit with blank input keep
+    /// <paramref name="existingAlias"/>; on create auto-generate from source fields with numeric suffix.
+    /// </summary>
     internal static async Task<string> ResolveAsync(
         Func<string, Guid?, CancellationToken, Task<bool>> isTakenAsync,
-        string displayName,
+        EntityRefs.Kind kind,
         string? requestedAlias,
-        Guid? excludeId,
-        string emptyStemFallback,
+        Guid? entityId,
+        string? existingAlias,
+        string primarySource,
+        string? secondarySource,
         CancellationToken cancellationToken)
     {
         var normalized = EntityAliasRules.SlugifyOptional(requestedAlias);
@@ -339,19 +358,45 @@ internal static class WorkspaceErAliasResolver
             return normalized;
         }
 
-        var stem = EntityAliasRules.StemFromLabel(displayName, emptyStemFallback);
+        if (entityId is not null && !string.IsNullOrWhiteSpace(existingAlias))
+        {
+            return existingAlias.Trim();
+        }
+
+        var (stem, fallback) = BuildStem(kind, primarySource, secondarySource);
 
         for (var index = 1; index < 10_000; index++)
         {
-            var candidate = EntityAliasRules.WithNumericSuffix(stem, index, emptyStemFallback);
-            if (!await isTakenAsync(candidate, excludeId, cancellationToken))
+            var candidate = EntityAliasRules.WithNumericSuffix(stem, index, fallback);
+            if (!await isTakenAsync(candidate, entityId, cancellationToken))
             {
                 return candidate;
             }
         }
 
-        return EntityAliasRules.WithNumericSuffix(stem, Random.Shared.Next(1000, 9999), emptyStemFallback);
+        return EntityAliasRules.WithNumericSuffix(stem, Random.Shared.Next(1000, 9999), fallback);
     }
+
+    private static (string Stem, string Fallback) BuildStem(
+        EntityRefs.Kind kind,
+        string primarySource,
+        string? secondarySource) =>
+        kind switch
+        {
+            EntityRefs.Kind.Contact => (
+                EntityAliasRules.StemFromPersonName(primarySource, secondarySource ?? string.Empty),
+                "contact"),
+            EntityRefs.Kind.Mailbox => (
+                EntityAliasRules.StemFromEmailAddress(primarySource),
+                "mailbox"),
+            EntityRefs.Kind.Tag => (
+                EntityAliasRules.StemFromLabel(primarySource, "tag"),
+                "tag"),
+            EntityRefs.Kind.Bucket => (
+                EntityAliasRules.StemFromLabel(primarySource, "bucket"),
+                "bucket"),
+            _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null)
+        };
 }
 
 internal sealed record InboxDateRange(

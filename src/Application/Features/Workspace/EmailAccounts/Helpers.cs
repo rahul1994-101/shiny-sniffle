@@ -30,12 +30,6 @@ internal static class EmailAccountMapping
 
     internal static string? NormalizeAlias(string? value) => EntityAliasRules.SlugifyOptional(value);
 
-    internal static string BuildAliasStem(string emailAddress) =>
-        EntityAliasRules.StemFromEmailAddress(emailAddress);
-
-    internal static string AliasWithNumericSuffix(string stem, int index) =>
-        EntityAliasRules.WithNumericSuffix(stem, index, "mailbox");
-
     internal static string? ValidateSave(SaveEmailAccountDto dto)
     {
         if (dto.EmailProviderId == Guid.Empty)
@@ -49,9 +43,9 @@ internal static class EmailAccountMapping
             return "Alias must be 64 characters or fewer.";
         }
 
-        if (dto.Context is not null && dto.Context.Trim().Length > 2000)
+        if (dto.Context is not null && dto.Context.Trim().Length > CatalogFieldRules.ContextMaxLength)
         {
-            return "Context must be 2000 characters or fewer.";
+            return $"Context must be {CatalogFieldRules.ContextMaxLength} characters or fewer.";
         }
 
         return null;

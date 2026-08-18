@@ -137,7 +137,6 @@ public sealed class SharedRepository
             await ctx.TagAssignments.AddAsync(
                 new TagAssignment
                 {
-                    Id = Guid.NewGuid(),
                     UserId = userId,
                     TagId = tagId,
                     ReferableKind = kind,
@@ -156,7 +155,6 @@ public sealed class SharedRepository
             await ctx.BucketAssignments.AddAsync(
                 new BucketAssignment
                 {
-                    Id = Guid.NewGuid(),
                     UserId = userId,
                     BucketId = bucketId,
                     ReferableKind = kind,

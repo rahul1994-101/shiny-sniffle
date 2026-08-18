@@ -104,19 +104,29 @@ public sealed class EmailAccountRepository(
         await using var ctx = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
         var now = DateTime.UtcNow;
         var emailAddress = builtSettings.EmailAddress.Trim();
-        var resolvedAlias = await ResolveAliasAsync(
-            ctx, userId, dto.Id, EmailAccountMapping.NormalizeAlias(dto.Alias), emailAddress, cancellationToken);
-        var context = string.IsNullOrWhiteSpace(dto.Context) ? null : dto.Context.Trim();
+        var context = CatalogFieldRules.NormalizeContext(dto.Context);
 
-        var aliasTaken = await ctx.EmailAccounts.AnyAsync(
-            x =>
-                x.UserId == userId &&
-                !x.IsDeleted &&
-                x.Alias == resolvedAlias &&
-                x.Id != dto.Id,
+        EmailAccount? existing = null;
+        if (dto.Id is { } existingId)
+        {
+            existing = await FindActiveAccountAsync(ctx, userId, existingId, asNoTracking: false, cancellationToken);
+            if (existing is null)
+            {
+                return (null, null, true);
+            }
+        }
+
+        var resolvedAlias = await WorkspaceErAliasResolver.ResolveAsync(
+            (candidate, excludeId, ct) => IsAliasTakenAsync(ctx, userId, candidate, excludeId, ct),
+            EntityRefs.Kind.Mailbox,
+            dto.Alias,
+            dto.Id,
+            existing?.Alias,
+            emailAddress,
+            secondarySource: null,
             cancellationToken);
 
-        if (aliasTaken)
+        if (await IsAliasTakenAsync(ctx, userId, resolvedAlias, dto.Id, cancellationToken))
         {
             return (null, "An account with this alias already exists.", false);
         }
@@ -152,14 +162,8 @@ public sealed class EmailAccountRepository(
         var makeDefault = dto.IsDefault || (isCreate && activeCount == 0);
 
         EmailAccount entity;
-        if (dto.Id is { } id)
+        if (existing is not null)
         {
-            var existing = await FindActiveAccountAsync(ctx, userId, id, asNoTracking: false, cancellationToken);
-            if (existing is null)
-            {
-                return (null, null, true);
-            }
-
             entity = existing;
             entity.Alias = resolvedAlias;
             entity.EmailProviderId = provider.Id;
@@ -353,37 +357,17 @@ public sealed class EmailAccountRepository(
         }
     }
 
-    private static async Task<string> ResolveAliasAsync(
+    private static Task<bool> IsAliasTakenAsync(
         AppDbContext ctx,
         Guid userId,
-        Guid? excludeAccountId,
-        string? normalizedAlias,
-        string emailAddress,
-        CancellationToken cancellationToken)
-    {
-        if (normalizedAlias is not null)
-        {
-            return normalizedAlias;
-        }
-
-        var stem = EmailAccountMapping.BuildAliasStem(emailAddress);
-        for (var index = 1; index < 10_000; index++)
-        {
-            var candidate = EmailAccountMapping.AliasWithNumericSuffix(stem, index);
-            var taken = await ctx.EmailAccounts.AnyAsync(
-                x =>
-                    x.UserId == userId &&
-                    !x.IsDeleted &&
-                    x.Alias == candidate &&
-                    x.Id != excludeAccountId,
-                cancellationToken);
-
-            if (!taken)
-            {
-                return candidate;
-            }
-        }
-
-        return EmailAccountMapping.AliasWithNumericSuffix(stem, Random.Shared.Next(1000, 9999));
-    }
+        string alias,
+        Guid? excludeId,
+        CancellationToken cancellationToken) =>
+        ctx.EmailAccounts.AnyAsync(
+            x =>
+                x.UserId == userId &&
+                !x.IsDeleted &&
+                x.Alias == alias &&
+                x.Id != excludeId,
+            cancellationToken);
 }

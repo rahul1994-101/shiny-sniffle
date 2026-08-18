@@ -14,12 +14,6 @@ internal static class ContactMapping
 
     internal static string? NormalizeAlias(string? value) => EntityAliasRules.SlugifyOptional(value);
 
-    internal static string BuildAliasStem(string firstName, string lastName) =>
-        EntityAliasRules.StemFromPersonName(firstName, lastName);
-
-    internal static string AliasWithNumericSuffix(string stem, int index) =>
-        EntityAliasRules.WithNumericSuffix(stem, index, "contact");
-
     internal static string? ValidateSave(SaveContactDto dto)
     {
         if (string.IsNullOrWhiteSpace(dto.FirstName))
@@ -55,9 +49,9 @@ internal static class ContactMapping
             return "Phone must be 32 characters or fewer.";
         }
 
-        if (dto.Context is not null && dto.Context.Trim().Length > 2000)
+        if (dto.Context is not null && dto.Context.Trim().Length > CatalogFieldRules.ContextMaxLength)
         {
-            return "Context must be 2000 characters or fewer.";
+            return $"Context must be {CatalogFieldRules.ContextMaxLength} characters or fewer.";
         }
 
         return null;

@@ -28,15 +28,27 @@ public sealed class BucketRepository(
         await using var ctx = await dbContextFactory.CreateDbContextAsync(cancellationToken);
         var name = BucketMapping.NormalizeName(dto.Name);
         var color = CatalogFieldRules.NormalizeColor(dto.Color);
-        var context = BucketMapping.NormalizeContext(dto.Context);
+        var context = CatalogFieldRules.NormalizeContext(dto.Context);
         var now = DateTime.UtcNow;
+
+        Bucket? existing = null;
+        if (dto.Id is { } existingId)
+        {
+            existing = await FindActiveAsync(ctx, userId, existingId, asNoTracking: false, cancellationToken);
+            if (existing is null)
+            {
+                return (null, null, true);
+            }
+        }
 
         var alias = await WorkspaceErAliasResolver.ResolveAsync(
             (candidate, excludeId, ct) => IsAliasTakenAsync(ctx, userId, candidate, excludeId, ct),
-            name,
+            EntityRefs.Kind.Bucket,
             dto.Alias,
             dto.Id,
-            "bucket",
+            existing?.Alias,
+            name,
+            secondarySource: null,
             cancellationToken);
 
         if (await IsAliasTakenAsync(ctx, userId, alias, dto.Id, cancellationToken))
@@ -45,14 +57,8 @@ public sealed class BucketRepository(
         }
 
         Bucket entity;
-        if (dto.Id is { } id)
+        if (existing is not null)
         {
-            var existing = await FindActiveAsync(ctx, userId, id, track: true, cancellationToken);
-            if (existing is null)
-            {
-                return (null, null, true);
-            }
-
             entity = existing;
             entity.Name = name;
             entity.Alias = alias;
@@ -89,7 +95,7 @@ public sealed class BucketRepository(
         CancellationToken cancellationToken = default)
     {
         await using var ctx = await dbContextFactory.CreateDbContextAsync(cancellationToken);
-        var entity = await FindActiveAsync(ctx, userId, bucketId, track: true, cancellationToken);
+        var entity = await FindActiveAsync(ctx, userId, bucketId, asNoTracking: false, cancellationToken);
         if (entity is null)
         {
             return false;
@@ -105,13 +111,13 @@ public sealed class BucketRepository(
         return true;
     }
 
-    private static async Task<bool> IsAliasTakenAsync(
+    private static Task<bool> IsAliasTakenAsync(
         AppDbContext ctx,
         Guid userId,
         string alias,
         Guid? excludeId,
         CancellationToken cancellationToken) =>
-        await ctx.Buckets.AnyAsync(
+        ctx.Buckets.AnyAsync(
             x =>
                 x.UserId == userId &&
                 !x.IsDeleted &&
@@ -123,7 +129,7 @@ public sealed class BucketRepository(
         AppDbContext ctx,
         Guid userId,
         Guid bucketId,
-        bool track,
+        bool asNoTracking,
         CancellationToken cancellationToken)
     {
         var query = ctx.Buckets.Where(x =>
@@ -132,7 +138,7 @@ public sealed class BucketRepository(
             x.IsActive &&
             !x.IsDeleted);
 
-        if (!track)
+        if (asNoTracking)
         {
             query = query.AsNoTracking();
         }

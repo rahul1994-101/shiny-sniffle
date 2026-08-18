@@ -6,17 +6,6 @@ internal static class BucketMapping
 
     internal static string? NormalizeAlias(string? value) => EntityAliasRules.SlugifyOptional(value);
 
-    internal static string? NormalizeContext(string? value)
-    {
-        if (string.IsNullOrWhiteSpace(value))
-        {
-            return null;
-        }
-
-        var trimmed = value.Trim();
-        return trimmed.Length > 2000 ? trimmed[..2000] : trimmed;
-    }
-
     internal static string? ValidateSave(SaveBucketDto dto)
     {
         var name = NormalizeName(dto.Name);
@@ -36,9 +25,9 @@ internal static class BucketMapping
             return "Alias must be 64 characters or fewer.";
         }
 
-        if (dto.Context is not null && dto.Context.Trim().Length > 2000)
+        if (dto.Context is not null && dto.Context.Trim().Length > CatalogFieldRules.ContextMaxLength)
         {
-            return "Context must be 2000 characters or fewer.";
+            return $"Context must be {CatalogFieldRules.ContextMaxLength} characters or fewer.";
         }
 
         return null;

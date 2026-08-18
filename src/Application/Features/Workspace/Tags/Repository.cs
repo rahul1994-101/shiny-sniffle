@@ -19,6 +19,13 @@ public sealed class TagRepository(
         return rows.ConvertAll(TagDto.FromEntity);
     }
 
+    public async Task<TagDto?> GetTagByIdAsync(Guid userId, Guid tagId, CancellationToken cancellationToken = default)
+    {
+        await using var ctx = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var row = await FindActiveAsync(ctx, userId, tagId, asNoTracking: true, cancellationToken);
+        return row is null ? null : TagDto.FromEntity(row);
+    }
+
     public async Task<(TagDto? Saved, string? Error, bool NotFound)> SaveAsync(
         Guid userId,
         SaveTagDto dto,
@@ -28,15 +35,27 @@ public sealed class TagRepository(
         await using var ctx = await dbContextFactory.CreateDbContextAsync(cancellationToken);
         var name = TagMapping.NormalizeName(dto.Name);
         var color = CatalogFieldRules.NormalizeColor(dto.Color);
-        var context = TagMapping.NormalizeContext(dto.Context);
+        var context = CatalogFieldRules.NormalizeContext(dto.Context);
         var now = DateTime.UtcNow;
+
+        Tag? existing = null;
+        if (dto.Id is { } existingId)
+        {
+            existing = await FindActiveAsync(ctx, userId, existingId, asNoTracking: false, cancellationToken);
+            if (existing is null)
+            {
+                return (null, null, true);
+            }
+        }
 
         var alias = await WorkspaceErAliasResolver.ResolveAsync(
             (candidate, excludeId, ct) => IsAliasTakenAsync(ctx, userId, candidate, excludeId, ct),
-            name,
+            EntityRefs.Kind.Tag,
             dto.Alias,
             dto.Id,
-            "tag",
+            existing?.Alias,
+            name,
+            secondarySource: null,
             cancellationToken);
 
         if (await IsAliasTakenAsync(ctx, userId, alias, dto.Id, cancellationToken))
@@ -45,14 +64,8 @@ public sealed class TagRepository(
         }
 
         Tag entity;
-        if (dto.Id is { } id)
+        if (existing is not null)
         {
-            var existing = await FindActiveAsync(ctx, userId, id, track: true, cancellationToken);
-            if (existing is null)
-            {
-                return (null, null, true);
-            }
-
             entity = existing;
             entity.Name = name;
             entity.Alias = alias;
@@ -89,7 +102,7 @@ public sealed class TagRepository(
         CancellationToken cancellationToken = default)
     {
         await using var ctx = await dbContextFactory.CreateDbContextAsync(cancellationToken);
-        var entity = await FindActiveAsync(ctx, userId, tagId, track: true, cancellationToken);
+        var entity = await FindActiveAsync(ctx, userId, tagId, asNoTracking: false, cancellationToken);
         if (entity is null)
         {
             return false;
@@ -105,13 +118,13 @@ public sealed class TagRepository(
         return true;
     }
 
-    private static async Task<bool> IsAliasTakenAsync(
+    private static Task<bool> IsAliasTakenAsync(
         AppDbContext ctx,
         Guid userId,
         string alias,
         Guid? excludeId,
         CancellationToken cancellationToken) =>
-        await ctx.Tags.AnyAsync(
+        ctx.Tags.AnyAsync(
             x =>
                 x.UserId == userId &&
                 !x.IsDeleted &&
@@ -123,7 +136,7 @@ public sealed class TagRepository(
         AppDbContext ctx,
         Guid userId,
         Guid tagId,
-        bool track,
+        bool asNoTracking,
         CancellationToken cancellationToken)
     {
         var query = ctx.Tags.Where(x =>
@@ -132,7 +145,7 @@ public sealed class TagRepository(
             x.IsActive &&
             !x.IsDeleted);
 
-        if (!track)
+        if (asNoTracking)
         {
             query = query.AsNoTracking();
         }
