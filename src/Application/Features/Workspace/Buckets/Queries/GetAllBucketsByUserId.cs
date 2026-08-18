@@ -3,7 +3,7 @@ namespace Application.Features.Workspace.Buckets.Queries;
 using Application.Features.Workspace.Buckets;
 using FluentValidation;
 
-public sealed record GetAllBucketsByUserIdRequest(Guid UserId) : IQuery<GetAllBucketsByUserIdResponse>;
+public sealed record GetAllBucketsByUserIdRequest(Guid UserId, bool IncludeInactive = false) : IQuery<GetAllBucketsByUserIdResponse>;
 
 public sealed class GetAllBucketsByUserIdResponse
 {
@@ -29,7 +29,7 @@ public sealed class GetAllBucketsByUserIdRequestHandler(BucketRepository bucketR
 
         #region # Execute
 
-        var buckets = await bucketRepo.GetAllBucketsByUserIdAsync(request.UserId, cancellationToken);
+        var buckets = await bucketRepo.GetAllBucketsByUserIdAsync(request.UserId, request.IncludeInactive, cancellationToken);
 
         #endregion
 

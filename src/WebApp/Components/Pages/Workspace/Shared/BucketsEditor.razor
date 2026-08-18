@@ -44,10 +44,22 @@ else
                                         <span class="ui-catalog-swatch" style="background-color: @bucket.Color"></span>
                                     }
                                     @bucket.Name
+                                    @if (!bucket.IsActive)
+                                    {
+                                        <span class="ui-list-row-meta"><span class="ui-list-row-badge">Paused</span></span>
+                                    }
                                 </span>
                                 <span class="ui-group-row-desc">@bucket.EntityRef</span>
                             </div>
                             <div class="ui-list-row-rich-actions">
+                                @if (bucket.IsActive)
+                                {
+                                    <button type="button" class="ui-btn ui-btn-secondary ui-btn-sm" disabled="@IsFormBusy" @onclick="() => SetActiveAsync(bucket, isActive: false)">Pause</button>
+                                }
+                                else
+                                {
+                                    <button type="button" class="ui-btn ui-btn-secondary ui-btn-sm" disabled="@IsFormBusy" @onclick="() => SetActiveAsync(bucket, isActive: true)">Activate</button>
+                                }
                                 <button type="button" class="ui-btn ui-btn-secondary ui-btn-sm" disabled="@IsFormBusy" @onclick="() => BeginEdit(bucket)">Edit</button>
                                 <button type="button" class="ui-btn ui-btn-danger ui-btn-sm" disabled="@IsFormBusy" @onclick="() => DeleteAsync(bucket)">Delete</button>
                             </div>
@@ -87,13 +99,14 @@ else
     private TabBusy _busy = TabBusy.Loading;
     private bool _saving;
     private bool _deleting;
+    private bool _togglingActive;
     private bool _editorOpen;
     private SettingsEditorLayout _editorLayout = SettingsEditorLayout.FullPage;
     private readonly List<BucketDto> _buckets = [];
     private BucketForm _form = new();
     private SettingsSectionStatusHandle _status = null!;
 
-    private bool IsFormBusy => _saving || _deleting;
+    private bool IsFormBusy => _saving || _deleting || _togglingActive;
 
     private bool CanSave =>
         !IsFormBusy
@@ -111,7 +124,7 @@ else
     private async Task LoadAsync()
     {
         _busy = TabBusy.Loading;
-        var result = await Mediator.SendAsync(new GetAllBucketsByUserIdRequest(CurrentUser.Id));
+        var result = await Mediator.SendAsync(new GetAllBucketsByUserIdRequest(CurrentUser.Id, IncludeInactive: true));
         _buckets.Clear();
         if (!result.HasError && result.Payload?.Buckets is { } items)
         {
@@ -187,6 +200,22 @@ else
         }
 
         _deleting = false;
+    }
+
+    private async Task SetActiveAsync(BucketDto bucket, bool isActive)
+    {
+        _togglingActive = true;
+        var result = await Mediator.SendAsync(new SetBucketActiveRequest(CurrentUser.Id, bucket.Id, isActive));
+        if (result.HasError)
+        {
+            _status.Set(result.Errors.FirstOrDefault()?.Message ?? "Update failed.", isError: true);
+        }
+        else
+        {
+            await LoadAsync();
+        }
+
+        _togglingActive = false;
     }
 
     #endregion

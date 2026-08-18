@@ -8,17 +8,30 @@ public sealed class BucketRepository(
     IDbContextFactory<AppDbContext> dbContextFactory,
     SharedRepository sharedRepo)
 {
-    public async Task<IReadOnlyList<BucketDto>> GetAllBucketsByUserIdAsync(Guid userId, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<BucketDto>> GetAllBucketsByUserIdAsync(
+        Guid userId,
+        bool includeInactive = false,
+        CancellationToken cancellationToken = default)
     {
         await using var ctx = await dbContextFactory.CreateDbContextAsync(cancellationToken);
-        var rows = await ctx.Buckets
+        var query = ctx.Buckets
             .AsNoTracking()
-            .Where(x => x.UserId == userId)
-            .WhereActive()
+            .Where(x => x.UserId == userId);
+
+        query = includeInactive ? query.Where(x => !x.IsDeleted) : query.WhereActive();
+
+        var rows = await query
             .OrderBy(x => x.CreatedAt)
             .ToListAsync(cancellationToken);
 
         return rows.ConvertAll(BucketDto.FromEntity);
+    }
+
+    public async Task<BucketDto?> GetBucketByIdAsync(Guid userId, Guid bucketId, CancellationToken cancellationToken = default)
+    {
+        await using var ctx = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var row = await FindOwnedAsync(ctx, userId, bucketId, activeOnly: false, asNoTracking: true, cancellationToken);
+        return row is null ? null : BucketDto.FromEntity(row);
     }
 
     public async Task<(BucketDto? Saved, string? Error, bool NotFound)> SaveAsync(
@@ -36,7 +49,7 @@ public sealed class BucketRepository(
         Bucket? existing = null;
         if (dto.Id is { } existingId)
         {
-            existing = await FindActiveAsync(ctx, userId, existingId, asNoTracking: false, cancellationToken);
+            existing = await FindOwnedAsync(ctx, userId, existingId, activeOnly: false, asNoTracking: false, cancellationToken);
             if (existing is null)
             {
                 return (null, null, true);
@@ -86,8 +99,37 @@ public sealed class BucketRepository(
             await ctx.Buckets.AddAsync(entity, cancellationToken);
         }
 
-        await ctx.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await ctx.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException ex)
+        {
+            return (null, BucketMapping.MapSaveError(ex), false);
+        }
+
         return (BucketDto.FromEntity(entity), null, false);
+    }
+
+    public async Task<bool> SetActiveAsync(
+        Guid userId,
+        Guid bucketId,
+        bool isActive,
+        Guid updatedBy,
+        CancellationToken cancellationToken = default)
+    {
+        await using var ctx = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var entity = await FindOwnedAsync(ctx, userId, bucketId, activeOnly: false, asNoTracking: false, cancellationToken);
+        if (entity is null || entity.IsActive == isActive)
+        {
+            return entity is not null;
+        }
+
+        entity.IsActive = isActive;
+        entity.UpdatedBy = updatedBy;
+        entity.UpdatedAt = DateTime.UtcNow;
+        await ctx.SaveChangesAsync(cancellationToken);
+        return true;
     }
 
     public async Task<bool> DeleteAsync(
@@ -97,7 +139,7 @@ public sealed class BucketRepository(
         CancellationToken cancellationToken = default)
     {
         await using var ctx = await dbContextFactory.CreateDbContextAsync(cancellationToken);
-        var entity = await FindActiveAsync(ctx, userId, bucketId, asNoTracking: false, cancellationToken);
+        var entity = await FindOwnedAsync(ctx, userId, bucketId, activeOnly: false, asNoTracking: false, cancellationToken);
         if (entity is null)
         {
             return false;
@@ -127,16 +169,20 @@ public sealed class BucketRepository(
                 x.Id != excludeId,
             cancellationToken);
 
-    private static async Task<Bucket?> FindActiveAsync(
+    private static async Task<Bucket?> FindOwnedAsync(
         AppDbContext ctx,
         Guid userId,
         Guid bucketId,
+        bool activeOnly,
         bool asNoTracking,
         CancellationToken cancellationToken)
     {
-        var query = ctx.Buckets
-            .Where(x => x.Id == bucketId && x.UserId == userId)
-            .WhereActive();
+        var query = ctx.Buckets.Where(x => x.Id == bucketId && x.UserId == userId && !x.IsDeleted);
+
+        if (activeOnly)
+        {
+            query = query.Where(x => x.IsActive);
+        }
 
         if (asNoTracking)
         {

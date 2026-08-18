@@ -14,13 +14,16 @@ public class TagDto
 
     public string? Context { get; init; }
 
+    public bool IsActive { get; init; } = true;
+
     public static TagDto FromEntity(Tag entity) => new()
     {
         Id = entity.Id,
         Name = entity.Name,
         Alias = entity.Alias,
         Color = entity.Color,
-        Context = entity.Context
+        Context = entity.Context,
+        IsActive = entity.IsActive
     };
 
     public TagRefDto AsRef() => new()
@@ -38,7 +41,8 @@ public class TagDto
         Name = Name,
         Alias = Alias,
         Color = Color,
-        Context = Context
+        Context = Context,
+        IsActive = IsActive
     };
 }
 

@@ -8,13 +8,19 @@ public sealed class TagRepository(
     IDbContextFactory<AppDbContext> dbContextFactory,
     SharedRepository sharedRepo)
 {
-    public async Task<IReadOnlyList<TagDto>> GetAllTagsByUserIdAsync(Guid userId, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<TagDto>> GetAllTagsByUserIdAsync(
+        Guid userId,
+        bool includeInactive = false,
+        CancellationToken cancellationToken = default)
     {
         await using var ctx = await dbContextFactory.CreateDbContextAsync(cancellationToken);
-        var rows = await ctx.Tags
+        var query = ctx.Tags
             .AsNoTracking()
-            .Where(x => x.UserId == userId)
-            .WhereActive()
+            .Where(x => x.UserId == userId);
+
+        query = includeInactive ? query.Where(x => !x.IsDeleted) : query.WhereActive();
+
+        var rows = await query
             .OrderBy(x => x.CreatedAt)
             .ToListAsync(cancellationToken);
 
@@ -24,7 +30,7 @@ public sealed class TagRepository(
     public async Task<TagDto?> GetTagByIdAsync(Guid userId, Guid tagId, CancellationToken cancellationToken = default)
     {
         await using var ctx = await dbContextFactory.CreateDbContextAsync(cancellationToken);
-        var row = await FindActiveAsync(ctx, userId, tagId, asNoTracking: true, cancellationToken);
+        var row = await FindOwnedAsync(ctx, userId, tagId, activeOnly: false, asNoTracking: true, cancellationToken);
         return row is null ? null : TagDto.FromEntity(row);
     }
 
@@ -43,7 +49,7 @@ public sealed class TagRepository(
         Tag? existing = null;
         if (dto.Id is { } existingId)
         {
-            existing = await FindActiveAsync(ctx, userId, existingId, asNoTracking: false, cancellationToken);
+            existing = await FindOwnedAsync(ctx, userId, existingId, activeOnly: false, asNoTracking: false, cancellationToken);
             if (existing is null)
             {
                 return (null, null, true);
@@ -93,8 +99,37 @@ public sealed class TagRepository(
             await ctx.Tags.AddAsync(entity, cancellationToken);
         }
 
-        await ctx.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await ctx.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException ex)
+        {
+            return (null, TagMapping.MapSaveError(ex), false);
+        }
+
         return (TagDto.FromEntity(entity), null, false);
+    }
+
+    public async Task<bool> SetActiveAsync(
+        Guid userId,
+        Guid tagId,
+        bool isActive,
+        Guid updatedBy,
+        CancellationToken cancellationToken = default)
+    {
+        await using var ctx = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var entity = await FindOwnedAsync(ctx, userId, tagId, activeOnly: false, asNoTracking: false, cancellationToken);
+        if (entity is null || entity.IsActive == isActive)
+        {
+            return entity is not null;
+        }
+
+        entity.IsActive = isActive;
+        entity.UpdatedBy = updatedBy;
+        entity.UpdatedAt = DateTime.UtcNow;
+        await ctx.SaveChangesAsync(cancellationToken);
+        return true;
     }
 
     public async Task<bool> DeleteAsync(
@@ -104,7 +139,7 @@ public sealed class TagRepository(
         CancellationToken cancellationToken = default)
     {
         await using var ctx = await dbContextFactory.CreateDbContextAsync(cancellationToken);
-        var entity = await FindActiveAsync(ctx, userId, tagId, asNoTracking: false, cancellationToken);
+        var entity = await FindOwnedAsync(ctx, userId, tagId, activeOnly: false, asNoTracking: false, cancellationToken);
         if (entity is null)
         {
             return false;
@@ -134,16 +169,20 @@ public sealed class TagRepository(
                 x.Id != excludeId,
             cancellationToken);
 
-    private static async Task<Tag?> FindActiveAsync(
+    private static async Task<Tag?> FindOwnedAsync(
         AppDbContext ctx,
         Guid userId,
         Guid tagId,
+        bool activeOnly,
         bool asNoTracking,
         CancellationToken cancellationToken)
     {
-        var query = ctx.Tags
-            .Where(x => x.Id == tagId && x.UserId == userId)
-            .WhereActive();
+        var query = ctx.Tags.Where(x => x.Id == tagId && x.UserId == userId && !x.IsDeleted);
+
+        if (activeOnly)
+        {
+            query = query.Where(x => x.IsActive);
+        }
 
         if (asNoTracking)
         {

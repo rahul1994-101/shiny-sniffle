@@ -25,11 +25,39 @@ internal static class TagMapping
             return "Alias must be 64 characters or fewer.";
         }
 
+        var colorError = CatalogFieldRules.ValidateColor(dto.Color);
+        if (colorError is not null)
+        {
+            return colorError;
+        }
+
         if (dto.Context is not null && dto.Context.Trim().Length > CatalogFieldRules.ContextMaxLength)
         {
             return $"Context must be {CatalogFieldRules.ContextMaxLength} characters or fewer.";
         }
 
         return null;
+    }
+
+    internal static string MapSaveError(Exception exception)
+    {
+        for (var ex = exception; ex is not null; ex = ex.InnerException)
+        {
+            if (ex.Message.Contains("Invalid object name", StringComparison.OrdinalIgnoreCase)
+                && ex.Message.Contains("workspace.Tag", StringComparison.OrdinalIgnoreCase))
+            {
+                return "Tags storage is not set up. Apply workspace/Tables/Tag.sql on the database.";
+            }
+
+            if (ex.Message.Contains("IX_Tag_UserId_Alias", StringComparison.OrdinalIgnoreCase)
+                || (ex.Message.Contains("duplicate key", StringComparison.OrdinalIgnoreCase)
+                    && ex.Message.Contains("Tag", StringComparison.OrdinalIgnoreCase)
+                    && ex.Message.Contains("Alias", StringComparison.OrdinalIgnoreCase)))
+            {
+                return "A tag with this alias already exists.";
+            }
+        }
+
+        return "Could not save tag. Check the database connection and schema scripts.";
     }
 }

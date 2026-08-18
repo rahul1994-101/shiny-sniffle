@@ -139,15 +139,69 @@
             break;
 
         case "workspace/buckets":
-            <HelpStubArticle Summary="Group contacts and mailboxes under named buckets.">
-                <p>Buckets help organize workspace data for rules and agents. Detailed guidance will be added when this module is streamlined.</p>
-            </HelpStubArticle>
+            <h2 class="help-article-heading">What buckets are for</h2>
+            <p>Buckets group contacts and mailboxes under a shared label — for example a client, project, or household. Agents and rules can treat everything in a bucket as related context.</p>
+            <p>Buckets are optional. You can create them here first, or link them later when editing contacts and mailboxes.</p>
+
+            <h2 class="help-article-heading">Fields on the page</h2>
+            <dl class="help-article-dl">
+                <div>
+                    <dt>Name</dt>
+                    <dd>Display label in lists and pickers (for example <strong>XYZ Inc</strong> or <strong>Family</strong>). Not required to be unique.</dd>
+                </div>
+                <div>
+                    <dt>Color</dt>
+                    <dd>Optional swatch in the UI. Pick a preset or enter a hex color such as <code>#6366f1</code>.</dd>
+                </div>
+                <div>
+                    <dt>Alias</dt>
+                    <dd>Short handle for agents (for example <code>xyz</code> → <code>bucket:xyz</code>). Optional in the form — if left blank, the app generates one from the name on save. Must be unique among your buckets.</dd>
+                </div>
+                <div>
+                    <dt>Context</dt>
+                    <dd>Optional facts for agents — what this group represents, how to treat its members, or triage notes.</dd>
+                </div>
+            </dl>
+
+            <h2 class="help-article-heading">Pause vs delete</h2>
+            <p><strong>Pause</strong> hides a bucket from pickers and runtime use but keeps the row. You can activate it again later. Existing links on contacts and mailboxes stay in the database but inactive buckets no longer appear when loading or assigning taxonomy.</p>
+            <p><strong>Delete</strong> removes the bucket from your workspace permanently (soft delete internally) and unlinks it from all contacts and mailboxes.</p>
+
+            <h2 class="help-article-heading">Linking members</h2>
+            <p>When editing a contact or mailbox, you can assign buckets to that record. A record can belong to multiple buckets. Bucket assignment pickers on those pages may be hidden until that flow is wired in the UI — the underlying data model is ready.</p>
             break;
 
         case "workspace/tags":
-            <HelpStubArticle Summary="Label contacts and mailboxes for filtering and context.">
-                <p>Tags are lightweight labels shared across workspace entities. More detail coming in a later pass.</p>
-            </HelpStubArticle>
+            <h2 class="help-article-heading">What tags are for</h2>
+            <p>Tags are lightweight labels you attach to contacts and mailboxes — roles, topics, priorities, or facets such as <strong>VIP</strong> or <strong>Newsletter</strong>. They help filter and give agents extra context without grouping records into a single bucket.</p>
+            <p>Tags are optional. Create them here, then link them when editing contacts and mailboxes.</p>
+
+            <h2 class="help-article-heading">Fields on the page</h2>
+            <dl class="help-article-dl">
+                <div>
+                    <dt>Name</dt>
+                    <dd>Display label in lists and pickers. Not required to be unique — the alias is the stable handle.</dd>
+                </div>
+                <div>
+                    <dt>Color</dt>
+                    <dd>Optional swatch in the UI. Pick a preset or enter a hex color such as <code>#22c55e</code>.</dd>
+                </div>
+                <div>
+                    <dt>Alias</dt>
+                    <dd>Short handle for agents (for example <code>vip</code> → <code>tag:vip</code>). Optional in the form — if left blank, the app generates one from the name on save. Must be unique among your tags.</dd>
+                </div>
+                <div>
+                    <dt>Context</dt>
+                    <dd>Optional facts for agents — when to apply this tag, who qualifies, or how to treat tagged records.</dd>
+                </div>
+            </dl>
+
+            <h2 class="help-article-heading">Pause vs delete</h2>
+            <p><strong>Pause</strong> hides a tag from pickers and runtime use but keeps the row. You can activate it again later. Existing links on contacts and mailboxes stay in the database but inactive tags no longer appear when loading or assigning taxonomy.</p>
+            <p><strong>Delete</strong> removes the tag from your workspace permanently (soft delete internally) and unlinks it from all contacts and mailboxes.</p>
+
+            <h2 class="help-article-heading">Tags vs buckets</h2>
+            <p>Use <strong>tags</strong> for cross-cutting labels (many tags per record). Use <strong>buckets</strong> for grouping records under a shared umbrella (client, project, household). A contact or mailbox can have both.</p>
             break;
 
         case "chat/email-agent":

@@ -3,7 +3,7 @@ namespace Application.Features.Workspace.Tags.Queries;
 using Application.Features.Workspace.Tags;
 using FluentValidation;
 
-public sealed record GetAllTagsByUserIdRequest(Guid UserId) : IQuery<GetAllTagsByUserIdResponse>;
+public sealed record GetAllTagsByUserIdRequest(Guid UserId, bool IncludeInactive = false) : IQuery<GetAllTagsByUserIdResponse>;
 
 public sealed class GetAllTagsByUserIdResponse
 {
@@ -29,7 +29,7 @@ public sealed class GetAllTagsByUserIdRequestHandler(TagRepository tagRepo)
 
         #region # Execute
 
-        var tags = await tagRepo.GetAllTagsByUserIdAsync(request.UserId, cancellationToken);
+        var tags = await tagRepo.GetAllTagsByUserIdAsync(request.UserId, request.IncludeInactive, cancellationToken);
 
         #endregion
 

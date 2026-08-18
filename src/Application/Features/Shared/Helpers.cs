@@ -299,6 +299,21 @@ public static class CatalogFieldRules
 
     public const int ColorMaxLength = 9;
 
+    private static readonly Regex HexColorRegex = new(@"^#[0-9a-fA-F]{6}$", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
+    /// <summary>Returns a validation error when color is non-blank but not a valid <c>#RRGGBB</c> hex value.</summary>
+    public static string? ValidateColor(string? color)
+    {
+        if (string.IsNullOrWhiteSpace(color))
+        {
+            return null;
+        }
+
+        return TryNormalizeHexColor(color) is null
+            ? "Color must be a valid hex value (e.g. #6366f1)."
+            : null;
+    }
+
     public static string? NormalizeColor(string? color)
     {
         if (string.IsNullOrWhiteSpace(color))
@@ -306,8 +321,28 @@ public static class CatalogFieldRules
             return null;
         }
 
-        var trimmed = color.Trim();
-        return trimmed.Length > ColorMaxLength ? trimmed[..ColorMaxLength] : trimmed;
+        return TryNormalizeHexColor(color);
+    }
+
+    private static string? TryNormalizeHexColor(string? color)
+    {
+        if (string.IsNullOrWhiteSpace(color))
+        {
+            return null;
+        }
+
+        var candidate = color.Trim();
+        if (!candidate.StartsWith('#'))
+        {
+            candidate = $"#{candidate}";
+        }
+
+        if (candidate.Length != 7 || !HexColorRegex.IsMatch(candidate))
+        {
+            return null;
+        }
+
+        return candidate.ToLowerInvariant();
     }
 
     public static string? NormalizeNote(string? note)
