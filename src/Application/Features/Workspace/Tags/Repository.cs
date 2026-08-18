@@ -1,3 +1,4 @@
+using Application.Features.Shared;
 using Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -12,7 +13,8 @@ public sealed class TagRepository(
         await using var ctx = await dbContextFactory.CreateDbContextAsync(cancellationToken);
         var rows = await ctx.Tags
             .AsNoTracking()
-            .Where(x => x.UserId == userId && x.IsActive && !x.IsDeleted)
+            .Where(x => x.UserId == userId)
+            .WhereActive()
             .OrderBy(x => x.CreatedAt)
             .ToListAsync(cancellationToken);
 
@@ -82,12 +84,12 @@ public sealed class TagRepository(
                 Name = name,
                 Alias = alias,
                 Color = color,
-                Context = context,
-                CreatedBy = updatedBy,
-                UpdatedBy = updatedBy,
-                CreatedAt = now,
-                UpdatedAt = now
+                Context = context
             };
+            entity.CreatedBy = updatedBy;
+            entity.UpdatedBy = updatedBy;
+            entity.CreatedAt = now;
+            entity.UpdatedAt = now;
             await ctx.Tags.AddAsync(entity, cancellationToken);
         }
 
@@ -139,11 +141,9 @@ public sealed class TagRepository(
         bool asNoTracking,
         CancellationToken cancellationToken)
     {
-        var query = ctx.Tags.Where(x =>
-            x.Id == tagId &&
-            x.UserId == userId &&
-            x.IsActive &&
-            !x.IsDeleted);
+        var query = ctx.Tags
+            .Where(x => x.Id == tagId && x.UserId == userId)
+            .WhereActive();
 
         if (asNoTracking)
         {

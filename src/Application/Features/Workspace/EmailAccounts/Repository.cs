@@ -1,4 +1,5 @@
 using Application.Features.Dbo.EmailProviders;
+using Application.Features.Shared;
 using Application.Utilities.Extensions;
 using Infrastructure.Mailbox;
 using Infrastructure.Persistence;
@@ -17,7 +18,8 @@ public sealed class EmailAccountRepository(
         var rows = await ctx.EmailAccounts
             .AsNoTracking()
             .Include(x => x.EmailProvider)
-            .Where(x => x.UserId == userId && x.IsActive && !x.IsDeleted)
+            .Where(x => x.UserId == userId)
+            .WhereActive()
             .OrderBy(x => x.CreatedAt)
             .ToListAsync(cancellationToken);
 
@@ -75,11 +77,8 @@ public sealed class EmailAccountRepository(
             row = await ctx.EmailAccounts
                 .AsNoTracking()
                 .Include(x => x.EmailProvider)
-                .Where(x =>
-                    x.UserId == userId &&
-                    x.IsDefault &&
-                    x.IsActive &&
-                    !x.IsDeleted)
+                .Where(x => x.UserId == userId && x.IsDefault)
+                .WhereActive()
                 .FirstOrDefaultAsync(cancellationToken);
         }
 
@@ -190,12 +189,12 @@ public sealed class EmailAccountRepository(
                 Username = builtSettings.Username.Trim(),
                 Password = builtSettings.Password,
                 Context = context,
-                IsDefault = false,
-                CreatedBy = updatedBy,
-                UpdatedBy = updatedBy,
-                CreatedAt = now,
-                UpdatedAt = now
+                IsDefault = false
             };
+            entity.CreatedBy = updatedBy;
+            entity.UpdatedBy = updatedBy;
+            entity.CreatedAt = now;
+            entity.UpdatedAt = now;
             await ctx.EmailAccounts.AddAsync(entity, cancellationToken);
         }
 
@@ -263,14 +262,15 @@ public sealed class EmailAccountRepository(
 
         entity.IsDeleted = true;
         entity.IsActive = false;
-        entity.IsDefault = false;
         entity.UpdatedBy = updatedBy;
         entity.UpdatedAt = now;
+        entity.IsDefault = false;
 
         if (wasDefault)
         {
             var next = await ctx.EmailAccounts
-                .Where(x => x.UserId == userId && !x.IsDeleted && x.Id != emailAccountId)
+                .Where(x => x.UserId == userId && x.Id != emailAccountId)
+                .WhereActive()
                 .OrderBy(x => x.CreatedAt)
                 .FirstOrDefaultAsync(cancellationToken);
 
@@ -319,11 +319,8 @@ public sealed class EmailAccountRepository(
     {
         var query = ctx.EmailAccounts
             .Include(x => x.EmailProvider)
-            .Where(x =>
-                x.Id == emailAccountId &&
-                x.UserId == userId &&
-                x.IsActive &&
-                !x.IsDeleted);
+            .Where(x => x.Id == emailAccountId && x.UserId == userId)
+            .WhereActive();
 
         if (asNoTracking)
         {

@@ -1,3 +1,4 @@
+using Infrastructure.Persistence.Shared;
 using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.Persistence;
@@ -121,7 +122,6 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         modelBuilder.Entity<EmailAccount>(entity =>
         {
             entity.ToTable("EmailAccount", "workspace");
-            entity.Property(e => e.Id).ValueGeneratedOnAdd();
             entity.Property(e => e.UserId).HasColumnName("userId");
             entity.Property(e => e.EmailProviderId).HasColumnName("emailProviderId");
             entity.Property(e => e.EmailAddress).HasColumnName("emailAddress").HasMaxLength(255);
@@ -159,7 +159,6 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         modelBuilder.Entity<Contact>(entity =>
         {
             entity.ToTable("Contact", "workspace");
-            entity.Property(e => e.Id).ValueGeneratedOnAdd();
             entity.Property(e => e.UserId).HasColumnName("userId");
             entity.Property(e => e.FirstName).HasColumnName("firstName").HasMaxLength(50);
             entity.Property(e => e.LastName).HasColumnName("lastName").HasMaxLength(50);
@@ -188,7 +187,6 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         modelBuilder.Entity<Tag>(entity =>
         {
             entity.ToTable("Tag", "workspace");
-            entity.Property(e => e.Id).ValueGeneratedOnAdd();
             entity.Property(e => e.UserId).HasColumnName("userId");
             entity.Property(e => e.Name).HasColumnName("name").HasMaxLength(64);
             entity.Property(e => e.Color).HasColumnName("color").HasMaxLength(9);
@@ -211,7 +209,6 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         modelBuilder.Entity<Bucket>(entity =>
         {
             entity.ToTable("Bucket", "workspace");
-            entity.Property(e => e.Id).ValueGeneratedOnAdd();
             entity.Property(e => e.UserId).HasColumnName("userId");
             entity.Property(e => e.Name).HasColumnName("name").HasMaxLength(128);
             entity.Property(e => e.Color).HasColumnName("color").HasMaxLength(9);
@@ -234,7 +231,6 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         modelBuilder.Entity<TagAssignment>(entity =>
         {
             entity.ToTable("TagAssignment", "workspace");
-            entity.Property(e => e.Id).ValueGeneratedOnAdd();
             entity.Property(e => e.UserId).HasColumnName("userId");
             entity.Property(e => e.TagId).HasColumnName("tagId");
             entity.Property(e => e.ReferableKind).HasColumnName("referableKind").HasConversion<byte>();
@@ -253,7 +249,6 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         modelBuilder.Entity<BucketAssignment>(entity =>
         {
             entity.ToTable("BucketAssignment", "workspace");
-            entity.Property(e => e.Id).ValueGeneratedOnAdd();
             entity.Property(e => e.UserId).HasColumnName("userId");
             entity.Property(e => e.BucketId).HasColumnName("bucketId");
             entity.Property(e => e.ReferableKind).HasColumnName("referableKind").HasConversion<byte>();
@@ -269,5 +264,31 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             entity.HasIndex(e => new { e.BucketId, e.ReferableKind, e.ReferableId }).IsUnique();
             entity.HasIndex(e => new { e.UserId, e.ReferableKind, e.ReferableId });
         });
+
+        ConfigureGeneratedIds(modelBuilder);
+    }
+
+    private static void ConfigureGeneratedIds(ModelBuilder modelBuilder)
+    {
+        foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+        {
+            var clrType = entityType.ClrType;
+            if (clrType is null || !typeof(BaseEntity).IsAssignableFrom(clrType))
+            {
+                continue;
+            }
+
+            modelBuilder.Entity(clrType)
+                .Property(nameof(BaseEntity.Id))
+                .ValueGeneratedOnAdd();
+        }
+
+        modelBuilder.Entity<TagAssignment>()
+            .Property(e => e.Id)
+            .ValueGeneratedOnAdd();
+
+        modelBuilder.Entity<BucketAssignment>()
+            .Property(e => e.Id)
+            .ValueGeneratedOnAdd();
     }
 }

@@ -1,3 +1,4 @@
+using Application.Features.Shared;
 using Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -12,7 +13,8 @@ public sealed class ContactRepository(
         await using var ctx = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
         var rows = await ctx.Contacts
             .AsNoTracking()
-            .Where(x => x.UserId == userId && x.IsActive && !x.IsDeleted)
+            .Where(x => x.UserId == userId)
+            .WhereActive()
             .OrderBy(x => x.CreatedAt)
             .ToListAsync(cancellationToken);
 
@@ -130,12 +132,12 @@ public sealed class ContactRepository(
                 Email = email,
                 Phone = phone,
                 Context = context,
-                Source = ContactSource.Manual,
-                CreatedBy = updatedBy,
-                UpdatedBy = updatedBy,
-                CreatedAt = now,
-                UpdatedAt = now
+                Source = ContactSource.Manual
             };
+            entity.CreatedBy = updatedBy;
+            entity.UpdatedBy = updatedBy;
+            entity.CreatedAt = now;
+            entity.UpdatedAt = now;
             await ctx.Contacts.AddAsync(entity, cancellationToken);
         }
 
@@ -204,11 +206,9 @@ public sealed class ContactRepository(
         bool asNoTracking,
         CancellationToken cancellationToken)
     {
-        var query = ctx.Contacts.Where(x =>
-            x.Id == contactId &&
-            x.UserId == userId &&
-            x.IsActive &&
-            !x.IsDeleted);
+        var query = ctx.Contacts
+            .Where(x => x.Id == contactId && x.UserId == userId)
+            .WhereActive();
 
         if (asNoTracking)
         {

@@ -96,7 +96,8 @@ public sealed class EntityRefResolver(IDbContextFactory<AppDbContext> dbContextF
         CancellationToken cancellationToken) =>
         ctx.Contacts
             .AsNoTracking()
-            .Where(x => x.UserId == userId && x.IsActive && !x.IsDeleted && x.Alias == alias)
+            .Where(x => x.UserId == userId && x.Alias == alias)
+            .WhereActive()
             .Select(x => (Guid?)x.Id)
             .FirstOrDefaultAsync(cancellationToken);
 
@@ -107,7 +108,8 @@ public sealed class EntityRefResolver(IDbContextFactory<AppDbContext> dbContextF
         CancellationToken cancellationToken) =>
         ctx.EmailAccounts
             .AsNoTracking()
-            .Where(x => x.UserId == userId && x.IsActive && !x.IsDeleted && x.Alias == alias)
+            .Where(x => x.UserId == userId && x.Alias == alias)
+            .WhereActive()
             .Select(x => (Guid?)x.Id)
             .FirstOrDefaultAsync(cancellationToken);
 
@@ -118,7 +120,8 @@ public sealed class EntityRefResolver(IDbContextFactory<AppDbContext> dbContextF
         CancellationToken cancellationToken) =>
         ctx.Tags
             .AsNoTracking()
-            .Where(x => x.UserId == userId && x.IsActive && !x.IsDeleted && x.Alias == alias)
+            .Where(x => x.UserId == userId && x.Alias == alias)
+            .WhereActive()
             .Select(x => (Guid?)x.Id)
             .FirstOrDefaultAsync(cancellationToken);
 
@@ -129,7 +132,8 @@ public sealed class EntityRefResolver(IDbContextFactory<AppDbContext> dbContextF
         CancellationToken cancellationToken) =>
         ctx.Buckets
             .AsNoTracking()
-            .Where(x => x.UserId == userId && x.IsActive && !x.IsDeleted && x.Alias == alias)
+            .Where(x => x.UserId == userId && x.Alias == alias)
+            .WhereActive()
             .Select(x => (Guid?)x.Id)
             .FirstOrDefaultAsync(cancellationToken);
 
@@ -140,7 +144,8 @@ public sealed class EntityRefResolver(IDbContextFactory<AppDbContext> dbContextF
         CancellationToken cancellationToken) =>
         ctx.Contacts
             .AsNoTracking()
-            .Where(x => x.UserId == userId && x.IsActive && !x.IsDeleted && x.Id == id)
+            .Where(x => x.UserId == userId && x.Id == id)
+            .WhereActive()
             .Select(x => x.Alias)
             .FirstOrDefaultAsync(cancellationToken);
 
@@ -151,7 +156,8 @@ public sealed class EntityRefResolver(IDbContextFactory<AppDbContext> dbContextF
         CancellationToken cancellationToken) =>
         ctx.EmailAccounts
             .AsNoTracking()
-            .Where(x => x.UserId == userId && x.IsActive && !x.IsDeleted && x.Id == id)
+            .Where(x => x.UserId == userId && x.Id == id)
+            .WhereActive()
             .Select(x => x.Alias)
             .FirstOrDefaultAsync(cancellationToken);
 
@@ -162,7 +168,8 @@ public sealed class EntityRefResolver(IDbContextFactory<AppDbContext> dbContextF
         CancellationToken cancellationToken) =>
         ctx.Tags
             .AsNoTracking()
-            .Where(x => x.UserId == userId && x.IsActive && !x.IsDeleted && x.Id == id)
+            .Where(x => x.UserId == userId && x.Id == id)
+            .WhereActive()
             .Select(x => x.Alias)
             .FirstOrDefaultAsync(cancellationToken);
 
@@ -173,7 +180,8 @@ public sealed class EntityRefResolver(IDbContextFactory<AppDbContext> dbContextF
         CancellationToken cancellationToken) =>
         ctx.Buckets
             .AsNoTracking()
-            .Where(x => x.UserId == userId && x.IsActive && !x.IsDeleted && x.Id == id)
+            .Where(x => x.UserId == userId && x.Id == id)
+            .WhereActive()
             .Select(x => x.Alias)
             .FirstOrDefaultAsync(cancellationToken);
 }

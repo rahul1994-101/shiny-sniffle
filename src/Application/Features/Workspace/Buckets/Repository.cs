@@ -1,3 +1,4 @@
+using Application.Features.Shared;
 using Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -12,7 +13,8 @@ public sealed class BucketRepository(
         await using var ctx = await dbContextFactory.CreateDbContextAsync(cancellationToken);
         var rows = await ctx.Buckets
             .AsNoTracking()
-            .Where(x => x.UserId == userId && x.IsActive && !x.IsDeleted)
+            .Where(x => x.UserId == userId)
+            .WhereActive()
             .OrderBy(x => x.CreatedAt)
             .ToListAsync(cancellationToken);
 
@@ -75,12 +77,12 @@ public sealed class BucketRepository(
                 Name = name,
                 Alias = alias,
                 Color = color,
-                Context = context,
-                CreatedBy = updatedBy,
-                UpdatedBy = updatedBy,
-                CreatedAt = now,
-                UpdatedAt = now
+                Context = context
             };
+            entity.CreatedBy = updatedBy;
+            entity.UpdatedBy = updatedBy;
+            entity.CreatedAt = now;
+            entity.UpdatedAt = now;
             await ctx.Buckets.AddAsync(entity, cancellationToken);
         }
 
@@ -132,11 +134,9 @@ public sealed class BucketRepository(
         bool asNoTracking,
         CancellationToken cancellationToken)
     {
-        var query = ctx.Buckets.Where(x =>
-            x.Id == bucketId &&
-            x.UserId == userId &&
-            x.IsActive &&
-            !x.IsDeleted);
+        var query = ctx.Buckets
+            .Where(x => x.Id == bucketId && x.UserId == userId)
+            .WhereActive();
 
         if (asNoTracking)
         {

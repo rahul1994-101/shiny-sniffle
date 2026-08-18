@@ -30,7 +30,7 @@ public sealed class SharedRepository
             .AsNoTracking()
             .Where(x => x.UserId == userId && x.ReferableKind == kind && referableIds.Contains(x.ReferableId))
             .Join(
-                ctx.Tags.AsNoTracking().Where(t => t.UserId == userId && !t.IsDeleted && t.IsActive),
+                ctx.Tags.AsNoTracking().Where(t => t.UserId == userId).WhereActive(),
                 a => a.TagId,
                 t => t.Id,
                 (a, t) => new { a.ReferableId, Tag = t })
@@ -40,7 +40,7 @@ public sealed class SharedRepository
             .AsNoTracking()
             .Where(x => x.UserId == userId && x.ReferableKind == kind && referableIds.Contains(x.ReferableId))
             .Join(
-                ctx.Buckets.AsNoTracking().Where(b => b.UserId == userId && !b.IsDeleted && b.IsActive),
+                ctx.Buckets.AsNoTracking().Where(b => b.UserId == userId).WhereActive(),
                 m => m.BucketId,
                 b => b.Id,
                 (m, b) => new { m.ReferableId, Bucket = b })
@@ -105,9 +105,10 @@ public sealed class SharedRepository
 
         if (distinctTags.Count > 0)
         {
-            var validCount = await ctx.Tags.CountAsync(
-                t => t.UserId == userId && !t.IsDeleted && t.IsActive && distinctTags.Contains(t.Id),
-                cancellationToken);
+            var validCount = await ctx.Tags
+                .Where(t => t.UserId == userId)
+                .WhereActive()
+                .CountAsync(t => distinctTags.Contains(t.Id), cancellationToken);
 
             if (validCount != distinctTags.Count)
             {
@@ -117,9 +118,10 @@ public sealed class SharedRepository
 
         if (distinctBuckets.Count > 0)
         {
-            var validCount = await ctx.Buckets.CountAsync(
-                b => b.UserId == userId && !b.IsDeleted && b.IsActive && distinctBuckets.Contains(b.Id),
-                cancellationToken);
+            var validCount = await ctx.Buckets
+                .Where(b => b.UserId == userId)
+                .WhereActive()
+                .CountAsync(b => distinctBuckets.Contains(b.Id), cancellationToken);
 
             if (validCount != distinctBuckets.Count)
             {

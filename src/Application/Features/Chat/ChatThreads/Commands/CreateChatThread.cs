@@ -47,9 +47,7 @@ public sealed class CreateChatThreadRequestHandler(ChatThreadRepository chatThre
             {
                 Title = request.Title,
                 UserId = request.UserId,
-                ChatAgent = ChatAgentHelpers.ToPersistence(request.ChatAgent),
-                CreatedBy = request.UserId,
-                UpdatedBy = request.UserId
+                ChatAgent = ChatAgentHelpers.ToPersistence(request.ChatAgent)
             }, cancellationToken);
         }
 

@@ -2,8 +2,15 @@ using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
 using Infrastructure.Mailbox;
+using Infrastructure.Persistence.Shared;
 
 namespace Application.Features.Shared;
+
+internal static class ActiveEntityQueries
+{
+    internal static IQueryable<T> WhereActive<T>(this IQueryable<T> query) where T : BaseEntity =>
+        query.Where(x => x.IsActive && !x.IsDeleted);
+}
 
 /// <summary>Shared slug rules for per-user <c>alias</c> columns (contacts, mailboxes).</summary>
 public static class EntityAliasRules

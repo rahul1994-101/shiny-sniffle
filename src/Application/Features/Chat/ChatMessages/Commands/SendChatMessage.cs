@@ -55,9 +55,7 @@ public sealed class SendChatMessageRequestHandler(
             {
                 ChatThreadId = request.ThreadId,
                 Role = ChatMessageRoles.User,
-                Content = text,
-                CreatedBy = request.UserId,
-                UpdatedBy = request.UserId
+                Content = text
             }, cancellationToken);
 
             var agentRun = await chatOrchestrator.RunChatAgentAsync(new RunChatAgentRequest
@@ -71,9 +69,7 @@ public sealed class SendChatMessageRequestHandler(
             {
                 ChatThreadId = request.ThreadId,
                 Role = ChatMessageRoles.Assistant,
-                Content = agentRun.AssistantContent,
-                CreatedBy = request.UserId,
-                UpdatedBy = request.UserId
+                Content = agentRun.AssistantContent
             }, cancellationToken);
 
             await threadMemory.RefreshAsync(request.UserId, request.ThreadId, cancellationToken);
