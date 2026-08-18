@@ -94,7 +94,7 @@ Shared **workspace taxonomy** for things the product (and AI) can point at consi
 | **Tag** | Label definition (facets, roles, topics) | `tag:{alias}` |
 | **Bucket** | Named group definition (e.g. XYZ Inc, Family) | `bucket:{alias}` |
 
-- Every ER **must** have a user-scoped **alias** (stable for tools and prompts) and may have **context** (optional facts for agents).
+- Every ER **must** have a user-scoped **alias** (human/AI handle for tools and prompts; user-editable, unique per kind) and may have **context** (optional facts for agents).
 - **Color** on tags and buckets is UI-only.
 - Additional ER kinds (e.g. message, thread) may be added later—not a single generic “entity” table.
 - All ER rows and memberships are **scoped to one user** (solo/pro v1; not shared across seats).
@@ -117,7 +117,7 @@ Shared **workspace taxonomy** for things the product (and AI) can point at consi
 
 User-defined dictionaries (names are illustrative):
 
-- **Contacts (ER):** Sarah, Molly, Marta, Sam, Tom, John — each with a stable alias for AI (e.g. `contact:sarah`).
+- **Contacts (ER):** Sarah, Molly, Marta, Sam, Tom, John — each with an alias for AI (e.g. `contact:sarah`).
 - **Buckets:** `XYZ Inc`, `Family`, `Friends`
 - **Tags:** `Sales`, `Marketing`, `Wife`, `Dad`, `Gaming`, `Dad Jokes`, …
 
@@ -148,18 +148,19 @@ All tables use **`isDeleted`** and **`isActive`** with the same meaning:
 
 #### Alias vs catalog keys (two layers)
 
-| Layer | Table / schema | Stable key | AI handles | Purpose |
-|-------|----------------|------------|------------|---------|
-| **Workspace ER** | `workspace.*` (Contact, EmailAccount, Tag, Bucket) | **`alias`** | yes — `{kind}:{alias}` | User-owned things agents and rules point at |
+| Layer | Table / schema | Runtime key | AI handles | Purpose |
+|-------|----------------|-------------|------------|---------|
+| **Workspace ER** | `workspace.*` (Contact, EmailAccount, Tag, Bucket) | **`id` (Guid)** | yes — `{kind}:{alias}` at the edge | User-owned things agents and rules point at |
 | **Catalog** | `dbo.EmailProvider` (and similar) | **`id`** | no | Infra/templates (IMAP/SMTP presets); not workspace referables |
 
 - **`name`** (ER) = display label — rename freely in UI.
-- **`alias`** (ER) = stable handle — like `@username`; auto-generated from name when blank on save; unique per user per kind.
+- **`alias`** (ER) = human/AI handle — like `@username`; auto-generated from name/email when blank on **create**; stays unchanged on edit unless the user explicitly changes it; **can be renamed**; unique per user per kind. Not stored in FKs or workflow state.
+- **`id`** (ER) = stable runtime identity — all internal links, assignments, and persisted workflow steps use Guid FKs only.
 - **`context`** (ER) = optional facts for UI and agent prompts.
 - **Catalog** rows use **`id`** + **`name`**; pickers and FKs use id. System templates use **fixed seed IDs** (see `EmailProviderCatalog.SystemIds`) for cross-environment debug — app logic must not require them at runtime. Future catalog alias/context is optional if settings need AI referability.
-- Do **not** add a separate **`slug`** column on Tag/Bucket; **`alias` already is the machine key.**
+- Do **not** add a separate **`slug`** column on Tag/Bucket; **`alias` already is the handle column.**
 
-Engineering: `EntityRefs.Format` / `EntityRefs.TryParse` at boundaries; DB column is always `alias` on workspace ERs.
+Engineering: `EntityRefs.Format` / `EntityRefs.TryParse` at AI/tool input boundaries; `EntityRefResolver` resolves `kind:alias` → `Guid` before save; `TryFormatAsync` hydrates stored IDs back to handles for display. DB column is always `alias` on workspace ERs.
 
 #### Mention syntax — future UI (not v1)
 
@@ -176,7 +177,7 @@ Social-style typing **on top of** existing handles — no extra DB columns.
 
 **Rules for implementers:**
 
-1. **AI, tools, and rules** use **`kind:alias`** only (rename-safe).
+1. **AI, tools, and rules** accept **`kind:alias`** at the edge; **resolve to `Guid` via `EntityRefResolver` before persisting**; never store alias strings in workflow JSON, execution state, or FK columns.
 2. **UI** shows **name**; chips/tooltips may show handle (e.g. `tag:marketing`).
 3. **Tag/bucket assignment** on contacts/mailboxes stays **picker-based** (dictionary rows), not free-text at assign time.
 4. **Triage suggestions** on mail: suggest → user confirms; do not auto-create tag/bucket defs from model output without explicit user action.
