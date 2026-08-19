@@ -11,10 +11,8 @@ public sealed class UserRepository(IDbContextFactory<AppDbContext> _dbContextFac
         await using var ctx = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
         var user = await ctx.Users
             .AsNoTracking()
-            .Where(x =>
-                x.Email.ToLower() == emailId.ToLower() &&
-                x.IsActive &&
-                !x.IsDeleted)
+            .Where(x => x.Email.ToLower() == emailId.ToLower())
+            .WhereActiveAndNotDeleted()
             .FirstOrDefaultAsync(cancellationToken);
 
         if (user is null || !UserPasswordHelpers.MatchesStoredPassword(user.Password, password))
@@ -30,10 +28,8 @@ public sealed class UserRepository(IDbContextFactory<AppDbContext> _dbContextFac
         await using var ctx = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
         var user = await ctx.Users
             .AsNoTracking()
-            .Where(x =>
-                x.Id == userId &&
-                x.IsActive &&
-                !x.IsDeleted)
+            .Where(x => x.Id == userId)
+            .WhereActiveAndNotDeleted()
             .FirstOrDefaultAsync(cancellationToken);
 
         return user is null ? null : GeneralSettingsDto.FromEntity(user);
@@ -72,9 +68,7 @@ public sealed class UserRepository(IDbContextFactory<AppDbContext> _dbContextFac
 
     private static Task<User?> FindActiveTrackedUserAsync(AppDbContext ctx, Guid userId, CancellationToken cancellationToken) =>
         ctx.Users
-            .Where(x =>
-                x.Id == userId &&
-                x.IsActive &&
-                !x.IsDeleted)
+            .Where(x => x.Id == userId)
+            .WhereActiveAndNotDeleted()
             .FirstOrDefaultAsync(cancellationToken);
 }

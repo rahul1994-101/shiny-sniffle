@@ -18,7 +18,7 @@ public sealed class BucketRepository(
             .AsNoTracking()
             .Where(x => x.UserId == userId);
 
-        query = includeInactive ? query.Where(x => !x.IsDeleted) : query.WhereActive();
+        query = includeInactive ? query.WhereNotDeleted() : query.WhereActiveAndNotDeleted();
 
         var rows = await query
             .OrderBy(x => x.CreatedAt)
@@ -161,13 +161,10 @@ public sealed class BucketRepository(
         string alias,
         Guid? excludeId,
         CancellationToken cancellationToken) =>
-        ctx.Buckets.AnyAsync(
-            x =>
-                x.UserId == userId &&
-                !x.IsDeleted &&
-                x.Alias == alias &&
-                x.Id != excludeId,
-            cancellationToken);
+        ctx.Buckets
+            .Where(x => x.UserId == userId && x.Alias == alias && x.Id != excludeId)
+            .WhereNotDeleted()
+            .AnyAsync(cancellationToken);
 
     private static async Task<Bucket?> FindOwnedAsync(
         AppDbContext ctx,
@@ -177,11 +174,13 @@ public sealed class BucketRepository(
         bool asNoTracking,
         CancellationToken cancellationToken)
     {
-        var query = ctx.Buckets.Where(x => x.Id == bucketId && x.UserId == userId && !x.IsDeleted);
+        var query = ctx.Buckets
+            .Where(x => x.Id == bucketId && x.UserId == userId)
+            .WhereNotDeleted();
 
         if (activeOnly)
         {
-            query = query.Where(x => x.IsActive);
+            query = query.WhereIsActive();
         }
 
         if (asNoTracking)

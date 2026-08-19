@@ -14,7 +14,7 @@ public sealed class ContactRepository(
         var rows = await ctx.Contacts
             .AsNoTracking()
             .Where(x => x.UserId == userId)
-            .WhereActive()
+            .WhereActiveAndNotDeleted()
             .OrderBy(x => x.CreatedAt)
             .ToListAsync(cancellationToken);
 
@@ -88,13 +88,10 @@ public sealed class ContactRepository(
 
         if (email is not null)
         {
-            var emailTaken = await ctx.Contacts.AnyAsync(
-                x =>
-                    x.UserId == userId &&
-                    !x.IsDeleted &&
-                    x.Email == email &&
-                    x.Id != dto.Id,
-                cancellationToken);
+            var emailTaken = await ctx.Contacts
+                .Where(x => x.UserId == userId && x.Email == email && x.Id != dto.Id)
+                .WhereNotDeleted()
+                .AnyAsync(cancellationToken);
 
             if (emailTaken)
             {
@@ -208,7 +205,7 @@ public sealed class ContactRepository(
     {
         var query = ctx.Contacts
             .Where(x => x.Id == contactId && x.UserId == userId)
-            .WhereActive();
+            .WhereActiveAndNotDeleted();
 
         if (asNoTracking)
         {
@@ -224,11 +221,8 @@ public sealed class ContactRepository(
         string alias,
         Guid? excludeId,
         CancellationToken cancellationToken) =>
-        ctx.Contacts.AnyAsync(
-            x =>
-                x.UserId == userId &&
-                !x.IsDeleted &&
-                x.Alias == alias &&
-                x.Id != excludeId,
-            cancellationToken);
+        ctx.Contacts
+            .Where(x => x.UserId == userId && x.Alias == alias && x.Id != excludeId)
+            .WhereNotDeleted()
+            .AnyAsync(cancellationToken);
 }

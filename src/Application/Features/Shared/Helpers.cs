@@ -6,10 +6,24 @@ using Infrastructure.Persistence.Shared;
 
 namespace Application.Features.Shared;
 
-internal static class ActiveEntityQueries
+/// <summary>Queryable filters for <see cref="BaseEntity.IsActive"/> / <see cref="BaseEntity.IsDeleted"/>.</summary>
+internal static class EntityLifecycleQueries
 {
-    internal static IQueryable<T> WhereActive<T>(this IQueryable<T> query) where T : BaseEntity =>
-        query.Where(x => x.IsActive && !x.IsDeleted);
+    /// <summary><c>IsActive</c> only — narrow an already-not-deleted set to runtime-usable rows.</summary>
+    internal static IQueryable<T> WhereIsActive<T>(this IQueryable<T> query) where T : BaseEntity =>
+        query.Where(x => x.IsActive);
+
+    /// <summary><c>!IsDeleted</c> only — row still owned by the user (includes paused/inactive rows).</summary>
+    internal static IQueryable<T> WhereNotDeleted<T>(this IQueryable<T> query) where T : BaseEntity =>
+        query.Where(x => !x.IsDeleted);
+
+    /// <summary>Runtime reads — active and not soft-deleted.</summary>
+    internal static IQueryable<T> WhereActiveAndNotDeleted<T>(this IQueryable<T> query) where T : BaseEntity =>
+        query.WhereIsActive().WhereNotDeleted();
+
+    /// <summary>Paused rows — inactive but not soft-deleted.</summary>
+    internal static IQueryable<T> WhereInactiveAndNotDeleted<T>(this IQueryable<T> query) where T : BaseEntity =>
+        query.Where(x => !x.IsActive && !x.IsDeleted);
 }
 
 /// <summary>Shared slug rules for per-user <c>alias</c> columns (contacts, mailboxes).</summary>

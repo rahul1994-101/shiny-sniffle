@@ -4,9 +4,31 @@
     @switch ($"{Module.Slug}/{Topic.Slug}")
     {
         case "settings/general":
-            <HelpStubArticle Summary="Update your profile, mobile number, and sign-in password.">
-                <p>Your general settings control how you appear in the app and how you sign in. Password uses the same “leave blank to keep” pattern as mailbox credentials.</p>
-            </HelpStubArticle>
+            <h2 class="help-article-heading">What this page is for</h2>
+            <p>General settings hold your <strong>account profile</strong> — the name shown in the app, optional mobile number, and sign-in password. This is separate from mailbox credentials under Workspace.</p>
+
+            <h2 class="help-article-heading">Fields on the page</h2>
+            <dl class="help-article-dl">
+                <div>
+                    <dt>First name / Last name</dt>
+                    <dd>Required. Each must be 2–50 characters. The header avatar and display name update from these fields as you type.</dd>
+                </div>
+                <div>
+                    <dt>Email</dt>
+                    <dd>Your sign-in address. Read-only on this page — it cannot be changed here.</dd>
+                </div>
+                <div>
+                    <dt>Mobile</dt>
+                    <dd>Optional contact number. Up to 20 characters.</dd>
+                </div>
+                <div>
+                    <dt>Password</dt>
+                    <dd>Your app sign-in password, stored encrypted. Leave blank on save to keep the current password. When you enter a new value, it must be 6–255 characters.</dd>
+                </div>
+            </dl>
+
+            <h2 class="help-article-heading">Saving</h2>
+            <p>Click <strong>Save</strong> after editing. Validation runs before the request is sent — fix any field errors shown under the inputs. A success pill confirms when the profile is stored.</p>
             break;
 
         case "settings/email-providers":
@@ -77,15 +99,53 @@
             break;
 
         case "settings/appearance":
-            <HelpStubArticle Summary="Choose light or dark theme for this browser.">
-                <p>Appearance is stored on this device only. It does not sync across browsers or machines.</p>
-            </HelpStubArticle>
+            <h2 class="help-article-heading">What this page is for</h2>
+            <p>Appearance controls the <strong>color theme</strong> on this browser — dark or light. Changes apply immediately; there is no separate save button.</p>
+
+            <h2 class="help-article-heading">Theme</h2>
+            <p>Use the segmented <strong>Dark</strong> / <strong>Light</strong> control. The same choice is available from the sun/moon toggle in the top header — both stay in sync on this device.</p>
+
+            <h2 class="help-article-heading">What is not synced</h2>
+            <p>Theme is stored locally in this browser only. It does not follow your account to other browsers, devices, or machines. Each place you sign in remembers its own theme.</p>
             break;
 
         case "workspace/contacts":
-            <HelpStubArticle Summary="Store people you reference in workflows and agent context.">
-                <p>Contacts can carry tags, buckets, and optional context for prompts. Help content for each field will expand as the module is finalized.</p>
-            </HelpStubArticle>
+            <h2 class="help-article-heading">What this page is for</h2>
+            <p>Contacts are <strong>use-case references</strong> — people your workflows and agents should recognize by name. This is not a full address book; add only the people you expect rules or chat to mention.</p>
+
+            <h2 class="help-article-heading">Fields on the page</h2>
+            <dl class="help-article-dl">
+                <div>
+                    <dt>First name</dt>
+                    <dd>Required. Shown as the list title. Up to 50 characters.</dd>
+                </div>
+                <div>
+                    <dt>Last name</dt>
+                    <dd>Optional. Combined with first name for display. Up to 50 characters.</dd>
+                </div>
+                <div>
+                    <dt>Email</dt>
+                    <dd>Optional. Normalized to lowercase on save. Must be unique among your contacts when set.</dd>
+                </div>
+                <div>
+                    <dt>Phone</dt>
+                    <dd>Optional. Up to 32 characters.</dd>
+                </div>
+                <div>
+                    <dt>Alias</dt>
+                    <dd>Short handle for agents (for example <code>jane</code> → <code>contact:jane</code>). Optional in the form — if left blank on create, the app generates one from the name. Must be unique among your contacts. On edit, changing the display name does not change an existing alias unless you clear and re-save it.</dd>
+                </div>
+                <div>
+                    <dt>Context</dt>
+                    <dd>Optional facts for agents — relationship, preferences, or how this person should be treated in triage and rules.</dd>
+                </div>
+            </dl>
+
+            <h2 class="help-article-heading">List actions</h2>
+            <p>Use <strong>Edit</strong> to change a contact or <strong>Delete</strong> to remove it permanently (soft delete internally). The list shows each contact by name, with entity ref, email, and phone on the second line when present.</p>
+
+            <h2 class="help-article-heading">Tags and buckets</h2>
+            <p>Contacts can be linked to tags and buckets for organization and agent context. Assignment pickers on this page are not shown yet — that linking flow comes in a later phase. The underlying data model is ready.</p>
             break;
 
         case "workspace/email-accounts":
@@ -115,7 +175,7 @@
                 </div>
                 <div>
                     <dt>Default</dt>
-                    <dd>Marks which account the Email agent uses when no specific mailbox is named. Exactly one account should be default. Your first account is set as default automatically.</dd>
+                    <dd>Marks which account the Email agent uses when no specific mailbox is named. Set from the list with <strong>Make default</strong> — not in the editor. Your first account is set as default automatically on create.</dd>
                 </div>
                 <div>
                     <dt>Alias</dt>
@@ -127,7 +187,7 @@
                 </div>
                 <div>
                     <dt>Buckets / Tags</dt>
-                    <dd>Optional organization shared with contacts and other workspace records. Useful for grouping mailboxes in rules and agent context later.</dd>
+                    <dd>Optional organization shared with contacts and other workspace records. Assignment pickers on this page are not shown yet — linking mailboxes to tags and buckets comes in a later phase.</dd>
                 </div>
             </dl>
 
@@ -205,21 +265,63 @@
             break;
 
         case "chat/email-agent":
-            <HelpStubArticle Summary="Open chat, select the Email agent, and triage connected inboxes.">
-                <p>After Workspace has a default mailbox, start a chat and ask the Email agent to summarize or triage messages. Follow Getting started for the first end-to-end run.</p>
-            </HelpStubArticle>
+            <h2 class="help-article-heading">What chat is for</h2>
+            <p>Chat is where you talk to agents in a thread. Each conversation keeps its own history and agent choice until you start a new thread or delete one.</p>
+
+            <h2 class="help-article-heading">Before you start</h2>
+            <p>Connect at least one mailbox under <NavLink href="/help/workspace/email-accounts">Workspace → Email accounts</NavLink> and set a <strong>default</strong> account. The Email agent reads from that default inbox when no specific mailbox is named.</p>
+
+            <h2 class="help-article-heading">Opening chat</h2>
+            <p>Chat lives in the sidebar — not on a separate settings page. Click <strong>New chat</strong> to create a thread and open it. Use <strong>Recent</strong> in the sidebar to switch back to an earlier conversation.</p>
+
+            <h2 class="help-article-heading">Choosing an agent</h2>
+            <p>At the bottom of the composer, open the agent picker:</p>
+            <ul class="help-article-list">
+                <li><strong>Assistant</strong> — general help and questions that do not need mailbox access.</li>
+                <li><strong>Email</strong> — triage and actions on your connected inboxes. Requires a default mailbox.</li>
+            </ul>
+            <p>The choice is saved per thread. If Email is unavailable, the picker shows an error with a link to Workspace → Email accounts.</p>
+
+            <h2 class="help-article-heading">Sending messages</h2>
+            <p>Type in the composer and press <strong>Enter</strong> to send. Use <strong>Shift+Enter</strong> for a new line. While the assistant is replying, sending is disabled and a typing indicator appears.</p>
+
+            <h2 class="help-article-heading">First triage run</h2>
+            <p>Follow <NavLink href="/help/getting-started">Getting started</NavLink> for the ordered setup path. On the chat step, open a new thread, pick <strong>Email</strong>, and send a simple triage request to confirm end-to-end mail access.</p>
             break;
 
         case "chat/threads":
-            <HelpStubArticle Summary="Manage your conversation history from the sidebar.">
-                <p>Use <strong>New chat</strong> to start fresh, rename threads for clarity, and switch between recent conversations.</p>
-            </HelpStubArticle>
+            <h2 class="help-article-heading">What threads are</h2>
+            <p>Each chat thread is a separate conversation with its own title, message history, and agent choice. Threads appear under <strong>Recent</strong> in the sidebar.</p>
+
+            <h2 class="help-article-heading">Starting a thread</h2>
+            <p>Click <strong>New chat</strong> in the sidebar. A thread is created with the title “New chat” and you are taken to it immediately. Rename it once you know what the conversation is about.</p>
+
+            <h2 class="help-article-heading">Renaming</h2>
+            <p>Hover a thread in Recent and click the rename icon. Edit the title inline, then press <strong>Enter</strong> or click away to save. Press <strong>Escape</strong> to cancel. Titles can be up to 80 characters.</p>
+
+            <h2 class="help-article-heading">Switching threads</h2>
+            <p>Click any thread in Recent to open it. The main area loads that thread’s messages and restores its last selected agent.</p>
+
+            <h2 class="help-article-heading">Deleting</h2>
+            <p>Delete a thread from the sidebar when you no longer need it. If you delete the last thread, the app creates a fresh one so you always have somewhere to chat.</p>
             break;
 
         case "workflows/overview":
-            <HelpStubArticle Summary="Automations and scheduled triage are planned for a later release.">
-                <p>Set up mail under Settings and Workspace first. Workflows will build on connected accounts and workspace organization.</p>
-            </HelpStubArticle>
+            <h2 class="help-article-heading">What workflows will do</h2>
+            <p>Workflows will run <strong>automations</strong> on mail and other events — scheduled triage, repeat actions, and rules you define once instead of asking chat each time. The module is not built yet; the page shows a placeholder until it ships.</p>
+
+            <h2 class="help-article-heading">Before workflows ship</h2>
+            <p>Complete the setup path first:</p>
+            <ul class="help-article-list">
+                <li><NavLink href="/help/settings/general">Settings → General</NavLink> — profile and sign-in</li>
+                <li><NavLink href="/help/settings/email-providers">Settings → Email providers</NavLink> — IMAP/SMTP presets</li>
+                <li><NavLink href="/help/workspace/email-accounts">Workspace → Email accounts</NavLink> — connected inboxes</li>
+                <li><NavLink href="/help/chat/email-agent">Chat → Email agent</NavLink> — confirm triage works</li>
+            </ul>
+            <p>Optional: add <NavLink href="/help/workspace/contacts">contacts</NavLink>, <NavLink href="/help/workspace/tags">tags</NavLink>, and <NavLink href="/help/workspace/buckets">buckets</NavLink> so future rules have rich workspace context.</p>
+
+            <h2 class="help-article-heading">What to expect later</h2>
+            <p>When workflows arrive, you will define triggers (for example new mail, time of day) and actions (triage, tag, notify). Chat will help draft workflow definitions from natural language. Until then, use chat for one-off triage and keep workspace data organized.</p>
             break;
 
         default:

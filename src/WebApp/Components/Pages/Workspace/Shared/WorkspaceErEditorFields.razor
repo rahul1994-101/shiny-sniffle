@@ -5,6 +5,8 @@
                class="settings-input"
                maxlength="@NameMaxLength"
                @bind="Name"
+               @bind:event="oninput"
+               @bind:after="NotifyNameChangedAsync"
                disabled="@Disabled" />
     </div>
     <div class="settings-field">
@@ -12,14 +14,16 @@
             Color <span class="settings-label-optional">@FormFieldCopy.OptionalMarker</span>
         </label>
         <ColorPicker Id="@($"{IdPrefix}-color")"
-                     @bind-Value="Color"
+                     Value="@Color"
+                     ValueChanged="NotifyColorChangedAsync"
                      Disabled="@Disabled" />
     </div>
     <div class="settings-provider-extras">
         <p class="settings-label">@EntityContextFieldCopy.SectionTitle</p>
         <EntityAliasInput InputId="@($"{IdPrefix}-alias")"
                           Kind="Kind"
-                          @bind-Alias="Alias"
+                          Alias="@Alias"
+                          AliasChanged="NotifyAliasChangedAsync"
                           SourcePrimary="@Name"
                           Disabled="Disabled" />
         <div class="settings-field">
@@ -36,6 +40,8 @@
                       rows="3"
                       maxlength="2000"
                       @bind="Context"
+                      @bind:event="oninput"
+                      @bind:after="NotifyContextChangedAsync"
                       disabled="@Disabled"></textarea>
         </div>
     </div>
@@ -77,4 +83,22 @@
 
     [Parameter]
     public EventCallback<string?> ContextChanged { get; set; }
+
+    // These fields are set locally by their own @bind on the way in, but a plain
+    // @bind on a [Parameter] never notifies the parent — it must be forwarded explicitly.
+    private Task NotifyNameChangedAsync() => NameChanged.InvokeAsync(Name);
+
+    private Task NotifyContextChangedAsync() => ContextChanged.InvokeAsync(Context);
+
+    private async Task NotifyColorChangedAsync(string? value)
+    {
+        Color = value;
+        await ColorChanged.InvokeAsync(value);
+    }
+
+    private async Task NotifyAliasChangedAsync(string? value)
+    {
+        Alias = value;
+        await AliasChanged.InvokeAsync(value);
+    }
 }

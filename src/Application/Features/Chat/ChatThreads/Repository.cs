@@ -10,10 +10,8 @@ public sealed class ChatThreadRepository(IDbContextFactory<AppDbContext> _dbCont
         await using var ctx = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
         var threads = await ctx.ChatThreads
             .AsNoTracking()
-            .Where(x =>
-                x.UserId == userId &&
-                x.IsActive &&
-                !x.IsDeleted)
+            .Where(x => x.UserId == userId)
+            .WhereActiveAndNotDeleted()
             .OrderByDescending(x => x.UpdatedAt)
             .ToListAsync(cancellationToken);
 
@@ -33,11 +31,8 @@ public sealed class ChatThreadRepository(IDbContextFactory<AppDbContext> _dbCont
         await using var ctx = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
         var thread = await ctx.ChatThreads
             .AsNoTracking()
-            .Where(x =>
-                x.Id == threadId &&
-                x.UserId == userId &&
-                x.IsActive &&
-                !x.IsDeleted)
+            .Where(x => x.Id == threadId && x.UserId == userId)
+            .WhereActiveAndNotDeleted()
             .FirstOrDefaultAsync(cancellationToken);
 
         return thread is null ? null : ChatThreadDto.FromEntity(thread);
@@ -86,10 +81,8 @@ public sealed class ChatThreadRepository(IDbContextFactory<AppDbContext> _dbCont
 
         var now = DateTime.UtcNow;
         var messages = await ctx.ChatMessages
-            .Where(x =>
-                x.ChatThreadId == threadId &&
-                x.IsActive &&
-                !x.IsDeleted)
+            .Where(x => x.ChatThreadId == threadId)
+            .WhereActiveAndNotDeleted()
             .ToListAsync(cancellationToken);
 
         foreach (var message in messages)
@@ -115,11 +108,8 @@ public sealed class ChatThreadRepository(IDbContextFactory<AppDbContext> _dbCont
         await using var ctx = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
         var thread = await ctx.ChatThreads
             .AsNoTracking()
-            .Where(x =>
-                x.Id == threadId &&
-                x.UserId == userId &&
-                x.IsActive &&
-                !x.IsDeleted)
+            .Where(x => x.Id == threadId && x.UserId == userId)
+            .WhereActiveAndNotDeleted()
             .Select(x => new { x.MemorySummary, x.MemorySummaryThroughMessageId })
             .FirstOrDefaultAsync(cancellationToken);
 
@@ -153,10 +143,7 @@ public sealed class ChatThreadRepository(IDbContextFactory<AppDbContext> _dbCont
 
     private static Task<ChatThread?> FindActiveTrackedAsync(AppDbContext ctx, Guid userId, Guid threadId, CancellationToken cancellationToken) =>
         ctx.ChatThreads
-            .Where(x =>
-                x.Id == threadId &&
-                x.UserId == userId &&
-                x.IsActive &&
-                !x.IsDeleted)
+            .Where(x => x.Id == threadId && x.UserId == userId)
+            .WhereActiveAndNotDeleted()
             .FirstOrDefaultAsync(cancellationToken);
 }

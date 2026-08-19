@@ -1,3 +1,4 @@
+using Application.Features.Shared;
 using Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -10,7 +11,8 @@ public sealed class EmailProviderRepository(IDbContextFactory<AppDbContext> _dbC
         await using var ctx = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
         var rows = await ctx.EmailProviders
             .AsNoTracking()
-            .Where(x => x.IsActive && !x.IsDeleted && (x.IsSystem || x.UserId == userId))
+            .Where(x => x.IsSystem || x.UserId == userId)
+            .WhereActiveAndNotDeleted()
             .OrderBy(x => x.CreatedAt)
             .ToListAsync(cancellationToken);
 
@@ -22,9 +24,9 @@ public sealed class EmailProviderRepository(IDbContextFactory<AppDbContext> _dbC
         await using var ctx = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
         var entity = await ctx.EmailProviders
             .AsNoTracking()
-            .FirstOrDefaultAsync(
-                x => x.Id == providerId && x.IsActive && !x.IsDeleted && (x.IsSystem || x.UserId == userId),
-                cancellationToken);
+            .Where(x => x.Id == providerId && (x.IsSystem || x.UserId == userId))
+            .WhereActiveAndNotDeleted()
+            .FirstOrDefaultAsync(cancellationToken);
 
         return entity is null ? null : EmailProviderDto.FromEntity(entity);
     }
@@ -42,7 +44,10 @@ public sealed class EmailProviderRepository(IDbContextFactory<AppDbContext> _dbC
 
         if (dto.Id is { } id)
         {
-            var existing = await ctx.EmailProviders.FirstOrDefaultAsync(x => x.Id == id && !x.IsDeleted, cancellationToken);
+            var existing = await ctx.EmailProviders
+                .Where(x => x.Id == id)
+                .WhereNotDeleted()
+                .FirstOrDefaultAsync(cancellationToken);
             if (existing is null || (!existing.IsSystem && existing.UserId != userId))
             {
                 return (null, null, true, false);
@@ -95,7 +100,10 @@ public sealed class EmailProviderRepository(IDbContextFactory<AppDbContext> _dbC
         CancellationToken cancellationToken = default)
     {
         await using var ctx = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
-        var entity = await ctx.EmailProviders.FirstOrDefaultAsync(x => x.Id == providerId && !x.IsDeleted, cancellationToken);
+        var entity = await ctx.EmailProviders
+            .Where(x => x.Id == providerId)
+            .WhereNotDeleted()
+            .FirstOrDefaultAsync(cancellationToken);
         if (entity is null || (!entity.IsSystem && entity.UserId != userId))
         {
             return (false, false, false);
@@ -106,9 +114,10 @@ public sealed class EmailProviderRepository(IDbContextFactory<AppDbContext> _dbC
             return (true, true, false);
         }
 
-        var inUse = await ctx.EmailAccounts.AnyAsync(
-            x => x.EmailProviderId == providerId && !x.IsDeleted,
-            cancellationToken);
+        var inUse = await ctx.EmailAccounts
+            .Where(x => x.EmailProviderId == providerId)
+            .WhereNotDeleted()
+            .AnyAsync(cancellationToken);
         if (inUse)
         {
             return (true, false, true);

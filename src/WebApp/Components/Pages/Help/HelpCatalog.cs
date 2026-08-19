@@ -118,13 +118,13 @@ public static class HelpCatalog
                         "Email agent",
                         "Use chat to triage and act on connected inboxes.",
                         NavIconName.Chat,
-                        "/"),
+                        ""),
                     new HelpTopic(
                         "threads",
                         "Chat threads",
                         "Start, rename, and switch between conversations.",
                         NavIconName.Chat,
-                        "/")
+                        "")
                 ])
         ]);
 
@@ -146,12 +146,17 @@ public static class HelpCatalog
                 ])
         ]);
 
+    public static readonly IReadOnlyList<HelpModule> PrimaryModules =
+    [
+        Workflows,
+        Workspace,
+        Settings
+    ];
+
     public static readonly IReadOnlyList<HelpModule> Modules =
     [
-        Settings,
-        Workspace,
-        Chat,
-        Workflows
+        ..PrimaryModules,
+        Chat
     ];
 
     public static HelpModule? TryGetModule(string? moduleSlug) =>

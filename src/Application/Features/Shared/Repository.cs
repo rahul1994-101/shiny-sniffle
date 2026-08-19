@@ -30,7 +30,7 @@ public sealed class SharedRepository
             .AsNoTracking()
             .Where(x => x.UserId == userId && x.ReferableKind == kind && referableIds.Contains(x.ReferableId))
             .Join(
-                ctx.Tags.AsNoTracking().Where(t => t.UserId == userId).WhereActive(),
+                ctx.Tags.AsNoTracking().Where(t => t.UserId == userId).WhereActiveAndNotDeleted(),
                 a => a.TagId,
                 t => t.Id,
                 (a, t) => new { a.ReferableId, Tag = t })
@@ -40,7 +40,7 @@ public sealed class SharedRepository
             .AsNoTracking()
             .Where(x => x.UserId == userId && x.ReferableKind == kind && referableIds.Contains(x.ReferableId))
             .Join(
-                ctx.Buckets.AsNoTracking().Where(b => b.UserId == userId).WhereActive(),
+                ctx.Buckets.AsNoTracking().Where(b => b.UserId == userId).WhereActiveAndNotDeleted(),
                 m => m.BucketId,
                 b => b.Id,
                 (m, b) => new { m.ReferableId, Bucket = b })
@@ -107,7 +107,7 @@ public sealed class SharedRepository
         {
             var validCount = await ctx.Tags
                 .Where(t => t.UserId == userId)
-                .WhereActive()
+                .WhereActiveAndNotDeleted()
                 .CountAsync(t => distinctTags.Contains(t.Id), cancellationToken);
 
             if (validCount != distinctTags.Count)
@@ -120,7 +120,7 @@ public sealed class SharedRepository
         {
             var validCount = await ctx.Buckets
                 .Where(b => b.UserId == userId)
-                .WhereActive()
+                .WhereActiveAndNotDeleted()
                 .CountAsync(b => distinctBuckets.Contains(b.Id), cancellationToken);
 
             if (validCount != distinctBuckets.Count)

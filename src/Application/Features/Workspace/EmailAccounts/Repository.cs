@@ -19,7 +19,7 @@ public sealed class EmailAccountRepository(
             .AsNoTracking()
             .Include(x => x.EmailProvider)
             .Where(x => x.UserId == userId)
-            .WhereActive()
+            .WhereActiveAndNotDeleted()
             .OrderBy(x => x.CreatedAt)
             .ToListAsync(cancellationToken);
 
@@ -78,7 +78,7 @@ public sealed class EmailAccountRepository(
                 .AsNoTracking()
                 .Include(x => x.EmailProvider)
                 .Where(x => x.UserId == userId && x.IsDefault)
-                .WhereActive()
+                .WhereActiveAndNotDeleted()
                 .FirstOrDefaultAsync(cancellationToken);
         }
 
@@ -130,13 +130,10 @@ public sealed class EmailAccountRepository(
             return (null, "An account with this alias already exists.", false);
         }
 
-        var emailTaken = await ctx.EmailAccounts.AnyAsync(
-            x =>
-                x.UserId == userId &&
-                !x.IsDeleted &&
-                x.EmailAddress == emailAddress &&
-                x.Id != dto.Id,
-            cancellationToken);
+        var emailTaken = await ctx.EmailAccounts
+            .Where(x => x.UserId == userId && x.EmailAddress == emailAddress && x.Id != dto.Id)
+            .WhereNotDeleted()
+            .AnyAsync(cancellationToken);
 
         if (emailTaken)
         {
@@ -153,12 +150,13 @@ public sealed class EmailAccountRepository(
             return (null, "Selected provider was not found.", false);
         }
 
-        var activeCount = await ctx.EmailAccounts.CountAsync(
-            x => x.UserId == userId && !x.IsDeleted,
-            cancellationToken);
+        var activeCount = await ctx.EmailAccounts
+            .Where(x => x.UserId == userId)
+            .WhereNotDeleted()
+            .CountAsync(cancellationToken);
 
         var isCreate = dto.Id is null;
-        var makeDefault = dto.IsDefault || (isCreate && activeCount == 0);
+        var makeDefault = isCreate && activeCount == 0;
 
         EmailAccount entity;
         if (existing is not null)
@@ -172,11 +170,6 @@ public sealed class EmailAccountRepository(
             entity.Context = context;
             entity.UpdatedBy = updatedBy;
             entity.UpdatedAt = now;
-
-            if (dto.IsDefault)
-            {
-                makeDefault = true;
-            }
         }
         else
         {
@@ -198,21 +191,11 @@ public sealed class EmailAccountRepository(
             await ctx.EmailAccounts.AddAsync(entity, cancellationToken);
         }
 
-        if (makeDefault && !isCreate)
-        {
-            await ClearDefaultExceptAsync(ctx, userId, entity.Id, updatedBy, now, cancellationToken);
-            entity.IsDefault = true;
-        }
-
         await ctx.SaveChangesAsync(cancellationToken);
 
-        if (makeDefault && isCreate)
+        if (makeDefault)
         {
-            await ClearDefaultExceptAsync(ctx, userId, entity.Id, updatedBy, now, cancellationToken);
-            entity.IsDefault = true;
-            entity.UpdatedBy = updatedBy;
-            entity.UpdatedAt = now;
-            await ctx.SaveChangesAsync(cancellationToken);
+            await SetExclusiveDefaultAsync(ctx, userId, entity, updatedBy, now, cancellationToken);
         }
 
         await ctx.Entry(entity).Reference(x => x.EmailProvider).LoadAsync(cancellationToken);
@@ -270,16 +253,13 @@ public sealed class EmailAccountRepository(
         {
             var next = await ctx.EmailAccounts
                 .Where(x => x.UserId == userId && x.Id != emailAccountId)
-                .WhereActive()
+                .WhereActiveAndNotDeleted()
                 .OrderBy(x => x.CreatedAt)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (next is not null)
             {
-                await ClearDefaultExceptAsync(ctx, userId, next.Id, updatedBy, now, cancellationToken);
-                next.IsDefault = true;
-                next.UpdatedBy = updatedBy;
-                next.UpdatedAt = now;
+                await SetExclusiveDefaultAsync(ctx, userId, next, updatedBy, now, cancellationToken);
             }
         }
 
@@ -302,11 +282,7 @@ public sealed class EmailAccountRepository(
         }
 
         var now = DateTime.UtcNow;
-        await ClearDefaultExceptAsync(ctx, userId, entity.Id, updatedBy, now, cancellationToken);
-        entity.IsDefault = true;
-        entity.UpdatedBy = updatedBy;
-        entity.UpdatedAt = now;
-        await ctx.SaveChangesAsync(cancellationToken);
+        await SetExclusiveDefaultAsync(ctx, userId, entity, updatedBy, now, cancellationToken);
         return (true, null);
     }
 
@@ -320,7 +296,7 @@ public sealed class EmailAccountRepository(
         var query = ctx.EmailAccounts
             .Include(x => x.EmailProvider)
             .Where(x => x.Id == emailAccountId && x.UserId == userId)
-            .WhereActive();
+            .WhereActiveAndNotDeleted();
 
         if (asNoTracking)
         {
@@ -328,6 +304,32 @@ public sealed class EmailAccountRepository(
         }
 
         return await query.FirstOrDefaultAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// Ensures exactly one default per user. Clears other defaults first, saves, then promotes the target —
+    /// avoids filtered unique-index violations when EF batches competing updates.
+    /// </summary>
+    private static async Task SetExclusiveDefaultAsync(
+        AppDbContext ctx,
+        Guid userId,
+        EmailAccount target,
+        Guid updatedBy,
+        DateTime now,
+        CancellationToken cancellationToken)
+    {
+        await ClearDefaultExceptAsync(ctx, userId, target.Id, updatedBy, now, cancellationToken);
+        await ctx.SaveChangesAsync(cancellationToken);
+
+        if (target.IsDefault)
+        {
+            return;
+        }
+
+        target.IsDefault = true;
+        target.UpdatedBy = updatedBy;
+        target.UpdatedAt = now;
+        await ctx.SaveChangesAsync(cancellationToken);
     }
 
     private static async Task ClearDefaultExceptAsync(
@@ -339,11 +341,8 @@ public sealed class EmailAccountRepository(
         CancellationToken cancellationToken)
     {
         var others = await ctx.EmailAccounts
-            .Where(x =>
-                x.UserId == userId &&
-                !x.IsDeleted &&
-                x.IsDefault &&
-                x.Id != keepId)
+            .Where(x => x.UserId == userId && x.IsDefault && x.Id != keepId)
+            .WhereNotDeleted()
             .ToListAsync(cancellationToken);
 
         foreach (var row in others)
@@ -360,11 +359,8 @@ public sealed class EmailAccountRepository(
         string alias,
         Guid? excludeId,
         CancellationToken cancellationToken) =>
-        ctx.EmailAccounts.AnyAsync(
-            x =>
-                x.UserId == userId &&
-                !x.IsDeleted &&
-                x.Alias == alias &&
-                x.Id != excludeId,
-            cancellationToken);
+        ctx.EmailAccounts
+            .Where(x => x.UserId == userId && x.Alias == alias && x.Id != excludeId)
+            .WhereNotDeleted()
+            .AnyAsync(cancellationToken);
 }

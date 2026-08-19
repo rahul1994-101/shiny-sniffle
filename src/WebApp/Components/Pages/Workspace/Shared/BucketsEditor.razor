@@ -38,15 +38,17 @@ else
                     {
                         <div class="ui-group-row ui-group-row-static ui-list-row-rich">
                             <div class="ui-list-row-rich-body">
-                                <span class="ui-group-row-title" title="@bucket.Context">
-                                    @if (!string.IsNullOrWhiteSpace(bucket.Color))
-                                    {
-                                        <span class="ui-catalog-swatch" style="background-color: @bucket.Color"></span>
-                                    }
-                                    @bucket.Name
+                                <span class="ui-list-row-meta">
+                                    <span class="ui-group-row-title" title="@bucket.Context">
+                                        @if (!string.IsNullOrWhiteSpace(bucket.Color))
+                                        {
+                                            <span class="ui-catalog-swatch" style="background-color: @bucket.Color"></span>
+                                        }
+                                        @bucket.Name
+                                    </span>
                                     @if (!bucket.IsActive)
                                     {
-                                        <span class="ui-list-row-meta"><span class="ui-list-row-badge">Paused</span></span>
+                                        <span class="ui-list-row-badge">Paused</span>
                                     }
                                 </span>
                                 <span class="ui-group-row-desc">@bucket.EntityRef</span>
@@ -171,18 +173,23 @@ else
     private async Task SaveAsync()
     {
         _saving = true;
-        var result = await Mediator.SendAsync(new SaveBucketRequest(CurrentUser.Id, _form.ToDto()));
-        if (result.HasError)
+        try
         {
-            _status.Set(result.Errors.FirstOrDefault()?.Message ?? "Save failed.", isError: true);
+            var result = await Mediator.SendAsync(new SaveBucketRequest(CurrentUser.Id, _form.ToDto()));
+            if (result.HasError)
+            {
+                _status.Set(result.Errors.FirstOrDefault()?.Message ?? "Save failed.", isError: true);
+            }
+            else
+            {
+                CloseEditor();
+                await LoadAsync();
+            }
         }
-        else
+        finally
         {
-            CloseEditor();
-            await LoadAsync();
+            _saving = false;
         }
-
-        _saving = false;
     }
 
     private async Task DeleteAsync(BucketDto bucket)

@@ -17,27 +17,16 @@
     <div class="app-page-body">
         <div class="app-page-body-inner">
             <nav class="ui-group" aria-label="Quick links">
-                <NavLink class="ui-group-row" href="workspace">
-                    <span>
-                        <span class="ui-group-row-title">Workspace</span>
-                        <span class="ui-group-row-desc">User-owned data for agents and the product.</span>
-                    </span>
-                    <span class="ui-group-row-chevron" aria-hidden="true">›</span>
-                </NavLink>
-                <NavLink class="ui-group-row" href="workflows">
-                    <span>
-                        <span class="ui-group-row-title">Workflows</span>
-                        <span class="ui-group-row-desc">AI-assisted rules, triggers, and actions.</span>
-                    </span>
-                    <span class="ui-group-row-chevron" aria-hidden="true">›</span>
-                </NavLink>
-                <NavLink class="ui-group-row" href="settings">
-                    <span>
-                        <span class="ui-group-row-title">Settings</span>
-                        <span class="ui-group-row-desc">Mailbox for the Email agent</span>
-                    </span>
-                    <span class="ui-group-row-chevron" aria-hidden="true">›</span>
-                </NavLink>
+                @foreach (var module in HelpCatalog.PrimaryModules)
+                {
+                    <NavLink class="ui-group-row" href="@module.Slug">
+                        <span>
+                            <span class="ui-group-row-title">@module.Title</span>
+                            <span class="ui-group-row-desc">@module.Lead</span>
+                        </span>
+                        <span class="ui-group-row-chevron" aria-hidden="true">›</span>
+                    </NavLink>
+                }
                 <SignOutForm ButtonClass="ui-group-row ui-group-row-static ui-group-row-danger">
                     <span>
                         <span class="ui-group-row-title">Sign out</span>

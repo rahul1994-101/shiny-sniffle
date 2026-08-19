@@ -180,27 +180,6 @@ else
     private string EditorTitle =>
         _form.Id is null ? "New account" : "Edit account";
 
-    private static readonly SettingsDropdownField.SettingsDropdownOption[] DefaultOptions =
-    [
-        new("default", "Yes"),
-        new("no", "No")
-    ];
-
-    private string DefaultSelect
-    {
-        get => _form.IsDefault ? "default" : "no";
-        set
-        {
-            var isDefault = string.Equals(value, "default", StringComparison.Ordinal);
-            if (_form.IsDefault == isDefault)
-            {
-                return;
-            }
-
-            _form.IsDefault = isDefault;
-        }
-    }
-
     private bool IsFormBusy => _saving || _testing || _deleting;
 
     private bool CanSaveEditor =>
@@ -355,13 +334,6 @@ else
                     </div>
                 </div>
 
-                <div class="settings-endpoint-row settings-account-default-row">
-                    <SettingsDropdownField Label="Default"
-                                           CssClass="settings-field-ssl"
-                                           @bind-Value="DefaultSelect"
-                                           Options="DefaultOptions"
-                                           Disabled="@(IsFormBusy || _form.IsDefaultForced)" />
-                </div>
             </div>
 
             <div class="settings-provider-extras">
@@ -492,8 +464,6 @@ else
         _status.Clear();
         _form = new AccountForm
         {
-            IsDefault = _accounts.Count == 0,
-            IsDefaultForced = _accounts.Count == 0,
             EmailProviderId = ResolveInitialProviderId()
         };
         EnsureProviderInForm();
@@ -517,7 +487,7 @@ else
             return;
         }
 
-        _form = AccountForm.FromDto(result.Payload, _accounts.Count <= 1 && result.Payload.IsDefault);
+        _form = AccountForm.FromDto(result.Payload);
         EnsureProviderInForm();
         _editorOpen = true;
         _showPassword = false;
@@ -700,10 +670,6 @@ else
 
         public string Alias { get; set; } = string.Empty;
 
-        public bool IsDefault { get; set; }
-
-        public bool IsDefaultForced { get; set; }
-
         public Guid EmailProviderId { get; set; }
 
         public string EmailAddress { get; set; } = string.Empty;
@@ -720,14 +686,12 @@ else
 
         public HashSet<Guid> SelectedBucketIds { get; } = [];
 
-        public static AccountForm FromDto(EmailAccountDto dto, bool defaultForced)
+        public static AccountForm FromDto(EmailAccountDto dto)
         {
             var form = new AccountForm
             {
                 Id = dto.Id,
                 Alias = dto.Alias,
-                IsDefault = dto.IsDefault,
-                IsDefaultForced = defaultForced,
                 EmailProviderId = dto.EmailProviderId,
                 EmailAddress = dto.EmailAddress,
                 Username = dto.Username,
@@ -751,7 +715,6 @@ else
         {
             Id = Id,
             Alias = Alias,
-            IsDefault = IsDefault,
             EmailProviderId = EmailProviderId,
             EmailAddress = EmailAddress,
             Username = Username,
