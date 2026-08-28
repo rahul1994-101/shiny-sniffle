@@ -1,4 +1,6 @@
 @inherits BaseComponent
+@using Application.Features.Shared.Queries
+@implements IDisposable
 
 
 
@@ -62,12 +64,52 @@
 
              aria-label="@PickerAriaLabel">
 
-            @if (_options.Count == 0)
-
+            @if (_searchLoading && _options.Count == 0)
             {
-
-                <div class="er-mention-empty">No matches for "@_context?.Query"</div>
-
+                <div class="er-mention-empty">Searching…</div>
+            }
+            else if (_context?.Step == MentionPickerStep.Global && _globalTotalCount == 0 && string.IsNullOrEmpty(_context.Query))
+            {
+                <div class="er-mention-empty er-mention-empty-workspace">
+                    <p class="er-mention-empty-text">@EntityRefMentionSupport.GetGlobalEmptyWorkspaceMessage()</p>
+                    <a href="/workspace"
+                       class="er-mention-empty-link"
+                       target="_blank"
+                       rel="noopener noreferrer"
+                       @onmousedown:preventDefault="true">
+                        @EntityRefMentionSupport.GetGlobalWorkspaceLinkLabel()
+                    </a>
+                </div>
+            }
+            else if (_context?.Step == MentionPickerStep.Alias && _aliasTotalCount == 0)
+            {
+                <div class="er-mention-empty er-mention-empty-workspace">
+                    <p class="er-mention-empty-text">@EntityRefMentionSupport.GetEmptyWorkspaceMessage(_context.Kind)</p>
+                    <a href="@EntityRefMentionSupport.GetWorkspaceHref(_context.Kind)"
+                       class="er-mention-empty-link"
+                       target="_blank"
+                       rel="noopener noreferrer"
+                       @onmousedown:preventDefault="true">
+                        @EntityRefMentionSupport.GetWorkspaceLinkLabel(_context.Kind)
+                    </a>
+                </div>
+            }
+            else if (_options.Count == 0)
+            {
+                <div class="er-mention-empty">
+                    @if (_context?.Step == MentionPickerStep.Kind)
+                    {
+                        <span>No matching entity types.</span>
+                    }
+                    else if (_context?.Step == MentionPickerStep.Global)
+                    {
+                        <span>No matches for "@_context?.Query"</span>
+                    }
+                    else
+                    {
+                        <span>No matches for "@_context?.Query"</span>
+                    }
+                </div>
             }
 
             @for (var index = 0; index < VisibleOptionCount; index++)
@@ -165,7 +207,7 @@
 
     [Parameter]
 
-    public string Placeholder { get; set; } = "Type @ to reference an entity…";
+    public string Placeholder { get; set; } = "Type / to search or @ to reference…";
 
 
 
@@ -223,10 +265,6 @@
 
     private IReadOnlyList<EntityRefMentionOption> _options = [];
 
-    private IReadOnlyList<ContactSummaryDto> _contacts = [];
-
-    private IReadOnlyList<EmailAccountSummaryDto> _mailboxes = [];
-
     private bool _pickerOpen;
 
     private bool _openBelow;
@@ -237,7 +275,13 @@
 
     private int _highlightedIndex;
 
-    private bool _catalogLoaded;
+    private bool _searchLoading;
+
+    private int _aliasTotalCount;
+
+    private int _globalTotalCount;
+
+    private CancellationTokenSource? _searchCts;
 
     private string? _lastValue;
 
@@ -249,13 +293,12 @@
 
     private string PickerListboxId => $"{InputId ?? "er-mention"}-picker";
 
-    private string PickerAriaLabel =>
-
-        _context?.Step == MentionPickerStep.Alias
-
-            ? "Entity aliases"
-
-            : "Entity kinds";
+    private string PickerAriaLabel => _context?.Step switch
+    {
+        MentionPickerStep.Global => "Workspace search",
+        MentionPickerStep.Alias => "Entity aliases",
+        _ => "Entity kinds"
+    };
 
 
 
@@ -285,13 +328,14 @@
 
 
 
-        await LoadCatalogAsync();
-
         await LoadRecentAsync();
-
     }
 
-
+    public void Dispose()
+    {
+        _searchCts?.Cancel();
+        _searchCts?.Dispose();
+    }
 
     protected override async Task OnParametersSetAsync()
 
@@ -480,74 +524,24 @@
 
 
     private async Task RefreshPickerAsync()
-
     {
-
         if (Disabled)
-
         {
-
             ClosePicker();
-
             return;
-
         }
-
-
-
-        if (!_catalogLoaded)
-
-        {
-
-            await LoadCatalogAsync();
-
-        }
-
-
 
         var caret = await GetCaretAsync();
-
         _context = EntityRefMentionSupport.TryGetContext(Value, caret, ResolvedEnabledKinds);
 
         if (_context is null || _context.Step == MentionPickerStep.None)
-
         {
-
             ClosePicker();
-
             return;
-
         }
-
-
-
-        _options = _context.Step switch
-
-        {
-
-            MentionPickerStep.Kind => EntityRefMentionSupport.BuildKindOptions(ResolvedEnabledKinds, _context.Query),
-
-            MentionPickerStep.Alias => EntityRefMentionSupport.BuildAliasOptions(
-
-                _context.Kind,
-
-                _context.Query,
-
-                _contacts,
-
-                _mailboxes,
-
-                _recentHandles),
-
-            _ => []
-
-        };
-
-
 
         var wasOpen = _pickerOpen;
         _pickerOpen = true;
-
         _highlightedIndex = 0;
 
         if (!wasOpen)
@@ -555,9 +549,131 @@
             _placementDirty = true;
         }
 
+        if (_context.Step == MentionPickerStep.Kind)
+        {
+            _searchCts?.Cancel();
+            _searchLoading = false;
+            _aliasTotalCount = 0;
+            _globalTotalCount = 0;
+            _options = EntityRefMentionSupport.BuildKindOptions(ResolvedEnabledKinds, _context.Query);
+            return;
+        }
+
+        if (_context.Step == MentionPickerStep.Global)
+        {
+            _options = [];
+            await SearchGlobalAsync(_context.Query);
+            return;
+        }
+
+        _options = [];
+        await SearchAliasesAsync(_context.Kind, _context.Query);
     }
 
+    private async Task SearchGlobalAsync(string query)
+    {
+        _searchCts?.Cancel();
+        _searchCts?.Dispose();
+        _searchCts = new CancellationTokenSource();
+        var token = _searchCts.Token;
 
+        try
+        {
+            await Task.Delay(200, token);
+        }
+        catch (OperationCanceledException)
+        {
+            return;
+        }
+
+        if (_context?.Step != MentionPickerStep.Global)
+        {
+            return;
+        }
+
+        _searchLoading = true;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            var result = await Mediator.SendAsync(
+                new SearchEntityRefMentionsGlobalRequest(
+                    CurrentUser.Id,
+                    query,
+                    ResolvedEnabledKinds,
+                    _recentHandles),
+                token);
+
+            if (token.IsCancellationRequested || _context?.Step != MentionPickerStep.Global)
+            {
+                return;
+            }
+
+            var payload = result.Payload;
+            _globalTotalCount = payload?.TotalCount ?? 0;
+            _aliasTotalCount = 0;
+            _options = EntityRefMentionSupport.BuildGlobalOptionsFromItems(
+                query,
+                payload?.Items ?? [],
+                _recentHandles);
+        }
+        finally
+        {
+            _searchLoading = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task SearchAliasesAsync(EntityRefs.Kind kind, string query)
+    {
+        _searchCts?.Cancel();
+        _searchCts?.Dispose();
+        _searchCts = new CancellationTokenSource();
+        var token = _searchCts.Token;
+
+        try
+        {
+            await Task.Delay(200, token);
+        }
+        catch (OperationCanceledException)
+        {
+            return;
+        }
+
+        if (_context?.Step != MentionPickerStep.Alias || _context.Kind != kind)
+        {
+            return;
+        }
+
+        _searchLoading = true;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            var result = await Mediator.SendAsync(
+                new SearchEntityRefMentionsRequest(CurrentUser.Id, kind, query, _recentHandles),
+                token);
+
+            if (token.IsCancellationRequested || _context?.Step != MentionPickerStep.Alias)
+            {
+                return;
+            }
+
+            var payload = result.Payload;
+            _aliasTotalCount = payload?.TotalCount ?? 0;
+            _globalTotalCount = 0;
+            _options = EntityRefMentionSupport.BuildAliasOptionsFromItems(
+                kind,
+                query,
+                payload?.Items ?? [],
+                _recentHandles);
+        }
+        finally
+        {
+            _searchLoading = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
 
     private async Task SelectOptionAsync(EntityRefMentionOption option)
 
@@ -644,6 +760,8 @@
 
         _highlightedIndex = 0;
 
+        _aliasTotalCount = 0;
+        _globalTotalCount = 0;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -754,26 +872,6 @@
             .Take(10)
             .ToList();
     }
-
-    private async Task LoadCatalogAsync()
-
-    {
-
-        var contactsResult = await Mediator.SendAsync(new GetAllContactsByUserIdRequest(CurrentUser.Id));
-
-        var mailboxesResult = await Mediator.SendAsync(new GetAllEmailAccountsByUserIdRequest(CurrentUser.Id));
-
-
-
-        _contacts = contactsResult.HasError ? [] : contactsResult.Payload?.Contacts ?? [];
-
-        _mailboxes = mailboxesResult.HasError ? [] : mailboxesResult.Payload?.Accounts ?? [];
-
-        _catalogLoaded = true;
-
-    }
-
-
 
     private async Task<int> GetCaretAsync()
 

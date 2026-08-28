@@ -166,6 +166,128 @@ public sealed class TagRepository(
             .WhereNotDeleted()
             .AnyAsync(cancellationToken);
 
+    public async Task<(IReadOnlyList<EntityRefMentionItemDto> Items, int TotalCount)> SearchMentionItemsAsync(
+        Guid userId,
+        string? query,
+        IReadOnlyList<string> recentAliases,
+        int limit,
+        CancellationToken cancellationToken = default)
+    {
+        await using var ctx = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var baseQuery = ctx.Tags
+            .AsNoTracking()
+            .Where(x => x.UserId == userId)
+            .WhereActiveAndNotDeleted();
+
+        var totalCount = await baseQuery.CountAsync(cancellationToken);
+        if (totalCount == 0)
+        {
+            return ([], 0);
+        }
+
+        var trimmedQuery = query?.Trim();
+        List<Tag> rows;
+
+        if (string.IsNullOrEmpty(trimmedQuery))
+        {
+            rows = await LoadTagsForEmptyQueryAsync(baseQuery, recentAliases, limit, cancellationToken);
+        }
+        else
+        {
+            rows = await LoadTagsForQueryAsync(baseQuery, trimmedQuery, limit, cancellationToken);
+        }
+
+        return (rows.ConvertAll(ToMentionItem), totalCount);
+    }
+
+    private static async Task<List<Tag>> LoadTagsForEmptyQueryAsync(
+        IQueryable<Tag> baseQuery,
+        IReadOnlyList<string> recentAliases,
+        int limit,
+        CancellationToken cancellationToken)
+    {
+        var results = new List<Tag>();
+        var usedIds = new HashSet<Guid>();
+
+        if (recentAliases.Count > 0)
+        {
+            var recentRows = await baseQuery
+                .Where(t => recentAliases.Contains(t.Alias))
+                .ToListAsync(cancellationToken);
+
+            foreach (var alias in recentAliases)
+            {
+                var row = recentRows.FirstOrDefault(t =>
+                    string.Equals(t.Alias, alias, StringComparison.OrdinalIgnoreCase));
+
+                if (row is not null && usedIds.Add(row.Id))
+                {
+                    results.Add(row);
+                    if (results.Count >= limit)
+                    {
+                        return results;
+                    }
+                }
+            }
+        }
+
+        if (results.Count < limit)
+        {
+            var filler = await baseQuery
+                .Where(t => !usedIds.Contains(t.Id))
+                .OrderBy(t => t.Name)
+                .Take(limit - results.Count)
+                .ToListAsync(cancellationToken);
+
+            results.AddRange(filler);
+        }
+
+        return results;
+    }
+
+    private static async Task<List<Tag>> LoadTagsForQueryAsync(
+        IQueryable<Tag> baseQuery,
+        string query,
+        int limit,
+        CancellationToken cancellationToken)
+    {
+        var pattern = $"%{query}%";
+        var candidates = await baseQuery
+            .Where(t =>
+                EF.Functions.Like(t.Alias, pattern)
+                || EF.Functions.Like(t.Name, pattern)
+                || (t.Context != null && EF.Functions.Like(t.Context, pattern)))
+            .ToListAsync(cancellationToken);
+
+        return candidates
+            .Where(t => EntityRefMentionSearch.MatchesAliasQuery(t.Alias, t.Name, t.Context, query))
+            .OrderBy(t => EntityRefMentionSearch.Rank(t.Alias, t.Name, t.Context, query))
+            .ThenBy(t => t.Name, StringComparer.OrdinalIgnoreCase)
+            .Take(limit)
+            .ToList();
+    }
+
+    private static EntityRefMentionItemDto ToMentionItem(Tag entity) => new()
+    {
+        Kind = EntityRefs.Kind.Tag,
+        Alias = entity.Alias,
+        PrimaryLabel = entity.Name,
+        SecondaryLabel = $"@{entity.Alias}",
+        TooltipText = BuildCatalogTooltip(entity.Name, entity.Alias, entity.Context)
+    };
+
+    private static string BuildCatalogTooltip(string name, string alias, string? context)
+    {
+        var parts = new List<string> { name, $"@{alias}" };
+
+        if (!string.IsNullOrWhiteSpace(context))
+        {
+            parts.Add(context.Trim());
+        }
+
+        return string.Join(" · ", parts);
+    }
+
     private static async Task<Tag?> FindOwnedAsync(
         AppDbContext ctx,
         Guid userId,

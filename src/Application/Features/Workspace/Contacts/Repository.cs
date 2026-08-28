@@ -225,4 +225,157 @@ public sealed class ContactRepository(
             .Where(x => x.UserId == userId && x.Alias == alias && x.Id != excludeId)
             .WhereNotDeleted()
             .AnyAsync(cancellationToken);
+
+    public async Task<(IReadOnlyList<EntityRefMentionItemDto> Items, int TotalCount)> SearchMentionItemsAsync(
+        Guid userId,
+        string? query,
+        IReadOnlyList<string> recentAliases,
+        int limit,
+        CancellationToken cancellationToken = default)
+    {
+        await using var ctx = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var baseQuery = ctx.Contacts
+            .AsNoTracking()
+            .Where(x => x.UserId == userId)
+            .WhereActiveAndNotDeleted();
+
+        var totalCount = await baseQuery.CountAsync(cancellationToken);
+        if (totalCount == 0)
+        {
+            return ([], 0);
+        }
+
+        var trimmedQuery = query?.Trim();
+        List<Contact> rows;
+
+        if (string.IsNullOrEmpty(trimmedQuery))
+        {
+            rows = await LoadContactsForEmptyQueryAsync(baseQuery, recentAliases, limit, cancellationToken);
+        }
+        else
+        {
+            rows = await LoadContactsForQueryAsync(baseQuery, trimmedQuery, limit, cancellationToken);
+        }
+
+        return (rows.ConvertAll(ToMentionItem), totalCount);
+    }
+
+    private static async Task<List<Contact>> LoadContactsForEmptyQueryAsync(
+        IQueryable<Contact> baseQuery,
+        IReadOnlyList<string> recentAliases,
+        int limit,
+        CancellationToken cancellationToken)
+    {
+        var results = new List<Contact>();
+        var usedIds = new HashSet<Guid>();
+
+        if (recentAliases.Count > 0)
+        {
+            var recentRows = await baseQuery
+                .Where(c => recentAliases.Contains(c.Alias))
+                .ToListAsync(cancellationToken);
+
+            foreach (var alias in recentAliases)
+            {
+                var row = recentRows.FirstOrDefault(c =>
+                    string.Equals(c.Alias, alias, StringComparison.OrdinalIgnoreCase));
+
+                if (row is not null && usedIds.Add(row.Id))
+                {
+                    results.Add(row);
+                    if (results.Count >= limit)
+                    {
+                        return results;
+                    }
+                }
+            }
+        }
+
+        if (results.Count < limit)
+        {
+            var filler = await baseQuery
+                .Where(c => !usedIds.Contains(c.Id))
+                .OrderBy(c => c.FirstName)
+                .ThenBy(c => c.LastName)
+                .Take(limit - results.Count)
+                .ToListAsync(cancellationToken);
+
+            results.AddRange(filler);
+        }
+
+        return results;
+    }
+
+    private static async Task<List<Contact>> LoadContactsForQueryAsync(
+        IQueryable<Contact> baseQuery,
+        string query,
+        int limit,
+        CancellationToken cancellationToken)
+    {
+        var pattern = $"%{query}%";
+        var candidates = await baseQuery
+            .Where(c =>
+                EF.Functions.Like(c.Alias, pattern)
+                || EF.Functions.Like(c.FirstName, pattern)
+                || EF.Functions.Like(c.LastName, pattern)
+                || (c.Email != null && EF.Functions.Like(c.Email, pattern)))
+            .ToListAsync(cancellationToken);
+
+        return candidates
+            .Where(c => EntityRefMentionSearch.MatchesAliasQuery(
+                c.Alias,
+                ContactMapping.ResolveListLabel(c),
+                c.Email,
+                query))
+            .OrderBy(c => EntityRefMentionSearch.Rank(
+                c.Alias,
+                ContactMapping.ResolveListLabel(c),
+                c.Email,
+                query))
+            .ThenBy(c => ContactMapping.ResolveListLabel(c), StringComparer.OrdinalIgnoreCase)
+            .Take(limit)
+            .ToList();
+    }
+
+    private static EntityRefMentionItemDto ToMentionItem(Contact entity)
+    {
+        var label = ContactMapping.ResolveListLabel(entity);
+        var tooltipParts = new List<string> { label };
+
+        if (!string.IsNullOrWhiteSpace(entity.Email))
+        {
+            tooltipParts.Add(entity.Email);
+        }
+
+        if (!string.IsNullOrWhiteSpace(entity.Phone))
+        {
+            tooltipParts.Add(entity.Phone);
+        }
+
+        return new EntityRefMentionItemDto
+        {
+            Kind = EntityRefs.Kind.Contact,
+            Alias = entity.Alias,
+            PrimaryLabel = label,
+            SecondaryLabel = $"@{entity.Alias}",
+            AvatarText = ComputeInitials(label),
+            TooltipText = string.Join(" · ", tooltipParts)
+        };
+    }
+
+    private static string ComputeInitials(string name)
+    {
+        var parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (parts.Length == 0)
+        {
+            return "?";
+        }
+
+        if (parts.Length == 1)
+        {
+            return parts[0][..Math.Min(2, parts[0].Length)].ToUpperInvariant();
+        }
+
+        return $"{parts[0][0]}{parts[^1][0]}".ToUpperInvariant();
+    }
 }

@@ -166,6 +166,128 @@ public sealed class BucketRepository(
             .WhereNotDeleted()
             .AnyAsync(cancellationToken);
 
+    public async Task<(IReadOnlyList<EntityRefMentionItemDto> Items, int TotalCount)> SearchMentionItemsAsync(
+        Guid userId,
+        string? query,
+        IReadOnlyList<string> recentAliases,
+        int limit,
+        CancellationToken cancellationToken = default)
+    {
+        await using var ctx = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var baseQuery = ctx.Buckets
+            .AsNoTracking()
+            .Where(x => x.UserId == userId)
+            .WhereActiveAndNotDeleted();
+
+        var totalCount = await baseQuery.CountAsync(cancellationToken);
+        if (totalCount == 0)
+        {
+            return ([], 0);
+        }
+
+        var trimmedQuery = query?.Trim();
+        List<Bucket> rows;
+
+        if (string.IsNullOrEmpty(trimmedQuery))
+        {
+            rows = await LoadBucketsForEmptyQueryAsync(baseQuery, recentAliases, limit, cancellationToken);
+        }
+        else
+        {
+            rows = await LoadBucketsForQueryAsync(baseQuery, trimmedQuery, limit, cancellationToken);
+        }
+
+        return (rows.ConvertAll(ToMentionItem), totalCount);
+    }
+
+    private static async Task<List<Bucket>> LoadBucketsForEmptyQueryAsync(
+        IQueryable<Bucket> baseQuery,
+        IReadOnlyList<string> recentAliases,
+        int limit,
+        CancellationToken cancellationToken)
+    {
+        var results = new List<Bucket>();
+        var usedIds = new HashSet<Guid>();
+
+        if (recentAliases.Count > 0)
+        {
+            var recentRows = await baseQuery
+                .Where(b => recentAliases.Contains(b.Alias))
+                .ToListAsync(cancellationToken);
+
+            foreach (var alias in recentAliases)
+            {
+                var row = recentRows.FirstOrDefault(b =>
+                    string.Equals(b.Alias, alias, StringComparison.OrdinalIgnoreCase));
+
+                if (row is not null && usedIds.Add(row.Id))
+                {
+                    results.Add(row);
+                    if (results.Count >= limit)
+                    {
+                        return results;
+                    }
+                }
+            }
+        }
+
+        if (results.Count < limit)
+        {
+            var filler = await baseQuery
+                .Where(b => !usedIds.Contains(b.Id))
+                .OrderBy(b => b.Name)
+                .Take(limit - results.Count)
+                .ToListAsync(cancellationToken);
+
+            results.AddRange(filler);
+        }
+
+        return results;
+    }
+
+    private static async Task<List<Bucket>> LoadBucketsForQueryAsync(
+        IQueryable<Bucket> baseQuery,
+        string query,
+        int limit,
+        CancellationToken cancellationToken)
+    {
+        var pattern = $"%{query}%";
+        var candidates = await baseQuery
+            .Where(b =>
+                EF.Functions.Like(b.Alias, pattern)
+                || EF.Functions.Like(b.Name, pattern)
+                || (b.Context != null && EF.Functions.Like(b.Context, pattern)))
+            .ToListAsync(cancellationToken);
+
+        return candidates
+            .Where(b => EntityRefMentionSearch.MatchesAliasQuery(b.Alias, b.Name, b.Context, query))
+            .OrderBy(b => EntityRefMentionSearch.Rank(b.Alias, b.Name, b.Context, query))
+            .ThenBy(b => b.Name, StringComparer.OrdinalIgnoreCase)
+            .Take(limit)
+            .ToList();
+    }
+
+    private static EntityRefMentionItemDto ToMentionItem(Bucket entity) => new()
+    {
+        Kind = EntityRefs.Kind.Bucket,
+        Alias = entity.Alias,
+        PrimaryLabel = entity.Name,
+        SecondaryLabel = $"@{entity.Alias}",
+        TooltipText = BuildCatalogTooltip(entity.Name, entity.Alias, entity.Context)
+    };
+
+    private static string BuildCatalogTooltip(string name, string alias, string? context)
+    {
+        var parts = new List<string> { name, $"@{alias}" };
+
+        if (!string.IsNullOrWhiteSpace(context))
+        {
+            parts.Add(context.Trim());
+        }
+
+        return string.Join(" · ", parts);
+    }
+
     private static async Task<Bucket?> FindOwnedAsync(
         AppDbContext ctx,
         Guid userId,

@@ -1,0 +1,23 @@
+@foreach (var segment in EntityRefMentions.ParseSegments(Text))
+{
+    if (segment.IsMention
+        && segment.Handle is not null
+        && EntityRefs.TryParse(segment.Handle, out var kind, out var alias))
+    {
+        <a class="er-mention-token er-mention-token-@EntityRefMentionSupport.KindCssSuffix(kind)"
+           href="@EntityRefMentionSupport.GetWorkspaceHref(kind)"
+           target="_blank"
+           rel="noopener noreferrer"
+           title="@EntityRefMentionSupport.BuildMentionTitle(kind, alias)"
+           aria-label="@EntityRefMentionSupport.BuildMentionAriaLabel(kind, alias)">@segment.Text</a>
+    }
+    else
+    {
+        @segment.Text
+    }
+}
+
+@code {
+    [Parameter]
+    public string? Text { get; set; }
+}

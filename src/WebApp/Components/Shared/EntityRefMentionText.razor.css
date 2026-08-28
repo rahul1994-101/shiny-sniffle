@@ -1,0 +1,70 @@
+.er-mention-token {
+    display: inline;
+    font-size: 0.9em;
+    font-weight: 500;
+    line-height: 1.4;
+    padding: 0.05rem 0.3rem;
+    border-radius: 0.3rem;
+    border: 1px solid transparent;
+    white-space: pre-wrap;
+    word-break: break-word;
+    text-decoration: none;
+    transition:
+        background-color var(--ui-duration) var(--ui-ease),
+        border-color var(--ui-duration) var(--ui-ease),
+        color var(--ui-duration) var(--ui-ease);
+}
+
+.er-mention-token:hover {
+    text-decoration: none;
+}
+
+.er-mention-token-contact {
+    background: color-mix(in srgb, var(--app-accent) 18%, transparent);
+    border-color: color-mix(in srgb, var(--app-accent) 35%, transparent);
+    color: var(--app-accent);
+}
+
+.er-mention-token-contact:hover {
+    background: color-mix(in srgb, var(--app-accent) 26%, transparent);
+    border-color: color-mix(in srgb, var(--app-accent) 45%, transparent);
+}
+
+.er-mention-token-mailbox {
+    background: color-mix(in srgb, #6aa6ff 18%, transparent);
+    border-color: color-mix(in srgb, #6aa6ff 35%, transparent);
+    color: #6aa6ff;
+}
+
+.er-mention-token-mailbox:hover {
+    background: color-mix(in srgb, #6aa6ff 26%, transparent);
+    border-color: color-mix(in srgb, #6aa6ff 45%, transparent);
+}
+
+.er-mention-token-tag {
+    background: color-mix(in srgb, #d4a853 18%, transparent);
+    border-color: color-mix(in srgb, #d4a853 35%, transparent);
+    color: #d4a853;
+}
+
+.er-mention-token-tag:hover {
+    background: color-mix(in srgb, #d4a853 26%, transparent);
+    border-color: color-mix(in srgb, #d4a853 45%, transparent);
+}
+
+.er-mention-token-bucket {
+    background: color-mix(in srgb, #4db8a4 18%, transparent);
+    border-color: color-mix(in srgb, #4db8a4 35%, transparent);
+    color: #4db8a4;
+}
+
+.er-mention-token-bucket:hover {
+    background: color-mix(in srgb, #4db8a4 26%, transparent);
+    border-color: color-mix(in srgb, #4db8a4 45%, transparent);
+}
+
+.er-mention-token-default {
+    background: color-mix(in srgb, var(--app-muted) 16%, transparent);
+    border-color: color-mix(in srgb, var(--app-muted) 30%, transparent);
+    color: var(--app-fg);
+}

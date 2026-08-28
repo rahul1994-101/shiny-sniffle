@@ -91,6 +91,31 @@
     color: var(--app-muted);
 }
 
+.er-mention-empty-workspace {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+}
+
+.er-mention-empty-text {
+    margin: 0;
+    line-height: 1.45;
+}
+
+.er-mention-empty-link {
+    align-self: flex-start;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--app-link);
+    text-decoration: none;
+    transition: color var(--ui-duration) var(--ui-ease);
+}
+
+.er-mention-empty-link:hover {
+    color: var(--app-link-hover);
+    text-decoration: underline;
+}
+
 .er-mention-option {
     display: flex;
     flex-direction: row;
@@ -126,8 +151,16 @@
     color: #6aa6ff;
 }
 
-.er-mention-option-icon-tag,
-.er-mention-option-icon-bucket,
+.er-mention-option-icon-tag {
+    background: color-mix(in srgb, #d4a853 22%, var(--app-surface));
+    color: #d4a853;
+}
+
+.er-mention-option-icon-bucket {
+    background: color-mix(in srgb, #4db8a4 22%, var(--app-surface));
+    color: #4db8a4;
+}
+
 .er-mention-option-icon-default {
     background: var(--app-muted-bg, color-mix(in srgb, var(--app-muted) 20%, var(--app-surface)));
     color: var(--app-muted);

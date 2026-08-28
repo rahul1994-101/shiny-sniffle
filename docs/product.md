@@ -162,30 +162,34 @@ All tables use **`isDeleted`** and **`isActive`** with the same meaning:
 
 Engineering: `EntityRefs.Format` / `EntityRefs.TryParse` at AI/tool input boundaries; `EntityRefResolver` resolves `kind:alias` → `Guid` before save; `TryFormatAsync` hydrates stored IDs back to handles for display. DB column is always `alias` on workspace ERs.
 
-#### Mention syntax — shipped in chat composer (Contact + Mailbox only)
+#### Mention syntax — shipped in chat composer (Contact, Mailbox, Tag, Bucket)
 
 Social-style typing **on top of** existing handles — no extra DB columns. Implemented as a reusable `EntityRefMentionInput` component (`src/WebApp/Components/Shared/`), currently wired into the chat composer only.
 
 | User types (draft) | Resolves to | Notes |
 |--------------------|-------------|--------|
+| `/sarah` (picker) | `@contact:sarah` | **Global search (shipped):** `/` opens one-step search across all kinds; pick inserts `@kind:alias` |
 | `@contact:sarah` | `contact:sarah` | Two-step picker: pick kind, then alias |
 | `@mailbox:work` | `mailbox:work` | Mailbox / connected inbox |
-| `#marketing` or `@marketing` | `tag:marketing` | **Deferred** — Tag/Bucket kinds not yet wired into the picker (see below) |
-| `@xyz-inc` | `bucket:xyz-inc` | **Deferred** — same as above |
+| `@tag:marketing` | `tag:marketing` | Tag definition (server search in picker) |
+| `@bucket:xyz-inc` | `bucket:xyz-inc` | Bucket definition (server search in picker) |
+| `#marketing` or `@marketing` | `tag:marketing` | **Deferred** — shorthand without `tag:` prefix |
 
-**Autocomplete (shipped):** typing `@` opens a suggestion picker (step 1: kind — `contact`/`mailbox`; step 2: alias search within that kind). Keyboard nav (↑/↓, Tab/Enter to select, Esc to cancel), mouse click, prefix-ranked + fuzzy matching, matched-substring highlighting, contact avatars (initials), recently-used entities float to top, capped visible rows with "+N more" footer, hover tooltips with entity detail, and touch-friendly sizing on coarse-pointer devices. On pick, the raw `@{kind}:{alias}` token is inserted into the draft (no visual chip — plain text, by design, after an earlier chip-based approach proved fragile).
+**Autocomplete (shipped):** typing `/` opens a **global** suggestion picker (search all enabled kinds in one step; on pick, inserts `@kind:alias` into the draft). Typing `@` opens the **power-user** picker (step 1: kind — `contact`/`mailbox`/`tag`/`bucket`; step 2: alias search within that kind). Keyboard nav (↑/↓, Tab/Enter to select, Esc to cancel), mouse click, prefix-ranked + fuzzy matching, matched-substring highlighting, contact avatars (initials), recently-used entities float to top, capped visible rows with "+N more" footer, hover tooltips with entity detail, and touch-friendly sizing on coarse-pointer devices. On pick, the raw `@{kind}:{alias}` token is inserted into the draft (no visual chip — plain text, by design, after an earlier chip-based approach proved fragile).
 
-**Server-side resolution (shipped):** `EntityRefMentions.ExtractFromText` parses `@kind:alias` tokens out of the sent message; `EntityRefMentionContextService` resolves each via `EntityRefResolver` and appends a `## Referenced entities` context block (contact name/email/phone/notes, or mailbox address/provider) to the latest user turn before it reaches the AI agent (`ChatOrchestrator.EnrichLatestUserTurnWithMentions`). Unresolvable/malformed handles are reported inline rather than silently dropped.
+**Server-side resolution (shipped):** `EntityRefMentions.ExtractFromText` parses `@kind:alias` tokens out of the sent message; `EntityRefMentionContextService` resolves each via `EntityRefResolver` and appends a `## Referenced entities` context block (contact name/email/phone/notes, mailbox address/provider, or tag/bucket name/color/notes) to the latest user turn before it reaches the AI agent (`ChatOrchestrator.EnrichLatestUserTurnWithMentions`). Unresolvable/malformed handles are reported inline rather than silently dropped.
 
 **Rules for implementers:**
 
 1. **AI, tools, and rules** accept **`kind:alias`** at the edge; **resolve to `Guid` via `EntityRefResolver` before persisting**; never store alias strings in workflow JSON, execution state, or FK columns.
-2. **UI** shows the raw `@kind:alias` token in the composer text; picker rows show display name with the handle as secondary label and a hover tooltip.
+2. **UI** shows the raw `@kind:alias` token in the composer text; **`/`** is the default picker (global search → inserts `@kind:alias` on pick); **`@`** remains the two-step power-user path. Sent **user** chat bubbles style valid tokens inline (kind-colored chips, raw handle preserved, `aria-label`, hover title, clickable link to the matching Workspace list in a new tab). Picker rows show display name with the handle as secondary label and a hover tooltip; empty-workspace states link to the right Workspace page.
 3. **Tag/bucket assignment** on contacts/mailboxes stays **picker-based** (dictionary rows), not free-text at assign time.
 4. **Triage suggestions** on mail: suggest → user confirms; do not auto-create tag/bucket defs from model output without explicit user action.
 5. **Catalog rows** (e.g. email providers) are referenced by **`id`** in FKs and pickers — never mixed into `@`/`#` ER mention resolution.
 
-**Still out of scope:** Tag/Bucket kinds in the mention picker (deferred with the rest of Tags/Buckets work), rule builder token insertion, resolving mentions in stored prompt templates, mention UI outside chat (e.g. AI context builder elsewhere).
+**Still out of scope:** shorthand `#` / bare `@alias` mention syntax (without `tag:`/`bucket:` prefix), rule builder token insertion, resolving mentions in stored prompt templates, mention UI outside chat (e.g. AI context builder elsewhere), hydrating bubble text to display names (raw `@kind:alias` is intentional).
+
+**Rich editor milestone (complete):** server-side alias search, Tag/Bucket in picker, empty-workspace UX, `/` global search, `@` two-step picker, styled sent bubbles. Tags/Buckets **Workspace admin UI** remains deferred; picker + AI context for tag/bucket defs is shipped.
 
 #### Relation to mail triage
 
@@ -332,4 +336,4 @@ For technical work, use **`docs/README.md`** and the engineering roadmaps listed
 
 ---
 
-*Last updated: §5.5 alias/catalog keys + shipped chat `@` mention syntax (Contact/Mailbox only; Tag/Bucket deferred).*
+*Last updated: chat rich editor complete (`/` global search + `@` mentions, server search, styled bubbles); next engineering focus — Email read Layer 6b+ and AI memory (see `docs/README.md`).*

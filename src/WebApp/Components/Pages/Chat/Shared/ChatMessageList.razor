@@ -16,7 +16,9 @@ else
                 <div class="msg-chunk msg-chunk-user">
                     <div class="msg-bubble msg-bubble-user">
                         <span class="visually-hidden">You</span>
-                        <div class="msg-text">@msg.Content</div>
+                        <div class="msg-text">
+                            <EntityRefMentionText Text="@msg.Content" />
+                        </div>
                     </div>
                     <div class="msg-avatar msg-avatar-user" aria-hidden="true">You</div>
                 </div>

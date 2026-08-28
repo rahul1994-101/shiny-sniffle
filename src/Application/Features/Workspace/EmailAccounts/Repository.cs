@@ -363,4 +363,134 @@ public sealed class EmailAccountRepository(
             .Where(x => x.UserId == userId && x.Alias == alias && x.Id != excludeId)
             .WhereNotDeleted()
             .AnyAsync(cancellationToken);
+
+    public async Task<(IReadOnlyList<EntityRefMentionItemDto> Items, int TotalCount)> SearchMentionItemsAsync(
+        Guid userId,
+        string? query,
+        IReadOnlyList<string> recentAliases,
+        int limit,
+        CancellationToken cancellationToken = default)
+    {
+        await using var ctx = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var baseQuery = ctx.EmailAccounts
+            .AsNoTracking()
+            .Include(x => x.EmailProvider)
+            .Where(x => x.UserId == userId)
+            .WhereActiveAndNotDeleted()
+            .Where(x => x.EmailProvider != null);
+
+        var totalCount = await baseQuery.CountAsync(cancellationToken);
+        if (totalCount == 0)
+        {
+            return ([], 0);
+        }
+
+        var trimmedQuery = query?.Trim();
+        List<EmailAccount> rows;
+
+        if (string.IsNullOrEmpty(trimmedQuery))
+        {
+            rows = await LoadMailboxesForEmptyQueryAsync(baseQuery, recentAliases, limit, cancellationToken);
+        }
+        else
+        {
+            rows = await LoadMailboxesForQueryAsync(baseQuery, trimmedQuery, limit, cancellationToken);
+        }
+
+        return (rows.ConvertAll(x => ToMentionItem(x, x.EmailProvider!)), totalCount);
+    }
+
+    private static async Task<List<EmailAccount>> LoadMailboxesForEmptyQueryAsync(
+        IQueryable<EmailAccount> baseQuery,
+        IReadOnlyList<string> recentAliases,
+        int limit,
+        CancellationToken cancellationToken)
+    {
+        var results = new List<EmailAccount>();
+        var usedIds = new HashSet<Guid>();
+
+        if (recentAliases.Count > 0)
+        {
+            var recentRows = await baseQuery
+                .Where(a => recentAliases.Contains(a.Alias))
+                .ToListAsync(cancellationToken);
+
+            foreach (var alias in recentAliases)
+            {
+                var row = recentRows.FirstOrDefault(a =>
+                    string.Equals(a.Alias, alias, StringComparison.OrdinalIgnoreCase));
+
+                if (row is not null && usedIds.Add(row.Id))
+                {
+                    results.Add(row);
+                    if (results.Count >= limit)
+                    {
+                        return results;
+                    }
+                }
+            }
+        }
+
+        if (results.Count < limit)
+        {
+            var filler = await baseQuery
+                .Where(a => !usedIds.Contains(a.Id))
+                .OrderBy(a => a.Alias)
+                .Take(limit - results.Count)
+                .ToListAsync(cancellationToken);
+
+            results.AddRange(filler);
+        }
+
+        return results;
+    }
+
+    private static async Task<List<EmailAccount>> LoadMailboxesForQueryAsync(
+        IQueryable<EmailAccount> baseQuery,
+        string query,
+        int limit,
+        CancellationToken cancellationToken)
+    {
+        var pattern = $"%{query}%";
+        var candidates = await baseQuery
+            .Where(a =>
+                EF.Functions.Like(a.Alias, pattern)
+                || EF.Functions.Like(a.EmailAddress, pattern)
+                || EF.Functions.Like(a.EmailProvider!.Name, pattern))
+            .ToListAsync(cancellationToken);
+
+        return candidates
+            .Where(a => EntityRefMentionSearch.MatchesAliasQuery(
+                a.Alias,
+                a.Alias,
+                $"{a.EmailAddress} {a.EmailProvider?.Name}",
+                query))
+            .OrderBy(a => EntityRefMentionSearch.Rank(
+                a.Alias,
+                a.Alias,
+                a.EmailAddress,
+                query))
+            .ThenBy(a => a.Alias, StringComparer.OrdinalIgnoreCase)
+            .Take(limit)
+            .ToList();
+    }
+
+    private static EntityRefMentionItemDto ToMentionItem(EmailAccount account, EmailProvider provider)
+    {
+        var tooltipParts = new List<string> { account.EmailAddress, provider.Name };
+
+        if (account.IsDefault)
+        {
+            tooltipParts.Add("default");
+        }
+
+        return new EntityRefMentionItemDto
+        {
+            Kind = EntityRefs.Kind.Mailbox,
+            Alias = account.Alias,
+            PrimaryLabel = account.Alias,
+            SecondaryLabel = account.EmailAddress,
+            TooltipText = string.Join(" · ", tooltipParts)
+        };
+    }
 }

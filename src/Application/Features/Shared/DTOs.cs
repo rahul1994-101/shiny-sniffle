@@ -36,3 +36,19 @@ public sealed class ErTaxonomyDto
 
     public IReadOnlyList<BucketRefDto> Buckets { get; init; } = [];
 }
+
+/// <summary>Lightweight row for the <c>@kind:alias</c> mention picker (no taxonomy).</summary>
+public sealed class EntityRefMentionItemDto
+{
+    public EntityRefs.Kind Kind { get; init; }
+
+    public string Alias { get; init; } = string.Empty;
+
+    public string PrimaryLabel { get; init; } = string.Empty;
+
+    public string? SecondaryLabel { get; init; }
+
+    public string? TooltipText { get; init; }
+
+    public string? AvatarText { get; init; }
+}
