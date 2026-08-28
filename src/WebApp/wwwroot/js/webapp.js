@@ -252,10 +252,21 @@ window.webAppShell = (function () {
     }
   }
 
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", tryInitTheme);
-  } else {
+  function tryInitMention() {
+    if (window.webAppMention) {
+      window.webAppMention.init();
+    }
+  }
+
+  function tryInitBoot() {
     tryInitTheme();
+    tryInitMention();
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", tryInitBoot);
+  } else {
+    tryInitBoot();
   }
 })();
 
@@ -290,6 +301,117 @@ window.webAppScroll = {
     });
   }
 };
+
+window.webAppMention = (function () {
+  var wired = false;
+
+  function isPickerOpen(el) {
+    return el && el.getAttribute("data-er-mention-picker-open") === "true";
+  }
+
+  function isCommitKey(key) {
+    return key === "Tab" || key === "Enter" || key === "NumpadEnter";
+  }
+
+  function isPickerNavKey(key) {
+    return (
+      key === "ArrowDown" ||
+      key === "ArrowUp" ||
+      key === "Escape" ||
+      isCommitKey(key)
+    );
+  }
+
+  function onKeyDownCapture(e) {
+    var el = e.target;
+    if (!el || !el.classList || !el.classList.contains("er-mention-textarea")) {
+      return;
+    }
+    if (el.disabled) {
+      return;
+    }
+
+    if (isPickerOpen(el) && isPickerNavKey(e.key)) {
+      if (isCommitKey(e.key) && e.shiftKey) {
+        return;
+      }
+
+      e.preventDefault();
+      return;
+    }
+
+    if (
+      el.getAttribute("data-er-mention-submit-on-enter") === "true" &&
+      isCommitKey(e.key) &&
+      !e.shiftKey
+    ) {
+      e.preventDefault();
+    }
+  }
+
+  function init() {
+    if (wired) return;
+    wired = true;
+    document.addEventListener("keydown", onKeyDownCapture, true);
+  }
+
+  function getCaret(el) {
+    if (!el) return 0;
+    return typeof el.selectionStart === "number" ? el.selectionStart : 0;
+  }
+
+  function setCaret(el, position) {
+    if (!el) return;
+    el.focus();
+    if (typeof el.setSelectionRange === "function") {
+      el.setSelectionRange(position, position);
+    }
+  }
+
+  function hasSpaceAbove(el, requiredPx) {
+    if (!el) return true;
+    var rect = el.getBoundingClientRect();
+    return rect.top >= (requiredPx || 260);
+  }
+
+  var RECENT_KEY = "erMentionRecent";
+  var RECENT_MAX = 10;
+
+  function getRecent() {
+    try {
+      var raw = window.localStorage.getItem(RECENT_KEY);
+      var parsed = raw ? JSON.parse(raw) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+
+  function addRecent(handle) {
+    if (!handle) return;
+    try {
+      var list = getRecent().filter(function (h) {
+        return h.toLowerCase() !== handle.toLowerCase();
+      });
+      list.unshift(handle);
+      if (list.length > RECENT_MAX) {
+        list = list.slice(0, RECENT_MAX);
+      }
+      window.localStorage.setItem(RECENT_KEY, JSON.stringify(list));
+    } catch {
+      // localStorage unavailable (private mode, etc.) - recency is best-effort only.
+    }
+  }
+
+  return {
+    init: init,
+    getCaret: getCaret,
+    setCaret: setCaret,
+    hasSpaceAbove: hasSpaceAbove,
+    getRecent: getRecent,
+    addRecent: addRecent
+  };
+})();
 
 window.webAppChat = {
   resizeTextarea: function (el, maxLines) {

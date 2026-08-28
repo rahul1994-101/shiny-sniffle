@@ -1,0 +1,257 @@
+.er-mention-input {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
+.er-mention-editor {
+    position: relative;
+    width: 100%;
+}
+
+.er-mention-textarea {
+    width: 100%;
+    box-sizing: border-box;
+    font-size: 0.875rem;
+    line-height: 1.45;
+    display: block;
+    min-height: 2rem;
+    border: 1px solid var(--app-composer-border);
+    border-radius: var(--ui-radius-lg);
+    background: transparent;
+    color: var(--app-fg);
+    caret-color: var(--app-fg);
+    padding: 0.5rem 0.65rem;
+    resize: vertical;
+    box-shadow: var(--app-composer-shadow);
+    transition:
+        border-color var(--ui-duration) var(--ui-ease),
+        box-shadow var(--ui-duration) var(--ui-ease);
+}
+
+.er-mention-textarea::placeholder {
+    color: var(--app-muted);
+}
+
+.er-mention-textarea:focus {
+    outline: none;
+    border-color: var(--app-composer-focus-border);
+    box-shadow: var(--app-composer-focus-shadow);
+}
+
+.er-mention-input-disabled .er-mention-textarea {
+    opacity: 0.65;
+    cursor: not-allowed;
+}
+
+.er-mention-input-embedded .er-mention-textarea {
+    border: none;
+    box-shadow: none;
+    border-radius: 0;
+    padding: 0.1rem 0.15rem;
+    font-size: 0.9375rem;
+    min-height: 1.75rem;
+    max-height: calc(0.9375rem * 1.45 * 3 + 0.2rem);
+    resize: none;
+    overflow-y: hidden;
+}
+
+.er-mention-input-embedded .er-mention-textarea.chat-input-scrollable {
+    overflow-y: auto;
+    padding-right: 0.35rem;
+}
+
+.er-mention-picker-wrap {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: calc(100% + 0.35rem);
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    border-radius: var(--ui-radius-md);
+    overflow: hidden;
+    box-shadow: var(--app-composer-shadow);
+}
+
+.er-mention-picker-wrap-below {
+    top: calc(100% + 0.35rem);
+    bottom: auto;
+}
+
+.er-mention-picker {
+    max-height: 14rem;
+    overflow-y: auto;
+    padding: 0.3rem;
+}
+
+.er-mention-empty {
+    padding: 0.5rem 0.6rem;
+    font-size: 0.8125rem;
+    color: var(--app-muted);
+}
+
+.er-mention-option {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 0.55rem;
+    width: 100%;
+    text-align: left;
+    padding: 0.4rem 0.55rem;
+    border-radius: var(--ui-radius-sm);
+    transition: background-color var(--ui-duration) var(--ui-ease);
+}
+
+.er-mention-option-icon {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.6rem;
+    height: 1.6rem;
+    border-radius: 50%;
+    font-size: 0.75rem;
+    font-weight: 600;
+    line-height: 1;
+}
+
+.er-mention-option-icon-contact {
+    background: color-mix(in srgb, var(--app-accent) 20%, var(--app-surface));
+    color: var(--app-accent);
+}
+
+.er-mention-option-icon-mailbox {
+    background: color-mix(in srgb, #6aa6ff 22%, var(--app-surface));
+    color: #6aa6ff;
+}
+
+.er-mention-option-icon-tag,
+.er-mention-option-icon-bucket,
+.er-mention-option-icon-default {
+    background: var(--app-muted-bg, color-mix(in srgb, var(--app-muted) 20%, var(--app-surface)));
+    color: var(--app-muted);
+}
+
+.er-mention-option-avatar {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.6rem;
+    height: 1.6rem;
+    border-radius: 50%;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    line-height: 1;
+    color: #fff;
+    background: color-mix(in srgb, var(--app-accent) 65%, #6a5acd);
+}
+
+.er-mention-match {
+    background: color-mix(in srgb, var(--app-accent) 30%, transparent);
+    color: inherit;
+    border-radius: 0.15rem;
+    padding: 0 0.05rem;
+}
+
+.er-mention-option-text {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.1rem;
+    min-width: 0;
+}
+
+.er-mention-option-primary {
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--app-fg);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+.er-mention-option-secondary {
+    font-size: 0.75rem;
+    color: var(--app-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+.er-mention-option-recent {
+    flex: none;
+    font-size: 0.625rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--app-muted);
+    background: color-mix(in srgb, var(--app-fg) 6%, var(--app-surface));
+    border: 1px solid var(--app-border);
+    border-radius: var(--ui-radius-sm);
+    padding: 0.1rem 0.35rem;
+}
+
+.er-mention-more {
+    padding: 0.35rem 0.6rem 0.2rem;
+    font-size: 0.75rem;
+    color: var(--app-muted);
+    text-align: center;
+}
+
+.er-mention-picker-hint {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.35rem 0.6rem;
+    font-size: 0.6875rem;
+    color: var(--app-muted);
+    background: color-mix(in srgb, var(--app-fg) 4%, var(--app-surface));
+    border-top: 1px solid var(--app-border);
+}
+
+.er-mention-picker-hint kbd {
+    display: inline-block;
+    padding: 0.05rem 0.3rem;
+    margin-right: 0.1rem;
+    border-radius: var(--ui-radius-sm);
+    border: 1px solid var(--app-border);
+    background: var(--app-surface);
+    font-family: inherit;
+    font-size: 0.625rem;
+    color: var(--app-fg);
+}
+
+/* Touch devices: bigger tap targets, no keyboard-only hint footer, roomier picker. */
+@media (pointer: coarse) {
+    .er-mention-option {
+        padding: 0.6rem 0.65rem;
+        gap: 0.65rem;
+    }
+
+    .er-mention-option-icon,
+    .er-mention-option-avatar {
+        width: 1.9rem;
+        height: 1.9rem;
+        font-size: 0.75rem;
+    }
+
+    .er-mention-option-primary {
+        font-size: 0.875rem;
+    }
+
+    .er-mention-option-secondary {
+        font-size: 0.8125rem;
+    }
+
+    .er-mention-picker {
+        max-height: 16rem;
+    }
+
+    .er-mention-picker-hint {
+        display: none;
+    }
+}

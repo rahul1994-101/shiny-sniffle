@@ -30,6 +30,7 @@ public static class DependencyInjection
 
         services.AddScoped<SharedRepository>();
         services.AddScoped<EntityRefResolver>();
+        services.AddScoped<EntityRefMentionContextService>();
         services.AddScoped<UserRepository>();
         services.AddScoped<ChatThreadRepository>();
         services.AddScoped<ChatMessageRepository>();

@@ -34,6 +34,7 @@ public sealed class ChatOrchestrator(
 
         var history = await LoadThreadHistoryAsync(request.UserId, request.ThreadId, cancellationToken);
         history = await threadMemory.EnrichHistoryAsync(request.UserId, request.ThreadId, history, cancellationToken);
+        history = EnrichLatestUserTurnWithMentions(history, request.MentionContext);
         var response = request.ChatAgent switch
         {
             ChatAgent.Email => await emailTriageAgent.RunAsync(request, history, cancellationToken),
@@ -50,6 +51,28 @@ public sealed class ChatOrchestrator(
     }
 
     #region # Private Helpers
+
+    private static IReadOnlyList<Microsoft.Extensions.AI.ChatMessage> EnrichLatestUserTurnWithMentions(
+        IReadOnlyList<Microsoft.Extensions.AI.ChatMessage> history,
+        string? mentionContext)
+    {
+        if (string.IsNullOrWhiteSpace(mentionContext) || history.Count == 0)
+        {
+            return history;
+        }
+
+        var last = history[^1];
+        if (last.Role != AiChatRole.User)
+        {
+            return history;
+        }
+
+        var enriched = history.ToList();
+        enriched[^1] = new Microsoft.Extensions.AI.ChatMessage(
+            last.Role,
+            $"{last.Text}\n\n{mentionContext}");
+        return enriched;
+    }
 
     private async Task<IReadOnlyList<Microsoft.Extensions.AI.ChatMessage>> LoadThreadHistoryAsync(Guid userId, Guid threadId, CancellationToken cancellationToken)
     {

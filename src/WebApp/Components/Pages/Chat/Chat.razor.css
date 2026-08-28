@@ -166,93 +166,9 @@
 
 
 
-.chat-input {
+.chat-composer-busy .er-mention-input-embedded {
 
-    width: 100%;
-
-    border: none;
-
-    background: transparent;
-
-    color: var(--app-fg);
-
-    resize: none;
-
-    overflow-y: hidden;
-
-    min-height: 1.75rem;
-
-    max-height: calc(0.9375rem * 1.45 * 3 + 0.2rem);
-
-    line-height: 1.45;
-
-    font-size: 0.9375rem;
-
-    padding: 0.1rem 0.15rem;
-
-    box-sizing: border-box;
-
-    scrollbar-width: thin;
-
-    scrollbar-color: var(--app-scrollbar-thumb) transparent;
-
-}
-
-
-
-.chat-input::-webkit-scrollbar {
-
-    width: 5px;
-
-}
-
-
-
-.chat-input::-webkit-scrollbar-track {
-
-    background: transparent;
-
-}
-
-
-
-.chat-input::-webkit-scrollbar-thumb {
-
-    background: var(--app-scrollbar-thumb);
-
-    border-radius: 999px;
-
-}
-
-
-
-.chat-input::-webkit-scrollbar-thumb:hover {
-
-    background: var(--app-border-strong);
-
-}
-
-
-
-.chat-input.chat-input-scrollable {
-
-    padding-right: 0.35rem;
-
-}
-
-
-
-.chat-input::placeholder {
-
-    color: var(--app-muted);
-
-}
-
-
-
-.chat-input:focus {
-
-    outline: none;
+    opacity: 0.65;
 
 }
 
@@ -308,21 +224,5 @@
     font-size: 0.8125rem;
 
     line-height: 1.4;
-
-}
-
-
-
-.chat-composer-busy .chat-input {
-
-    opacity: 0.65;
-
-}
-
-
-
-.chat-session-hint {
-
-    opacity: 0.9;
 
 }

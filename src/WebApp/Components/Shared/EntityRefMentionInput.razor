@@ -1,0 +1,860 @@
+@inherits BaseComponent
+
+
+
+<div class="er-mention-input @(Disabled ? "er-mention-input-disabled" : null) @(Embedded ? "er-mention-input-embedded" : null)">
+
+    <div class="er-mention-editor">
+
+        <textarea @ref="_input"
+
+                  id="@InputId"
+
+                  class="er-mention-textarea"
+
+                  rows="@Rows"
+
+                  placeholder="@Placeholder"
+
+                  aria-label="@AriaLabel"
+
+                  aria-autocomplete="list"
+
+                  aria-controls="@(_pickerOpen ? PickerListboxId : null)"
+
+                  aria-expanded="@_pickerOpen"
+
+                  data-er-mention-picker-open="@(_pickerOpen && _options.Count > 0 ? "true" : "false")"
+
+                  data-er-mention-submit-on-enter="@(SubmitOnEnter ? "true" : "false")"
+
+                  disabled="@Disabled"
+
+                  value="@Value"
+
+                  @oninput="OnInputAsync"
+
+                  @onkeydown="OnKeyDownAsync"
+
+                  @onkeydown:preventDefault="@_preventDefault"
+
+                  @onclick="OnClickAsync"
+
+                  @onfocus="OnFocusAsync"
+
+                  @onblur="OnBlurAsync"></textarea>
+
+    </div>
+
+
+
+    @if (_pickerOpen)
+
+    {
+
+        <div class="er-mention-picker-wrap @(_openBelow ? "er-mention-picker-wrap-below" : null)">
+
+        <div id="@PickerListboxId"
+
+             class="er-mention-picker ui-dropdown-menu"
+
+             role="listbox"
+
+             aria-label="@PickerAriaLabel">
+
+            @if (_options.Count == 0)
+
+            {
+
+                <div class="er-mention-empty">No matches for "@_context?.Query"</div>
+
+            }
+
+            @for (var index = 0; index < VisibleOptionCount; index++)
+
+            {
+
+                var option = _options[index];
+
+                var selected = index == _highlightedIndex;
+
+                <button type="button"
+
+                        role="option"
+
+                        aria-selected="@selected"
+
+                        class="er-mention-option ui-dropdown-option @(selected ? "ui-dropdown-option-active" : null)"
+
+                        title="@option.TooltipText"
+
+                        @onmousedown:preventDefault="true"
+
+                        @onclick="() => SelectOptionAsync(option)">
+
+                    @if (!string.IsNullOrEmpty(option.AvatarText))
+                    {
+                        <span class="er-mention-option-avatar" aria-hidden="true">@option.AvatarText</span>
+                    }
+                    else
+                    {
+                        <span class="er-mention-option-icon er-mention-option-icon-@KindIconClass(option.EntityKind)" aria-hidden="true">@KindIconGlyph(option.EntityKind)</span>
+                    }
+
+                    <span class="er-mention-option-text">
+                        <span class="er-mention-option-primary">@Highlight(option.PrimaryLabel, _context?.Query)</span>
+
+                        @if (!string.IsNullOrWhiteSpace(option.SecondaryLabel))
+
+                        {
+
+                            <span class="er-mention-option-secondary">@Highlight(option.SecondaryLabel, _context?.Query)</span>
+
+                        }
+                    </span>
+
+                    @if (option.IsRecent)
+                    {
+                        <span class="er-mention-option-recent">Recent</span>
+                    }
+
+                </button>
+
+            }
+
+            @if (_options.Count > VisibleOptionCount)
+            {
+                <div class="er-mention-more">+@(_options.Count - VisibleOptionCount) more, keep typing…</div>
+            }
+
+        </div>
+
+        <div class="er-mention-picker-hint">
+            <span><kbd>↑</kbd><kbd>↓</kbd> navigate</span>
+            <span><kbd>Tab</kbd>/<kbd>Enter</kbd> select</span>
+            <span><kbd>Esc</kbd> cancel</span>
+        </div>
+
+        </div>
+
+    }
+
+</div>
+
+
+
+@code {
+
+    [Parameter]
+
+    public string? InputId { get; set; }
+
+
+
+    [Parameter]
+
+    public string? Value { get; set; }
+
+
+
+    [Parameter]
+
+    public EventCallback<string?> ValueChanged { get; set; }
+
+
+
+    [Parameter]
+
+    public string Placeholder { get; set; } = "Type @ to reference an entity…";
+
+
+
+    [Parameter]
+
+    public string AriaLabel { get; set; } = "Entity reference";
+
+
+
+    [Parameter]
+
+    public int Rows { get; set; } = 1;
+
+
+
+    [Parameter]
+
+    public bool Disabled { get; set; }
+
+
+
+    [Parameter]
+
+    public bool Embedded { get; set; }
+
+
+
+    [Parameter]
+
+    public bool SubmitOnEnter { get; set; }
+
+
+
+    [Parameter]
+
+    public int MaxLines { get; set; }
+
+
+
+    [Parameter]
+
+    public EventCallback OnEnter { get; set; }
+
+
+
+    [Parameter]
+
+    public IReadOnlyList<EntityRefs.Kind>? EnabledKinds { get; set; }
+
+
+
+    private ElementReference _input;
+
+    private MentionContext? _context;
+
+    private IReadOnlyList<EntityRefMentionOption> _options = [];
+
+    private IReadOnlyList<ContactSummaryDto> _contacts = [];
+
+    private IReadOnlyList<EmailAccountSummaryDto> _mailboxes = [];
+
+    private bool _pickerOpen;
+
+    private bool _openBelow;
+
+    private bool _placementDirty;
+
+    private bool _preventDefault;
+
+    private int _highlightedIndex;
+
+    private bool _catalogLoaded;
+
+    private string? _lastValue;
+
+    private IReadOnlyList<string> _recentHandles = [];
+
+    private int VisibleOptionCount => Math.Min(_options.Count, EntityRefMentionSupport.MaxVisibleOptions);
+
+
+
+    private string PickerListboxId => $"{InputId ?? "er-mention"}-picker";
+
+    private string PickerAriaLabel =>
+
+        _context?.Step == MentionPickerStep.Alias
+
+            ? "Entity aliases"
+
+            : "Entity kinds";
+
+
+
+    private IReadOnlyList<EntityRefs.Kind> ResolvedEnabledKinds =>
+
+        EnabledKinds ?? EntityRefMentionSupport.DefaultEnabledKinds;
+
+
+
+    protected override async Task OnInitializedAsync()
+
+    {
+
+        try
+
+        {
+
+            await JsRuntime.InvokeVoidAsync("webAppMention.init");
+
+        }
+
+        catch
+
+        {
+
+        }
+
+
+
+        await LoadCatalogAsync();
+
+        await LoadRecentAsync();
+
+    }
+
+
+
+    protected override async Task OnParametersSetAsync()
+
+    {
+
+        if (!string.Equals(_lastValue, Value, StringComparison.Ordinal))
+
+        {
+
+            _lastValue = Value;
+
+            await ResizeAsync();
+
+        }
+
+    }
+
+
+
+    #region # Input
+
+
+
+    private async Task OnInputAsync(ChangeEventArgs args)
+
+    {
+
+        Value = args.Value?.ToString();
+
+        _lastValue = Value;
+
+        await ValueChanged.InvokeAsync(Value);
+
+        await RefreshPickerAsync();
+
+        await ResizeAsync();
+
+    }
+
+
+
+    private async Task OnClickAsync()
+
+    {
+
+        await RefreshPickerAsync();
+
+    }
+
+
+
+    private async Task OnFocusAsync()
+
+    {
+
+        await RefreshPickerAsync();
+
+    }
+
+    private async Task OnBlurAsync()
+    {
+        // Let a click on a picker option register (it prevents mousedown default) before closing.
+        await Task.Delay(120);
+        ClosePicker();
+        StateHasChanged();
+    }
+
+
+
+    private async Task OnKeyDownAsync(KeyboardEventArgs args)
+
+    {
+
+        _preventDefault = false;
+
+
+
+        if (_pickerOpen && _options.Count > 0)
+
+        {
+
+            switch (args.Key)
+
+            {
+
+                case "ArrowDown":
+
+                    _highlightedIndex = (_highlightedIndex + 1) % VisibleOptionCount;
+
+                    return;
+
+                case "ArrowUp":
+
+                    _highlightedIndex = (_highlightedIndex - 1 + VisibleOptionCount) % VisibleOptionCount;
+
+                    return;
+
+                case "Tab":
+
+                    await SelectOptionAsync(_options[_highlightedIndex]);
+
+                    return;
+
+                case "Enter":
+
+                case "NumpadEnter":
+
+                    if (args.ShiftKey)
+
+                    {
+
+                        ClosePicker();
+
+                        return;
+
+                    }
+
+
+
+                    await SelectOptionAsync(_options[_highlightedIndex]);
+
+                    return;
+
+                case "Escape":
+
+                    ClosePicker();
+
+                    return;
+
+            }
+
+        }
+
+
+
+        if (SubmitOnEnter
+
+            && OnEnter.HasDelegate
+
+            && (args.Key is "Enter" or "NumpadEnter")
+
+            && !args.ShiftKey)
+
+        {
+
+            _preventDefault = true;
+
+            _ = OnEnter.InvokeAsync();
+
+            return;
+
+        }
+
+
+
+        if (args.Key is "ArrowLeft" or "ArrowRight" or "Home" or "End")
+
+        {
+
+            await RefreshPickerAfterCaretMoveAsync();
+
+        }
+
+    }
+
+
+
+    private async Task RefreshPickerAfterCaretMoveAsync()
+
+    {
+
+        await Task.Yield();
+
+        await RefreshPickerAsync();
+
+    }
+
+
+
+    #endregion
+
+
+
+    #region # Picker
+
+
+
+    private async Task RefreshPickerAsync()
+
+    {
+
+        if (Disabled)
+
+        {
+
+            ClosePicker();
+
+            return;
+
+        }
+
+
+
+        if (!_catalogLoaded)
+
+        {
+
+            await LoadCatalogAsync();
+
+        }
+
+
+
+        var caret = await GetCaretAsync();
+
+        _context = EntityRefMentionSupport.TryGetContext(Value, caret, ResolvedEnabledKinds);
+
+        if (_context is null || _context.Step == MentionPickerStep.None)
+
+        {
+
+            ClosePicker();
+
+            return;
+
+        }
+
+
+
+        _options = _context.Step switch
+
+        {
+
+            MentionPickerStep.Kind => EntityRefMentionSupport.BuildKindOptions(ResolvedEnabledKinds, _context.Query),
+
+            MentionPickerStep.Alias => EntityRefMentionSupport.BuildAliasOptions(
+
+                _context.Kind,
+
+                _context.Query,
+
+                _contacts,
+
+                _mailboxes,
+
+                _recentHandles),
+
+            _ => []
+
+        };
+
+
+
+        var wasOpen = _pickerOpen;
+        _pickerOpen = true;
+
+        _highlightedIndex = 0;
+
+        if (!wasOpen)
+        {
+            _placementDirty = true;
+        }
+
+    }
+
+
+
+    private async Task SelectOptionAsync(EntityRefMentionOption option)
+
+    {
+
+        var context = _context;
+
+        if (context is null)
+
+        {
+
+            return;
+
+        }
+
+
+
+        var insertText = option.InsertText;
+
+        if (option.ClosesPicker)
+
+        {
+
+            insertText += " ";
+
+        }
+
+
+
+        var before = Value?[..context.MentionStart] ?? string.Empty;
+
+        var after = Value?[context.Caret..] ?? string.Empty;
+
+        Value = before + insertText + after;
+
+        _lastValue = Value;
+
+        await ValueChanged.InvokeAsync(Value);
+
+
+
+        var newCaret = context.MentionStart + insertText.Length;
+
+        await SetCaretAsync(newCaret);
+
+        await ResizeAsync();
+
+
+
+        if (option.ClosesPicker)
+
+        {
+
+            if (option.OptionKind == MentionOptionKind.Alias)
+            {
+                await RecordRecentAsync(insertText);
+            }
+
+            ClosePicker();
+
+            return;
+
+        }
+
+
+
+        await RefreshPickerAsync();
+
+    }
+
+
+
+    private void ClosePicker()
+
+    {
+
+        _pickerOpen = false;
+
+        _openBelow = false;
+
+        _options = [];
+
+        _context = null;
+
+        _highlightedIndex = 0;
+
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!_placementDirty || !_pickerOpen)
+        {
+            return;
+        }
+
+        _placementDirty = false;
+
+        try
+        {
+            var hasSpaceAbove = await JsRuntime.InvokeAsync<bool>("webAppMention.hasSpaceAbove", _input);
+            var shouldOpenBelow = !hasSpaceAbove;
+            if (shouldOpenBelow != _openBelow)
+            {
+                _openBelow = shouldOpenBelow;
+                StateHasChanged();
+            }
+        }
+        catch
+        {
+        }
+    }
+
+
+
+    #endregion
+
+
+
+    #region # Helpers
+
+
+
+    private static string KindIconClass(EntityRefs.Kind? kind) => kind switch
+    {
+        EntityRefs.Kind.Contact => "contact",
+        EntityRefs.Kind.Mailbox => "mailbox",
+        EntityRefs.Kind.Tag => "tag",
+        EntityRefs.Kind.Bucket => "bucket",
+        _ => "default"
+    };
+
+    private static string KindIconGlyph(EntityRefs.Kind? kind) => kind switch
+    {
+        EntityRefs.Kind.Contact => "@",
+        EntityRefs.Kind.Mailbox => "✉",
+        EntityRefs.Kind.Tag => "#",
+        EntityRefs.Kind.Bucket => "▤",
+        _ => "@"
+    };
+
+    private static MarkupString Highlight(string? text, string? query)
+    {
+        text ??= string.Empty;
+
+        if (string.IsNullOrEmpty(query))
+        {
+            return new MarkupString(System.Net.WebUtility.HtmlEncode(text));
+        }
+
+        var index = text.IndexOf(query, StringComparison.OrdinalIgnoreCase);
+        if (index < 0)
+        {
+            return new MarkupString(System.Net.WebUtility.HtmlEncode(text));
+        }
+
+        var before = System.Net.WebUtility.HtmlEncode(text[..index]);
+        var match = System.Net.WebUtility.HtmlEncode(text[index..(index + query.Length)]);
+        var after = System.Net.WebUtility.HtmlEncode(text[(index + query.Length)..]);
+        return new MarkupString($"{before}<mark class=\"er-mention-match\">{match}</mark>{after}");
+    }
+
+
+
+    private async Task LoadRecentAsync()
+    {
+        try
+        {
+            _recentHandles = await JsRuntime.InvokeAsync<string[]>("webAppMention.getRecent");
+        }
+        catch
+        {
+            _recentHandles = [];
+        }
+    }
+
+    private async Task RecordRecentAsync(string insertText)
+    {
+        var handle = insertText.Trim().TrimStart('@');
+        if (string.IsNullOrEmpty(handle))
+        {
+            return;
+        }
+
+        try
+        {
+            await JsRuntime.InvokeVoidAsync("webAppMention.addRecent", handle);
+        }
+        catch
+        {
+        }
+
+        _recentHandles = new[] { handle }
+            .Concat(_recentHandles.Where(h => !string.Equals(h, handle, StringComparison.OrdinalIgnoreCase)))
+            .Take(10)
+            .ToList();
+    }
+
+    private async Task LoadCatalogAsync()
+
+    {
+
+        var contactsResult = await Mediator.SendAsync(new GetAllContactsByUserIdRequest(CurrentUser.Id));
+
+        var mailboxesResult = await Mediator.SendAsync(new GetAllEmailAccountsByUserIdRequest(CurrentUser.Id));
+
+
+
+        _contacts = contactsResult.HasError ? [] : contactsResult.Payload?.Contacts ?? [];
+
+        _mailboxes = mailboxesResult.HasError ? [] : mailboxesResult.Payload?.Accounts ?? [];
+
+        _catalogLoaded = true;
+
+    }
+
+
+
+    private async Task<int> GetCaretAsync()
+
+    {
+
+        try
+
+        {
+
+            return await JsRuntime.InvokeAsync<int>("webAppMention.getCaret", _input);
+
+        }
+
+        catch
+
+        {
+
+            return Value?.Length ?? 0;
+
+        }
+
+    }
+
+
+
+    private async Task SetCaretAsync(int position)
+
+    {
+
+        try
+
+        {
+
+            await JsRuntime.InvokeVoidAsync("webAppMention.setCaret", _input, position);
+
+        }
+
+        catch
+
+        {
+
+        }
+
+    }
+
+
+
+    private async Task ResizeAsync()
+
+    {
+
+        if (MaxLines <= 0)
+
+        {
+
+            return;
+
+        }
+
+
+
+        try
+
+        {
+
+            await JsRuntime.InvokeVoidAsync("webAppChat.resizeTextarea", _input, MaxLines);
+
+        }
+
+        catch
+
+        {
+
+        }
+
+    }
+
+
+
+    #endregion
+
+}
+
+

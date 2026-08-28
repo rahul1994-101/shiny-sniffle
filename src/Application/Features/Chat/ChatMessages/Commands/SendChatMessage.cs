@@ -2,6 +2,7 @@ using FluentValidation;
 using Application.AI;
 using Application.AI.Memory;
 using Application.Features.Chat.ChatThreads;
+using Application.Features.Shared;
 
 namespace Application.Features.Chat.ChatMessages.Commands;
 
@@ -36,7 +37,8 @@ public sealed class SendChatMessageRequestHandler(
     ChatThreadRepository chatThreadRepo,
     ChatMessageRepository chatMessageRepo,
     ChatOrchestrator chatOrchestrator,
-    ThreadMemoryService threadMemory)
+    ThreadMemoryService threadMemory,
+    EntityRefMentionContextService mentionContextService)
     : IRequestHandler<SendChatMessageRequest, SendChatMessageResponse>
 {
     public async ValueTask<Result<SendChatMessageResponse>> HandleAsync(SendChatMessageRequest request, CancellationToken cancellationToken = default)
@@ -58,11 +60,17 @@ public sealed class SendChatMessageRequestHandler(
                 Content = text
             }, cancellationToken);
 
+            var mentionContext = await mentionContextService.BuildContextBlockAsync(
+                request.UserId,
+                text,
+                cancellationToken);
+
             var agentRun = await chatOrchestrator.RunChatAgentAsync(new RunChatAgentRequest
             {
                 UserId = request.UserId,
                 ThreadId = request.ThreadId,
-                ChatAgent = thread.ChatAgent
+                ChatAgent = thread.ChatAgent,
+                MentionContext = mentionContext
             }, cancellationToken);
 
             var assistantMessage = await chatMessageRepo.AddAsync(new ChatMessage
