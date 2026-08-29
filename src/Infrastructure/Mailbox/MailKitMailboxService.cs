@@ -1,3 +1,4 @@
+using MailKit;
 using System.Net.Mail;
 
 namespace Infrastructure.Mailbox;
@@ -14,15 +15,16 @@ public sealed class MailKitMailboxService : IMailboxService
 
     public async Task<TestConnectionResult> TestConnectionAsync(EmailSettings config, CancellationToken cancellationToken = default)
     {
-        var probe = await MailboxConnectionHelpers.ProbeConnectionsAsync(config, cancellationToken);
+        var imap = await MailboxConnectionHelpers.TryImapSessionAsync(config, cancellationToken);
+        var smtp = await MailboxConnectionHelpers.TrySmtpSessionAsync(config, cancellationToken);
 
         return new TestConnectionResult
         {
-            ImapOk = probe.ImapOk,
-            SmtpOk = probe.SmtpOk,
-            Message = probe.ImapOk && probe.SmtpOk
+            ImapOk = imap.Ok,
+            SmtpOk = smtp.Ok,
+            Message = imap.Ok && smtp.Ok
                 ? "IMAP and SMTP are reachable."
-                : MailboxConnectionHelpers.FormatConnectionProbeMessage(probe)
+                : MailboxConnectionHelpers.FormatConnectionProbeMessage(imap.Ok, imap.Error, smtp.Ok, smtp.Error)
         };
     }
 
@@ -30,8 +32,22 @@ public sealed class MailKitMailboxService : IMailboxService
 
     #region # Queries
 
-    public Task<ListMessagesResult> ListMessagesAsync(EmailSettings config, ListMessagesFilters filters, CancellationToken cancellationToken = default) =>
-        MailboxConnectionHelpers.ExecuteImapAsync(config, (imap, ct) => MailboxSummaryHelpers.ListAsync(imap, filters, ct), cancellationToken);
+    public async Task<ListMessagesResult> ListMessagesAsync(EmailSettings config, ListMessagesFilters filters, CancellationToken cancellationToken = default)
+    {
+        var imap = await MailboxConnectionHelpers.ConnectImapAsync(config, cancellationToken);
+
+        try
+        {
+            var folder = await MailboxFolderResolverHelpers.GetFolderAsync(imap, filters.Folder, cancellationToken);
+            await folder.OpenAsync(FolderAccess.ReadOnly, cancellationToken);
+            return await MailboxSummaryHelpers.ListInFolderAsync(folder, filters, cancellationToken);
+        }
+        finally
+        {
+            await MailboxConnectionHelpers.DisconnectAsync(imap, cancellationToken);
+            imap.Dispose();
+        }
+    }
 
     public async Task<GetMessagesResult> GetMessagesAsync(EmailSettings config, GetMessagesFilters filters, CancellationToken cancellationToken = default)
     {
@@ -48,14 +64,81 @@ public sealed class MailKitMailboxService : IMailboxService
                 nameof(filters));
         }
 
-        var details = await MailboxConnectionHelpers.ExecuteImapAsync(config, (imap, ct) => MailboxMessageHelpers.GetManyAsync(imap, messages, ct), cancellationToken);
-        return new GetMessagesResult { Messages = details };
+        var imap = await MailboxConnectionHelpers.ConnectImapAsync(config, cancellationToken);
+
+        try
+        {
+            var found = new Dictionary<MessageLookupKey, MessageDetail>(MessageLookupKey.Comparer);
+
+            foreach (var group in MailboxFolderResolverHelpers.GroupMessagesByFolder(messages))
+            {
+                var folder = await MailboxFolderResolverHelpers.GetFolderAsync(imap, group.Key, cancellationToken);
+                await folder.OpenAsync(FolderAccess.ReadOnly, cancellationToken);
+
+                var uids = group.Select(m => m.Uid).Distinct().ToList();
+                var folderDetails = await MailboxMessageHelpers.GetDetailsAsync(folder, uids, cancellationToken);
+                var detailsByUid = folderDetails.ToDictionary(d => d.Uid);
+
+                foreach (var message in group)
+                {
+                    if (detailsByUid.TryGetValue(message.Uid, out var detail))
+                    {
+                        found[new MessageLookupKey(message)] = detail;
+                    }
+                }
+            }
+
+            var ordered = new List<MessageDetail>(messages.Count);
+            foreach (var message in messages)
+            {
+                if (found.TryGetValue(new MessageLookupKey(message), out var detail))
+                {
+                    ordered.Add(detail);
+                }
+            }
+
+            return new GetMessagesResult { Messages = ordered };
+        }
+        finally
+        {
+            await MailboxConnectionHelpers.DisconnectAsync(imap, cancellationToken);
+            imap.Dispose();
+        }
     }
 
     public async Task<ListFoldersResult> ListFoldersAsync(EmailSettings config, CancellationToken cancellationToken = default)
     {
-        var folders = await MailboxConnectionHelpers.ExecuteImapAsync(config, MailboxFolderResolverHelpers.ListAllAsync, cancellationToken);
-        return new ListFoldersResult { Folders = folders };
+        var imap = await MailboxConnectionHelpers.ConnectImapAsync(config, cancellationToken);
+
+        try
+        {
+            var folders = new List<FolderInfo>();
+
+            if (imap.Inbox is not null)
+            {
+                folders.Add(MailboxFolderResolverHelpers.MapFolder(imap.Inbox));
+            }
+
+            foreach (var ns in imap.PersonalNamespaces)
+            {
+                var root = imap.GetFolder(ns);
+                await MailboxFolderResolverHelpers.CollectFoldersAsync(root, folders, cancellationToken);
+            }
+
+            return new ListFoldersResult
+            {
+                Folders = folders
+                    .GroupBy(f => f.FullName, StringComparer.OrdinalIgnoreCase)
+                    .Select(g => g.First())
+                    .OrderBy(f => f.FullName, StringComparer.OrdinalIgnoreCase)
+                    .ToList()
+            };
+        }
+        finally
+        {
+            await MailboxConnectionHelpers.DisconnectAsync(imap, cancellationToken);
+            imap.Dispose();
+        }
     }
 
     #endregion
@@ -114,6 +197,27 @@ public sealed class MailKitMailboxService : IMailboxService
         }
 
         return await MailboxConnectionHelpers.ExecuteImapAsync(config, (imap, ct) => MailboxCommandsHelpers.SetFlagsAsync(imap, messages, flag, ct), cancellationToken);
+    }
+
+    #endregion
+
+    #region # Private Helpers
+
+    private readonly record struct MessageLookupKey(string? Folder, uint Uid)
+    {
+        internal MessageLookupKey(MessageKey message)
+            : this(MailboxFolderResolverHelpers.NormalizeFolderKey(message.Folder), message.Uid)
+        {
+        }
+
+        internal static IEqualityComparer<MessageLookupKey> Comparer { get; } =
+            EqualityComparer<MessageLookupKey>.Create(
+                (left, right) =>
+                    left.Uid == right.Uid &&
+                    string.Equals(left.Folder, right.Folder, StringComparison.OrdinalIgnoreCase),
+                key => HashCode.Combine(
+                    key.Uid,
+                    key.Folder is null ? 0 : StringComparer.OrdinalIgnoreCase.GetHashCode(key.Folder)));
     }
 
     #endregion

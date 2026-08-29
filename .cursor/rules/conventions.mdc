@@ -22,7 +22,7 @@ Each concern folder is its **own language** — consumers adapt; nothing upstrea
 | `Abstractions.cs` | Port (`IMailboxService`, …) |
 | `DTOs.cs` | Integration shapes + result types |
 | `Helpers.cs` | Internal mechanics (regions / nested static classes OK) |
-| `{Impl}.cs` | Single implementation |
+| `{Impl}.cs` | Single implementation — **owns orchestration** (connect → steps → result) |
 
 **Public port (`Abstractions` + `DTOs` exposed to Application):**
 
@@ -34,7 +34,9 @@ Each concern folder is its **own language** — consumers adapt; nothing upstrea
 
 **Helpers (internal only):**
 
-- Technical names are fine: `ProbeConnectionsAsync`, `ExecuteAsync`, `TrySessionAsync`
+- **Mechanics, not use cases** — connect/disconnect, resolve folder, build search query, fetch/map MIME; no full port-method flows
+- Technical names are fine: `ConnectImapAsync`, `TryImapSessionAsync`, `ListInFolderAsync`, `GetDetailsAsync`
+- `ExecuteImapAsync` / delegate wrappers — OK for Commands until refactored; prefer explicit connect/work/disconnect in `{Impl}.cs` for Connection + Queries
 - MailKit/IMAP/SMTP detail stays here — not on `IMailboxService`
 
 **Canonical example:** `src/Infrastructure/Mailbox/`

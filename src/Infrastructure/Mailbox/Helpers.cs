@@ -15,38 +15,93 @@ namespace Infrastructure.Mailbox;
 
 internal static class MailboxConnectionHelpers
 {
+    internal static async Task<ImapClient> ConnectImapAsync(EmailSettings config, CancellationToken cancellationToken)
+    {
+        var imap = CreateClient<ImapClient>();
+        var (host, port, secure) = GetEndpoint(config, smtp: false);
+        await imap.ConnectAsync(host, port, secure, cancellationToken);
+        await imap.AuthenticateAsync(config.Username, config.Password, cancellationToken);
+        return imap;
+    }
+
+    internal static async Task DisconnectAsync(MailService client, CancellationToken cancellationToken)
+    {
+        if (client.IsConnected)
+        {
+            await client.DisconnectAsync(true, cancellationToken);
+        }
+    }
+
+    internal static async Task<(bool Ok, string? Error)> TryImapSessionAsync(EmailSettings config, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var imap = await ConnectImapAsync(config, cancellationToken);
+            try
+            {
+                await DisconnectAsync(imap, cancellationToken);
+                return (true, null);
+            }
+            finally
+            {
+                imap.Dispose();
+            }
+        }
+        catch (Exception ex)
+        {
+            return (false, FriendlyError(ex));
+        }
+    }
+
+    internal static async Task<(bool Ok, string? Error)> TrySmtpSessionAsync(EmailSettings config, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var smtp = CreateClient<SmtpClient>();
+            var (host, port, secure) = GetEndpoint(config, smtp: true);
+            await smtp.ConnectAsync(host, port, secure, cancellationToken);
+            await smtp.AuthenticateAsync(config.Username, config.Password, cancellationToken);
+            try
+            {
+                await DisconnectAsync(smtp, cancellationToken);
+                return (true, null);
+            }
+            finally
+            {
+                smtp.Dispose();
+            }
+        }
+        catch (Exception ex)
+        {
+            return (false, FriendlyError(ex));
+        }
+    }
+
     internal static Task<T> ExecuteImapAsync<T>(EmailSettings config, Func<ImapClient, CancellationToken, Task<T>> execute, CancellationToken cancellationToken) =>
         ExecuteAsync(config, cancellationToken, smtp: false, execute);
 
     internal static Task<T> ExecuteSmtpAsync<T>(EmailSettings config, Func<SmtpClient, CancellationToken, Task<T>> execute, CancellationToken cancellationToken) =>
         ExecuteAsync(config, cancellationToken, smtp: true, execute);
 
-    internal static async Task<ConnectionProbeResult> ProbeConnectionsAsync(EmailSettings config, CancellationToken cancellationToken)
-    {
-        var imap = await TrySessionAsync<ImapClient>(config, cancellationToken, smtp: false);
-        var smtp = await TrySessionAsync<SmtpClient>(config, cancellationToken, smtp: true);
-        return new ConnectionProbeResult(imap.Ok, smtp.Ok, imap.Error, smtp.Error);
-    }
-
-    internal static string FormatConnectionProbeMessage(ConnectionProbeResult probe)
+    internal static string FormatConnectionProbeMessage(bool imapOk, string? imapError, bool smtpOk, string? smtpError)
     {
         var parts = new List<string>();
-        if (probe.ImapOk)
+        if (imapOk)
         {
             parts.Add("IMAP OK");
         }
         else
         {
-            parts.Add($"IMAP failed: {probe.ImapError}");
+            parts.Add($"IMAP failed: {imapError}");
         }
 
-        if (probe.SmtpOk)
+        if (smtpOk)
         {
             parts.Add("SMTP OK");
         }
         else
         {
-            parts.Add($"SMTP failed: {probe.SmtpError}");
+            parts.Add($"SMTP failed: {smtpError}");
         }
 
         return string.Join(" · ", parts);
@@ -63,19 +118,13 @@ internal static class MailboxConnectionHelpers
             _ => ex.Message
         };
 
-    internal sealed record ConnectionProbeResult(
-        bool ImapOk,
-        bool SmtpOk,
-        string? ImapError,
-        string? SmtpError);
-
     #region # Private Helpers
 
     private const int ConnectTimeoutMs = 30_000;
 
     private static async Task<T> ExecuteAsync<TClient, T>(EmailSettings config, CancellationToken cancellationToken, bool smtp, Func<TClient, CancellationToken, Task<T>> work) where TClient : MailService, new()
     {
-        using var client = CreateClient<TClient>();
+        var client = CreateClient<TClient>();
         var (host, port, secure) = GetEndpoint(config, smtp);
         await client.ConnectAsync(host, port, secure, cancellationToken);
         await client.AuthenticateAsync(config.Username, config.Password, cancellationToken);
@@ -86,27 +135,8 @@ internal static class MailboxConnectionHelpers
         }
         finally
         {
-            if (client.IsConnected)
-            {
-                await client.DisconnectAsync(true, cancellationToken);
-            }
-        }
-    }
-
-    private static async Task<(bool Ok, string? Error)> TrySessionAsync<TClient>(EmailSettings config, CancellationToken cancellationToken, bool smtp) where TClient : MailService, new()
-    {
-        try
-        {
-            using var client = CreateClient<TClient>();
-            var (host, port, secure) = GetEndpoint(config, smtp);
-            await client.ConnectAsync(host, port, secure, cancellationToken);
-            await client.AuthenticateAsync(config.Username, config.Password, cancellationToken);
-            await client.DisconnectAsync(true, cancellationToken);
-            return (true, null);
-        }
-        catch (Exception ex)
-        {
-            return (false, FriendlyError(ex));
+            await DisconnectAsync(client, cancellationToken);
+            client.Dispose();
         }
     }
 
@@ -313,28 +343,6 @@ internal static class MailboxFolderResolverHelpers
             Role = DescribeRole(folder)
         };
 
-    internal static async Task<IReadOnlyList<FolderInfo>> ListAllAsync(ImapClient imap, CancellationToken cancellationToken)
-    {
-        var folders = new List<FolderInfo>();
-
-        if (imap.Inbox is not null)
-        {
-            folders.Add(MapFolder(imap.Inbox));
-        }
-
-        foreach (var ns in imap.PersonalNamespaces)
-        {
-            var root = imap.GetFolder(ns);
-            await CollectFoldersAsync(root, folders, cancellationToken);
-        }
-
-        return folders
-            .GroupBy(f => f.FullName, StringComparer.OrdinalIgnoreCase)
-            .Select(g => g.First())
-            .OrderBy(f => f.FullName, StringComparer.OrdinalIgnoreCase)
-            .ToList();
-    }
-
     private static bool TryMapSpecialFolder(string folder, out SpecialFolder special)
     {
         special = default;
@@ -447,14 +455,7 @@ internal static class MailboxSummaryHelpers
         | MessageSummaryItems.Flags
         | MessageSummaryItems.PreviewText;
 
-    internal static async Task<ListMessagesResult> ListAsync(ImapClient imap, ListMessagesFilters query, CancellationToken cancellationToken)
-    {
-        var folder = await MailboxFolderResolverHelpers.GetFolderAsync(imap, query.Folder, cancellationToken);
-        await folder.OpenAsync(FolderAccess.ReadOnly, cancellationToken);
-        return await ListAsync(folder, query, cancellationToken);
-    }
-
-    internal static async Task<ListMessagesResult> ListAsync(IMailFolder folder, ListMessagesFilters query, CancellationToken cancellationToken)
+    internal static async Task<ListMessagesResult> ListInFolderAsync(IMailFolder folder, ListMessagesFilters query, CancellationToken cancellationToken)
     {
         var search = MailboxSearchHelpers.BuildQuery(query);
         var ids = await folder.SearchAsync(search, cancellationToken);
@@ -557,40 +558,6 @@ internal static class MailboxMessageHelpers
         return details;
     }
 
-    internal static async Task<IReadOnlyList<MessageDetail>> GetManyAsync(ImapClient imap, IReadOnlyList<MessageKey> messages, CancellationToken cancellationToken)
-    {
-        var found = new Dictionary<MessageLookupKey, MessageDetail>(MessageLookupKey.Comparer);
-
-        foreach (var group in MailboxFolderResolverHelpers.GroupMessagesByFolder(messages))
-        {
-            var folder = await MailboxFolderResolverHelpers.GetFolderAsync(imap, group.Key, cancellationToken);
-            await folder.OpenAsync(FolderAccess.ReadOnly, cancellationToken);
-
-            var uids = group.Select(m => m.Uid).Distinct().ToList();
-            var folderDetails = await GetDetailsAsync(folder, uids, cancellationToken);
-            var detailsByUid = folderDetails.ToDictionary(d => d.Uid);
-
-            foreach (var message in group)
-            {
-                if (detailsByUid.TryGetValue(message.Uid, out var detail))
-                {
-                    found[new MessageLookupKey(message)] = detail;
-                }
-            }
-        }
-
-        var ordered = new List<MessageDetail>(messages.Count);
-        foreach (var message in messages)
-        {
-            if (found.TryGetValue(new MessageLookupKey(message), out var detail))
-            {
-                ordered.Add(detail);
-            }
-        }
-
-        return ordered;
-    }
-
     private static MessageDetail MapDetail(MimeMessage message, string folderName, uint uid, MessageFlags? flags)
     {
         var body = EmailMessageBodyHelpers.GetPlainBody(message);
@@ -607,23 +574,6 @@ internal static class MailboxMessageHelpers
             IsUnread = flags is null || !flags.Value.HasFlag(MessageFlags.Seen),
             AttachmentNames = EmailMessageBodyHelpers.GetAttachmentNames(message)
         };
-    }
-
-    private readonly record struct MessageLookupKey(string? Folder, uint Uid)
-    {
-        internal MessageLookupKey(MessageKey message)
-            : this(MailboxFolderResolverHelpers.NormalizeFolderKey(message.Folder), message.Uid)
-        {
-        }
-
-        internal static IEqualityComparer<MessageLookupKey> Comparer { get; } =
-            EqualityComparer<MessageLookupKey>.Create(
-                (left, right) =>
-                    left.Uid == right.Uid &&
-                    string.Equals(left.Folder, right.Folder, StringComparison.OrdinalIgnoreCase),
-                key => HashCode.Combine(
-                    key.Uid,
-                    key.Folder is null ? 0 : StringComparer.OrdinalIgnoreCase.GetHashCode(key.Folder)));
     }
 }
 
