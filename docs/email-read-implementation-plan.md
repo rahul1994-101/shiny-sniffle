@@ -2,288 +2,200 @@
 
 > Index: [docs/README.md](README.md) · Business: [product.md](product.md) · Memory layers: [ai-memory.md](ai-memory.md)
 
-Roadmap for mailbox **read** capabilities: Email agent + `UserMailboxService` / `MailKitMailboxService` / `EmailTools`.
-
-**Current baseline:** `list_inbox_messages` (folder + filters, Uid per row), `get_inbox_message` (HTML→text, attachments), `list_mailbox_folders`, `get_mailbox_status`.
+Roadmap for mailbox capabilities: **EmailTriageAgent** + **EmailTriageTools** → `UserMailboxService` / `MailboxAccountResolver` / `MailKitMailboxService`.
 
 ---
 
-## Read dimensions (user-facing)
+## Status
 
-| Dimension | Examples |
-|-----------|----------|
-| **Scope** | Inbox, unread, from sender, subject keyword, attachment, folders, one message, thread |
-| **Time** | Recent, today, yesterday, last 7 days, since date, date range, new since last check |
-| **Volume** | Last N, all in range (paginated), count only |
-| **Depth** | List, snippet, full body, HTML, headers, attachments |
-| **Output** | Raw list, summary, action items, priority, compare periods |
-| **Mailbox state** | Configured, reachable, connection errors |
-| **Reference** | Latest, Nth in list, match sender/subject, UID, chat context |
+```
+Layers 0–5 + commands + @mailbox + 6a   ✅ shipped
+Polish pass (helpers, resolver, tools)  ✅ shipped
+Manual Email/AI refactor                ← next (see Code map)
+Layer 6b–6e                             deferred (`compare_mail_periods`, memory, actions)
+```
 
 ---
 
-## Implementation layers (build order)
+## Shipped — read stack (Layers 0–5)
 
-Work **one layer at a time**. Within a layer, pick **one dimension slice** (e.g. unread before from-subject).
+**Tools:** `get_mailbox_status` · `list_inbox_messages` · `get_inbox_message` · `get_inbox_messages` · `list_mailbox_folders`
 
-### Layer 0 — Foundation ✅ (reviewed)
+| Layer | What users get |
+|-------|----------------|
+| **0 Foundation** | Mailbox configured/reachable; inbox list by `since` + `limit`; snippet previews (~120 chars); shared limits in `MailboxReadLimits` |
+| **1 Time / volume** | Rich `since` (`today`, `yesterday`, `this_week`, `last_N_days`, date ranges); `count_only`; “N shown of M matched” when capped at 50 |
+| **2 Filters** | `unread_only`, `from_sender`, `subject_contains` (AND with time range) |
+| **3 Open one** | `get_inbox_message` by Uid or list `#N`; full plain-text body (12k cap); stable Uid per list row |
+| **4 Rich content** | HTML → plain text; attachment names on get (no download yet) |
+| **5 Folders** | `folder` on list/get (inbox, sent, drafts, trash, junk, custom); `list_mailbox_folders` |
 
-- Mailbox configured / reachable (`get_mailbox_status`, Workspace → Email accounts guard on agent switch)
-- List inbox by `since` + `limit` (`list_inbox_messages`)
-- Snippet list (preview up to 120 chars; not full bodies)
-- Shared limits/copy in `EmailReadConstants`
-- Tool descriptions + parameter hints on read tools
-- Agent tool rules aligned with preview-only reads
+**Key types:** `InboxQuery`, `InboxListRangeParser`, `InboxMessageDetail`, `MailboxFolderInfo`, `EmailMessageBodyHelpers`.
 
-### Layer 1 — List improvements ✅
+**Deferred from read stack:** attachment download, thread/conversation grouping (provider-specific).
 
-**Dimensions:** Time + Volume
+---
 
-| Build | Status |
-|-------|--------|
-| Richer `since` | `this_week`, `last_N_days`, `yyyy-MM-dd..yyyy-MM-dd`, single-day ISO |
-| `yesterday` / single-day bounds | Exclusive `UntilUtc` (not “since forever”) |
-| Count-only | `count_only` on `list_inbox_messages` |
-| Volume note | List shows “N shown of M matched” when capped at 50 |
+## Shipped — commands + account resolution
 
-*Parser: `InboxListRangeParser`; query: `InboxQuery.UntilUtcExclusive`, `CountOnly`; result: `InboxListResult`.*
+| Capability | Tool / component |
+|------------|------------------|
+| **Send** | `send_email` |
+| **Delete** | `delete_messages` (move to trash) |
+| **Move / archive** | `move_messages` |
+| **Flags** | `set_message_flags` (read, unread, flagged, unflagged) |
+| **Batch read** | `get_inbox_messages` (max 5 Uids per call) |
+| **Multi-account** | `mailbox_alias` param + `@mailbox:alias` mention auto-fill via `MailboxAccountResolver` |
 
-### Layer 2 — IMAP filters ✅
+**Stack:** `EmailTriageTools` → `UserMailboxService` → `MailboxAccountResolver` → `MailKitMailboxService`.
 
-**Dimension:** Scope (narrow inbox)
+**E2E mention flow:** user `@mailbox:alias` → `EntityRefMentionContextService.TryResolveDefaultMailboxAliasAsync` → `RunChatAgentRequest.MailboxAlias` → `EmailTriageTools.Session` default when tool omits `mailbox_alias`.
 
-| Build | MailKit |
-|-------|---------|
-| Unread only | `NotSeen` |
-| From sender | `FromContains` |
-| Subject keyword | `SubjectContains` |
-| Combined | Filters AND existing `since` / date range |
+---
 
-*`InboxQuery`: `UnreadOnly`, `FromContains`, `SubjectContains`. Tool: `unread_only`, `from_sender`, `subject_contains` on `list_inbox_messages`.*
+## Shipped — polish pass
 
-### Layer 3 — Open one message ✅
+Structural cleanup before further feature work. Build verified.
 
-**Dimensions:** Depth + Reference
+| Area | What changed |
+|------|----------------|
+| **Application helpers** | Mailbox-specific types moved to `Features/Shared/MailboxReadHelpers.cs` (`InboxListRangeParser`, `EmailMailboxTextHelpers`, `EmailReadConstants`, …) |
+| **Account resolution** | `MailboxAccountResolver` — default account, alias, or `mailbox:alias` → `MailboxAccountContext` |
+| **User facade** | `UserMailboxService.RequireContextAsync` — throws on unresolved account (no silent empty/null) |
+| **AI tools** | `EmailTriageTools.Session` — per-turn `userId` + default mailbox alias (no mutable scoped state) |
+| **Tool output** | All tools prefix `Account: alias (email)` via `WithAccountHeader` |
+| **Infrastructure** | `MailKitMailboxService` split into connection/search/summary/message/command helpers; `FetchAsync` for list snippets |
+| **Agent catalog** | `EmailTriageAgent.SupportedUserPrompts` covers all current tools |
 
-| Build | Status |
-|-------|--------|
-| `get_inbox_message` (uid or list_index + matching list query) | Full plain-text body |
-| Stable id in list | `Uid` + `#N` on each `InboxMessageSummary` row |
+---
 
-*`InboxMessageDetail`; `IMailboxService.GetInboxMessageAsync`; body capped at 12k chars.*
+## Shipped — smart output contracts (6a)
 
-### Layer 4 — Rich content ✅
+Agent-only: output modes (`digest`, `triage`, `compare`, `single`, `stats`, `action_list`), tool choreography, `MaxDeepReadsPerTurn` (5), partial-coverage disclaimer, `SupportedUserPrompts` in `EmailTriageAgent`. No new tools.
 
-**Dimension:** Depth (extends Layer 3 fetch)
+---
 
-| Build | Status |
-|-------|--------|
-| HTML body → plain text | `EmailMessageBodyHelpers` HTML strip on get + snippets |
-| Attachment names | Listed on `get_inbox_message` (no download) |
+## Layer 6 — Smart output (deferred)
 
-*Attachment download deferred (storage/API).*
+**Goal:** Turn raw tool text into **useful answers**—digests, triage, comparisons, deep reads—without inventing content.
 
-### Layer 5 — Beyond inbox ✅
+**Principle:** Tools fetch; agent interprets. Default flow: `list_inbox_messages` → selective `get_inbox_message` / `get_inbox_messages` (≤5 per turn).
 
-**Dimension:** Scope (folders)
+### User intents → output mode
 
-| Build | Status |
-|-------|--------|
-| `folder` on list/get | inbox (default), sent, drafts, trash, junk, custom name |
-| `list_mailbox_folders` | Name, path, role alias discovery |
+| Intent | Example | Mode | Choreography |
+|--------|---------|------|--------------|
+| Skim | “What’s new today?” | `digest` | list (today, ~20) → 0–3 optional gets |
+| Triage | “What needs my attention?” | `triage` | list (unread + recent) → get top 3–5 → Needs reply / FYI / Low |
+| Deep one | “Summarize the Amazon invoice” | `single` | list (filter) → get one Uid |
+| Count / delta | “More mail than yesterday?” | `compare` | two `count_only` calls *(6b: dedicated tool)* |
+| Volume | “Who emailed me most this week?” | `stats` | list (this_week) → group by sender from rows |
+| Sent review | “What did I send Bob this week?” | `digest` | list (folder=sent) → optional gets |
+| Prep for action | “Which invoices need paying?” | `action_list` | list → get ≤5 → `ACTION_ITEMS` |
 
-*Threads deferred (provider-specific).*
+### Remaining sub-layers
 
-### Layer 6 — Smart output (planned)
+##### 6b — Compare helper
 
-**Dimension:** Output — turn raw tool text into **useful answers**, not mail dumps.
-
-Layers 0–5 fetch mail reliably. Layer 6 defines **how the Email agent thinks, formats, and choreographs tools** so users get digests, triage, comparisons, and deep reads—without inventing content. It also lays groundwork for **folder-specific actions** you’ll add later.
-
-#### Principles
-
-| Principle | Why |
-|-----------|-----|
-| **Tools fetch; agent interprets** | Never summarize or prioritize without tool output for the messages in scope. |
-| **List before deep read** | Default: `list_inbox_messages` → selective `get_inbox_message` on 1–5 Uids. Avoid N full-body fetches. |
-| **Explicit output shape** | User should see labeled sections (Summary, Needs reply, FYI, Counts)—not walls of headers. |
-| **Bounded cost** | Cap deep reads (`EmailReadConstants` policy); say when results are partial (“summarized 5 of 23”). |
-| **Same folder + query** | List/get/compare must reuse `folder`, `since`, and filters so Uids stay valid. |
-| **Action-ready sections** | Use stable headings future workflows can parse or the user can say “do that for item 2”. |
-
-#### User intents → output mode
-
-| Intent | Example prompt | Output mode | Tool choreography |
-|--------|----------------|-------------|-------------------|
-| **Skim** | “What’s new today?” | `digest` | `list` (today, limit 20) → optional 0–3 `get` for ambiguous previews |
-| **Triage** | “What needs my attention?” | `triage` | `list` (unread + today/this_week) → `get` top 3–5 by subject/sender → Needs reply / FYI / Low |
-| **Deep one** | “Summarize the Amazon invoice” | `single` | `list` (filter) → `get` one Uid → bullets + attachments |
-| **Count / delta** | “More mail than yesterday?” | `compare` | `count_only` × 2 (today vs yesterday) or this_week vs last_week |
-| **Volume overview** | “Who emailed me most this week?” | `stats` | `list` (this_week, limit 50) → agent groups by sender from list rows only |
-| **Sent review** | “What did I send Bob this week?” | `digest` | `list` (folder=sent, from filter if needed) → optional `get` for 1–2 |
-| **Prep for action** | “Which invoices need paying?” | `action_list` | `list` (subject filter) → `get` each candidate (≤5) → `ACTION_ITEMS` section |
-
-Add each row to `EmailAgent.SupportedUserPrompts` when shipped.
-
-#### Sub-layers (build order)
-
-Work **6a → 6e** in order. Each sub-layer is shippable on its own.
-
-##### 6a — Output contracts (agent only) ✅
-
-**Goal:** Consistent answer shapes without new tools.
-
-| Deliverable | Status |
-|-------------|--------|
-| Output mode rules (`digest`, `triage`, `compare`, `single`, `stats`, `action_list`) | `EmailAgent` instructions |
-| Tool choreography + `MaxDeepReadsPerTurn` ({5}) | `EmailReadConstants` + agent rules |
-| Partial coverage disclaimer | Agent rule |
-| `SupportedUserPrompts` per intent | `EmailAgent` |
-
-*Constants: `DefaultDigestListLimit`, `MaxDigestOptionalGets`.*
-
-##### 6b — Compare helper (thin backend)
-
-**Goal:** Deterministic period comparison without the model doing arithmetic on fake counts.
+Deterministic period comparison—no model arithmetic on counts.
 
 | Build | Notes |
 |-------|--------|
-| `compare_mail_periods` tool **or** `output_mode=compare` on list | Two parsed ranges → two `count_only` (optional dual list) |
-| Formatted result: “Today: 12 · Yesterday: 8 (+4)” | `EmailMailboxTextHelpers.FormatPeriodCompare` |
-| Reuse `InboxListRangeParser` for `period_a` / `period_b` | Same filters/folder on both |
+| `compare_mail_periods` tool | Two parsed ranges → two `count_only` (optional dual list) |
+| Formatted result | e.g. “Today: 12 · Yesterday: 8 (+4)” via `EmailMailboxTextHelpers.FormatPeriodCompare` |
+| Params | `period_a` / `period_b` via `InboxListRangeParser`; same `folder` + filters on both |
 
-Prefer a **dedicated tool** if compare becomes common; keeps agent instructions smaller.
+##### 6c — Digest tool (optional)
 
-##### 6c — Digest tool (optional backend)
+`summarize_mail_scope` — one call returns structured list preamble (+ optional server-side deep reads). **Defer** if 6a multi-tool choreography is fast enough.
 
-**Goal:** One call returns list-shaped text optimized for summarization (still previews unless `include_uids_for_get`).
+##### 6d — Thread reference memory
 
-| Build | Notes |
-|-------|--------|
-| `summarize_mail_scope` tool | Wraps list + returns structured preamble: query label, counts, rows #N/Uid/From/Subject/Preview |
-| Params mirror `list_inbox_messages` + `deep_read_limit` (0–5) | When &gt; 0, service fetches bodies server-side and appends truncated bodies |
-| Agent only synthesizes final narrative | Reduces multi-tool turns |
+`EmailMemory` snapshot per chat thread: last `{ folder, query, [{ index, uid, from, subject }] }` so “#2” / “that Amazon one” resolves without re-list. See [ai-memory.md](ai-memory.md).
 
-**Defer** if 6a choreography is enough; add when token/latency from multi-tool turns hurts.
+##### 6e — Action-oriented output
 
-##### 6d — Thread reference memory (Email memory)
+`action_list` sections (`ACTION_ITEMS`, `DRAFT_CANDIDATES`, `ARCHIVE_CANDIDATES`) with Uid + folder for future workflows. Agent identifies only—no execution in Layer 6.
 
-**Goal:** “That one”, “the second Amazon email” works within a chat thread.
+### Policies
 
-| Build | Notes |
-|-------|--------|
-| `AI/Memory/EmailMemory.cs` | After list/get tools run, persist last `{ folder, query fingerprint, [{ index, uid, from, subject }] }` per thread |
-| Orchestration or tool hook saves snapshot | On `Features.SendChatMessageAsync` path after tool results (or tool-side if thread id available) |
-| Agent rule: prefer stored Uid over re-list when user references “#2” / “that Amazon one” | Instructions |
+| Constant | Value | Location |
+|----------|-------|----------|
+| `MaxDeepReadsPerTurn` | 5 | `EmailReadConstants` (agent prompt) |
+| `MaxDigestOptionalGets` | 3 | `EmailReadConstants` (agent prompt) |
+| `DefaultListLimit` | 20 | `MailboxReadLimits` |
+| `MaxListLimit` | 50 | `MailboxReadLimits` |
+| `MaxBatchGetCount` | 5 | `MailboxReadLimits` |
 
-**Out of scope for 6a:** cross-thread memory, “since last login”.
+### Out of scope (Layer 6)
 
-##### 6e — Action-oriented output (feeds your future actions)
+Attachment download, thread grouping, auto-send/archive/rules, LLM summarization inside C# services, **scheduled send** (separate product track).
 
-**Goal:** Answers structured so **Sent/Drafts/custom-folder actions** can attach later.
-
-| Build | Notes |
-|-------|--------|
-| `action_list` output contract | Sections: `ACTION_ITEMS`, `DRAFT_CANDIDATES`, `ARCHIVE_CANDIDATES` with Uid + folder + one-line reason |
-| Agent never executes actions in Layer 6 | Only identifies candidates from tool text |
-| Link to future `Workflows/` | e.g. “file to Archive”, “reply to thread” consume Uid + folder |
-
-When you implement actions, they should accept **`(folder, uid)`** from Layer 6 output—no re-search by subject.
-
-#### Constants & policies (add with 6a)
-
-| Constant | Suggested value | Purpose |
-|----------|-----------------|--------|
-| `MaxDeepReadsPerTurn` | 5 | Max `get_inbox_message` calls per user turn |
-| `DefaultDigestListLimit` | 20 | Skim/triage list size |
-| `TriageUnreadSinceDefault` | today + this_week fallback | Agent rule when user says “attention” without dates |
-
-#### What stays out of Layer 6
-
-- Attachment download / open
-- Thread/conversation grouping (provider-specific)
-- Auto-send, auto-archive, rules engine (separate **actions** pass)
-- LLM summarization inside C# services (keep summarization in the agent)
-
-#### Code mapping (Layer 6)
-
-| Sub-layer | `IMailboxService` | `EmailTools` / `Workflows` | Agent / Memory |
-|-----------|-------------------|----------------------------|----------------|
-| 6a | — | — | Instructions + `SupportedUserPrompts` |
-| 6b | — (reuse list) | `compare_mail_periods` optional | Compare template |
-| 6c | optional batch get | `summarize_mail_scope` optional | Shorter choreography rules |
-| 6d | — | — | `EmailMemory.LoadAsync` / snapshot save |
-| 6e | — | — | `action_list` template; future workflows |
-
-#### Suggested tickets
-
-1. **6a** — Output contracts + `MaxDeepReadsPerTurn` + prompt catalog rows
-2. **6b** — `compare_mail_periods` tool + formatter
-3. **6d** — Last-list snapshot per chat thread (if reference pain is high)
-4. **6c** — Digest tool only if multi-tool latency is a problem
-5. **6e** — `action_list` template when action workflows start
-
-#### Test prompts (Layer 6 acceptance)
+### Acceptance prompts
 
 | Prompt | Pass if |
 |--------|---------|
-| “Summarize my inbox today” | Lists today first; ≤5 gets; labeled Summary; no invented mail |
-| “What needs my attention?” | Unread + recent; Needs reply / FYI sections; cites Uids |
+| “Summarize my inbox today” | Today first; ≤5 gets; labeled Summary; no invented mail |
+| “What needs my attention?” | Unread + recent; Needs reply / FYI; cites Uids |
 | “More email than yesterday?” | Two counts; numeric comparison; no fake totals |
-| “Summarize the PayPal email from this week” | list + filter + one get; mentions attachments if present |
+| “Summarize the PayPal email from this week” | list + filter + one get; attachments if present |
 | “What did I send Bob this week?” | folder=sent; no inbox bleed |
-| “Which messages look like invoices?” | subject/filter list; action candidates with Uid + folder |
-
-*Parallel anytime after Layers 1–3; **recommended start: 6a only** (highest ROI, zero MailKit surface).*
+| “Which messages look like invoices?” | filter list; action candidates with Uid + folder |
 
 ---
 
-## Sequence
+## Code map
 
+### Current stack (refactor starting point)
+
+```text
+WebApp  SendChatMessage
+          → EntityRefMentionContextService (mention context + default mailbox alias)
+          → ChatOrchestrator → EmailTriageAgent
+                → EmailTriageTools.Session
+                      → UserMailboxService
+                            → MailboxAccountResolver
+                            → IMailboxService (MailKitMailboxService)
+                                  → MailboxConnectionHelpers
+                                  → MailboxSearchHelpers / MailboxSummaryHelpers
+                                  → MailboxMessageHelpers / MailboxCommandsHelpers
 ```
-0 Foundation     ✅
-1 Time/Volume    ✅
-2 Filters        ✅
-3 Open one       ✅
-4 Rich content   ✅
-5 Folders        ✅
-6 Smart output   ← 6a ✅; next 6b
-```
 
-**Rule:** Do not skip to Layer 5 before Layer 3. Users ask “read that email” more than “open Sent”.
+| Layer | Key files |
+|-------|-----------|
+| **Chat entry** | `Features/Chat/ChatMessages/Commands/SendChatMessage.cs` |
+| **Mentions** | `Features/Shared/EntityRefMentionContextService.cs`, `EntityRefMentions.cs` |
+| **Agent** | `AI/Agents/EmailTriageAgent.cs`, `AI/ChatOrchestrator.cs` |
+| **Tools** | `AI/Tools/EmailTriageTools.cs` (`Session` nested class) |
+| **App mailbox** | `Features/Shared/Services.cs` (`UserMailboxService`), `MailboxReadHelpers.cs` |
+| **Account resolve** | `Features/Workspace/EmailAccounts/MailboxAccountResolver.cs`, `Repository.cs` |
+| **Infrastructure** | `Infrastructure/Mailbox/` — `Abstractions.cs`, `DTOs.cs`, `Helpers.cs`, `MailKitMailboxService.cs`, `Mailbox*Helpers.cs` |
 
----
+### Deferred feature work
 
-## Code mapping (per layer)
-
-| Layer | `IMailboxService` | `EmailTools` | Models |
-|-------|-------------------|--------------|--------|
-| 1 List+ | Extend `InboxQuery` | Extend `list_inbox_messages` | `InboxQuery` |
-| 2 Filter | IMAP search in list ✅ | Filter args on list ✅ | `InboxQuery` filters |
-| 3 Open | `GetInboxMessageAsync` ✅ | `get_inbox_message` ✅ | `InboxMessageDetail`, `Uid` on summary ✅ |
-| 4 Rich | Body/attachments on get ✅ | Same get tool ✅ | `AttachmentNames`, `BodyFromHtml` |
-| 5 Folders | `ListFoldersAsync`, folder on list/get ✅ | `list_mailbox_folders`, `folder` param ✅ | `MailboxFolderInfo` |
-| 6a Contracts | — | — | Output modes + choreography ✅ |
-| 6b Compare | — (reuse list/count) | `compare_mail_periods` (optional) | Compare template |
-| 6c Digest | optional batch get | `summarize_mail_scope` (optional) | — |
-| 6d Reference | — | — | `EmailMemory` last-list snapshot |
-| 6e Actions prep | — | — | `action_list` template → future workflows |
+| Sub-layer | `EmailTriageTools` | Agent / Memory |
+|-----------|-------------------|----------------|
+| 6b Compare | `compare_mail_periods` | Compare template |
+| 6c Digest | `summarize_mail_scope` (optional) | Shorter choreography |
+| 6d Reference | — | `EmailMemory` snapshot |
+| 6e Actions | — | `action_list` → future workflows |
 
 ---
 
 ## Out of scope (this doc)
 
-- **Send** scenarios (separate pass)
-- Mailbox connection UI (Workspace → Email accounts; provider templates stay under Settings → Email providers)
+- **Scheduled send / brief** (product schedules — separate pass)
+- Mailbox connection UI (Workspace → Email accounts; provider templates under Settings)
 - Assistant agent routing
 
 ---
 
-## Suggested first tickets
+## Suggested tickets
 
-1. **Layer 6b** — `compare_mail_periods` tool (if compare prompts are common)
-2. **Layer 6d** — Thread last-list memory (if “that email” reference is painful)
-3. **Layer 6e** — `action_list` template hardening when folder/action workflows start
-4. **Future** — attachment download API, thread support, 6c digest tool if needed
+1. **Refactor** — manual cleanup of Email/AI flow (boundaries, naming, error contracts) — **current**
+2. **6b** — `compare_mail_periods` tool + formatter
+3. **6d** — Thread last-list memory (if “that email” reference is painful)
+4. **6e** — `action_list` hardening when action workflows start
+5. **Future** — attachment download, thread support, 6c digest tool if latency hurts
 
 Update this doc when a layer ships or priorities change.

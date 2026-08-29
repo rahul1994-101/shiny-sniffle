@@ -64,13 +64,18 @@ public sealed class SendChatMessageRequestHandler(
                 request.UserId,
                 text,
                 cancellationToken);
+            var mailboxAlias = await mentionContextService.TryResolveDefaultMailboxAliasAsync(
+                request.UserId,
+                text,
+                cancellationToken);
 
             var agentRun = await chatOrchestrator.RunChatAgentAsync(new RunChatAgentRequest
             {
                 UserId = request.UserId,
                 ThreadId = request.ThreadId,
                 ChatAgent = thread.ChatAgent,
-                MentionContext = mentionContext
+                MentionContext = mentionContext,
+                MailboxAlias = mailboxAlias
             }, cancellationToken);
 
             var assistantMessage = await chatMessageRepo.AddAsync(new ChatMessage

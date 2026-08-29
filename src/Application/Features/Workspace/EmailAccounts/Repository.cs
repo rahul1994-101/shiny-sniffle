@@ -93,6 +93,32 @@ public sealed class EmailAccountRepository(
     public async Task<EmailSettings?> GetDefaultEmailSettingsAsync(Guid userId, CancellationToken cancellationToken = default) =>
         await GetEmailSettingsAsync(userId, emailAccountId: null, cancellationToken);
 
+    public async Task<EmailAccount?> GetActiveAccountAsync(
+        Guid userId,
+        string? alias = null,
+        CancellationToken cancellationToken = default)
+    {
+        await using var ctx = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+
+        if (!string.IsNullOrWhiteSpace(alias))
+        {
+            var normalized = EntityAliasRules.SlugifyOptional(alias.Trim()) ?? alias.Trim();
+            return await ctx.EmailAccounts
+                .AsNoTracking()
+                .Include(x => x.EmailProvider)
+                .Where(x => x.UserId == userId && x.Alias == normalized)
+                .WhereActiveAndNotDeleted()
+                .FirstOrDefaultAsync(cancellationToken);
+        }
+
+        return await ctx.EmailAccounts
+            .AsNoTracking()
+            .Include(x => x.EmailProvider)
+            .Where(x => x.UserId == userId && x.IsDefault)
+            .WhereActiveAndNotDeleted()
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
     public async Task<(EmailAccountDto? Saved, string? Error, bool NotFound)> SaveAsync(
         Guid userId,
         SaveEmailAccountDto dto,

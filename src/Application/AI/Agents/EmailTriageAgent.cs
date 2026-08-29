@@ -13,7 +13,7 @@ public sealed class EmailTriageAgent(IFoundryAgentFactory _agentFactory, EmailTr
     {
         #region # Execute
 
-        var tools = _emailTools.CreateTools(request.UserId, request.ThreadId);
+        var tools = _emailTools.CreateTools(request.UserId, request.ThreadId, request.MailboxAlias);
         var agent = CreateFoundryAgent(tools);
         var messages = history.ToList();
         var response = await agent.RunAsync(messages, cancellationToken: cancellationToken);
@@ -151,6 +151,22 @@ public sealed class EmailTriageAgent(IFoundryAgentFactory _agentFactory, EmailTr
             "Read that invoice email and tell me the attachment names.",
             "Open Uid 55 and list what files are attached."
         ]),
+        ("Read batch", "get_inbox_messages (up to 5 Uids, same folder)", [
+            "Read the full bodies of Uids 42, 43, and 44 from today.",
+            "Open the top 3 unread messages from this week."
+        ]),
+        ("Delete messages", "delete_messages (confirm first; moves to trash)", [
+            "Delete Uid 42 from my inbox.",
+            "Trash the spam messages with Uids 10 and 11."
+        ]),
+        ("Move messages", "move_messages (archive, junk, custom folder)", [
+            "Archive Uid 55 from my inbox.",
+            "Move Uids 12 and 13 to junk."
+        ]),
+        ("Message flags", "set_message_flags (read, unread, flagged, unflagged)", [
+            "Mark Uid 42 as read.",
+            "Flag Uid 100 as important."
+        ]),
         ("Send email", "send_email (confirm to/subject/body first)", [
             "Send an email to alice@example.com.",
             "Email my team about tomorrow's meeting.",
@@ -189,8 +205,13 @@ public sealed class EmailTriageAgent(IFoundryAgentFactory _agentFactory, EmailTr
             - Do not guess or invent message contents, send outcomes, or mailbox status.
 
             Tool rules:
+            - mailbox_alias: when the user @-mentions @mailbox:alias, pass that alias (or leave empty — tools auto-use the mention). Empty with no mention = default connected account. Keep the same mailbox_alias across list/get/send/command calls in one turn.
             - list_inbox_messages: previews (#N, Uid, from, subject, date). count_only for how-many. folder + since + filters as needed.
             - get_inbox_message: full body + attachment names. Always use folder + uid from a list row, or list_index with the same folder/since/filters as the list.
+            - get_inbox_messages: batch full read (max {maxGets} Uids, same folder). Use for triage when multiple bodies are needed.
+            - delete_messages: move to trash. Confirm with the user first; use folder + Uids from a recent list.
+            - move_messages: move to another folder (archive, junk, etc.). Confirm destination when unclear.
+            - set_message_flags: read, unread, flagged, or unflagged.
             - list_mailbox_folders: when folder names are unknown.
             - get_mailbox_status: when setup or connectivity is uncertain.
             - send_email: confirm to, subject, and body with the user first.
@@ -205,8 +226,8 @@ public sealed class EmailTriageAgent(IFoundryAgentFactory _agentFactory, EmailTr
 
             Output choreography (Layer 6):
             - Tools fetch; you interpret. Never summarize or prioritize mail not returned by tools this turn.
-            - Default flow: list_inbox_messages first, then selective get_inbox_message. Do not fetch full bodies for every row.
-            - Max {maxGets} get_inbox_message calls per user turn. Prefer fewer when previews are enough.
+            - Default flow: list_inbox_messages first, then selective get_inbox_message or get_inbox_messages. Do not fetch full bodies for every row.
+            - Max {maxGets} full-read calls per user turn (get_inbox_message + get_inbox_messages Uids combined). Prefer fewer when previews are enough.
             - When list output shows "N shown of M matched", tell the user coverage is partial (e.g. "summarized {digestLimit} of M").
             - Reuse the same folder, since, and filters across list and get in one turn so Uids stay valid.
             - Cite Uid (and folder when not inbox) when naming specific messages—for follow-ups and future actions.

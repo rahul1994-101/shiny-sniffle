@@ -25,6 +25,11 @@ public static class EntityRefMentions
             .ToList();
     }
 
+    public static IReadOnlyList<string> ExtractMailboxHandles(string? text) =>
+        ExtractFromText(text)
+            .Where(handle => EntityRefs.TryParse(handle, out var kind, out _) && kind == EntityRefs.Kind.Mailbox)
+            .ToList();
+
     public static IReadOnlyList<EntityRefMentionSegment> ParseSegments(string? text)
     {
         if (string.IsNullOrEmpty(text))

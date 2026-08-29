@@ -1,8 +1,6 @@
 using MailKit;
 using MailKit.Net.Imap;
 using MailKit.Net.Smtp;
-using MailKit.Search;
-using MailKit.Security;
 using MimeKit;
 using System.Net.Mail;
 using SmtpClient = MailKit.Net.Smtp.SmtpClient;
@@ -13,7 +11,7 @@ public sealed class MailKitMailboxService : IMailboxService
 {
     public async Task<MailboxStatusResult> GetStatusAsync(EmailSettings config, CancellationToken cancellationToken = default)
     {
-        var probe = await ProbeConnectionsAsync(config, cancellationToken);
+        var probe = await MailboxConnectionHelpers.ProbeConnectionsAsync(config, cancellationToken);
 
         if (probe.ImapOk && probe.SmtpOk)
         {
@@ -29,13 +27,13 @@ public sealed class MailKitMailboxService : IMailboxService
         {
             IsConfigured = true,
             IsReachable = probe.ImapOk,
-            Message = FormatConnectionProbeMessage(probe)
+            Message = MailboxConnectionHelpers.FormatConnectionProbeMessage(probe)
         };
     }
 
     public async Task<MailboxTestResult> TestConnectionAsync(EmailSettings config, CancellationToken cancellationToken = default)
     {
-        var probe = await ProbeConnectionsAsync(config, cancellationToken);
+        var probe = await MailboxConnectionHelpers.ProbeConnectionsAsync(config, cancellationToken);
 
         if (probe.ImapOk && probe.SmtpOk)
         {
@@ -53,105 +51,84 @@ public sealed class MailKitMailboxService : IMailboxService
             Success = false,
             ImapOk = probe.ImapOk,
             SmtpOk = probe.SmtpOk,
-            Message = FormatConnectionProbeMessage(probe)
+            Message = MailboxConnectionHelpers.FormatConnectionProbeMessage(probe)
         };
     }
 
-    public async Task<InboxListResult> ListInboxAsync(EmailSettings config, InboxQuery query, CancellationToken cancellationToken = default)
+    public async Task<InboxListResult> ListMessagesAsync(EmailSettings config, InboxQuery query, CancellationToken cancellationToken = default)
     {
-        using var imap = CreateImapClient();
-        await ConnectImapAsync(imap, config, cancellationToken);
+        using var imap = MailboxConnectionHelpers.CreateImapClient();
+        await MailboxConnectionHelpers.ConnectImapAsync(imap, config, cancellationToken);
         await imap.AuthenticateAsync(config.Username, config.Password, cancellationToken);
 
         var folder = await MailboxFolderResolverHelpers.GetFolderAsync(imap, query.Folder, cancellationToken);
         await folder.OpenAsync(FolderAccess.ReadOnly, cancellationToken);
 
-        var search = BuildInboxSearchQuery(query);
-        var ids = await folder.SearchAsync(search, cancellationToken);
-        var totalMatched = ids.Count;
-
-        if (query.CountOnly)
-        {
-            await imap.DisconnectAsync(true, cancellationToken);
-            return new InboxListResult { TotalMatched = totalMatched };
-        }
-
-        var limit = MailboxReadLimits.ClampListLimit(query.Limit);
-        var selected = ids.TakeLast(limit).Reverse().ToList();
-        var summaries = new List<InboxMessageSummary>(selected.Count);
-
-        foreach (var id in selected)
-        {
-            var message = await folder.GetMessageAsync(id, cancellationToken);
-            summaries.Add(new InboxMessageSummary
-            {
-                Uid = id.Id,
-                From = message.From?.ToString() ?? "(unknown)",
-                Subject = string.IsNullOrWhiteSpace(message.Subject) ? "(no subject)" : message.Subject,
-                Date = message.Date,
-                Snippet = BuildSnippet(message)
-            });
-        }
+        var result = await MailboxSummaryHelpers.ListAsync(folder, query, cancellationToken);
 
         await imap.DisconnectAsync(true, cancellationToken);
-        return new InboxListResult
-        {
-            Messages = summaries,
-            TotalMatched = totalMatched
-        };
+        return result;
     }
 
-    public async Task<InboxMessageDetail?> GetInboxMessageAsync(EmailSettings config, uint uid, string? folder = null, CancellationToken cancellationToken = default)
+    public async Task<InboxMessageDetail?> GetMessageAsync(EmailSettings config, uint uid, string? folder = null, CancellationToken cancellationToken = default)
     {
-        using var imap = CreateImapClient();
-        await ConnectImapAsync(imap, config, cancellationToken);
+        using var imap = MailboxConnectionHelpers.CreateImapClient();
+        await MailboxConnectionHelpers.ConnectImapAsync(imap, config, cancellationToken);
         await imap.AuthenticateAsync(config.Username, config.Password, cancellationToken);
 
         var mailFolder = await MailboxFolderResolverHelpers.GetFolderAsync(imap, folder, cancellationToken);
         await mailFolder.OpenAsync(FolderAccess.ReadOnly, cancellationToken);
 
-        var uniqueId = new UniqueId(uid);
-        var matches = await mailFolder.SearchAsync(SearchQuery.Uids(new UniqueIdSet([uniqueId])), cancellationToken);
-        if (matches.Count == 0)
+        var detail = await MailboxMessageHelpers.GetDetailAsync(mailFolder, uid, cancellationToken);
+
+        await imap.DisconnectAsync(true, cancellationToken);
+        return detail;
+    }
+
+    public async Task<IReadOnlyList<InboxMessageDetail>> GetMessagesAsync(
+        EmailSettings config,
+        IReadOnlyList<MessageRef> messages,
+        CancellationToken cancellationToken = default)
+    {
+        if (messages.Count == 0)
         {
-            await imap.DisconnectAsync(true, cancellationToken);
-            return null;
+            return [];
         }
 
-        var message = await mailFolder.GetMessageAsync(uniqueId, cancellationToken);
-        var body = EmailMessageBodyHelpers.GetPlainBody(message);
-        await imap.DisconnectAsync(true, cancellationToken);
-
-        return new InboxMessageDetail
+        if (messages.Count > MailboxReadLimits.MaxBatchGetCount)
         {
-            Uid = uid,
-            From = message.From?.ToString() ?? "(unknown)",
-            Subject = string.IsNullOrWhiteSpace(message.Subject) ? "(no subject)" : message.Subject,
-            Date = message.Date,
-            Body = body.Text,
-            Folder = mailFolder.FullName,
-            BodyFromHtml = body.FromHtml,
-            AttachmentNames = EmailMessageBodyHelpers.GetAttachmentNames(message)
-        };
+            throw new ArgumentException(
+                $"At most {MailboxReadLimits.MaxBatchGetCount} messages can be read per call.",
+                nameof(messages));
+        }
+
+        using var imap = MailboxConnectionHelpers.CreateImapClient();
+        await MailboxConnectionHelpers.ConnectImapAsync(imap, config, cancellationToken);
+        await imap.AuthenticateAsync(config.Username, config.Password, cancellationToken);
+
+        var details = await MailboxMessageHelpers.GetManyAsync(imap, messages, cancellationToken);
+
+        await imap.DisconnectAsync(true, cancellationToken);
+        return details;
     }
 
     public async Task<IReadOnlyList<MailboxFolderInfo>> ListFoldersAsync(EmailSettings config, CancellationToken cancellationToken = default)
     {
-        using var imap = CreateImapClient();
-        await ConnectImapAsync(imap, config, cancellationToken);
+        using var imap = MailboxConnectionHelpers.CreateImapClient();
+        await MailboxConnectionHelpers.ConnectImapAsync(imap, config, cancellationToken);
         await imap.AuthenticateAsync(config.Username, config.Password, cancellationToken);
 
         var folders = new List<MailboxFolderInfo>();
 
         if (imap.Inbox is not null)
         {
-            folders.Add(MapFolder(imap.Inbox));
+            folders.Add(MailboxFolderResolverHelpers.MapFolder(imap.Inbox));
         }
 
         foreach (var ns in imap.PersonalNamespaces)
         {
             var root = imap.GetFolder(ns);
-            await CollectFoldersAsync(root, folders, cancellationToken);
+            await MailboxFolderResolverHelpers.CollectFoldersAsync(root, folders, cancellationToken);
         }
 
         await imap.DisconnectAsync(true, cancellationToken);
@@ -180,8 +157,8 @@ public sealed class MailKitMailboxService : IMailboxService
         message.Subject = mail.Subject;
         message.Body = new TextPart("plain") { Text = mail.Body };
 
-        using var smtp = CreateSmtpClient();
-        await ConnectSmtpAsync(smtp, config, cancellationToken);
+        using var smtp = MailboxConnectionHelpers.CreateSmtpClient();
+        await MailboxConnectionHelpers.ConnectSmtpAsync(smtp, config, cancellationToken);
         await smtp.AuthenticateAsync(config.Username, config.Password, cancellationToken);
         await smtp.SendAsync(message, cancellationToken);
         await smtp.DisconnectAsync(true, cancellationToken);
@@ -193,222 +170,86 @@ public sealed class MailKitMailboxService : IMailboxService
         };
     }
 
-    #region # Private Helpers
-
-    private const int ConnectTimeoutMs = 30_000;
-
-    internal static SecureSocketOptions GetImapSecureSocketOptions(int port, bool useSsl)
-    {
-        if (!useSsl)
-        {
-            return SecureSocketOptions.None;
-        }
-
-        return port switch
-        {
-            143 => SecureSocketOptions.StartTls,
-            993 => SecureSocketOptions.SslOnConnect,
-            _ => SecureSocketOptions.Auto
-        };
-    }
-
-    internal static SecureSocketOptions GetSmtpSecureSocketOptions(int port, bool useSsl)
-    {
-        if (!useSsl)
-        {
-            return SecureSocketOptions.None;
-        }
-
-        return port switch
-        {
-            465 => SecureSocketOptions.SslOnConnect,
-            587 => SecureSocketOptions.StartTls,
-            _ => SecureSocketOptions.Auto
-        };
-    }
-
-    private static ImapClient CreateImapClient() =>
-        new()
-        {
-            Timeout = ConnectTimeoutMs,
-            // Intentional v1 tradeoff: many hosted mail servers use misconfigured or private CAs;
-            // disabling revocation checks avoids false negatives on connect. Revisit if exposing a strict-TLS option.
-            CheckCertificateRevocation = false
-        };
-
-    private static SmtpClient CreateSmtpClient() =>
-        new()
-        {
-            Timeout = ConnectTimeoutMs,
-            CheckCertificateRevocation = false
-        };
-
-    private async Task<ConnectionProbeResult> ProbeConnectionsAsync(
+    public async Task<MailboxCommandResult> DeleteMessagesAsync(
         EmailSettings config,
-        CancellationToken cancellationToken)
+        IReadOnlyList<MessageRef> messages,
+        CancellationToken cancellationToken = default)
     {
-        var imapOk = false;
-        var smtpOk = false;
-        string? imapError = null;
-        string? smtpError = null;
-
-        try
+        if (messages.Count == 0)
         {
-            using var imap = CreateImapClient();
-            await ConnectImapAsync(imap, config, cancellationToken);
-            await imap.AuthenticateAsync(config.Username, config.Password, cancellationToken);
-            await imap.DisconnectAsync(true, cancellationToken);
-            imapOk = true;
-        }
-        catch (Exception ex)
-        {
-            imapError = FriendlyError(ex);
-        }
-
-        try
-        {
-            using var smtp = CreateSmtpClient();
-            await ConnectSmtpAsync(smtp, config, cancellationToken);
-            await smtp.AuthenticateAsync(config.Username, config.Password, cancellationToken);
-            await smtp.DisconnectAsync(true, cancellationToken);
-            smtpOk = true;
-        }
-        catch (Exception ex)
-        {
-            smtpError = FriendlyError(ex);
-        }
-
-        return new ConnectionProbeResult(imapOk, smtpOk, imapError, smtpError);
-    }
-
-    private static string FormatConnectionProbeMessage(ConnectionProbeResult probe)
-    {
-        var parts = new List<string>();
-        if (probe.ImapOk)
-        {
-            parts.Add("IMAP OK");
-        }
-        else
-        {
-            parts.Add($"IMAP failed: {probe.ImapError}");
-        }
-
-        if (probe.SmtpOk)
-        {
-            parts.Add("SMTP OK");
-        }
-        else
-        {
-            parts.Add($"SMTP failed: {probe.SmtpError}");
-        }
-
-        return string.Join(" · ", parts);
-    }
-
-    private sealed record ConnectionProbeResult(
-        bool ImapOk,
-        bool SmtpOk,
-        string? ImapError,
-        string? SmtpError);
-
-    private static SearchQuery BuildInboxSearchQuery(InboxQuery query)
-    {
-        SearchQuery search = query.SinceUtc is null
-            ? SearchQuery.All
-            : SearchQuery.DeliveredAfter(query.SinceUtc.Value);
-
-        if (query.UntilUtcExclusive is not null)
-        {
-            search = search.And(SearchQuery.DeliveredBefore(query.UntilUtcExclusive.Value));
-        }
-
-        if (query.UnreadOnly)
-        {
-            search = search.And(SearchQuery.NotSeen);
-        }
-
-        if (!string.IsNullOrWhiteSpace(query.FromContains))
-        {
-            search = search.And(SearchQuery.FromContains(query.FromContains.Trim()));
-        }
-
-        if (!string.IsNullOrWhiteSpace(query.SubjectContains))
-        {
-            search = search.And(SearchQuery.SubjectContains(query.SubjectContains.Trim()));
-        }
-
-        return search;
-    }
-
-    private static async Task CollectFoldersAsync(IMailFolder folder, List<MailboxFolderInfo> folders, CancellationToken cancellationToken)
-    {
-        if (!folder.Exists)
-        {
-            return;
-        }
-
-        folders.Add(MapFolder(folder));
-
-        var children = await folder.GetSubfoldersAsync(false, cancellationToken);
-        foreach (var child in children)
-        {
-            await CollectFoldersAsync(child, folders, cancellationToken);
-        }
-    }
-
-    private static MailboxFolderInfo MapFolder(IMailFolder folder) =>
-        new()
-        {
-            Name = folder.Name,
-            FullName = folder.FullName,
-            Role = MailboxFolderResolverHelpers.DescribeRole(folder)
-        };
-
-    private static Task ConnectImapAsync(ImapClient client, EmailSettings config, CancellationToken cancellationToken)
-    {
-        var secure = GetImapSecureSocketOptions(config.ImapPort, config.ImapUseSsl);
-        return client.ConnectAsync(config.ImapHost, config.ImapPort, secure, cancellationToken);
-    }
-
-    private static Task ConnectSmtpAsync(SmtpClient client, EmailSettings config, CancellationToken cancellationToken)
-    {
-        var secure = GetSmtpSecureSocketOptions(config.SmtpPort, config.SmtpUseSsl);
-        return client.ConnectAsync(config.SmtpHost, config.SmtpPort, secure, cancellationToken);
-    }
-
-    private static string? BuildSnippet(MimeMessage message)
-    {
-        var text = EmailMessageBodyHelpers.GetPlainTextOrNull(message);
-        if (text is null && !string.IsNullOrWhiteSpace(message.HtmlBody))
-        {
-            text = EmailMessageBodyHelpers.GetPlainBody(message).Text;
-            if (text == "(no readable body)")
+            return new MailboxCommandResult
             {
-                return null;
-            }
+                Success = false,
+                Message = "No messages were specified."
+            };
         }
 
-        if (text is null)
-        {
-            return null;
-        }
+        using var imap = MailboxConnectionHelpers.CreateImapClient();
+        await MailboxConnectionHelpers.ConnectImapAsync(imap, config, cancellationToken);
+        await imap.AuthenticateAsync(config.Username, config.Password, cancellationToken);
 
-        text = text.Replace('\r', ' ').Replace('\n', ' ').Trim();
-        return text.Length <= MailboxReadLimits.SnippetMaxLength
-            ? text
-            : text[..MailboxReadLimits.SnippetMaxLength] + "…";
+        var result = await MailboxCommandsHelpers.DeleteAsync(imap, messages, cancellationToken);
+
+        await imap.DisconnectAsync(true, cancellationToken);
+        return result;
     }
 
-    private static string FriendlyError(Exception ex) =>
-        ex switch
+    public async Task<MailboxCommandResult> MoveMessagesAsync(
+        EmailSettings config,
+        IReadOnlyList<MessageRef> messages,
+        string destinationFolder,
+        CancellationToken cancellationToken = default)
+    {
+        if (messages.Count == 0)
         {
-            AuthenticationException => "Authentication failed. Check username and password.",
-            SslHandshakeException => "TLS/SSL connection failed. Check ports and SSL settings.",
-            ServiceNotConnectedException => "Could not connect to the mail server.",
-            SmtpCommandException smtp when smtp.Message.Contains("STARTTLS", StringComparison.OrdinalIgnoreCase) =>
-                "SMTP requires STARTTLS. Try port 587 with SMTP SSL enabled.",
-            _ => ex.Message
-        };
+            return new MailboxCommandResult
+            {
+                Success = false,
+                Message = "No messages were specified."
+            };
+        }
 
-    #endregion
+        if (string.IsNullOrWhiteSpace(destinationFolder))
+        {
+            return new MailboxCommandResult
+            {
+                Success = false,
+                Message = "Destination folder is required."
+            };
+        }
+
+        using var imap = MailboxConnectionHelpers.CreateImapClient();
+        await MailboxConnectionHelpers.ConnectImapAsync(imap, config, cancellationToken);
+        await imap.AuthenticateAsync(config.Username, config.Password, cancellationToken);
+
+        var result = await MailboxCommandsHelpers.MoveAsync(imap, messages, destinationFolder.Trim(), cancellationToken);
+
+        await imap.DisconnectAsync(true, cancellationToken);
+        return result;
+    }
+
+    public async Task<MailboxCommandResult> SetMessageFlagsAsync(
+        EmailSettings config,
+        IReadOnlyList<MessageRef> messages,
+        MessageFlagAction flag,
+        CancellationToken cancellationToken = default)
+    {
+        if (messages.Count == 0)
+        {
+            return new MailboxCommandResult
+            {
+                Success = false,
+                Message = "No messages were specified."
+            };
+        }
+
+        using var imap = MailboxConnectionHelpers.CreateImapClient();
+        await MailboxConnectionHelpers.ConnectImapAsync(imap, config, cancellationToken);
+        await imap.AuthenticateAsync(config.Username, config.Password, cancellationToken);
+
+        var result = await MailboxCommandsHelpers.SetFlagsAsync(imap, messages, flag, cancellationToken);
+
+        await imap.DisconnectAsync(true, cancellationToken);
+        return result;
+    }
 }

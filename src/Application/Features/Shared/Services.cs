@@ -4,65 +4,90 @@ using Infrastructure.Mailbox;
 
 namespace Application.Features.Shared;
 
-public sealed class UserMailboxService(EmailAccountRepository emailAccountRepo, IMailboxService mailboxService)
+public sealed class UserMailboxService(
+    MailboxAccountResolver mailboxAccountResolver,
+    EmailAccountRepository emailAccountRepo,
+    IMailboxService mailboxService)
 {
-    public async Task<bool> IsConfiguredAsync(Guid userId, CancellationToken cancellationToken = default)
+    public Task<MailboxAccountResolveResult> ResolveAccountAsync(
+        Guid userId,
+        string? mailboxRef = null,
+        CancellationToken cancellationToken = default) =>
+        mailboxAccountResolver.ResolveAsync(userId, mailboxRef, cancellationToken);
+
+    public async Task<bool> IsConfiguredAsync(
+        Guid userId,
+        string? mailboxRef = null,
+        CancellationToken cancellationToken = default)
     {
-        cancellationToken.ThrowIfCancellationRequested();
-        var emailSettings = await emailAccountRepo.GetDefaultEmailSettingsAsync(userId, cancellationToken);
-        return EmailSettingsMapping.IsMailboxConfigured(emailSettings);
+        var resolved = await mailboxAccountResolver.ResolveAsync(userId, mailboxRef, cancellationToken);
+        return resolved.IsSuccess;
     }
 
-    public async Task<MailboxStatusResult> GetStatusAsync(Guid userId, CancellationToken cancellationToken = default)
+    public async Task<MailboxStatusResult> GetStatusAsync(
+        Guid userId,
+        string? mailboxRef = null,
+        CancellationToken cancellationToken = default)
     {
-        var config = await ResolveMailRuntimeAsync(userId, cancellationToken: cancellationToken);
-        if (config is null)
+        var resolved = await mailboxAccountResolver.ResolveAsync(userId, mailboxRef, cancellationToken);
+        if (resolved.Context is null)
         {
             return new MailboxStatusResult
             {
                 IsConfigured = false,
                 IsReachable = false,
-                Message = EmailReadConstants.NotConfiguredForAgent
+                Message = resolved.ErrorMessage ?? EmailReadConstants.NotConfiguredForAgent
             };
         }
 
-        return await mailboxService.GetStatusAsync(config, cancellationToken);
+        return await mailboxService.GetStatusAsync(resolved.Context.Runtime, cancellationToken);
     }
 
-    public async Task<InboxListResult> ListInboxAsync(Guid userId, InboxQuery query, CancellationToken cancellationToken = default)
+    public async Task<InboxListResult> ListMessagesAsync(
+        Guid userId,
+        InboxQuery query,
+        string? mailboxRef = null,
+        CancellationToken cancellationToken = default)
     {
-        var config = await ResolveMailRuntimeAsync(userId, cancellationToken: cancellationToken);
-        if (config is null)
-        {
-            return new InboxListResult();
-        }
-
-        return await mailboxService.ListInboxAsync(config, query, cancellationToken);
+        var context = await RequireContextAsync(userId, mailboxRef, EmailReadConstants.NotConfiguredForList, cancellationToken);
+        return await mailboxService.ListMessagesAsync(context.Runtime, query, cancellationToken);
     }
 
-    public async Task<InboxMessageDetail?> GetInboxMessageAsync(Guid userId, uint uid, string? folder = null, CancellationToken cancellationToken = default)
+    public async Task<InboxMessageDetail?> GetMessageAsync(
+        Guid userId,
+        uint uid,
+        string? folder = null,
+        string? mailboxRef = null,
+        CancellationToken cancellationToken = default)
     {
-        var config = await ResolveMailRuntimeAsync(userId, cancellationToken: cancellationToken);
-        if (config is null)
-        {
-            return null;
-        }
-
-        return await mailboxService.GetInboxMessageAsync(config, uid, folder, cancellationToken);
+        var context = await RequireContextAsync(userId, mailboxRef, EmailReadConstants.NotConfiguredForGet, cancellationToken);
+        return await mailboxService.GetMessageAsync(context.Runtime, uid, folder, cancellationToken);
     }
 
-    public async Task<IReadOnlyList<MailboxFolderInfo>> ListFoldersAsync(Guid userId, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<InboxMessageDetail>> GetMessagesAsync(
+        Guid userId,
+        IReadOnlyList<MessageRef> messages,
+        string? mailboxRef = null,
+        CancellationToken cancellationToken = default)
     {
-        var config = await ResolveMailRuntimeAsync(userId, cancellationToken: cancellationToken);
-        if (config is null)
-        {
-            return [];
-        }
-
-        return await mailboxService.ListFoldersAsync(config, cancellationToken);
+        var context = await RequireContextAsync(userId, mailboxRef, EmailReadConstants.NotConfiguredForGet, cancellationToken);
+        return await mailboxService.GetMessagesAsync(context.Runtime, messages, cancellationToken);
     }
 
-    public async Task<SendMailResult> SendAsync(Guid userId, OutboundMail mail, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<MailboxFolderInfo>> ListFoldersAsync(
+        Guid userId,
+        string? mailboxRef = null,
+        CancellationToken cancellationToken = default)
+    {
+        var context = await RequireContextAsync(userId, mailboxRef, EmailReadConstants.NotConfiguredForFolders, cancellationToken);
+        return await mailboxService.ListFoldersAsync(context.Runtime, cancellationToken);
+    }
+
+    public async Task<SendMailResult> SendAsync(
+        Guid userId,
+        OutboundMail mail,
+        string? mailboxRef = null,
+        CancellationToken cancellationToken = default)
     {
         if (!MailAddress.TryCreate(mail.To, out _))
         {
@@ -73,17 +98,49 @@ public sealed class UserMailboxService(EmailAccountRepository emailAccountRepo, 
             };
         }
 
-        var config = await ResolveMailRuntimeAsync(userId, cancellationToken: cancellationToken);
-        if (config is null)
+        var resolved = await mailboxAccountResolver.ResolveAsync(userId, mailboxRef, cancellationToken);
+        if (resolved.Context is null)
         {
             return new SendMailResult
             {
                 Success = false,
-                Message = EmailReadConstants.NotConfiguredForSend
+                Message = resolved.ErrorMessage ?? EmailReadConstants.NotConfiguredForSend
             };
         }
 
-        return await mailboxService.SendAsync(config, mail, cancellationToken);
+        return await mailboxService.SendAsync(resolved.Context.Runtime, mail, cancellationToken);
+    }
+
+    public async Task<MailboxCommandResult> DeleteMessagesAsync(
+        Guid userId,
+        IReadOnlyList<MessageRef> messages,
+        string? mailboxRef = null,
+        CancellationToken cancellationToken = default)
+    {
+        var context = await RequireContextAsync(userId, mailboxRef, EmailReadConstants.NotConfiguredForCommands, cancellationToken);
+        return await mailboxService.DeleteMessagesAsync(context.Runtime, messages, cancellationToken);
+    }
+
+    public async Task<MailboxCommandResult> MoveMessagesAsync(
+        Guid userId,
+        IReadOnlyList<MessageRef> messages,
+        string destinationFolder,
+        string? mailboxRef = null,
+        CancellationToken cancellationToken = default)
+    {
+        var context = await RequireContextAsync(userId, mailboxRef, EmailReadConstants.NotConfiguredForCommands, cancellationToken);
+        return await mailboxService.MoveMessagesAsync(context.Runtime, messages, destinationFolder, cancellationToken);
+    }
+
+    public async Task<MailboxCommandResult> SetMessageFlagsAsync(
+        Guid userId,
+        IReadOnlyList<MessageRef> messages,
+        MessageFlagAction flag,
+        string? mailboxRef = null,
+        CancellationToken cancellationToken = default)
+    {
+        var context = await RequireContextAsync(userId, mailboxRef, EmailReadConstants.NotConfiguredForCommands, cancellationToken);
+        return await mailboxService.SetMessageFlagsAsync(context.Runtime, messages, flag, cancellationToken);
     }
 
     public async Task<MailboxTestResult> TestConnectionAsync(
@@ -91,8 +148,10 @@ public sealed class UserMailboxService(EmailAccountRepository emailAccountRepo, 
         EmailSettingsDto? draft = null,
         CancellationToken cancellationToken = default)
     {
-        var config = await ResolveMailRuntimeAsync(userId, draft, cancellationToken);
-        if (config is null)
+        var stored = await emailAccountRepo.GetDefaultEmailSettingsAsync(userId, cancellationToken);
+        var resolved = EmailSettingsMapping.ResolveForMail(stored, draft);
+        var runtime = EmailSettingsMapping.ToMailRuntime(resolved);
+        if (runtime is null)
         {
             return new MailboxTestResult
             {
@@ -101,21 +160,21 @@ public sealed class UserMailboxService(EmailAccountRepository emailAccountRepo, 
             };
         }
 
-        return await mailboxService.TestConnectionAsync(config, cancellationToken);
+        return await mailboxService.TestConnectionAsync(runtime, cancellationToken);
     }
 
-    #region # Private Helpers
-
-    private async Task<EmailSettings?> ResolveMailRuntimeAsync(
+    private async Task<MailboxAccountContext> RequireContextAsync(
         Guid userId,
-        EmailSettingsDto? draft = null,
-        CancellationToken cancellationToken = default)
+        string? mailboxRef,
+        string notConfiguredMessage,
+        CancellationToken cancellationToken)
     {
-        cancellationToken.ThrowIfCancellationRequested();
-        var stored = await emailAccountRepo.GetDefaultEmailSettingsAsync(userId, cancellationToken);
-        var resolved = EmailSettingsMapping.ResolveForMail(stored, draft);
-        return EmailSettingsMapping.ToMailRuntime(resolved);
-    }
+        var resolved = await mailboxAccountResolver.ResolveAsync(userId, mailboxRef, cancellationToken);
+        if (resolved.Context is null)
+        {
+            throw new InvalidOperationException(resolved.ErrorMessage ?? notConfiguredMessage);
+        }
 
-    #endregion
+        return resolved.Context;
+    }
 }

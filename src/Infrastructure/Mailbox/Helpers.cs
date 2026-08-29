@@ -20,6 +20,8 @@ public static class MailboxReadLimits
 
     public const int MaxMessageBodyLength = 12_000;
 
+    public const int MaxBatchGetCount = 5;
+
     public static int ClampListLimit(int limit) =>
         limit <= 0 ? DefaultListLimit : Math.Clamp(limit, MinListLimit, MaxListLimit);
 }
@@ -72,6 +74,38 @@ internal static class MailboxFolderResolverHelpers
         throw new InvalidOperationException(
             $"Folder '{trimmed}' was not found. Call list_mailbox_folders for available folders.");
     }
+
+    internal static async Task<IMailFolder> GetTrashFolderAsync(ImapClient imap, CancellationToken cancellationToken)
+    {
+        var trash = imap.GetFolder(SpecialFolder.Trash);
+        if (trash is not null && trash.Exists)
+        {
+            return trash;
+        }
+
+        foreach (var name in new[] { "Trash", "Deleted", "Deleted Items", "Bin" })
+        {
+            var match = await FindFolderByNameAsync(imap, name, cancellationToken);
+            if (match is not null)
+            {
+                return match;
+            }
+        }
+
+        throw new InvalidOperationException(
+            "Trash folder was not found. Call list_mailbox_folders for available folders.");
+    }
+
+    internal static bool IsTrashFolder(IMailFolder folder) =>
+        folder.Attributes.HasFlag(FolderAttributes.Trash);
+
+    internal static string? NormalizeFolderKey(string? folder) =>
+        IsInboxAlias(folder) ? null : string.IsNullOrWhiteSpace(folder) ? null : folder.Trim();
+
+    internal static IEnumerable<IGrouping<string?, MessageRef>> GroupMessagesByFolder(IReadOnlyList<MessageRef> messages) =>
+        messages.GroupBy(
+            m => NormalizeFolderKey(m.Folder),
+            StringComparer.OrdinalIgnoreCase);
 
     internal static string? DescribeRole(IMailFolder folder)
     {
@@ -181,6 +215,33 @@ internal static class MailboxFolderResolverHelpers
 
         return null;
     }
+
+    internal static async Task CollectFoldersAsync(
+        IMailFolder folder,
+        List<MailboxFolderInfo> folders,
+        CancellationToken cancellationToken)
+    {
+        if (!folder.Exists)
+        {
+            return;
+        }
+
+        folders.Add(MapFolder(folder));
+
+        var children = await folder.GetSubfoldersAsync(false, cancellationToken);
+        foreach (var child in children)
+        {
+            await CollectFoldersAsync(child, folders, cancellationToken);
+        }
+    }
+
+    internal static MailboxFolderInfo MapFolder(IMailFolder folder) =>
+        new()
+        {
+            Name = folder.Name,
+            FullName = folder.FullName,
+            Role = DescribeRole(folder)
+        };
 }
 
 internal static partial class EmailMessageBodyHelpers

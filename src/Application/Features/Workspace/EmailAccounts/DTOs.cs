@@ -1,5 +1,7 @@
 namespace Application.Features.Workspace.EmailAccounts;
 
+using Infrastructure.Mailbox;
+
 public sealed class EmailAccountSummaryDto
 {
     public Guid Id { get; init; }
@@ -32,6 +34,35 @@ public sealed class EmailAccountSummaryDto
         Tags = taxonomy?.Tags ?? [],
         Buckets = taxonomy?.Buckets ?? []
     };
+}
+
+/// <summary>Resolved workspace mailbox account ready for <see cref="IMailboxService"/> calls.</summary>
+public sealed class MailboxAccountContext
+{
+    public Guid EmailAccountId { get; init; }
+
+    public string Alias { get; init; } = string.Empty;
+
+    public string EmailAddress { get; init; } = string.Empty;
+
+    public bool IsDefault { get; init; }
+
+    public EmailSettings Runtime { get; init; } = null!;
+}
+
+public sealed class MailboxAccountResolveResult
+{
+    public MailboxAccountContext? Context { get; init; }
+
+    public string? ErrorMessage { get; init; }
+
+    public bool IsSuccess => Context is not null;
+
+    internal static MailboxAccountResolveResult Ok(MailboxAccountContext context) =>
+        new() { Context = context };
+
+    internal static MailboxAccountResolveResult Fail(string message) =>
+        new() { ErrorMessage = message };
 }
 
 public class EmailAccountDto

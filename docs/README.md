@@ -4,36 +4,43 @@
 
 | Doc | Purpose |
 |-----|---------|
-| **[product.md](product.md)** | Vision, personas, Solo / Pro / volume licensing, platform primitives (accounts, categories, contacts)—**no engineering** |
+| **[product.md](product.md)** | Vision, personas, licensing, platform primitives—**no engineering** |
 
-All commercial and product decisions should be updated in **`product.md`** only.
+All commercial and product decisions → **`product.md`** only.
 
 ---
 
 ## Current focus (engineering)
 
-**Done (recent):** Settings; Workspace Email accounts + Contacts; chat **rich editor** — `EntityRefMentionInput` with `/` global search (inserts `@kind:alias`), `@` two-step picker, server-side search, Tag/Bucket in picker, empty-workspace UX, styled clickable mentions in sent user bubbles (`EntityRefMentionText`). See **product.md §5.5** for product rules.
+| | |
+|---|---|
+| **Next** | **Manual refactor** of Email/AI flow — [email-read-implementation-plan.md](email-read-implementation-plan.md) § Code map |
+| **Deferred** | Layer **6b** (`compare_mail_periods`), [ai-memory.md](ai-memory.md) user/working memory, Tags/Buckets admin UI |
 
-**Next:** **Email read + Email agent** — [email-read-implementation-plan.md](email-read-implementation-plan.md) Layer **6b** (`compare_mail_periods`) onward; parallel track [ai-memory.md](ai-memory.md) user/working memory when orchestration needs it.
+### Recently shipped
 
-**Deferred:** Tags/Buckets Workspace admin UI (picker + AI context for defs is shipped).
+- **Settings**; Workspace **Email accounts** + **Contacts**
+- **Chat mentions** — `/` global search, `@` two-step picker, Tag/Bucket in picker, `EntityRefMentionText` bubbles (see **product.md §5.5**)
+- **Email triage** — read (0–5) + commands (send/delete/move/flags) + batch get + `@mailbox:alias` resolution + Layer 6a output contracts
+- **Mailbox stack** — `MailKitMailboxService` + helpers; `MailboxAccountResolver`; `MailboxReadHelpers`; `EmailTriageTools.Session` (per-turn state)
+- **AI memory** — short-term window + thread summary roll-up
 
 ---
 
-## Technical (engineering)
+## Technical roadmaps
 
 | Doc | Status |
 |-----|--------|
-| [email-read-implementation-plan.md](email-read-implementation-plan.md) | Mailbox read + Email agent layers 0–5, **6a done**; **6b+ next** |
-| [ai-memory.md](ai-memory.md) | Thread memory done; user/working memory planned |
-| [design-system.md](design-system.md) | WebApp UI tokens, `ui-*` components, glass, elevation, motion |
+| [email-read-implementation-plan.md](email-read-implementation-plan.md) | 0–5 + commands + 6a + polish ✅ · **refactor next** · 6b deferred |
+| [ai-memory.md](ai-memory.md) | Thread ✅ · user/working planned |
+| [design-system.md](design-system.md) | WebApp UI tokens, `ui-*`, glass, motion |
 
-**Coding conventions:** [`.cursor/rules/`](../.cursor/rules/) (`solution.mdc`, `infrastructure.mdc`, `application.mdc`, `webapp.mdc`, `design-system.mdc`, `mediatr.mdc`).
+**Conventions:** [`.cursor/rules/`](../.cursor/rules/)
 
 ---
 
 ## How to use this folder
 
-- **Product / GTM / pricing / personas** → edit `product.md`.
-- **How to build the next engine feature** → edit the relevant technical roadmap.
-- Do not duplicate business strategy inside technical docs; link to `product.md` if context is needed.
+- **Product / GTM / pricing** → `product.md`
+- **Next engine feature** → relevant technical roadmap above
+- Do not duplicate business strategy in technical docs; link to `product.md`

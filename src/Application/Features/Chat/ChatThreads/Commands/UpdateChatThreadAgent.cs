@@ -37,7 +37,7 @@ public sealed class UpdateChatThreadAgentRequestHandler(ChatThreadRepository cha
         #region # Execute
 
         var mailboxConfigured = request.ChatAgent != ChatAgent.Email
-            || await mailboxService.IsConfiguredAsync(request.UserId, cancellationToken);
+            || await mailboxService.IsConfiguredAsync(request.UserId, cancellationToken: cancellationToken);
         ChatThreadDto? chatThread = null;
         if (mailboxConfigured)
         {

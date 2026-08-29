@@ -10,6 +10,12 @@ public sealed class RunChatAgentRequest
 
     /// <summary>Resolved entity details for @mentions in the latest user turn (not persisted).</summary>
     public string? MentionContext { get; init; }
+
+    /// <summary>
+    /// Resolved mailbox alias from an <c>@mailbox:alias</c> mention in the latest user turn.
+    /// Applied when mailbox tools omit <c>mailbox_alias</c>.
+    /// </summary>
+    public string? MailboxAlias { get; init; }
 }
 
 public sealed class RunChatAgentResponse

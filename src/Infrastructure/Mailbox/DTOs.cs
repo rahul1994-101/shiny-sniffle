@@ -11,6 +11,8 @@ public sealed class InboxMessageSummary
     public DateTimeOffset Date { get; init; }
 
     public string? Snippet { get; init; }
+
+    public bool IsUnread { get; init; }
 }
 
 public sealed class InboxQuery
@@ -58,6 +60,8 @@ public sealed class InboxMessageDetail
     public bool BodyFromHtml { get; init; }
 
     public IReadOnlyList<string> AttachmentNames { get; init; } = [];
+
+    public bool IsUnread { get; init; }
 }
 
 public sealed class MailboxFolderInfo
@@ -103,6 +107,31 @@ public sealed class SendMailResult
     public bool Success { get; init; }
 
     public string Message { get; init; } = string.Empty;
+}
+
+public sealed class MessageRef
+{
+    public uint Uid { get; init; }
+
+    /// <summary>IMAP folder: empty/inbox, sent, drafts, trash, junk, or exact name from list_mailbox_folders.</summary>
+    public string? Folder { get; init; }
+}
+
+public enum MessageFlagAction
+{
+    Read,
+    Unread,
+    Flagged,
+    Unflagged
+}
+
+public sealed class MailboxCommandResult
+{
+    public bool Success { get; init; }
+
+    public string Message { get; init; } = string.Empty;
+
+    public int AffectedCount { get; init; }
 }
 
 /// <summary>

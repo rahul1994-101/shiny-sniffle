@@ -8,11 +8,32 @@ namespace Application.Features.Shared;
 /// <summary>Resolves <c>@kind:alias</c> tokens in chat text into agent-readable context.</summary>
 public sealed class EntityRefMentionContextService(
     EntityRefResolver entityRefResolver,
+    MailboxAccountResolver mailboxAccountResolver,
     ContactRepository contactRepo,
     EmailAccountRepository emailAccountRepo,
     TagRepository tagRepo,
     BucketRepository bucketRepo)
 {
+    /// <summary>
+    /// First resolved <c>@mailbox:alias</c> in <paramref name="message"/> for tool defaults.
+    /// </summary>
+    public async Task<string?> TryResolveDefaultMailboxAliasAsync(
+        Guid userId,
+        string message,
+        CancellationToken cancellationToken = default)
+    {
+        foreach (var handle in EntityRefMentions.ExtractMailboxHandles(message))
+        {
+            var resolved = await mailboxAccountResolver.ResolveAsync(userId, handle, cancellationToken);
+            if (resolved.IsSuccess && resolved.Context is not null)
+            {
+                return resolved.Context.Alias;
+            }
+        }
+
+        return null;
+    }
+
     public async Task<string?> BuildContextBlockAsync(
         Guid userId,
         string message,
@@ -100,7 +121,9 @@ public sealed class EntityRefMentionContextService(
         }
 
         var defaultLabel = account.IsDefault ? "; default mailbox" : string.Empty;
-        return $"- `{handle}` (mailbox): {account.EmailAddress} via {account.ProviderName}{defaultLabel}.";
+        return
+            $"- `{handle}` (mailbox): {account.EmailAddress} via {account.ProviderName}{defaultLabel}. " +
+            $"Use mailbox_alias `{account.Alias}` on all mailbox tool calls this turn unless the user names another account.";
     }
 
     private async Task<string> FormatTagAsync(
