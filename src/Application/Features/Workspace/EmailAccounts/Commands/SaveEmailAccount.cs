@@ -1,6 +1,5 @@
 using Application.Features.Dbo.EmailProviders;
 using FluentValidation;
-using Infrastructure.Mailbox;
 
 namespace Application.Features.Workspace.EmailAccounts.Commands;
 
@@ -56,13 +55,13 @@ public sealed class SaveEmailAccountRequestHandler(
             return result;
         }
 
-        EmailSettings? existing = null;
+        StoredMailboxSettings? existing = null;
         if (dto.Id is { } id)
         {
-            existing = await emailAccountRepo.GetEmailSettingsAsync(request.UserId, id, cancellationToken);
+            existing = await emailAccountRepo.GetStoredMailboxSettingsAsync(request.UserId, id, cancellationToken);
         }
 
-        var validationError = EmailSettingsMapping.TryBuildEntity(
+        var validationError = EmailSettingsMapping.TryBuildStored(
             settingsDto,
             existing,
             EmailSettingsBuildMode.Save,

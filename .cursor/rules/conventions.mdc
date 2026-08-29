@@ -1,0 +1,98 @@
+---
+description: Cross-layer naming, regions, boundaries, and adapter conventions — always apply
+alwaysApply: true
+---
+
+# Conventions
+
+**When you settle a new convention in a refactor, add it here in the same change.**
+
+## Regions
+
+- C# (handlers, services, repos, infra): `#region # {Name}` — leading `#` always
+- Handlers / non-trivial methods: `#region # Execute` → `#region # Handle Result`
+- Blazor `@code`: feature regions by user flow; `#region # Helpers` last — see `webapp.mdc`
+
+## Infrastructure adapters (`Mailbox/`, `Foundry/`, …)
+
+Each concern folder is its **own language** — consumers adapt; nothing upstream leaks in.
+
+| File | Role |
+|------|------|
+| `Abstractions.cs` | Port (`IMailboxService`, …) |
+| `DTOs.cs` | Integration shapes + result types |
+| `Helpers.cs` | Internal mechanics (regions / nested static classes OK) |
+| `{Impl}.cs` | Single implementation |
+
+**Public port (`Abstractions` + `DTOs` exposed to Application):**
+
+- **Simple domain verbs** — what the adapter does in mailbox/mail terms: `ListMessagesAsync`, `TestConnectionAsync`, `SendAsync`
+- **Not** technical/protocol jargon: no `Probe`, `Execute`, `Connect` on the port
+- **Result types mirror methods:** `TestConnectionAsync` → `TestConnectionResult`, `ListMessagesAsync` → `ListMessagesResult`, `GetMessagesAsync` → `GetMessagesResult`, `SendAsync` → `SendMailResult`
+- **Query inputs use `Filters` suffix:** `ListMessagesAsync` → `ListMessagesFilters`, `GetMessagesAsync` → `GetMessagesFilters`; shared keys (`MessageKey`) live inside filters or command params
+- **No upstream concepts:** no agent tool names, no "configured", no Application persistence types
+
+**Helpers (internal only):**
+
+- Technical names are fine: `ProbeConnectionsAsync`, `ExecuteAsync`, `TrySessionAsync`
+- MailKit/IMAP/SMTP detail stays here — not on `IMailboxService`
+
+**Canonical example:** `src/Infrastructure/Mailbox/`
+
+## Application ↔ Infrastructure boundaries
+
+| Concern | Owner | Example |
+|---------|-------|---------|
+| Persistence / merge / draft settings | Application | `StoredMailboxSettings` in `EmailAccounts/DTOs.cs` |
+| Runtime adapter input | Infrastructure | `EmailSettings` in `Mailbox/DTOs.cs` |
+| Map at the port | Application helpers | `EmailSettingsMapping.ToMailRuntime()` before `IMailboxService` |
+| Agent / tool names | Application `AI/` only | `get_mailbox_status` — never in Infrastructure |
+
+Application may wrap infra with **consumer-facing names** (`GetStatusAsync` for agents calling `TestConnectionAsync` underneath).
+
+**Canonical examples:**
+
+| Pattern | Path |
+|---------|------|
+| Infra adapter | `Infrastructure/Mailbox/` |
+| Application slice | `Features/Workspace/EmailAccounts/` |
+| Handler | `Features/Dbo/Users/Commands/SignIn.cs` |
+| Cross-slice facade | `Features/Shared/Services.cs` |
+
+## Promotion (least scope first)
+
+Start smallest; promote only when reuse or boundaries require it. Full table: `solution.mdc`.
+
+Do not skip levels (e.g. handler EF, or one-off `*Mapping.cs` files when `Helpers.cs` exists).
+
+## Constructor injection naming
+
+| Layer | Param style | Example |
+|-------|-------------|---------|
+| Application handlers / repos / services | camelCase, no underscore | `userRepo`, `emailAccountRepo` |
+| Application `AI/` | underscore prefix | `_agentFactory` |
+| Infrastructure | camelCase or match existing file | — |
+
+Blazor `[Inject]` uses PascalCase — not underscore. See `webapp.mdc`.
+
+## Method signatures
+
+- **Parameter lists on one line** — declaration and call when reasonable; do not break args onto separate lines by default
+- Opening `{` or `=>` on the next line after the closing `)`
+
+```csharp
+// Prefer
+public async Task<TestConnectionResult> TestConnectionAsync(EmailSettings config, CancellationToken cancellationToken = default)
+{
+}
+
+// Not
+public async Task<TestConnectionResult> TestConnectionAsync(
+    EmailSettings config,
+    CancellationToken cancellationToken = default)
+{
+}
+```
+
+Multi-line is OK only when a single line would be unreadably long (rare — e.g. many generic type parameters).
+

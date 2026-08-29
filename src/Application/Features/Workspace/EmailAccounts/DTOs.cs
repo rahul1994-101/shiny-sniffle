@@ -109,7 +109,7 @@ public class EmailAccountDto
         EmailProvider provider,
         ErTaxonomyDto? taxonomy = null)
     {
-        var settings = EmailAccountMapping.ToEmailSettings(account, provider);
+        var settings = EmailAccountMapping.ToStoredSettings(account, provider);
         return new EmailAccountDto
         {
             Id = account.Id,
@@ -176,6 +176,31 @@ public sealed class SaveEmailAccountDto
     public IReadOnlyList<Guid> TagIds { get; init; } = [];
 
     public IReadOnlyList<Guid> BucketIds { get; init; } = [];
+}
+
+/// <summary>
+/// Merged workspace mailbox connection settings (account + provider catalog).
+/// Password is stored encrypted — map to <see cref="EmailSettings"/> via <see cref="EmailSettingsMapping.ToMailRuntime"/> before calling <see cref="IMailboxService"/>.
+/// </summary>
+public sealed class StoredMailboxSettings
+{
+    public string EmailAddress { get; set; } = string.Empty;
+
+    public string ImapHost { get; set; } = string.Empty;
+
+    public int ImapPort { get; set; } = 993;
+
+    public bool ImapUseSsl { get; set; } = true;
+
+    public string SmtpHost { get; set; } = string.Empty;
+
+    public int SmtpPort { get; set; } = 587;
+
+    public bool SmtpUseSsl { get; set; } = true;
+
+    public string Username { get; set; } = string.Empty;
+
+    public string Password { get; set; } = string.Empty;
 }
 
 public class EmailSettingsDto

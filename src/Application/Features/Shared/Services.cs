@@ -29,49 +29,43 @@ public sealed class UserMailboxService(
 
     #region # Queries
 
-    public async Task<MailboxStatusResult> GetStatusAsync(
-        Guid userId,
-        string? mailboxRef = null,
-        CancellationToken cancellationToken = default)
-    {
-        var resolved = await mailboxAccountResolver.ResolveAsync(userId, mailboxRef, cancellationToken);
-        if (resolved.Context is null)
-        {
-            return new MailboxStatusResult
-            {
-                IsConfigured = false,
-                IsReachable = false,
-                Message = resolved.ErrorMessage ?? EmailReadConstants.NotConfiguredForAgent
-            };
-        }
-
-        return await GetStatusAsync(resolved.Context, cancellationToken);
-    }
-
-    internal Task<MailboxStatusResult> GetStatusAsync(
-        MailboxAccountContext context,
-        CancellationToken cancellationToken = default) =>
-        mailboxService.GetStatusAsync(context.Runtime, cancellationToken);
-
-    internal Task<InboxListResult> ListMessagesAsync(
+    internal Task<ListMessagesResult> ListMessagesAsync(
         MailboxAccountContext context,
         InboxListRequest request,
         CancellationToken cancellationToken = default) =>
-        mailboxService.ListMessagesAsync(context.Runtime, request.ToInboxQuery(), cancellationToken);
+        mailboxService.ListMessagesAsync(context.Runtime, request.ToListMessagesFilters(), cancellationToken);
 
-    internal Task<InboxMessageDetail?> GetMessageAsync(
+    internal async Task<MessageDetail?> GetMessageAsync(
+        MailboxAccountContext context,
+        MessageKey message,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await mailboxService.GetMessagesAsync(context.Runtime, new GetMessagesFilters { Messages = [message] }, cancellationToken);
+        return result.Messages.Count == 0 ? null : result.Messages[0];
+    }
+
+    internal Task<MessageDetail?> GetMessageAsync(
         MailboxAccountContext context,
         InboxOpenRequest request,
         CancellationToken cancellationToken = default) =>
-        mailboxService.GetMessageAsync(context.Runtime, request.Message, cancellationToken);
+        GetMessageAsync(context, request.Message, cancellationToken);
 
-    internal Task<IReadOnlyList<InboxMessageDetail>> GetMessagesAsync(
+    internal async Task<IReadOnlyList<MessageDetail>> GetMessagesAsync(
+        MailboxAccountContext context,
+        IReadOnlyList<MessageKey> messages,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await mailboxService.GetMessagesAsync(context.Runtime, new GetMessagesFilters { Messages = messages }, cancellationToken);
+        return result.Messages;
+    }
+
+    internal Task<IReadOnlyList<MessageDetail>> GetMessagesAsync(
         MailboxAccountContext context,
         MailboxMessageBatchRequest request,
         CancellationToken cancellationToken = default) =>
-        mailboxService.GetMessagesAsync(context.Runtime, request.Messages, cancellationToken);
+        GetMessagesAsync(context, request.Messages, cancellationToken);
 
-    internal Task<IReadOnlyList<MailboxFolderInfo>> ListFoldersAsync(
+    internal Task<ListFoldersResult> ListFoldersAsync(
         MailboxAccountContext context,
         CancellationToken cancellationToken = default) =>
         mailboxService.ListFoldersAsync(context.Runtime, cancellationToken);
@@ -109,19 +103,23 @@ public sealed class UserMailboxService(
 
     #region # Connection test
 
-    public async Task<MailboxTestResult> TestConnectionAsync(
+    internal Task<TestConnectionResult> TestConnectionAsync(
+        MailboxAccountContext context,
+        CancellationToken cancellationToken = default) =>
+        mailboxService.TestConnectionAsync(context.Runtime, cancellationToken);
+
+    public async Task<TestConnectionResult> TestConnectionAsync(
         Guid userId,
         EmailSettingsDto? draft = null,
         CancellationToken cancellationToken = default)
     {
-        var stored = await emailAccountRepo.GetDefaultEmailSettingsAsync(userId, cancellationToken);
+        var stored = await emailAccountRepo.GetDefaultStoredMailboxSettingsAsync(userId, cancellationToken);
         var resolved = EmailSettingsMapping.ResolveForMail(stored, draft);
         var runtime = EmailSettingsMapping.ToMailRuntime(resolved);
         if (runtime is null)
         {
-            return new MailboxTestResult
+            return new TestConnectionResult
             {
-                Success = false,
                 Message = "Complete mailbox settings (including password) before testing the connection."
             };
         }
@@ -135,7 +133,7 @@ public sealed class UserMailboxService(
 /// <summary>Agent-facing mailbox operations — account resolution + service calls; tools format output.</summary>
 public sealed class MailboxAgentService(UserMailboxService mailboxService)
 {
-    internal Task<(MailboxAccountContext? Account, InboxListResult? Result, string? Error)> ListInboxAsync(
+    internal Task<(MailboxAccountContext? Account, ListMessagesResult? Result, string? Error)> ListInboxAsync(
         Guid userId,
         InboxListRequest request,
         string? mailboxRef,
@@ -148,7 +146,7 @@ public sealed class MailboxAgentService(UserMailboxService mailboxService)
             "Could not list messages",
             cancellationToken);
 
-    internal async Task<(MailboxAccountContext? Account, InboxMessageDetail? Message, string? Error)> OpenInboxAsync(
+    internal async Task<(MailboxAccountContext? Account, MessageDetail? Message, string? Error)> OpenInboxAsync(
         Guid userId,
         InboxOpenRequest request,
         string? mailboxRef,
@@ -180,7 +178,7 @@ public sealed class MailboxAgentService(UserMailboxService mailboxService)
         }
     }
 
-    internal async Task<(MailboxAccountContext? Account, IReadOnlyList<InboxMessageDetail>? Messages, string? Error)> OpenInboxBatchAsync(
+    internal async Task<(MailboxAccountContext? Account, IReadOnlyList<MessageDetail>? Messages, string? Error)> OpenInboxBatchAsync(
         Guid userId,
         MailboxMessageBatchRequest request,
         string? mailboxRef,
@@ -198,12 +196,12 @@ public sealed class MailboxAgentService(UserMailboxService mailboxService)
             userId,
             mailboxRef,
             EmailReadConstants.NotConfiguredForGet,
-            (account, ct) => mailboxService.GetMessagesAsync(account, request, ct),
+            (account, ct) => mailboxService.GetMessagesAsync(account, request.Messages, ct),
             "Could not read messages",
             cancellationToken);
     }
 
-    internal Task<(MailboxAccountContext? Account, IReadOnlyList<MailboxFolderInfo>? Folders, string? Error)> ListFoldersAsync(
+    internal Task<(MailboxAccountContext? Account, ListFoldersResult? Result, string? Error)> ListFoldersAsync(
         Guid userId,
         string? mailboxRef,
         CancellationToken cancellationToken = default) =>
@@ -215,7 +213,7 @@ public sealed class MailboxAgentService(UserMailboxService mailboxService)
             "Could not list mailbox folders",
             cancellationToken);
 
-    internal async Task<(MailboxAccountContext? Account, MailboxStatusResult? Status, string? Error)> GetStatusAsync(
+    internal async Task<(MailboxAccountContext? Account, TestConnectionResult? Status, string? Error)> GetStatusAsync(
         Guid userId,
         string? mailboxRef,
         CancellationToken cancellationToken = default)
@@ -227,7 +225,7 @@ public sealed class MailboxAgentService(UserMailboxService mailboxService)
             return (null, null, error);
         }
 
-        var status = await mailboxService.GetStatusAsync(account!, cancellationToken);
+        var status = await mailboxService.TestConnectionAsync(account!, cancellationToken);
         return (account, status, null);
     }
 

@@ -2,9 +2,9 @@ using Azure.AI.OpenAI;
 
 namespace Infrastructure.Foundry;
 
-/// <summary>
-/// Normalizes Azure OpenAI / Foundry endpoint URLs from config (resource base URL, trailing slash).
-/// </summary>
+#region # Endpoint
+
+/// <summary>Normalizes Azure OpenAI / Foundry endpoint URLs from config (resource base URL, trailing slash).</summary>
 internal static class AzureOpenAiEndpointHelpers
 {
     internal static AzureOpenAIClientOptions? CreateClientOptions(string apiVersion)
@@ -66,3 +66,5 @@ internal static class AzureOpenAiEndpointHelpers
         return $"{uri.Scheme}://{uri.Authority}/";
     }
 }
+
+#endregion

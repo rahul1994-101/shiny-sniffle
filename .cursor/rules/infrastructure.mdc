@@ -1,77 +1,66 @@
 ---
-description: Infrastructure — persistence, SQL schema, EF, Mailbox, Foundry
+description: Infrastructure — persistence, SQL schema, EF, external adapters
 globs: src/Infrastructure/**/*
 alwaysApply: false
 ---
 
 # Infrastructure
 
-Persistence + external adapters. Register in `DependencyInjection.AddInfrastructure()`. **Least scope first** — see `solution.mdc`.
+Persistence + external adapters. Register in `DependencyInjection.AddInfrastructure()`.
+
+**Adapter layout, port naming, boundaries:** `conventions.mdc`. **Promotion:** `solution.mdc`.
 
 ## Layout
 
 ```text
-Database/               SQL scripts only (lowercase SQL schema folders: dbo, chat, workspace, …)
+Database/               SQL scripts only (lowercase schema folders: dbo, chat, workspace, …)
   {schema}/
-    Tables/             table scripts
-    Views/              …
-    Procedures/         …
-    Functions/          …
-    Triggers/           …
-    Schema.sql          optional — e.g. test/Schema.sql creates the SQL schema
+    Tables/ Views/ Procedures/ Functions/ Triggers/
+    Schema.sql          optional
 Persistence/            C# only
   AppDbContext.cs       EF mapping only
-  Shared/               _Common.cs, _Enums.cs → `Infrastructure.Persistence.Shared`
-  {Domain}/             Dbo | Chat | Workspace | … (PascalCase folders + namespaces)
-    *.cs                POCOs → `Infrastructure.Persistence.{Domain}`
-Mailbox/
-  Abstractions.cs     IMailboxService
-  …
-Foundry/
-  …
+  Shared/               _Common.cs, _Enums.cs
+  {Domain}/             Dbo | Chat | Workspace | … (PascalCase)
+Mailbox/  Foundry/      Abstractions + DTOs + Helpers + impl — see conventions.mdc
 ```
-
-Per concern: **`Abstractions.cs`** + **`DTOs.cs`** + **`Helpers.cs`** + implementation.
 
 ## Entities
 
 - No data annotations — limits in `Database/{schema}/Tables/*.sql` + `AppDbContext.OnModelCreating`
-- Entity POCOs live under `Persistence/{Domain}/` (C# PascalCase); SQL scripts under `Database/{schema}/` (lowercase SQL schema)
-- Input validation on `Application` `{UseCase}RequestValidator`, not on entities
-- Mail runtime config: `Infrastructure/Mailbox/DTOs.cs` (`EmailSettings`), built in Application from `EmailAccount` + catalog
-- Per-user mail connections: `Workspace.EmailAccount`; catalog: `Dbo.EmailProvider` (system templates + per-user custom rows via `userId`)
-- **Deferred — server-backed prefs:** no `UserSetting` table until prefs or user memory need persistence; color theme stays client-only (`localStorage`)
+- Entity POCOs: `Persistence/{Domain}/` (PascalCase); SQL: `Database/{schema}/` (lowercase)
+- Input validation: Application `{UseCase}RequestValidator`, not on entities
+- **Deferred — server-backed prefs:** no `UserSetting` table; theme stays client-only (`localStorage`)
 
 ## Lifecycle flags (`isActive` / `isDeleted`)
 
-All auditable tables use both flags with the same meaning:
+Canonical definition — Application repos must match:
 
 | Flag | User meaning | Backend |
 |------|----------------|---------|
-| `isDeleted` | Removed — gone from UI permanently | Row retained internally; excluded from all reads |
+| `isDeleted` | Removed — gone from UI permanently | Row retained; excluded from all reads |
 | `isActive` | Paused — deactivate without deleting | Reversible; excluded from runtime until reactivated |
 
-- **Reads / lists:** `IsActive && !IsDeleted`.
-- **Delete:** sets `IsDeleted = true` (and `IsActive = false` for consistency).
-- **Deactivate / reactivate:** toggles `IsActive` only — UI not built yet on most slices.
+- **Reads / lists:** `IsActive && !IsDeleted`
+- **Delete:** `IsDeleted = true` (and `IsActive = false`)
+- **Deactivate / reactivate:** toggles `IsActive` only
 
 ## EF (`AppDbContext`)
 
-- Map camelCase columns + `HasMaxLength` to match `Database/{schema}/Tables/` scripts
-- Repos and handler private helpers use `IDbContextFactory<AppDbContext>` — not scoped `DbContext` in app code
-
-**Mail connection config** — `EmailSettings` is built in Application from `EmailAccount` + `EmailProvider` catalog; passed to `IMailboxService`. App mapping: `Application/Features/Workspace/EmailAccounts/Helpers.cs` (`EmailSettingsMapping`).
+- Map camelCase columns + `HasMaxLength` to match SQL scripts
+- Repos use `IDbContextFactory<AppDbContext>` — not scoped `DbContext` in app code
 
 ## Schema workflow
 
-1. Update `Persistence/{Domain}/` entity `.cs` and `Database/{schema}/Tables/` (or `Views/`, etc.) SQL
-2. Apply scripts on SQL Server — table/view/proc scripts only; create or move SQL schemas manually (`Database/test/Schema.sql` for reference schema). Suggested order: `Database/dbo/Tables/` first, then `{schema}/Tables/` (`chat`, `workspace`, …). Reference SQL lives under `Database/test/` (not mapped in EF). Existing DBs: idempotent ALTER / `ALTER SCHEMA` to match
-3. Optional seed: **SEED DATA** sections in table scripts (commented `INSERT` / `IF NOT EXISTS`)
+1. Update `Persistence/{Domain}/` entity + `Database/{schema}/Tables/` SQL
+2. Apply scripts on SQL Server (schemas manually; order: `dbo/Tables/` first, then `{schema}/Tables/`)
+3. Optional seed: **SEED DATA** sections in table scripts
 4. Update `AppDbContext` fluent config
 
 ## Integration DTOs
 
-Mailbox / Foundry shapes belong in `Infrastructure/{Concern}/DTOs.cs` — not in Application or WebApp.
+External-system shapes live in `Infrastructure/{Concern}/DTOs.cs` — not Application or WebApp.
+
+Mail: runtime config is `EmailSettings`; Application builds it from `EmailAccount` + catalog via `EmailSettingsMapping` (`Features/Workspace/EmailAccounts/Helpers.cs`).
 
 ## Foundry config
 

@@ -6,13 +6,15 @@ alwaysApply: true
 # Solution
 
 ```text
-lib/MediatR/            CQRS — see mediatr.mdc + lib/MediatR/README.md
+lib/MediatR/            CQRS — mediatr.mdc + lib/MediatR/README.md
 src/Infrastructure/     Database/{schema} SQL + Persistence/{Domain} C#, Mailbox, Foundry — infrastructure.mdc
-src/Application/        Features, AI, Models — application.mdc; DI in `DependencyInjection.cs`
+src/Application/        Features, AI, Models — application.mdc; DI in DependencyInjection.cs
 src/WebApp/             Blazor UI, Endpoints — webapp.mdc
 ```
 
 **References:** `Application → Infrastructure` + `MediatR` · `WebApp → Application`
+
+**Naming, regions, adapter boundaries:** `conventions.mdc` (always apply).
 
 ## Least scope first (global)
 
@@ -25,7 +27,7 @@ Start at the **smallest place that works**; promote only when reuse or boundarie
 | **Application — logic** | Handler private | `{Slice}/Helpers.cs` → `Shared/Helpers.cs` |
 | **Application — technical** | Inline or local static | `Application/Utilities/` (crypto, etc.) — not slice DTO mapping |
 | **Application — services** | Handler private or slice class | `{Slice}/Services.cs` → `Shared/Services.cs` |
-| **Application — slice sub-concern** (optional) | Inline in handler | `{Slice}/{Concern}.cs` before a consolidated `Helpers.cs` |
+| **Application — slice sub-concern** (optional) | Inline in handler | `{Slice}/{Concern}.cs` before consolidated `Helpers.cs` |
 | **Application — AI** | Slice repos | `SharedRepository` for cross-slice; never `IDbContextFactory` |
 | **WebApp** | Page-local private helpers | `Components/Shared/` or `Utilities/` when reused |
 
@@ -40,8 +42,6 @@ Start at the **smallest place that works**; promote only when reuse or boundarie
 
 Omit a file until the slice needs it. Promote local → shared when reuse crosses slices.
 
-Project-specific escalation detail: `application.mdc`, `infrastructure.mdc`.
-
 ## Where new code goes
 
 | Question | Place |
@@ -50,7 +50,7 @@ Project-specific escalation detail: `application.mdc`, `infrastructure.mdc`.
 | SQL schema scripts | `Infrastructure/Database/{schema}/` — lowercase SQL schema (`Tables/`, `Views/`, …) |
 | EF mapping | `Infrastructure/Persistence/AppDbContext.cs` |
 | External adapter (mail, AI) | `Infrastructure/{Concern}/` |
-| Use case | `Application/Features/{Domain}/{Area}/Commands\|Queries/` (e.g. `Dbo/EmailProviders`, `Chat/ChatThreads`, `Workspace/Contacts`) |
+| Use case | `Application/Features/{Domain}/{Area}/Commands\|Queries/` |
 | LLM / agents / memory | `Application/AI/` |
 | Blazor UI | `WebApp/Components/` |
 | HTTP API | `WebApp/Endpoints/` |
@@ -68,6 +68,7 @@ Project-specific escalation detail: `application.mdc`, `infrastructure.mdc`.
 
 | Project | Rule file |
 |---------|-----------|
+| **All layers** | `conventions.mdc` |
 | Infrastructure | `infrastructure.mdc` |
 | Application | `application.mdc` |
 | WebApp | `webapp.mdc`, `design-system.mdc` |

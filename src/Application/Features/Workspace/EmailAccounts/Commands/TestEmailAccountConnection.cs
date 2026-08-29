@@ -12,7 +12,7 @@ public sealed record TestEmailAccountConnectionRequest(
 
 public sealed class TestEmailAccountConnectionResponse
 {
-    public MailboxTestResult Result { get; init; } = null!;
+    public TestConnectionResult Result { get; init; } = null!;
 }
 
 public sealed class TestEmailAccountConnectionRequestValidator : AbstractValidator<TestEmailAccountConnectionRequest>
@@ -55,13 +55,13 @@ public sealed class TestEmailAccountConnectionRequestHandler(
         }
 
         var emailAccountId = request.EmailAccountId ?? dto.Id;
-        EmailSettings? stored = null;
+        StoredMailboxSettings? stored = null;
         if (emailAccountId is { } id)
         {
-            stored = await emailAccountRepo.GetEmailSettingsAsync(request.UserId, id, cancellationToken);
+            stored = await emailAccountRepo.GetStoredMailboxSettingsAsync(request.UserId, id, cancellationToken);
         }
 
-        var validationError = EmailSettingsMapping.TryBuildEntity(
+        var validationError = EmailSettingsMapping.TryBuildStored(
             settingsDto,
             stored,
             EmailSettingsBuildMode.Draft,

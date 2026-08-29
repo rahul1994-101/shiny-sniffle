@@ -6,11 +6,11 @@ using Microsoft.Extensions.Options;
 
 namespace Infrastructure.Foundry;
 
-public sealed class FoundryAgentFactory(IOptions<FoundryOptions> _options, IServiceProvider _services) : IFoundryAgentFactory
+public sealed class FoundryAgentFactory(IOptions<FoundryOptions> options, IServiceProvider services) : IFoundryAgentFactory
 {
-    private readonly Lazy<AzureOpenAIClient> _openAiClient = new(() =>
+    private readonly Lazy<AzureOpenAIClient> openAiClient = new(() =>
     {
-        var foundry = _options.Value;
+        var foundry = options.Value;
         var endpoint = AzureOpenAiEndpointHelpers.ToAzureOpenAiBaseUri(foundry.Endpoint);
         var credential = new AzureKeyCredential(foundry.ApiKey);
         var clientOptions = AzureOpenAiEndpointHelpers.CreateClientOptions(foundry.ApiVersion);
@@ -20,21 +20,18 @@ public sealed class FoundryAgentFactory(IOptions<FoundryOptions> _options, IServ
             : new AzureOpenAIClient(endpoint, credential, clientOptions);
     });
 
-    public AIAgent CreateAgent(
-        string modelDeployment,
-        string name,
-        string description,
-        string instructions,
-        IList<AITool>? tools = null)
+    #region # Create Agent
+
+    public AIAgent CreateAgent(string modelDeployment, string name, string description, string instructions, IList<AITool>? tools = null)
     {
-        var foundry = _options.Value;
+        var foundry = options.Value;
         if (!foundry.IsConfigured)
         {
             throw new InvalidOperationException(
                 "Foundry is not configured. Set Foundry:Enabled, Foundry:Endpoint, and Foundry:ApiKey.");
         }
 
-        var chatClient = _openAiClient.Value
+        var chatClient = openAiClient.Value
             .GetChatClient(modelDeployment)
             .AsIChatClient();
 
@@ -44,6 +41,8 @@ public sealed class FoundryAgentFactory(IOptions<FoundryOptions> _options, IServ
             name,
             description,
             tools,
-            services: _services);
+            services: services);
     }
+
+    #endregion
 }

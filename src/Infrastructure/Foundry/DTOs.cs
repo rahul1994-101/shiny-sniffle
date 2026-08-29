@@ -1,5 +1,7 @@
 namespace Infrastructure.Foundry;
 
+#region # Options
+
 public sealed class FoundryOptions
 {
     public const string SectionName = "Foundry";
@@ -26,3 +28,21 @@ public sealed class FoundryOptions
         !string.IsNullOrWhiteSpace(Endpoint) &&
         !string.IsNullOrWhiteSpace(ApiKey);
 }
+
+#endregion
+
+#region # Deployments
+
+/// <summary>Azure Foundry model deployment names ({model}-deploy).</summary>
+public static class FoundryDeployments
+{
+    public const string Gpt4oMini = "gpt-4o-mini-deploy";
+
+    public const string Gpt54 = "gpt-5.4-deploy";
+
+    public const string Gpt54Nano = "gpt-5.4-nano-deploy";
+
+    public const string Gpt54Mini = "gpt-5.4-mini-deploy";
+}
+
+#endregion

@@ -206,13 +206,13 @@ public sealed class EmailTriageTools(MailboxAgentService agentService)
         private async Task<string> ListMailboxFoldersAsync(string mailboxAlias)
         {
             var mailboxRef = EffectiveMailboxAlias(mailboxAlias);
-            var (account, folders, error) = await agentService.ListFoldersAsync(userId, mailboxRef);
+            var (account, result, error) = await agentService.ListFoldersAsync(userId, mailboxRef);
             if (error is not null)
             {
                 return error;
             }
 
-            return WithAccountHeader(account!, EmailMailboxTextHelpers.FormatFolderList(folders!));
+            return WithAccountHeader(account!, EmailMailboxTextHelpers.FormatFolderList(result!.Folders));
         }
 
         private async Task<string> GetMailboxStatusAsync(string mailboxAlias)

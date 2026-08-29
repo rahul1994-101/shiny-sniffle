@@ -1,7 +1,6 @@
 using Application.Features.Dbo.EmailProviders;
 using Application.Features.Shared;
 using Application.Utilities.Extensions;
-using Infrastructure.Mailbox;
 using Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -60,7 +59,7 @@ public sealed class EmailAccountRepository(
         return EmailAccountDto.FromEntity(row, row.EmailProvider, tax);
     }
 
-    public async Task<EmailSettings?> GetEmailSettingsAsync(
+    public async Task<StoredMailboxSettings?> GetStoredMailboxSettingsAsync(
         Guid userId,
         Guid? emailAccountId = null,
         CancellationToken cancellationToken = default)
@@ -87,11 +86,11 @@ public sealed class EmailAccountRepository(
             return null;
         }
 
-        return EmailAccountMapping.ToEmailSettings(row, row.EmailProvider);
+        return EmailAccountMapping.ToStoredSettings(row, row.EmailProvider);
     }
 
-    public async Task<EmailSettings?> GetDefaultEmailSettingsAsync(Guid userId, CancellationToken cancellationToken = default) =>
-        await GetEmailSettingsAsync(userId, emailAccountId: null, cancellationToken);
+    public async Task<StoredMailboxSettings?> GetDefaultStoredMailboxSettingsAsync(Guid userId, CancellationToken cancellationToken = default) =>
+        await GetStoredMailboxSettingsAsync(userId, emailAccountId: null, cancellationToken);
 
     public async Task<EmailAccount?> GetActiveAccountAsync(
         Guid userId,
@@ -122,7 +121,7 @@ public sealed class EmailAccountRepository(
     public async Task<(EmailAccountDto? Saved, string? Error, bool NotFound)> SaveAsync(
         Guid userId,
         SaveEmailAccountDto dto,
-        EmailSettings builtSettings,
+        StoredMailboxSettings builtSettings,
         Guid updatedBy,
         CancellationToken cancellationToken = default)
     {

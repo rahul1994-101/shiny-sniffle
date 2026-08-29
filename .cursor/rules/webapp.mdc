@@ -51,10 +51,10 @@ Do not repeat `_Imports.razor` usings.
 ### `@code` layout
 
 1. **Preamble** (no region) — shared state, lifecycle, `[Parameter]`
-2. **Feature regions** — `#region # List`, `# Create/Delete`, user-flow names
+2. **Feature regions** — `#region # List`, `# Create/Delete`, user-flow names (`conventions.mdc`)
 3. **`#region # Helpers`** — last; shared formatters, JS interop, multi-region helpers
 
-Inner method blocks mirror handlers: `# Validate` → `# Execute` → `# Handle Result`.
+Inner method blocks mirror handlers: `#region # Execute` → `#region # Handle Result`.
 
 ### Naming
 
@@ -65,7 +65,7 @@ Inner method blocks mirror handlers: `# Validate` → `# Execute` → `# Handle 
 | Event handlers | `OnXxx` / `*Async` |
 | CSS | kebab-case |
 
-Underscore prefix is for **Application** constructor injection, not Blazor `[Inject]`.
+Underscore prefix is for **Application `AI/`** constructor injection — not Blazor `[Inject]`. See `conventions.mdc`.
 
 ### File location
 

@@ -48,7 +48,7 @@ public sealed class MailboxAccountResolver(EmailAccountRepository emailAccountRe
             return MailboxAccountResolveResult.Fail(EmailReadConstants.NotConfiguredForAgent);
         }
 
-        var settings = EmailAccountMapping.ToEmailSettings(account, account.EmailProvider);
+        var settings = EmailAccountMapping.ToStoredSettings(account, account.EmailProvider);
         var runtime = EmailSettingsMapping.ToMailRuntime(settings);
         if (runtime is null)
         {

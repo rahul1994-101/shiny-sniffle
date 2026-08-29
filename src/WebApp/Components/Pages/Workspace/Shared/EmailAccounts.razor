@@ -550,7 +550,7 @@ else
         else
         {
             var testResult = result.Payload.Result;
-            _status.Set(testResult.Message, isError: !testResult.Success);
+            _status.Set(testResult.Message, isError: !testResult.AllProtocolsOk);
         }
 
         _testing = false;

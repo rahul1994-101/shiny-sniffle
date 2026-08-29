@@ -391,7 +391,7 @@ internal sealed record InboxListRequest(
     string? SubjectContains,
     string? Folder)
 {
-    internal InboxQuery ToInboxQuery() =>
+    internal ListMessagesFilters ToListMessagesFilters() =>
         new()
         {
             SinceUtc = Range.SinceUtc,
@@ -404,7 +404,7 @@ internal sealed record InboxListRequest(
             Folder = Folder
         };
 
-    internal string QueryLabel => EmailMailboxTextHelpers.FormatInboxQueryLabel(Range.Label, ToInboxQuery());
+    internal string QueryLabel => EmailMailboxTextHelpers.FormatInboxQueryLabel(Range.Label, ToListMessagesFilters());
 }
 
 internal static class InboxListRequestBuilder
@@ -450,7 +450,7 @@ internal sealed record InboxListSnapshot(
     IReadOnlyList<uint> Uids,
     string? MailboxAlias)
 {
-    internal static InboxListSnapshot From(InboxListRequest request, InboxListResult result, string? mailboxAlias) =>
+    internal static InboxListSnapshot From(InboxListRequest request, ListMessagesResult result, string? mailboxAlias) =>
         new(request, result.Messages.Select(m => m.Uid).ToList(), mailboxAlias);
 
     internal bool MatchesMailbox(string? mailboxAlias) =>
@@ -473,7 +473,7 @@ internal sealed record InboxListSnapshot(
 }
 
 /// <summary>Resolved message target — uid or list row from session snapshot.</summary>
-internal sealed record InboxOpenRequest(MessageRef Message);
+internal sealed record InboxOpenRequest(MessageKey Message);
 
 internal static class InboxOpenRequestBuilder
 {
@@ -492,7 +492,7 @@ internal static class InboxOpenRequestBuilder
 
         if (uid > 0)
         {
-            request = new InboxOpenRequest(new MessageRef { Uid = uid, Folder = folderOverride });
+            request = new InboxOpenRequest(new MessageKey { Uid = uid, Folder = folderOverride });
             return true;
         }
 
@@ -517,7 +517,7 @@ internal static class InboxOpenRequestBuilder
                 return false;
             }
 
-            request = new InboxOpenRequest(new MessageRef
+            request = new InboxOpenRequest(new MessageKey
             {
                 Uid = resolvedUid,
                 Folder = folderOverride ?? lastList.Request.Folder
@@ -533,7 +533,7 @@ internal static class InboxOpenRequestBuilder
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 }
 
-internal sealed record MailboxMessageBatchRequest(IReadOnlyList<MessageRef> Messages);
+internal sealed record MailboxMessageBatchRequest(IReadOnlyList<MessageKey> Messages);
 
 /// <summary>Move messages to another folder — batch + destination.</summary>
 internal sealed record MailboxMoveRequest(MailboxMessageBatchRequest Batch, string DestinationFolder);
@@ -562,7 +562,7 @@ internal static class MailboxMessageBatchRequestBuilder
 
         var normalizedFolder = NullIfWhiteSpace(folder);
         request = new MailboxMessageBatchRequest(
-            uids.Select(uid => new MessageRef { Uid = uid, Folder = normalizedFolder }).ToList());
+            uids.Select(uid => new MessageKey { Uid = uid, Folder = normalizedFolder }).ToList());
         return true;
     }
 
@@ -731,7 +731,7 @@ internal static class EmailMailboxTextHelpers
 {
     #region # List output
 
-    internal static string FormatInboxQueryLabel(string rangeLabel, InboxQuery query)
+    internal static string FormatInboxQueryLabel(string rangeLabel, ListMessagesFilters query)
     {
         var parts = new List<string>();
 
@@ -765,7 +765,7 @@ internal static class EmailMailboxTextHelpers
             ? $"No messages found for {queryLabel}."
             : $"Message count for {queryLabel}: {count}.";
 
-    internal static string FormatInboxList(IReadOnlyList<InboxMessageSummary> messages, string queryLabel, int totalMatched)
+    internal static string FormatInboxList(IReadOnlyList<MessageSummary> messages, string queryLabel, int totalMatched)
     {
         if (messages.Count == 0)
         {
@@ -813,7 +813,7 @@ internal static class EmailMailboxTextHelpers
 
     #region # Message output
 
-    internal static string FormatInboxMessages(IReadOnlyList<InboxMessageDetail> messages)
+    internal static string FormatInboxMessages(IReadOnlyList<MessageDetail> messages)
     {
         if (messages.Count == 0)
         {
@@ -846,7 +846,7 @@ internal static class EmailMailboxTextHelpers
             ? result.Message
             : $"Could not complete mailbox action: {result.Message}";
 
-    internal static string FormatInboxMessage(InboxMessageDetail message)
+    internal static string FormatInboxMessage(MessageDetail message)
     {
         var builder = new StringBuilder();
         builder.Append("Message (folder: ").Append(message.Folder)
@@ -872,7 +872,7 @@ internal static class EmailMailboxTextHelpers
         return builder.ToString().TrimEnd();
     }
 
-    internal static string FormatFolderList(IReadOnlyList<MailboxFolderInfo> folders)
+    internal static string FormatFolderList(IReadOnlyList<FolderInfo> folders)
     {
         if (folders.Count == 0)
         {

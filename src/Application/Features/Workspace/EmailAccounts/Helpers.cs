@@ -6,7 +6,7 @@ namespace Application.Features.Workspace.EmailAccounts;
 
 internal static class EmailAccountMapping
 {
-    internal static EmailSettings ToEmailSettings(EmailAccount account, EmailProvider provider) => new()
+    internal static StoredMailboxSettings ToStoredSettings(EmailAccount account, EmailProvider provider) => new()
     {
         EmailAddress = account.EmailAddress,
         Username = account.Username,
@@ -64,11 +64,11 @@ internal static class EmailSettingsMapping
     private const int UsernameMaxLength = 255;
     private const int PasswordMaxLength = 512;
 
-    internal static string? TryBuildEntity(
+    internal static string? TryBuildStored(
         EmailSettingsDto response,
-        EmailSettings? existing,
+        StoredMailboxSettings? existing,
         EmailSettingsBuildMode mode,
-        out EmailSettings? settings)
+        out StoredMailboxSettings? settings)
     {
         settings = null;
 
@@ -112,7 +112,7 @@ internal static class EmailSettingsMapping
             return lengthError;
         }
 
-        settings = CreateEntity(response, password);
+        settings = CreateStored(response, password);
         return null;
     }
 
@@ -136,18 +136,18 @@ internal static class EmailSettingsMapping
         return null;
     }
 
-    internal static EmailSettings? ResolveForMail(EmailSettings? stored, EmailSettingsDto? draft)
+    internal static StoredMailboxSettings? ResolveForMail(StoredMailboxSettings? stored, EmailSettingsDto? draft)
     {
         if (draft is null)
         {
             return stored;
         }
 
-        _ = TryBuildEntity(draft, stored, EmailSettingsBuildMode.Draft, out var merged);
+        _ = TryBuildStored(draft, stored, EmailSettingsBuildMode.Draft, out var merged);
         return merged;
     }
 
-    internal static bool IsMailboxConfigured(EmailSettings? settings) =>
+    internal static bool IsMailboxConfigured(StoredMailboxSettings? settings) =>
         settings is not null &&
         !string.IsNullOrWhiteSpace(settings.EmailAddress) &&
         !string.IsNullOrWhiteSpace(settings.ImapHost) &&
@@ -155,7 +155,7 @@ internal static class EmailSettingsMapping
         !string.IsNullOrWhiteSpace(settings.Username) &&
         !string.IsNullOrWhiteSpace(settings.Password);
 
-    internal static EmailSettings? ToMailRuntime(EmailSettings? settings)
+    internal static EmailSettings? ToMailRuntime(StoredMailboxSettings? settings)
     {
         if (settings is null || !IsMailboxConfigured(settings))
         {
@@ -176,7 +176,7 @@ internal static class EmailSettingsMapping
         };
     }
 
-    private static EmailSettings CreateEntity(EmailSettingsDto response, string password) => new()
+    private static StoredMailboxSettings CreateStored(EmailSettingsDto response, string password) => new()
     {
         EmailAddress = response.EmailAddress.Trim(),
         Username = response.Username.Trim(),
