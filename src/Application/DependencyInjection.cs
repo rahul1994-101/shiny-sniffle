@@ -46,6 +46,7 @@ public static class DependencyInjection
         #region Feature services (Shared/Services.cs)
 
         services.AddScoped<UserMailboxService>();
+        services.AddScoped<MailboxAgentService>();
 
         #endregion
 

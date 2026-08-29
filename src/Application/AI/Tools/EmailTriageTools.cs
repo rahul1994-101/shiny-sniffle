@@ -1,27 +1,33 @@
-using Application.Features.Shared;
 using Application.Features.Workspace.EmailAccounts;
+using Infrastructure.Mailbox;
 using Microsoft.Extensions.AI;
 using System.ComponentModel;
-using System.Net.Mail;
-using Infrastructure.Mailbox;
 
 namespace Application.AI.Tools;
 
-public sealed class EmailTriageTools(UserMailboxService mailboxService)
+public sealed class EmailTriageTools(MailboxAgentService agentService)
 {
+    #region # Public
+
     public IList<AITool> CreateTools(Guid userId, Guid threadId, string? defaultMailboxAlias = null)
     {
         _ = threadId;
-        return new Session(mailboxService, userId, NullIfWhiteSpace(defaultMailboxAlias)).CreateTools();
+        return new Session(agentService, userId, NullIfWhiteSpace(defaultMailboxAlias)).CreateTools();
     }
 
     private static string? NullIfWhiteSpace(string? value) =>
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
-    private sealed class Session(UserMailboxService mailboxService, Guid userId, string? defaultMailboxAlias)
+    #endregion
+
+    private sealed class Session(MailboxAgentService agentService, Guid userId, string? defaultMailboxAlias)
     {
         private const string MailboxAliasHint =
             "Connected mailbox alias or mailbox:alias; empty uses @mailbox mention from this turn, else default account.";
+
+        private InboxListSnapshot? _lastList;
+
+        #region # Tool catalog
 
         public IList<AITool> CreateTools()
         {
@@ -51,21 +57,15 @@ public sealed class EmailTriageTools(UserMailboxService mailboxService)
                         "Set count_only for how-many questions. Use mailbox_alias when the user names a specific connected account."),
                 AIFunctionFactory.Create(
                     ([Description("IMAP UID from a list_inbox_messages row. Use 0 when using list_index.")] uint uid,
-                        [Description("1-based list row (#1, #2, …). Use 0 when using uid. Requires since and matching list filters.")] int listIndex,
-                        [Description("Same since rules as list_inbox_messages. Empty means today.")] string since,
-                        [Description("Same until as list_inbox_messages when using list_index on a date range. Empty if not a range.")] string until,
-                        [Description("Same limit as list_inbox_messages when using list_index; see tool description for allowed range.")] int limit,
-                        [Description("Same as list_inbox_messages when using list_index.")] bool unreadOnly,
-                        [Description("Same as list_inbox_messages when using list_index.")] string fromSender,
-                        [Description("Same as list_inbox_messages when using list_index.")] string subjectContains,
-                        [Description("Same folder as list_inbox_messages (empty/inbox default). Required when using list_index.")] string folder,
+                        [Description("1-based list row (#1, #2, …). Use 0 when using uid. Uses the most recent list_inbox_messages in this turn.")] int listIndex,
+                        [Description("IMAP folder: empty/inbox (default). Override only when different from the list call.")] string folder,
                         [Description(MailboxAliasHint)] string mailboxAlias) =>
-                        GetInboxMessageAsync(uid, listIndex, since, until, limit, unreadOnly, fromSender, subjectContains, folder, mailboxAlias),
+                        GetInboxMessageAsync(uid, listIndex, folder, mailboxAlias),
                     name: "get_inbox_message",
                     description:
-                        $"Fetches one message by UID or list row with full plain-text body and attachment names. Since: {sinceHint} " +
-                        $"List limit when using list_index: {limitHint}. " +
-                        "Use the same folder and mailbox_alias as the list call."),
+                        "Fetches one message by UID or list row (#N) with full plain-text body and attachment names. " +
+                        "After list_inbox_messages, open by list_index without repeating filters. " +
+                        "Or pass uid + folder from a list row."),
                 AIFunctionFactory.Create(
                     ([Description("Comma-separated IMAP Uids from list_inbox_messages (e.g. 42,43). Max 5 per call.")] string uids,
                         [Description("IMAP folder for all Uids: empty/inbox (default), sent, drafts, trash, junk, or name from list_mailbox_folders.")] string folder,
@@ -120,22 +120,9 @@ public sealed class EmailTriageTools(UserMailboxService mailboxService)
             ];
         }
 
-        private async Task<(MailboxAccountContext? Account, string? Error)> RequireMailboxAsync(string? mailboxAlias)
-        {
-            var resolved = await mailboxService.ResolveAccountAsync(userId, EffectiveMailboxAlias(mailboxAlias));
-            if (resolved.Context is null)
-            {
-                return (null, resolved.ErrorMessage ?? EmailReadConstants.NotConfiguredForAgent);
-            }
+        #endregion
 
-            return (resolved.Context, null);
-        }
-
-        private string? EffectiveMailboxAlias(string? mailboxAlias) =>
-            NullIfWhiteSpace(mailboxAlias) ?? defaultMailboxAlias;
-
-        private static string WithAccountHeader(MailboxAccountContext account, string body) =>
-            $"{EmailReadConstants.FormatMailboxHeader(account)}\n{body}";
+        #region # Queries — List
 
         private async Task<string> ListInboxMessagesAsync(
             string since,
@@ -148,159 +135,117 @@ public sealed class EmailTriageTools(UserMailboxService mailboxService)
             string folder,
             string mailboxAlias)
         {
-            var (account, error) = await RequireMailboxAsync(mailboxAlias);
+            if (!InboxListRequestBuilder.TryBuild(
+                    since, until, limit, countOnly, unreadOnly, fromSender, subjectContains, folder,
+                    out var listRequest, out var buildError))
+            {
+                return buildError!;
+            }
+
+            var mailboxRef = EffectiveMailboxAlias(mailboxAlias);
+            var (account, result, error) = await agentService.ListInboxAsync(userId, listRequest!, mailboxRef);
             if (error is not null)
             {
                 return error;
             }
 
-            if (!InboxListRangeParser.TryParse(since, until, out var range) || range is null)
+            if (!listRequest!.CountOnly)
             {
-                return EmailReadConstants.FormatSinceParseHint();
+                _lastList = InboxListSnapshot.From(listRequest, result!, mailboxRef);
             }
 
-            try
-            {
-                var query = BuildInboxQuery(range, limit, unreadOnly, fromSender, subjectContains, folder, countOnly);
-                var result = await mailboxService.ListMessagesAsync(userId, query, EffectiveMailboxAlias(mailboxAlias));
-                var queryLabel = EmailMailboxTextHelpers.FormatInboxQueryLabel(range.Label, query);
+            var body = listRequest.CountOnly
+                ? EmailMailboxTextHelpers.FormatInboxCount(result!.TotalMatched, listRequest.QueryLabel)
+                : EmailMailboxTextHelpers.FormatInboxList(result!.Messages, listRequest.QueryLabel, result.TotalMatched);
 
-                var body = countOnly
-                    ? EmailMailboxTextHelpers.FormatInboxCount(result.TotalMatched, queryLabel)
-                    : EmailMailboxTextHelpers.FormatInboxList(result.Messages, queryLabel, result.TotalMatched);
-
-                return WithAccountHeader(account!, body);
-            }
-            catch (Exception ex)
-            {
-                return $"Could not list messages: {ex.Message}";
-            }
+            return WithAccountHeader(account!, body);
         }
 
-        private async Task<string> GetInboxMessageAsync(
-            uint uid,
-            int listIndex,
-            string since,
-            string until,
-            int limit,
-            bool unreadOnly,
-            string fromSender,
-            string subjectContains,
-            string folder,
-            string mailboxAlias)
+        #endregion
+
+        #region # Queries — Open
+
+        private async Task<string> GetInboxMessageAsync(uint uid, int listIndex, string folder, string mailboxAlias)
         {
-            var (account, error) = await RequireMailboxAsync(mailboxAlias);
+            var mailboxRef = EffectiveMailboxAlias(mailboxAlias);
+            if (!InboxOpenRequestBuilder.TryResolve(uid, listIndex, folder, mailboxRef, _lastList, out var openRequest, out var resolveError))
+            {
+                return resolveError!;
+            }
+
+            var (account, message, error) = await agentService.OpenInboxAsync(userId, openRequest!, mailboxRef);
             if (error is not null)
             {
                 return error;
             }
 
-            var resolvedFolder = NullIfWhiteSpace(folder);
-            uint resolvedUid;
-            if (uid > 0)
-            {
-                resolvedUid = uid;
-            }
-            else if (listIndex >= 1)
-            {
-                if (!InboxListRangeParser.TryParse(since, until, out var range) || range is null)
-                {
-                    return EmailReadConstants.FormatSinceParseHint();
-                }
-
-                try
-                {
-                    var query = BuildInboxQuery(range, limit, unreadOnly, fromSender, subjectContains, folder);
-                    var result = await mailboxService.ListMessagesAsync(userId, query, EffectiveMailboxAlias(mailboxAlias));
-                    if (listIndex > result.Messages.Count)
-                    {
-                        return $"List index #{listIndex} is out of range ({result.Messages.Count} message(s) in the current list). List again or use a Uid.";
-                    }
-
-                    resolvedUid = result.Messages[listIndex - 1].Uid;
-                }
-                catch (Exception ex)
-                {
-                    return $"Could not resolve list index: {ex.Message}";
-                }
-            }
-            else
-            {
-                return "Provide uid from a list row, or list_index (1-based) with since, folder, and matching list filters.";
-            }
-
-            try
-            {
-                var message = await mailboxService.GetMessageAsync(userId, resolvedUid, resolvedFolder, EffectiveMailboxAlias(mailboxAlias));
-                if (message is null)
-                {
-                    return $"No message found with Uid {resolvedUid} in folder '{resolvedFolder ?? "inbox"}'.";
-                }
-
-                return WithAccountHeader(account!, EmailMailboxTextHelpers.FormatInboxMessage(message));
-            }
-            catch (Exception ex)
-            {
-                return $"Could not read message: {ex.Message}";
-            }
+            return WithAccountHeader(account!, EmailMailboxTextHelpers.FormatInboxMessage(message!));
         }
 
         private async Task<string> GetInboxMessagesAsync(string uidsCsv, string folder, string mailboxAlias)
         {
-            var (account, error) = await RequireMailboxAsync(mailboxAlias);
+            if (!MailboxMessageBatchRequestBuilder.TryBuild(uidsCsv, folder, out var batchRequest, out var buildError))
+            {
+                return buildError!;
+            }
+
+            var mailboxRef = EffectiveMailboxAlias(mailboxAlias);
+            var (account, messages, error) = await agentService.OpenInboxBatchAsync(userId, batchRequest!, mailboxRef);
             if (error is not null)
             {
                 return error;
             }
 
-            if (!TryParseUids(uidsCsv, out var uids, out var parseError))
-            {
-                return parseError!;
-            }
-
-            if (uids.Count > MailboxReadLimits.MaxBatchGetCount)
-            {
-                return $"At most {MailboxReadLimits.MaxBatchGetCount} Uids per call. Split into multiple get_inbox_messages calls or use get_inbox_message for one message.";
-            }
-
-            try
-            {
-                var refs = BuildMessageRefs(uids, folder);
-                var messages = await mailboxService.GetMessagesAsync(userId, refs, EffectiveMailboxAlias(mailboxAlias));
-                return WithAccountHeader(account!, EmailMailboxTextHelpers.FormatInboxMessages(messages));
-            }
-            catch (Exception ex)
-            {
-                return $"Could not read messages: {ex.Message}";
-            }
+            return WithAccountHeader(account!, EmailMailboxTextHelpers.FormatInboxMessages(messages!));
         }
+
+        #endregion
+
+        #region # Queries — Folders & status
+
+        private async Task<string> ListMailboxFoldersAsync(string mailboxAlias)
+        {
+            var mailboxRef = EffectiveMailboxAlias(mailboxAlias);
+            var (account, folders, error) = await agentService.ListFoldersAsync(userId, mailboxRef);
+            if (error is not null)
+            {
+                return error;
+            }
+
+            return WithAccountHeader(account!, EmailMailboxTextHelpers.FormatFolderList(folders!));
+        }
+
+        private async Task<string> GetMailboxStatusAsync(string mailboxAlias)
+        {
+            var mailboxRef = EffectiveMailboxAlias(mailboxAlias);
+            var (account, status, error) = await agentService.GetStatusAsync(userId, mailboxRef);
+            if (error is not null)
+            {
+                return error;
+            }
+
+            return WithAccountHeader(account!, status!.Message);
+        }
+
+        #endregion
+
+        #region # Commands
 
         private async Task<string> DeleteMessagesAsync(string uidsCsv, string folder, string mailboxAlias)
         {
-            var (account, error) = await RequireMailboxAsync(mailboxAlias);
+            if (!MailboxMessageBatchRequestBuilder.TryBuild(uidsCsv, folder, out var batchRequest, out var buildError))
+            {
+                return buildError!;
+            }
+
+            var mailboxRef = EffectiveMailboxAlias(mailboxAlias);
+            var (account, result, error) = await agentService.DeleteMessagesAsync(userId, batchRequest!, mailboxRef);
             if (error is not null)
             {
                 return error;
             }
 
-            if (!TryParseUids(uidsCsv, out var uids, out var parseError))
-            {
-                return parseError!;
-            }
-
-            try
-            {
-                var result = await mailboxService.DeleteMessagesAsync(
-                    userId,
-                    BuildMessageRefs(uids, folder),
-                    EffectiveMailboxAlias(mailboxAlias));
-
-                return WithAccountHeader(account!, EmailMailboxTextHelpers.FormatCommandResult(result));
-            }
-            catch (Exception ex)
-            {
-                return $"Could not delete messages: {ex.Message}";
-            }
+            return WithAccountHeader(account!, EmailMailboxTextHelpers.FormatCommandResult(result!));
         }
 
         private async Task<string> MoveMessagesAsync(
@@ -309,36 +254,19 @@ public sealed class EmailTriageTools(UserMailboxService mailboxService)
             string destinationFolder,
             string mailboxAlias)
         {
-            var (account, error) = await RequireMailboxAsync(mailboxAlias);
+            if (!MailboxMoveRequestBuilder.TryBuild(uidsCsv, folder, destinationFolder, out var moveRequest, out var buildError))
+            {
+                return buildError!;
+            }
+
+            var mailboxRef = EffectiveMailboxAlias(mailboxAlias);
+            var (account, result, error) = await agentService.MoveMessagesAsync(userId, moveRequest!, mailboxRef);
             if (error is not null)
             {
                 return error;
             }
 
-            if (string.IsNullOrWhiteSpace(destinationFolder))
-            {
-                return "Destination folder is required.";
-            }
-
-            if (!TryParseUids(uidsCsv, out var uids, out var parseError))
-            {
-                return parseError!;
-            }
-
-            try
-            {
-                var result = await mailboxService.MoveMessagesAsync(
-                    userId,
-                    BuildMessageRefs(uids, folder),
-                    destinationFolder,
-                    EffectiveMailboxAlias(mailboxAlias));
-
-                return WithAccountHeader(account!, EmailMailboxTextHelpers.FormatCommandResult(result));
-            }
-            catch (Exception ex)
-            {
-                return $"Could not move messages: {ex.Message}";
-            }
+            return WithAccountHeader(account!, EmailMailboxTextHelpers.FormatCommandResult(result!));
         }
 
         private async Task<string> SetMessageFlagsAsync(
@@ -347,197 +275,51 @@ public sealed class EmailTriageTools(UserMailboxService mailboxService)
             string flagAction,
             string mailboxAlias)
         {
-            var (account, error) = await RequireMailboxAsync(mailboxAlias);
+            if (!MailboxFlagRequestBuilder.TryBuild(uidsCsv, folder, flagAction, out var flagRequest, out var buildError))
+            {
+                return buildError!;
+            }
+
+            var mailboxRef = EffectiveMailboxAlias(mailboxAlias);
+            var (account, result, error) = await agentService.SetMessageFlagsAsync(userId, flagRequest!, mailboxRef);
             if (error is not null)
             {
                 return error;
             }
 
-            if (!TryParseUids(uidsCsv, out var uids, out var parseError))
-            {
-                return parseError!;
-            }
-
-            if (!TryParseFlagAction(flagAction, out var flag, out parseError))
-            {
-                return parseError!;
-            }
-
-            try
-            {
-                var result = await mailboxService.SetMessageFlagsAsync(
-                    userId,
-                    BuildMessageRefs(uids, folder),
-                    flag,
-                    EffectiveMailboxAlias(mailboxAlias));
-
-                return WithAccountHeader(account!, EmailMailboxTextHelpers.FormatCommandResult(result));
-            }
-            catch (Exception ex)
-            {
-                return $"Could not update message flags: {ex.Message}";
-            }
-        }
-
-        private async Task<string> ListMailboxFoldersAsync(string mailboxAlias)
-        {
-            var (account, error) = await RequireMailboxAsync(mailboxAlias);
-            if (error is not null)
-            {
-                return error;
-            }
-
-            try
-            {
-                var folders = await mailboxService.ListFoldersAsync(userId, EffectiveMailboxAlias(mailboxAlias));
-                return WithAccountHeader(account!, EmailMailboxTextHelpers.FormatFolderList(folders));
-            }
-            catch (Exception ex)
-            {
-                return $"Could not list mailbox folders: {ex.Message}";
-            }
-        }
-
-        private static InboxQuery BuildInboxQuery(
-            InboxDateRange range,
-            int limit,
-            bool unreadOnly,
-            string fromSender,
-            string subjectContains,
-            string folder,
-            bool countOnly = false) =>
-            new()
-            {
-                SinceUtc = range.SinceUtc,
-                UntilUtcExclusive = range.UntilUtcExclusive,
-                Limit = MailboxReadLimits.ClampListLimit(limit),
-                CountOnly = countOnly,
-                UnreadOnly = unreadOnly,
-                FromContains = NullIfWhiteSpace(fromSender),
-                SubjectContains = NullIfWhiteSpace(subjectContains),
-                Folder = NullIfWhiteSpace(folder)
-            };
-
-        private static string? NullIfWhiteSpace(string? value) =>
-            string.IsNullOrWhiteSpace(value) ? null : value.Trim();
-
-        private static IReadOnlyList<MessageRef> BuildMessageRefs(IReadOnlyList<uint> uids, string? folder)
-        {
-            var normalizedFolder = NullIfWhiteSpace(folder);
-            return uids.Select(uid => new MessageRef { Uid = uid, Folder = normalizedFolder }).ToList();
-        }
-
-        private static bool TryParseUids(string uidsCsv, out List<uint> uids, out string? error)
-        {
-            uids = [];
-            error = null;
-
-            if (string.IsNullOrWhiteSpace(uidsCsv))
-            {
-                error = "Provide at least one Uid from list_inbox_messages (comma-separated, e.g. 42,43).";
-                return false;
-            }
-
-            foreach (var part in uidsCsv.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
-            {
-                if (!uint.TryParse(part, out var uid) || uid == 0)
-                {
-                    error = $"Invalid Uid '{part}'. Use numeric Uids from list_inbox_messages.";
-                    uids = [];
-                    return false;
-                }
-
-                uids.Add(uid);
-            }
-
-            if (uids.Count == 0)
-            {
-                error = "Provide at least one Uid from list_inbox_messages (comma-separated, e.g. 42,43).";
-                return false;
-            }
-
-            return true;
-        }
-
-        private static bool TryParseFlagAction(string flagAction, out MessageFlagAction flag, out string? error)
-        {
-            flag = default;
-            error = null;
-
-            if (string.IsNullOrWhiteSpace(flagAction))
-            {
-                error = "Flag action is required: read, unread, flagged, or unflagged.";
-                return false;
-            }
-
-            switch (flagAction.Trim().ToLowerInvariant())
-            {
-                case "read":
-                    flag = MessageFlagAction.Read;
-                    return true;
-                case "unread":
-                    flag = MessageFlagAction.Unread;
-                    return true;
-                case "flagged":
-                    flag = MessageFlagAction.Flagged;
-                    return true;
-                case "unflagged":
-                    flag = MessageFlagAction.Unflagged;
-                    return true;
-                default:
-                    error = "Flag action must be read, unread, flagged, or unflagged.";
-                    return false;
-            }
+            return WithAccountHeader(account!, EmailMailboxTextHelpers.FormatCommandResult(result!));
         }
 
         private async Task<string> SendEmailAsync(string to, string subject, string body, string mailboxAlias)
         {
-            if (string.IsNullOrWhiteSpace(to))
+            if (!SendMailRequestBuilder.TryBuild(to, subject, body, out var sendRequest, out var buildError))
             {
-                return "Recipient address is required.";
+                return buildError!;
             }
 
-            if (string.IsNullOrWhiteSpace(subject))
-            {
-                return "Subject is required.";
-            }
-
-            if (!MailAddress.TryCreate(to, out _))
-            {
-                return "Recipient email address is invalid.";
-            }
-
-            var (account, error) = await RequireMailboxAsync(mailboxAlias);
+            var mailboxRef = EffectiveMailboxAlias(mailboxAlias);
+            var (account, result, error) = await agentService.SendAsync(userId, sendRequest!, mailboxRef);
             if (error is not null)
             {
                 return error;
             }
 
-            try
-            {
-                var result = await mailboxService.SendAsync(
-                    userId,
-                    new OutboundMail { To = to.Trim(), Subject = subject.Trim(), Body = body ?? string.Empty },
-                    EffectiveMailboxAlias(mailboxAlias));
-
-                return WithAccountHeader(account!, result.Message);
-            }
-            catch (Exception ex)
-            {
-                return $"Could not send email: {ex.Message}";
-            }
+            return WithAccountHeader(account!, result!.Message);
         }
 
-        private async Task<string> GetMailboxStatusAsync(string mailboxAlias)
-        {
-            var (account, error) = await RequireMailboxAsync(mailboxAlias);
-            if (error is not null)
-            {
-                return error;
-            }
+        #endregion
 
-            var status = await mailboxService.GetStatusAsync(userId, EffectiveMailboxAlias(mailboxAlias));
-            return WithAccountHeader(account!, status.Message);
-        }
+        #region # Session helpers
+
+        private string? EffectiveMailboxAlias(string? mailboxAlias) =>
+            NullIfWhiteSpace(mailboxAlias) ?? defaultMailboxAlias;
+
+        private static string WithAccountHeader(MailboxAccountContext account, string body) =>
+            $"{EmailReadConstants.FormatMailboxHeader(account)}\n{body}";
+
+        private static string? NullIfWhiteSpace(string? value) =>
+            string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+        #endregion
     }
 }

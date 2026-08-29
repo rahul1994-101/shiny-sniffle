@@ -1,14 +1,13 @@
 using MailKit;
-using MailKit.Net.Imap;
-using MailKit.Net.Smtp;
 using MimeKit;
 using System.Net.Mail;
-using SmtpClient = MailKit.Net.Smtp.SmtpClient;
 
 namespace Infrastructure.Mailbox;
 
 public sealed class MailKitMailboxService : IMailboxService
 {
+    #region # Connection
+
     public async Task<MailboxStatusResult> GetStatusAsync(EmailSettings config, CancellationToken cancellationToken = default)
     {
         var probe = await MailboxConnectionHelpers.ProbeConnectionsAsync(config, cancellationToken);
@@ -55,6 +54,10 @@ public sealed class MailKitMailboxService : IMailboxService
         };
     }
 
+    #endregion
+
+    #region # Queries
+
     public async Task<InboxListResult> ListMessagesAsync(EmailSettings config, InboxQuery query, CancellationToken cancellationToken = default)
     {
         using var imap = MailboxConnectionHelpers.CreateImapClient();
@@ -70,16 +73,16 @@ public sealed class MailKitMailboxService : IMailboxService
         return result;
     }
 
-    public async Task<InboxMessageDetail?> GetMessageAsync(EmailSettings config, uint uid, string? folder = null, CancellationToken cancellationToken = default)
+    public async Task<InboxMessageDetail?> GetMessageAsync(EmailSettings config, MessageRef message, CancellationToken cancellationToken = default)
     {
         using var imap = MailboxConnectionHelpers.CreateImapClient();
         await MailboxConnectionHelpers.ConnectImapAsync(imap, config, cancellationToken);
         await imap.AuthenticateAsync(config.Username, config.Password, cancellationToken);
 
-        var mailFolder = await MailboxFolderResolverHelpers.GetFolderAsync(imap, folder, cancellationToken);
+        var mailFolder = await MailboxFolderResolverHelpers.GetFolderAsync(imap, message.Folder, cancellationToken);
         await mailFolder.OpenAsync(FolderAccess.ReadOnly, cancellationToken);
 
-        var detail = await MailboxMessageHelpers.GetDetailAsync(mailFolder, uid, cancellationToken);
+        var detail = await MailboxMessageHelpers.GetDetailAsync(mailFolder, message.Uid, cancellationToken);
 
         await imap.DisconnectAsync(true, cancellationToken);
         return detail;
@@ -139,6 +142,10 @@ public sealed class MailKitMailboxService : IMailboxService
             .OrderBy(f => f.FullName, StringComparer.OrdinalIgnoreCase)
             .ToList();
     }
+
+    #endregion
+
+    #region # Commands
 
     public async Task<SendMailResult> SendAsync(EmailSettings config, OutboundMail mail, CancellationToken cancellationToken = default)
     {
@@ -252,4 +259,6 @@ public sealed class MailKitMailboxService : IMailboxService
         await imap.DisconnectAsync(true, cancellationToken);
         return result;
     }
+
+    #endregion
 }

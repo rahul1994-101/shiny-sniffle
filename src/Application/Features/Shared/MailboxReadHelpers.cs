@@ -86,6 +86,8 @@ internal static partial class InboxListRangeParser
     [GeneratedRegex(@"(\d{4}-\d{2}-\d{2})", RegexOptions.CultureInvariant)]
     private static partial Regex IsoDateTokenPattern();
 
+    #region # Public API
+
     internal static bool TryParse(string? since, out InboxDateRange? range) =>
         TryParse(since, null, out range);
 
@@ -220,6 +222,10 @@ internal static partial class InboxListRangeParser
 
         return value;
     }
+
+    #endregion
+
+    #region # Range parsing
 
     private static bool TryParseExplicitUntil(string? since, string? until, out InboxDateRange? range)
     {
@@ -371,10 +377,360 @@ internal static partial class InboxListRangeParser
 
     private static string? NullIfWhiteSpace(string? value) =>
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    #endregion
+}
+
+/// <summary>Parsed, validated inbox list parameters — built once from tool args or session state.</summary>
+internal sealed record InboxListRequest(
+    InboxDateRange Range,
+    int Limit,
+    bool CountOnly,
+    bool UnreadOnly,
+    string? FromSender,
+    string? SubjectContains,
+    string? Folder)
+{
+    internal InboxQuery ToInboxQuery() =>
+        new()
+        {
+            SinceUtc = Range.SinceUtc,
+            UntilUtcExclusive = Range.UntilUtcExclusive,
+            Limit = Limit,
+            CountOnly = CountOnly,
+            UnreadOnly = UnreadOnly,
+            FromContains = FromSender,
+            SubjectContains = SubjectContains,
+            Folder = Folder
+        };
+
+    internal string QueryLabel => EmailMailboxTextHelpers.FormatInboxQueryLabel(Range.Label, ToInboxQuery());
+}
+
+internal static class InboxListRequestBuilder
+{
+    internal static bool TryBuild(
+        string since,
+        string until,
+        int limit,
+        bool countOnly,
+        bool unreadOnly,
+        string fromSender,
+        string subjectContains,
+        string folder,
+        out InboxListRequest? request,
+        out string? error)
+    {
+        if (!InboxListRangeParser.TryParse(since, until, out var range) || range is null)
+        {
+            request = null;
+            error = EmailReadConstants.FormatSinceParseHint();
+            return false;
+        }
+
+        request = new InboxListRequest(
+            range,
+            MailboxReadLimits.ClampListLimit(limit),
+            countOnly,
+            unreadOnly,
+            NullIfWhiteSpace(fromSender),
+            NullIfWhiteSpace(subjectContains),
+            NullIfWhiteSpace(folder));
+        error = null;
+        return true;
+    }
+
+    private static string? NullIfWhiteSpace(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+}
+
+/// <summary>Ordered Uids from the most recent non–count-only list in an agent turn.</summary>
+internal sealed record InboxListSnapshot(
+    InboxListRequest Request,
+    IReadOnlyList<uint> Uids,
+    string? MailboxAlias)
+{
+    internal static InboxListSnapshot From(InboxListRequest request, InboxListResult result, string? mailboxAlias) =>
+        new(request, result.Messages.Select(m => m.Uid).ToList(), mailboxAlias);
+
+    internal bool MatchesMailbox(string? mailboxAlias) =>
+        string.Equals(MailboxAlias ?? string.Empty, mailboxAlias ?? string.Empty, StringComparison.OrdinalIgnoreCase);
+
+    internal bool TryGetUid(int listIndex, out uint uid, out string? error)
+    {
+        if (listIndex < 1 || listIndex > Uids.Count)
+        {
+            uid = 0;
+            error =
+                $"List index #{listIndex} is out of range ({Uids.Count} message(s) in the recent list). List again or use a Uid.";
+            return false;
+        }
+
+        uid = Uids[listIndex - 1];
+        error = null;
+        return true;
+    }
+}
+
+/// <summary>Resolved message target — uid or list row from session snapshot.</summary>
+internal sealed record InboxOpenRequest(MessageRef Message);
+
+internal static class InboxOpenRequestBuilder
+{
+    internal static bool TryResolve(
+        uint uid,
+        int listIndex,
+        string? folder,
+        string? mailboxAlias,
+        InboxListSnapshot? lastList,
+        out InboxOpenRequest? request,
+        out string? error)
+    {
+        request = null;
+        error = null;
+        var folderOverride = NullIfWhiteSpace(folder);
+
+        if (uid > 0)
+        {
+            request = new InboxOpenRequest(new MessageRef { Uid = uid, Folder = folderOverride });
+            return true;
+        }
+
+        if (listIndex >= 1)
+        {
+            if (lastList is null)
+            {
+                error =
+                    "No recent list in this turn. Call list_inbox_messages first, or open by Uid from a list row.";
+                return false;
+            }
+
+            if (!lastList.MatchesMailbox(mailboxAlias))
+            {
+                error =
+                    "The recent list is for a different mailbox account. List again on this account or use a Uid.";
+                return false;
+            }
+
+            if (!lastList.TryGetUid(listIndex, out var resolvedUid, out error))
+            {
+                return false;
+            }
+
+            request = new InboxOpenRequest(new MessageRef
+            {
+                Uid = resolvedUid,
+                Folder = folderOverride ?? lastList.Request.Folder
+            });
+            return true;
+        }
+
+        error = "Provide uid from a list row, or list_index (1-based) after list_inbox_messages in this turn.";
+        return false;
+    }
+
+    private static string? NullIfWhiteSpace(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+}
+
+internal sealed record MailboxMessageBatchRequest(IReadOnlyList<MessageRef> Messages);
+
+/// <summary>Move messages to another folder — batch + destination.</summary>
+internal sealed record MailboxMoveRequest(MailboxMessageBatchRequest Batch, string DestinationFolder);
+
+/// <summary>Update message flags — batch + flag action.</summary>
+internal sealed record MailboxFlagRequest(MailboxMessageBatchRequest Batch, MessageFlagAction Flag);
+
+/// <summary>Validated outbound mail — built once from tool args.</summary>
+internal sealed record SendMailRequest(OutboundMail Mail);
+
+internal static class MailboxMessageBatchRequestBuilder
+{
+    internal static bool TryBuild(
+        string uidsCsv,
+        string? folder,
+        out MailboxMessageBatchRequest? request,
+        out string? error)
+    {
+        request = null;
+        error = null;
+
+        if (!TryParseUids(uidsCsv, out var uids, out error))
+        {
+            return false;
+        }
+
+        var normalizedFolder = NullIfWhiteSpace(folder);
+        request = new MailboxMessageBatchRequest(
+            uids.Select(uid => new MessageRef { Uid = uid, Folder = normalizedFolder }).ToList());
+        return true;
+    }
+
+    internal static bool TryParseUids(string uidsCsv, out List<uint> uids, out string? error)
+    {
+        uids = [];
+        error = null;
+
+        if (string.IsNullOrWhiteSpace(uidsCsv))
+        {
+            error = "Provide at least one Uid from list_inbox_messages (comma-separated, e.g. 42,43).";
+            return false;
+        }
+
+        foreach (var part in uidsCsv.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            if (!uint.TryParse(part, out var uid) || uid == 0)
+            {
+                error = $"Invalid Uid '{part}'. Use numeric Uids from list_inbox_messages.";
+                uids = [];
+                return false;
+            }
+
+            uids.Add(uid);
+        }
+
+        if (uids.Count == 0)
+        {
+            error = "Provide at least one Uid from list_inbox_messages (comma-separated, e.g. 42,43).";
+            return false;
+        }
+
+        return true;
+    }
+
+    internal static bool TryParseFlagAction(string flagAction, out MessageFlagAction flag, out string? error)
+    {
+        flag = default;
+        error = null;
+
+        if (string.IsNullOrWhiteSpace(flagAction))
+        {
+            error = "Flag action is required: read, unread, flagged, or unflagged.";
+            return false;
+        }
+
+        switch (flagAction.Trim().ToLowerInvariant())
+        {
+            case "read":
+                flag = MessageFlagAction.Read;
+                return true;
+            case "unread":
+                flag = MessageFlagAction.Unread;
+                return true;
+            case "flagged":
+                flag = MessageFlagAction.Flagged;
+                return true;
+            case "unflagged":
+                flag = MessageFlagAction.Unflagged;
+                return true;
+            default:
+                error = "Flag action must be read, unread, flagged, or unflagged.";
+                return false;
+        }
+    }
+
+    private static string? NullIfWhiteSpace(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+}
+
+internal static class MailboxMoveRequestBuilder
+{
+    internal static bool TryBuild(
+        string uidsCsv,
+        string? folder,
+        string destinationFolder,
+        out MailboxMoveRequest? request,
+        out string? error)
+    {
+        request = null;
+        error = null;
+
+        if (string.IsNullOrWhiteSpace(destinationFolder))
+        {
+            error = "Destination folder is required.";
+            return false;
+        }
+
+        if (!MailboxMessageBatchRequestBuilder.TryBuild(uidsCsv, folder, out var batch, out error))
+        {
+            return false;
+        }
+
+        request = new MailboxMoveRequest(batch!, destinationFolder.Trim());
+        return true;
+    }
+}
+
+internal static class MailboxFlagRequestBuilder
+{
+    internal static bool TryBuild(
+        string uidsCsv,
+        string? folder,
+        string flagAction,
+        out MailboxFlagRequest? request,
+        out string? error)
+    {
+        request = null;
+
+        if (!MailboxMessageBatchRequestBuilder.TryBuild(uidsCsv, folder, out var batch, out error))
+        {
+            return false;
+        }
+
+        if (!MailboxMessageBatchRequestBuilder.TryParseFlagAction(flagAction, out var flag, out error))
+        {
+            return false;
+        }
+
+        request = new MailboxFlagRequest(batch!, flag);
+        return true;
+    }
+}
+
+internal static class SendMailRequestBuilder
+{
+    internal static bool TryBuild(
+        string to,
+        string subject,
+        string body,
+        out SendMailRequest? request,
+        out string? error)
+    {
+        request = null;
+        error = null;
+
+        if (string.IsNullOrWhiteSpace(to))
+        {
+            error = "Recipient address is required.";
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(subject))
+        {
+            error = "Subject is required.";
+            return false;
+        }
+
+        if (!System.Net.Mail.MailAddress.TryCreate(to, out _))
+        {
+            error = "Recipient email address is invalid.";
+            return false;
+        }
+
+        request = new SendMailRequest(new OutboundMail
+        {
+            To = to.Trim(),
+            Subject = subject.Trim(),
+            Body = body ?? string.Empty
+        });
+        return true;
+    }
 }
 
 internal static class EmailMailboxTextHelpers
 {
+    #region # List output
+
     internal static string FormatInboxQueryLabel(string rangeLabel, InboxQuery query)
     {
         var parts = new List<string>();
@@ -453,6 +809,10 @@ internal static class EmailMailboxTextHelpers
         return builder.ToString().TrimEnd();
     }
 
+    #endregion
+
+    #region # Message output
+
     internal static string FormatInboxMessages(IReadOnlyList<InboxMessageDetail> messages)
     {
         if (messages.Count == 0)
@@ -476,6 +836,10 @@ internal static class EmailMailboxTextHelpers
 
         return builder.ToString().TrimEnd();
     }
+
+    #endregion
+
+    #region # Other output
 
     internal static string FormatCommandResult(MailboxCommandResult result) =>
         result.Success
@@ -538,4 +902,6 @@ internal static class EmailMailboxTextHelpers
 
     private static bool IsInboxAlias(string? folder) =>
         string.IsNullOrWhiteSpace(folder) || folder.Trim().Equals("inbox", StringComparison.OrdinalIgnoreCase);
+
+    #endregion
 }

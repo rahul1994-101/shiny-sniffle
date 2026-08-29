@@ -8,7 +8,7 @@ public interface IMailboxService
 
     Task<InboxListResult> ListMessagesAsync(EmailSettings config, InboxQuery query, CancellationToken cancellationToken = default);
 
-    Task<InboxMessageDetail?> GetMessageAsync(EmailSettings config, uint uid, string? folder = null, CancellationToken cancellationToken = default);
+    Task<InboxMessageDetail?> GetMessageAsync(EmailSettings config, MessageRef message, CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<InboxMessageDetail>> GetMessagesAsync(EmailSettings config, IReadOnlyList<MessageRef> messages, CancellationToken cancellationToken = default);
 

@@ -1,8 +1,7 @@
-using FluentValidation;
 using Application.AI;
 using Application.AI.Memory;
 using Application.Features.Chat.ChatThreads;
-using Application.Features.Shared;
+using FluentValidation;
 
 namespace Application.Features.Chat.ChatMessages.Commands;
 

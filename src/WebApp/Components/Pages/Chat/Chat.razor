@@ -39,41 +39,26 @@
         <div class="chat-composer @( _sending ? "chat-composer-busy" : null)">
 
             <EntityRefMentionInput @bind-Value="_draft"
-
                                    InputId="chat-message-input"
-
                                    Disabled="@_sending"
-
                                    Embedded="true"
-
                                    SubmitOnEnter="true"
-
                                    MaxLines="3"
-
                                    OnEnter="SendAsync"
-
                                    Placeholder="@ChatComposerPlaceholder"
-
                                    AriaLabel="Message" />
 
             <div class="chat-composer-actions">
 
                 <ChatAgentSelector ThreadId="_activeThreadId"
-
                                    SendInProgress="_sending"
-
                                    @bind-Value="_chatAgent" />
 
                 <button type="button"
-
                         class="ui-btn ui-btn-primary ui-btn-icon chat-send"
-
                         @onclick="SendAsync"
-
                         disabled="@(_sending || string.IsNullOrWhiteSpace(_draft))"
-
                         title="Send (Enter)"
-
                         aria-busy="@_sending">
 
                     <svg class="chat-send-svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" /></svg>

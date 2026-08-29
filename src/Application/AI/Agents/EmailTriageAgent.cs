@@ -124,7 +124,7 @@ public sealed class EmailTriageAgent(IFoundryAgentFactory _agentFactory, EmailTr
             "Open that Amazon message — use the Uid from the list.",
             "Show me the complete body of Uid 100."
         ]),
-        ("Read one message — by list index", "get_inbox_message (list_index + since/filters/folder matching list)", [
+        ("Read one message — by list index", "get_inbox_message (list_index after list_inbox_messages)", [
             "Read the third email from today.",
             "Open message #2 from my unread list this week.",
             "Show me the full text of the first Amazon email from yesterday."
@@ -207,7 +207,7 @@ public sealed class EmailTriageAgent(IFoundryAgentFactory _agentFactory, EmailTr
             Tool rules:
             - mailbox_alias: when the user @-mentions @mailbox:alias, pass that alias (or leave empty — tools auto-use the mention). Empty with no mention = default connected account. Keep the same mailbox_alias across list/get/send/command calls in one turn.
             - list_inbox_messages: previews (#N, Uid, from, subject, date). count_only for how-many. folder + since + filters as needed.
-            - get_inbox_message: full body + attachment names. Always use folder + uid from a list row, or list_index with the same folder/since/filters as the list.
+            - get_inbox_message: full body + attachment names. Use uid + folder from a list row, or list_index after list_inbox_messages (no need to repeat filters).
             - get_inbox_messages: batch full read (max {maxGets} Uids, same folder). Use for triage when multiple bodies are needed.
             - delete_messages: move to trash. Confirm with the user first; use folder + Uids from a recent list.
             - move_messages: move to another folder (archive, junk, etc.). Confirm destination when unclear.
@@ -229,7 +229,7 @@ public sealed class EmailTriageAgent(IFoundryAgentFactory _agentFactory, EmailTr
             - Default flow: list_inbox_messages first, then selective get_inbox_message or get_inbox_messages. Do not fetch full bodies for every row.
             - Max {maxGets} full-read calls per user turn (get_inbox_message + get_inbox_messages Uids combined). Prefer fewer when previews are enough.
             - When list output shows "N shown of M matched", tell the user coverage is partial (e.g. "summarized {digestLimit} of M").
-            - Reuse the same folder, since, and filters across list and get in one turn so Uids stay valid.
+            - Reuse the same mailbox_alias across list and get in one turn. After list_inbox_messages, open by list_index (#1, #2, …) without repeating since/filters.
             - Cite Uid (and folder when not inbox) when naming specific messages—for follow-ups and future actions.
 
             Output modes (pick one; use the matching section headings):
