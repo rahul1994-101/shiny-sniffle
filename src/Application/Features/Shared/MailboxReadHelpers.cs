@@ -6,12 +6,12 @@ using Infrastructure.Mailbox;
 
 namespace Application.Features.Shared;
 
-internal sealed record InboxDateRange(
+internal sealed record MailboxDateRange(
     DateTime SinceUtc,
     DateTime? UntilUtcExclusive,
     string Label);
 
-/// <summary>Shared copy and agent-only limits for mailbox list/status tools. Read caps live in <see cref="MailboxReadLimits"/>.</summary>
+/// <summary>Shared copy and agent-only limits for mailbox list/status tools. Caps live in <see cref="MailboxLimits"/>.</summary>
 internal static class EmailReadConstants
 {
     internal const int MaxDeepReadsPerTurn = 5;
@@ -76,7 +76,7 @@ internal static class EmailReadDateContext
         $"Today (UTC) is {TodayUtcIso}. Empty since means today.";
 }
 
-internal static partial class InboxListRangeParser
+internal static partial class MailboxListRangeParser
 {
     private static readonly string[] RangeSeparators = ["..", " through ", " to ", " until ", " - ", "–", "—"];
 
@@ -88,10 +88,10 @@ internal static partial class InboxListRangeParser
 
     #region # Public API
 
-    internal static bool TryParse(string? since, out InboxDateRange? range) =>
+    internal static bool TryParse(string? since, out MailboxDateRange? range) =>
         TryParse(since, null, out range);
 
-    internal static bool TryParse(string? since, string? until, out InboxDateRange? range)
+    internal static bool TryParse(string? since, string? until, out MailboxDateRange? range)
     {
         since = NormalizeSince(since);
         until = NullIfWhiteSpace(until);
@@ -99,7 +99,7 @@ internal static partial class InboxListRangeParser
 
         if (string.IsNullOrWhiteSpace(since) && until is null)
         {
-            range = new InboxDateRange(today, null, "today");
+            range = new MailboxDateRange(today, null, "today");
             return true;
         }
 
@@ -116,7 +116,7 @@ internal static partial class InboxListRangeParser
 
         if (string.IsNullOrWhiteSpace(since))
         {
-            range = new InboxDateRange(today, null, "today");
+            range = new MailboxDateRange(today, null, "today");
             return true;
         }
 
@@ -131,7 +131,7 @@ internal static partial class InboxListRangeParser
 
         if (TryParseLastNDays(lower, out var days))
         {
-            range = new InboxDateRange(today.AddDays(-days), null, $"last {days} days");
+            range = new MailboxDateRange(today.AddDays(-days), null, $"last {days} days");
             return true;
         }
 
@@ -139,24 +139,24 @@ internal static partial class InboxListRangeParser
         {
             case "today":
             case "recent":
-                range = new InboxDateRange(today, null, "today");
+                range = new MailboxDateRange(today, null, "today");
                 return true;
             case "yesterday":
-                range = new InboxDateRange(today.AddDays(-1), today, "yesterday");
+                range = new MailboxDateRange(today.AddDays(-1), today, "yesterday");
                 return true;
             case "last_week":
             case "last week":
-                range = new InboxDateRange(today.AddDays(-7), null, "last week");
+                range = new MailboxDateRange(today.AddDays(-7), null, "last week");
                 return true;
             case "this_week":
             case "this week":
-                range = new InboxDateRange(StartOfWeekUtc(today), null, "this week");
+                range = new MailboxDateRange(StartOfWeekUtc(today), null, "this week");
                 return true;
         }
 
         if (TryParseSingleDate(value, out var singleDay))
         {
-            range = new InboxDateRange(
+            range = new MailboxDateRange(
                 singleDay,
                 singleDay.AddDays(1),
                 singleDay.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
@@ -227,7 +227,7 @@ internal static partial class InboxListRangeParser
 
     #region # Range parsing
 
-    private static bool TryParseExplicitUntil(string? since, string? until, out InboxDateRange? range)
+    private static bool TryParseExplicitUntil(string? since, string? until, out MailboxDateRange? range)
     {
         range = null;
         if (until is null)
@@ -255,7 +255,7 @@ internal static partial class InboxListRangeParser
         return true;
     }
 
-    private static InboxDateRange ToInclusiveRange(DateTime start, DateTime endInclusive) =>
+    private static MailboxDateRange ToInclusiveRange(DateTime start, DateTime endInclusive) =>
         new(
             start,
             endInclusive.AddDays(1),
@@ -382,8 +382,8 @@ internal static partial class InboxListRangeParser
 }
 
 /// <summary>Parsed, validated inbox list parameters — built once from tool args or session state.</summary>
-internal sealed record InboxListRequest(
-    InboxDateRange Range,
+internal sealed record MailboxListRequest(
+    MailboxDateRange Range,
     int Limit,
     bool CountOnly,
     bool UnreadOnly,
@@ -404,10 +404,10 @@ internal sealed record InboxListRequest(
             Folder = Folder
         };
 
-    internal string QueryLabel => EmailMailboxTextHelpers.FormatInboxQueryLabel(Range.Label, ToListMessagesFilters());
+    internal string QueryLabel => EmailMailboxTextHelpers.FormatMailboxQueryLabel(Range.Label, ToListMessagesFilters());
 }
 
-internal static class InboxListRequestBuilder
+internal static class MailboxListRequestBuilder
 {
     internal static bool TryBuild(
         string since,
@@ -418,19 +418,19 @@ internal static class InboxListRequestBuilder
         string fromSender,
         string subjectContains,
         string folder,
-        out InboxListRequest? request,
+        out MailboxListRequest? request,
         out string? error)
     {
-        if (!InboxListRangeParser.TryParse(since, until, out var range) || range is null)
+        if (!MailboxListRangeParser.TryParse(since, until, out var range) || range is null)
         {
             request = null;
             error = EmailReadConstants.FormatSinceParseHint();
             return false;
         }
 
-        request = new InboxListRequest(
+        request = new MailboxListRequest(
             range,
-            MailboxReadLimits.ClampListLimit(limit),
+            MailboxLimits.ClampListLimit(limit),
             countOnly,
             unreadOnly,
             NullIfWhiteSpace(fromSender),
@@ -445,12 +445,12 @@ internal static class InboxListRequestBuilder
 }
 
 /// <summary>Ordered Uids from the most recent non–count-only list in an agent turn.</summary>
-internal sealed record InboxListSnapshot(
-    InboxListRequest Request,
+internal sealed record MailboxListSnapshot(
+    MailboxListRequest Request,
     IReadOnlyList<uint> Uids,
     string? MailboxAlias)
 {
-    internal static InboxListSnapshot From(InboxListRequest request, ListMessagesResult result, string? mailboxAlias) =>
+    internal static MailboxListSnapshot From(MailboxListRequest request, ListMessagesResult result, string? mailboxAlias) =>
         new(request, result.Messages.Select(m => m.Uid).ToList(), mailboxAlias);
 
     internal bool MatchesMailbox(string? mailboxAlias) =>
@@ -473,17 +473,17 @@ internal sealed record InboxListSnapshot(
 }
 
 /// <summary>Resolved message target — uid or list row from session snapshot.</summary>
-internal sealed record InboxOpenRequest(MessageKey Message);
+internal sealed record MailboxOpenRequest(MessageKey Message);
 
-internal static class InboxOpenRequestBuilder
+internal static class MailboxOpenRequestBuilder
 {
     internal static bool TryResolve(
         uint uid,
         int listIndex,
         string? folder,
         string? mailboxAlias,
-        InboxListSnapshot? lastList,
-        out InboxOpenRequest? request,
+        MailboxListSnapshot? lastList,
+        out MailboxOpenRequest? request,
         out string? error)
     {
         request = null;
@@ -492,7 +492,7 @@ internal static class InboxOpenRequestBuilder
 
         if (uid > 0)
         {
-            request = new InboxOpenRequest(new MessageKey { Uid = uid, Folder = folderOverride });
+            request = new MailboxOpenRequest(new MessageKey { Uid = uid, Folder = folderOverride });
             return true;
         }
 
@@ -517,7 +517,7 @@ internal static class InboxOpenRequestBuilder
                 return false;
             }
 
-            request = new InboxOpenRequest(new MessageKey
+            request = new MailboxOpenRequest(new MessageKey
             {
                 Uid = resolvedUid,
                 Folder = folderOverride ?? lastList.Request.Folder
@@ -533,26 +533,15 @@ internal static class InboxOpenRequestBuilder
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 }
 
-internal sealed record MailboxMessageBatchRequest(IReadOnlyList<MessageKey> Messages);
-
-/// <summary>Move messages to another folder — batch + destination.</summary>
-internal sealed record MailboxMoveRequest(MailboxMessageBatchRequest Batch, string DestinationFolder);
-
-/// <summary>Update message flags — batch + flag action.</summary>
-internal sealed record MailboxFlagRequest(MailboxMessageBatchRequest Batch, MessageFlagAction Flag);
-
-/// <summary>Validated outbound mail — built once from tool args.</summary>
-internal sealed record SendMailRequest(OutboundMail Mail);
-
-internal static class MailboxMessageBatchRequestBuilder
+internal static class MessageBatchFiltersBuilder
 {
     internal static bool TryBuild(
         string uidsCsv,
         string? folder,
-        out MailboxMessageBatchRequest? request,
+        out MessageBatchFilters? filters,
         out string? error)
     {
-        request = null;
+        filters = null;
         error = null;
 
         if (!TryParseUids(uidsCsv, out var uids, out error))
@@ -561,8 +550,10 @@ internal static class MailboxMessageBatchRequestBuilder
         }
 
         var normalizedFolder = NullIfWhiteSpace(folder);
-        request = new MailboxMessageBatchRequest(
-            uids.Select(uid => new MessageKey { Uid = uid, Folder = normalizedFolder }).ToList());
+        filters = new MessageBatchFilters
+        {
+            Messages = uids.Select(uid => new MessageKey { Uid = uid, Folder = normalizedFolder }).ToList()
+        };
         return true;
     }
 
@@ -633,16 +624,16 @@ internal static class MailboxMessageBatchRequestBuilder
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 }
 
-internal static class MailboxMoveRequestBuilder
+internal static class MoveMessagesFiltersBuilder
 {
     internal static bool TryBuild(
         string uidsCsv,
         string? folder,
         string destinationFolder,
-        out MailboxMoveRequest? request,
+        out MoveMessagesFilters? filters,
         out string? error)
     {
-        request = null;
+        filters = null;
         error = null;
 
         if (string.IsNullOrWhiteSpace(destinationFolder))
@@ -651,52 +642,60 @@ internal static class MailboxMoveRequestBuilder
             return false;
         }
 
-        if (!MailboxMessageBatchRequestBuilder.TryBuild(uidsCsv, folder, out var batch, out error))
+        if (!MessageBatchFiltersBuilder.TryBuild(uidsCsv, folder, out var batch, out error))
         {
             return false;
         }
 
-        request = new MailboxMoveRequest(batch!, destinationFolder.Trim());
+        filters = new MoveMessagesFilters
+        {
+            Messages = batch!.Messages,
+            DestinationFolder = destinationFolder.Trim()
+        };
         return true;
     }
 }
 
-internal static class MailboxFlagRequestBuilder
+internal static class SetMessageFlagsFiltersBuilder
 {
     internal static bool TryBuild(
         string uidsCsv,
         string? folder,
         string flagAction,
-        out MailboxFlagRequest? request,
+        out SetMessageFlagsFilters? filters,
         out string? error)
     {
-        request = null;
+        filters = null;
 
-        if (!MailboxMessageBatchRequestBuilder.TryBuild(uidsCsv, folder, out var batch, out error))
+        if (!MessageBatchFiltersBuilder.TryBuild(uidsCsv, folder, out var batch, out error))
         {
             return false;
         }
 
-        if (!MailboxMessageBatchRequestBuilder.TryParseFlagAction(flagAction, out var flag, out error))
+        if (!MessageBatchFiltersBuilder.TryParseFlagAction(flagAction, out var flag, out error))
         {
             return false;
         }
 
-        request = new MailboxFlagRequest(batch!, flag);
+        filters = new SetMessageFlagsFilters
+        {
+            Messages = batch!.Messages,
+            Flag = flag
+        };
         return true;
     }
 }
 
-internal static class SendMailRequestBuilder
+internal static class OutboundMailBuilder
 {
     internal static bool TryBuild(
         string to,
         string subject,
         string body,
-        out SendMailRequest? request,
+        out OutboundMail? mail,
         out string? error)
     {
-        request = null;
+        mail = null;
         error = null;
 
         if (string.IsNullOrWhiteSpace(to))
@@ -717,12 +716,12 @@ internal static class SendMailRequestBuilder
             return false;
         }
 
-        request = new SendMailRequest(new OutboundMail
+        mail = new OutboundMail
         {
             To = to.Trim(),
             Subject = subject.Trim(),
             Body = body ?? string.Empty
-        });
+        };
         return true;
     }
 }
@@ -731,7 +730,7 @@ internal static class EmailMailboxTextHelpers
 {
     #region # List output
 
-    internal static string FormatInboxQueryLabel(string rangeLabel, ListMessagesFilters query)
+    internal static string FormatMailboxQueryLabel(string rangeLabel, ListMessagesFilters query)
     {
         var parts = new List<string>();
 
@@ -760,12 +759,12 @@ internal static class EmailMailboxTextHelpers
         return string.Join(", ", parts);
     }
 
-    internal static string FormatInboxCount(int count, string queryLabel) =>
+    internal static string FormatMailboxCount(int count, string queryLabel) =>
         count == 0
             ? $"No messages found for {queryLabel}."
             : $"Message count for {queryLabel}: {count}.";
 
-    internal static string FormatInboxList(IReadOnlyList<MessageSummary> messages, string queryLabel, int totalMatched)
+    internal static string FormatMailboxList(IReadOnlyList<MessageSummary> messages, string queryLabel, int totalMatched)
     {
         if (messages.Count == 0)
         {
@@ -780,7 +779,7 @@ internal static class EmailMailboxTextHelpers
 
         var builder = new StringBuilder();
         builder.AppendLine(
-            $"Messages for {queryLabel} ({shownNote}; previews up to {MailboxReadLimits.SnippetMaxLength} chars — use get_inbox_message with folder + Uid for full body):");
+            $"Messages for {queryLabel} ({shownNote}; previews up to {MailboxLimits.SnippetMaxLength} chars — use get_inbox_message with folder + Uid for full body):");
         for (var i = 0; i < messages.Count; i++)
         {
             var message = messages[i];
@@ -813,7 +812,7 @@ internal static class EmailMailboxTextHelpers
 
     #region # Message output
 
-    internal static string FormatInboxMessages(IReadOnlyList<MessageDetail> messages)
+    internal static string FormatMailboxMessages(IReadOnlyList<MessageDetail> messages)
     {
         if (messages.Count == 0)
         {
@@ -831,7 +830,7 @@ internal static class EmailMailboxTextHelpers
                 builder.AppendLine();
             }
 
-            builder.Append(FormatInboxMessage(messages[i]));
+            builder.Append(FormatMailboxMessage(messages[i]));
         }
 
         return builder.ToString().TrimEnd();
@@ -841,12 +840,12 @@ internal static class EmailMailboxTextHelpers
 
     #region # Other output
 
-    internal static string FormatCommandResult(MailboxCommandResult result) =>
+    internal static string FormatCommandResult(CommandResult result) =>
         result.Success
             ? result.Message
             : $"Could not complete mailbox action: {result.Message}";
 
-    internal static string FormatInboxMessage(MessageDetail message)
+    internal static string FormatMailboxMessage(MessageDetail message)
     {
         var builder = new StringBuilder();
         builder.Append("Message (folder: ").Append(message.Folder)

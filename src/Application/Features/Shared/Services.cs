@@ -31,7 +31,7 @@ public sealed class UserMailboxService(
 
     internal Task<ListMessagesResult> ListMessagesAsync(
         MailboxAccountContext context,
-        InboxListRequest request,
+        MailboxListRequest request,
         CancellationToken cancellationToken = default) =>
         mailboxService.ListMessagesAsync(context.Runtime, request.ToListMessagesFilters(), cancellationToken);
 
@@ -40,30 +40,21 @@ public sealed class UserMailboxService(
         MessageKey message,
         CancellationToken cancellationToken = default)
     {
-        var result = await mailboxService.GetMessagesAsync(context.Runtime, new GetMessagesFilters { Messages = [message] }, cancellationToken);
+        var result = await mailboxService.GetMessagesAsync(context.Runtime, new MessageBatchFilters { Messages = [message] }, cancellationToken);
         return result.Messages.Count == 0 ? null : result.Messages[0];
     }
 
     internal Task<MessageDetail?> GetMessageAsync(
         MailboxAccountContext context,
-        InboxOpenRequest request,
+        MailboxOpenRequest request,
         CancellationToken cancellationToken = default) =>
         GetMessageAsync(context, request.Message, cancellationToken);
 
-    internal async Task<IReadOnlyList<MessageDetail>> GetMessagesAsync(
+    internal Task<GetMessagesResult> GetMessagesAsync(
         MailboxAccountContext context,
-        IReadOnlyList<MessageKey> messages,
-        CancellationToken cancellationToken = default)
-    {
-        var result = await mailboxService.GetMessagesAsync(context.Runtime, new GetMessagesFilters { Messages = messages }, cancellationToken);
-        return result.Messages;
-    }
-
-    internal Task<IReadOnlyList<MessageDetail>> GetMessagesAsync(
-        MailboxAccountContext context,
-        MailboxMessageBatchRequest request,
+        MessageBatchFilters filters,
         CancellationToken cancellationToken = default) =>
-        GetMessagesAsync(context, request.Messages, cancellationToken);
+        mailboxService.GetMessagesAsync(context.Runtime, filters, cancellationToken);
 
     internal Task<ListFoldersResult> ListFoldersAsync(
         MailboxAccountContext context,
@@ -76,28 +67,27 @@ public sealed class UserMailboxService(
 
     internal Task<SendMailResult> SendAsync(
         MailboxAccountContext context,
-        SendMailRequest request,
+        OutboundMail mail,
         CancellationToken cancellationToken = default) =>
-        mailboxService.SendAsync(context.Runtime, request.Mail, cancellationToken);
+        mailboxService.SendAsync(context.Runtime, mail, cancellationToken);
 
-    internal Task<MailboxCommandResult> DeleteMessagesAsync(
+    internal Task<CommandResult> DeleteMessagesAsync(
         MailboxAccountContext context,
-        MailboxMessageBatchRequest request,
+        MessageBatchFilters filters,
         CancellationToken cancellationToken = default) =>
-        mailboxService.DeleteMessagesAsync(context.Runtime, request.Messages, cancellationToken);
+        mailboxService.DeleteMessagesAsync(context.Runtime, filters, cancellationToken);
 
-    internal Task<MailboxCommandResult> MoveMessagesAsync(
+    internal Task<CommandResult> MoveMessagesAsync(
         MailboxAccountContext context,
-        MailboxMoveRequest request,
+        MoveMessagesFilters filters,
         CancellationToken cancellationToken = default) =>
-        mailboxService.MoveMessagesAsync(
-            context.Runtime, request.Batch.Messages, request.DestinationFolder, cancellationToken);
+        mailboxService.MoveMessagesAsync(context.Runtime, filters, cancellationToken);
 
-    internal Task<MailboxCommandResult> SetMessageFlagsAsync(
+    internal Task<CommandResult> SetMessageFlagsAsync(
         MailboxAccountContext context,
-        MailboxFlagRequest request,
+        SetMessageFlagsFilters filters,
         CancellationToken cancellationToken = default) =>
-        mailboxService.SetMessageFlagsAsync(context.Runtime, request.Batch.Messages, request.Flag, cancellationToken);
+        mailboxService.SetMessageFlagsAsync(context.Runtime, filters, cancellationToken);
 
     #endregion
 
@@ -133,9 +123,9 @@ public sealed class UserMailboxService(
 /// <summary>Agent-facing mailbox operations — account resolution + service calls; tools format output.</summary>
 public sealed class MailboxAgentService(UserMailboxService mailboxService)
 {
-    internal Task<(MailboxAccountContext? Account, ListMessagesResult? Result, string? Error)> ListInboxAsync(
+    internal Task<(MailboxAccountContext? Account, ListMessagesResult? Result, string? Error)> ListMessagesAsync(
         Guid userId,
-        InboxListRequest request,
+        MailboxListRequest request,
         string? mailboxRef,
         CancellationToken cancellationToken = default) =>
         ExecuteAsync(
@@ -146,9 +136,9 @@ public sealed class MailboxAgentService(UserMailboxService mailboxService)
             "Could not list messages",
             cancellationToken);
 
-    internal async Task<(MailboxAccountContext? Account, MessageDetail? Message, string? Error)> OpenInboxAsync(
+    internal async Task<(MailboxAccountContext? Account, MessageDetail? Message, string? Error)> GetMessageAsync(
         Guid userId,
-        InboxOpenRequest request,
+        MailboxOpenRequest request,
         string? mailboxRef,
         CancellationToken cancellationToken = default)
     {
@@ -178,25 +168,25 @@ public sealed class MailboxAgentService(UserMailboxService mailboxService)
         }
     }
 
-    internal async Task<(MailboxAccountContext? Account, IReadOnlyList<MessageDetail>? Messages, string? Error)> OpenInboxBatchAsync(
+    internal async Task<(MailboxAccountContext? Account, IReadOnlyList<MessageDetail>? Messages, string? Error)> GetMessagesAsync(
         Guid userId,
-        MailboxMessageBatchRequest request,
+        MessageBatchFilters filters,
         string? mailboxRef,
         CancellationToken cancellationToken = default)
     {
-        if (request.Messages.Count > MailboxReadLimits.MaxBatchGetCount)
+        if (filters.Messages.Count > MailboxLimits.MaxBatchGetCount)
         {
             return (
                 null,
                 null,
-                $"At most {MailboxReadLimits.MaxBatchGetCount} Uids per call. Split into multiple get_inbox_messages calls or use get_inbox_message for one message.");
+                $"At most {MailboxLimits.MaxBatchGetCount} Uids per call. Split into multiple get_inbox_messages calls or use get_inbox_message for one message.");
         }
 
         return await ExecuteAsync(
             userId,
             mailboxRef,
             EmailReadConstants.NotConfiguredForGet,
-            (account, ct) => mailboxService.GetMessagesAsync(account, request.Messages, ct),
+            async (account, ct) => (await mailboxService.GetMessagesAsync(account, filters, ct)).Messages,
             "Could not read messages",
             cancellationToken);
     }
@@ -229,48 +219,72 @@ public sealed class MailboxAgentService(UserMailboxService mailboxService)
         return (account, status, null);
     }
 
-    internal Task<(MailboxAccountContext? Account, MailboxCommandResult? Result, string? Error)> DeleteMessagesAsync(
+    internal Task<(MailboxAccountContext? Account, CommandResult? Result, string? Error)> DeleteMessagesAsync(
         Guid userId,
-        MailboxMessageBatchRequest request,
+        MessageBatchFilters filters,
         string? mailboxRef,
-        CancellationToken cancellationToken = default) =>
-        ExecuteAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var batchError = ValidateCommandBatchSize(filters.Messages.Count);
+        if (batchError is not null)
+        {
+            return Task.FromResult<(MailboxAccountContext?, CommandResult?, string?)>((null, null, batchError));
+        }
+
+        return ExecuteAsync(
             userId,
             mailboxRef,
             EmailReadConstants.NotConfiguredForCommands,
-            (account, ct) => mailboxService.DeleteMessagesAsync(account, request, ct),
+            (account, ct) => mailboxService.DeleteMessagesAsync(account, filters, ct),
             "Could not delete messages",
             cancellationToken);
+    }
 
-    internal Task<(MailboxAccountContext? Account, MailboxCommandResult? Result, string? Error)> MoveMessagesAsync(
+    internal Task<(MailboxAccountContext? Account, CommandResult? Result, string? Error)> MoveMessagesAsync(
         Guid userId,
-        MailboxMoveRequest request,
+        MoveMessagesFilters filters,
         string? mailboxRef,
-        CancellationToken cancellationToken = default) =>
-        ExecuteAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var batchError = ValidateCommandBatchSize(filters.Messages.Count);
+        if (batchError is not null)
+        {
+            return Task.FromResult<(MailboxAccountContext?, CommandResult?, string?)>((null, null, batchError));
+        }
+
+        return ExecuteAsync(
             userId,
             mailboxRef,
             EmailReadConstants.NotConfiguredForCommands,
-            (account, ct) => mailboxService.MoveMessagesAsync(account, request, ct),
+            (account, ct) => mailboxService.MoveMessagesAsync(account, filters, ct),
             "Could not move messages",
             cancellationToken);
+    }
 
-    internal Task<(MailboxAccountContext? Account, MailboxCommandResult? Result, string? Error)> SetMessageFlagsAsync(
+    internal Task<(MailboxAccountContext? Account, CommandResult? Result, string? Error)> SetMessageFlagsAsync(
         Guid userId,
-        MailboxFlagRequest request,
+        SetMessageFlagsFilters filters,
         string? mailboxRef,
-        CancellationToken cancellationToken = default) =>
-        ExecuteAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var batchError = ValidateCommandBatchSize(filters.Messages.Count);
+        if (batchError is not null)
+        {
+            return Task.FromResult<(MailboxAccountContext?, CommandResult?, string?)>((null, null, batchError));
+        }
+
+        return ExecuteAsync(
             userId,
             mailboxRef,
             EmailReadConstants.NotConfiguredForCommands,
-            (account, ct) => mailboxService.SetMessageFlagsAsync(account, request, ct),
+            (account, ct) => mailboxService.SetMessageFlagsAsync(account, filters, ct),
             "Could not update message flags",
             cancellationToken);
+    }
 
     internal async Task<(MailboxAccountContext? Account, SendMailResult? Result, string? Error)> SendAsync(
         Guid userId,
-        SendMailRequest request,
+        OutboundMail mail,
         string? mailboxRef,
         CancellationToken cancellationToken = default)
     {
@@ -283,7 +297,7 @@ public sealed class MailboxAgentService(UserMailboxService mailboxService)
 
         try
         {
-            var result = await mailboxService.SendAsync(account!, request, cancellationToken);
+            var result = await mailboxService.SendAsync(account!, mail, cancellationToken);
             return result.Success
                 ? (account, result, null)
                 : (account, result, result.Message);
@@ -293,6 +307,11 @@ public sealed class MailboxAgentService(UserMailboxService mailboxService)
             return (null, null, $"Could not send email: {ex.Message}");
         }
     }
+
+    private static string? ValidateCommandBatchSize(int count) =>
+        count > MailboxLimits.MaxBatchCommandCount
+            ? $"At most {MailboxLimits.MaxBatchCommandCount} Uids per call. Split into multiple command calls."
+            : null;
 
     private async Task<(MailboxAccountContext? Account, T? Result, string? Error)> ExecuteAsync<T>(
         Guid userId,

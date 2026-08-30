@@ -37,6 +37,44 @@ public class EmailSettings
 
 #endregion
 
+#region # Shared
+
+/// <summary>Canonical mailbox limits — enforced in <see cref="MailKitMailboxService"/>.</summary>
+public static class MailboxLimits
+{
+    public const int DefaultListLimit = 20;
+
+    public const int MinListLimit = 1;
+
+    public const int MaxListLimit = 50;
+
+    public const int SnippetMaxLength = 120;
+
+    public const int MaxMessageBodyLength = 12_000;
+
+    public const int MaxBatchGetCount = 5;
+
+    public const int MaxBatchCommandCount = 5;
+
+    public static int ClampListLimit(int limit) =>
+        limit <= 0 ? DefaultListLimit : Math.Clamp(limit, MinListLimit, MaxListLimit);
+}
+
+public sealed class MessageKey
+{
+    public uint Uid { get; init; }
+
+    /// <summary>IMAP folder: empty/inbox, sent, drafts, trash, junk, or an exact folder name/path.</summary>
+    public string? Folder { get; init; }
+}
+
+public sealed class MessageBatchFilters
+{
+    public IReadOnlyList<MessageKey> Messages { get; init; } = [];
+}
+
+#endregion
+
 #region # Queries
 
 public sealed class MessageSummary
@@ -104,11 +142,6 @@ public sealed class MessageDetail
     public bool IsUnread { get; init; }
 }
 
-public sealed class GetMessagesFilters
-{
-    public IReadOnlyList<MessageKey> Messages { get; init; } = [];
-}
-
 public sealed class GetMessagesResult
 {
     public IReadOnlyList<MessageDetail> Messages { get; init; } = [];
@@ -127,14 +160,6 @@ public sealed class FolderInfo
 public sealed class ListFoldersResult
 {
     public IReadOnlyList<FolderInfo> Folders { get; init; } = [];
-}
-
-public sealed class MessageKey
-{
-    public uint Uid { get; init; }
-
-    /// <summary>IMAP folder: empty/inbox, sent, drafts, trash, junk, or an exact folder name/path.</summary>
-    public string? Folder { get; init; }
 }
 
 #endregion
@@ -158,6 +183,20 @@ public enum MessageFlagAction
     Unflagged
 }
 
+public sealed class MoveMessagesFilters
+{
+    public IReadOnlyList<MessageKey> Messages { get; init; } = [];
+
+    public string DestinationFolder { get; init; } = string.Empty;
+}
+
+public sealed class SetMessageFlagsFilters
+{
+    public IReadOnlyList<MessageKey> Messages { get; init; } = [];
+
+    public MessageFlagAction Flag { get; init; }
+}
+
 public sealed class SendMailResult
 {
     public bool Success { get; init; }
@@ -165,7 +204,7 @@ public sealed class SendMailResult
     public string Message { get; init; } = string.Empty;
 }
 
-public sealed class MailboxCommandResult
+public sealed class CommandResult
 {
     public bool Success { get; init; }
 

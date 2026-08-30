@@ -80,21 +80,7 @@ public class EmailAccountDto
 
     public string ProviderName { get; init; } = string.Empty;
 
-    public string EmailAddress { get; init; } = string.Empty;
-
-    public string ImapHost { get; init; } = string.Empty;
-
-    public int ImapPort { get; init; } = 993;
-
-    public bool ImapUseSsl { get; init; } = true;
-
-    public string SmtpHost { get; init; } = string.Empty;
-
-    public int SmtpPort { get; init; } = 587;
-
-    public bool SmtpUseSsl { get; init; } = true;
-
-    public string Username { get; init; } = string.Empty;
+    public StoredMailboxSettings Connection { get; init; } = new();
 
     public bool HasStoredPassword { get; init; }
 
@@ -103,6 +89,22 @@ public class EmailAccountDto
     public IReadOnlyList<TagRefDto> Tags { get; init; } = [];
 
     public IReadOnlyList<BucketRefDto> Buckets { get; init; } = [];
+
+    public string EmailAddress => Connection.EmailAddress;
+
+    public string ImapHost => Connection.ImapHost;
+
+    public int ImapPort => Connection.ImapPort;
+
+    public bool ImapUseSsl => Connection.ImapUseSsl;
+
+    public string SmtpHost => Connection.SmtpHost;
+
+    public int SmtpPort => Connection.SmtpPort;
+
+    public bool SmtpUseSsl => Connection.SmtpUseSsl;
+
+    public string Username => Connection.Username;
 
     public static EmailAccountDto FromEntity(
         EmailAccount account,
@@ -117,14 +119,7 @@ public class EmailAccountDto
             IsDefault = account.IsDefault,
             EmailProviderId = provider.Id,
             ProviderName = provider.Name,
-            EmailAddress = settings.EmailAddress,
-            ImapHost = settings.ImapHost,
-            ImapPort = settings.ImapPort,
-            ImapUseSsl = settings.ImapUseSsl,
-            SmtpHost = settings.SmtpHost,
-            SmtpPort = settings.SmtpPort,
-            SmtpUseSsl = settings.SmtpUseSsl,
-            Username = settings.Username,
+            Connection = settings,
             HasStoredPassword = !string.IsNullOrWhiteSpace(settings.Password),
             Context = account.Context,
             Tags = taxonomy?.Tags ?? [],
@@ -139,14 +134,18 @@ public class EmailAccountDto
         IsDefault = IsDefault,
         EmailProviderId = EmailProviderId,
         ProviderName = ProviderName,
-        EmailAddress = EmailAddress,
-        ImapHost = ImapHost,
-        ImapPort = ImapPort,
-        ImapUseSsl = ImapUseSsl,
-        SmtpHost = SmtpHost,
-        SmtpPort = SmtpPort,
-        SmtpUseSsl = SmtpUseSsl,
-        Username = Username,
+        Connection = new StoredMailboxSettings
+        {
+            EmailAddress = Connection.EmailAddress,
+            ImapHost = Connection.ImapHost,
+            ImapPort = Connection.ImapPort,
+            ImapUseSsl = Connection.ImapUseSsl,
+            SmtpHost = Connection.SmtpHost,
+            SmtpPort = Connection.SmtpPort,
+            SmtpUseSsl = Connection.SmtpUseSsl,
+            Username = Connection.Username,
+            Password = Connection.Password
+        },
         HasStoredPassword = HasStoredPassword,
         Context = Context,
         Tags = Tags,
@@ -203,20 +202,32 @@ public sealed class StoredMailboxSettings
     public string Password { get; set; } = string.Empty;
 }
 
+/// <summary>UI/draft mailbox settings — provider selection wraps merged <see cref="StoredMailboxSettings"/>.</summary>
 public class EmailSettingsDto
 {
     public Guid EmailProviderId { get; set; }
 
-    public string EmailAddress { get; set; } = string.Empty;
-    public string ImapHost { get; set; } = string.Empty;
-    public int ImapPort { get; set; } = 993;
-    public bool ImapUseSsl { get; set; } = true;
-    public string SmtpHost { get; set; } = string.Empty;
-    public int SmtpPort { get; set; } = 587;
-    public bool SmtpUseSsl { get; set; } = true;
-    public string Username { get; set; } = string.Empty;
-    public string Password { get; set; } = string.Empty;
     public bool HasStoredPassword { get; set; }
+
+    public StoredMailboxSettings Settings { get; set; } = new();
+
+    public string EmailAddress { get => Settings.EmailAddress; set => Settings.EmailAddress = value; }
+
+    public string ImapHost { get => Settings.ImapHost; set => Settings.ImapHost = value; }
+
+    public int ImapPort { get => Settings.ImapPort; set => Settings.ImapPort = value; }
+
+    public bool ImapUseSsl { get => Settings.ImapUseSsl; set => Settings.ImapUseSsl = value; }
+
+    public string SmtpHost { get => Settings.SmtpHost; set => Settings.SmtpHost = value; }
+
+    public int SmtpPort { get => Settings.SmtpPort; set => Settings.SmtpPort = value; }
+
+    public bool SmtpUseSsl { get => Settings.SmtpUseSsl; set => Settings.SmtpUseSsl = value; }
+
+    public string Username { get => Settings.Username; set => Settings.Username = value; }
+
+    public string Password { get => Settings.Password; set => Settings.Password = value; }
 
     public EmailSettingsDto CloneForBaseline()
     {
@@ -234,30 +245,36 @@ public class EmailSettingsDto
     private EmailSettingsDto CloneShallow() => new()
     {
         EmailProviderId = EmailProviderId,
-        EmailAddress = EmailAddress,
-        Username = Username,
-        ImapHost = ImapHost,
-        ImapPort = ImapPort,
-        ImapUseSsl = ImapUseSsl,
-        SmtpHost = SmtpHost,
-        SmtpPort = SmtpPort,
-        SmtpUseSsl = SmtpUseSsl,
         HasStoredPassword = HasStoredPassword,
-        Password = Password
+        Settings = new StoredMailboxSettings
+        {
+            EmailAddress = Settings.EmailAddress,
+            Username = Settings.Username,
+            ImapHost = Settings.ImapHost,
+            ImapPort = Settings.ImapPort,
+            ImapUseSsl = Settings.ImapUseSsl,
+            SmtpHost = Settings.SmtpHost,
+            SmtpPort = Settings.SmtpPort,
+            SmtpUseSsl = Settings.SmtpUseSsl,
+            Password = Settings.Password
+        }
     };
 
     public T AsResponse<T>() where T : EmailSettingsDto, new() => new()
     {
         EmailProviderId = EmailProviderId,
-        EmailAddress = EmailAddress,
-        ImapHost = ImapHost,
-        ImapPort = ImapPort,
-        ImapUseSsl = ImapUseSsl,
-        SmtpHost = SmtpHost,
-        SmtpPort = SmtpPort,
-        SmtpUseSsl = SmtpUseSsl,
-        Username = Username,
-        Password = Password,
-        HasStoredPassword = HasStoredPassword
+        HasStoredPassword = HasStoredPassword,
+        Settings = new StoredMailboxSettings
+        {
+            EmailAddress = Settings.EmailAddress,
+            ImapHost = Settings.ImapHost,
+            ImapPort = Settings.ImapPort,
+            ImapUseSsl = Settings.ImapUseSsl,
+            SmtpHost = Settings.SmtpHost,
+            SmtpPort = Settings.SmtpPort,
+            SmtpUseSsl = Settings.SmtpUseSsl,
+            Username = Settings.Username,
+            Password = Settings.Password
+        }
     };
 }

@@ -25,7 +25,7 @@ public sealed class EmailTriageTools(MailboxAgentService agentService)
         private const string MailboxAliasHint =
             "Connected mailbox alias or mailbox:alias; empty uses @mailbox mention from this turn, else default account.";
 
-        private InboxListSnapshot? _lastList;
+        private MailboxListSnapshot? _lastList;
 
         #region # Tool catalog
 
@@ -33,7 +33,7 @@ public sealed class EmailTriageTools(MailboxAgentService agentService)
         {
             var sinceHint = EmailReadDateContext.SinceToolHint();
             var limitHint =
-                $"{MailboxReadLimits.MinListLimit}-{MailboxReadLimits.MaxListLimit}, default {MailboxReadLimits.DefaultListLimit}";
+                $"{MailboxLimits.MinListLimit}-{MailboxLimits.MaxListLimit}, default {MailboxLimits.DefaultListLimit}";
 
             return
             [
@@ -73,35 +73,35 @@ public sealed class EmailTriageTools(MailboxAgentService agentService)
                         GetInboxMessagesAsync(uids, folder, mailboxAlias),
                     name: "get_inbox_messages",
                     description:
-                        $"Fetches up to {MailboxReadLimits.MaxBatchGetCount} messages by Uid in one folder with full bodies and attachment names. " +
+                        $"Fetches up to {MailboxLimits.MaxBatchGetCount} messages by Uid in one folder with full bodies and attachment names. " +
                         "Use the same mailbox_alias as the list call."),
                 AIFunctionFactory.Create(
-                    ([Description("Comma-separated IMAP Uids from list_inbox_messages (e.g. 42,43).")] string uids,
+                    ([Description("Comma-separated IMAP Uids from list_inbox_messages (e.g. 42,43). Max 5 per call.")] string uids,
                         [Description("Source folder: empty/inbox (default), sent, drafts, trash, junk, or name from list_mailbox_folders.")] string folder,
                         [Description(MailboxAliasHint)] string mailboxAlias) =>
                         DeleteMessagesAsync(uids, folder, mailboxAlias),
                     name: "delete_messages",
                     description:
-                        "Moves messages to trash (recoverable). Confirm with the user before deleting. " +
+                        $"Moves up to {MailboxLimits.MaxBatchCommandCount} messages to trash (recoverable). Confirm with the user before deleting. " +
                         "Use folder + Uids from a recent list_inbox_messages call with the same mailbox_alias."),
                 AIFunctionFactory.Create(
-                    ([Description("Comma-separated IMAP Uids from list_inbox_messages (e.g. 42,43).")] string uids,
+                    ([Description("Comma-separated IMAP Uids from list_inbox_messages (e.g. 42,43). Max 5 per call.")] string uids,
                         [Description("Source folder: empty/inbox (default), sent, drafts, trash, junk, or name from list_mailbox_folders.")] string folder,
                         [Description("Destination folder: sent, drafts, trash, junk, archive, or name from list_mailbox_folders.")] string destinationFolder,
                         [Description(MailboxAliasHint)] string mailboxAlias) =>
                         MoveMessagesAsync(uids, folder, destinationFolder, mailboxAlias),
                     name: "move_messages",
                     description:
-                        "Moves messages to another folder (archive, junk, custom folder). Confirm destination with the user when unclear."),
+                        $"Moves up to {MailboxLimits.MaxBatchCommandCount} messages to another folder (archive, junk, custom folder). Confirm destination with the user when unclear."),
                 AIFunctionFactory.Create(
-                    ([Description("Comma-separated IMAP Uids from list_inbox_messages (e.g. 42,43).")] string uids,
+                    ([Description("Comma-separated IMAP Uids from list_inbox_messages (e.g. 42,43). Max 5 per call.")] string uids,
                         [Description("Folder: empty/inbox (default), sent, drafts, trash, junk, or name from list_mailbox_folders.")] string folder,
                         [Description("Flag action: read, unread, flagged, or unflagged.")] string flagAction,
                         [Description(MailboxAliasHint)] string mailboxAlias) =>
                         SetMessageFlagsAsync(uids, folder, flagAction, mailboxAlias),
                     name: "set_message_flags",
                     description:
-                        "Updates message flags: read, unread, flagged, or unflagged."),
+                        $"Updates flags on up to {MailboxLimits.MaxBatchCommandCount} messages: read, unread, flagged, or unflagged."),
                 AIFunctionFactory.Create(
                     ([Description(MailboxAliasHint)] string mailboxAlias) => ListMailboxFoldersAsync(mailboxAlias),
                     name: "list_mailbox_folders",
@@ -135,7 +135,7 @@ public sealed class EmailTriageTools(MailboxAgentService agentService)
             string folder,
             string mailboxAlias)
         {
-            if (!InboxListRequestBuilder.TryBuild(
+            if (!MailboxListRequestBuilder.TryBuild(
                     since, until, limit, countOnly, unreadOnly, fromSender, subjectContains, folder,
                     out var listRequest, out var buildError))
             {
@@ -143,7 +143,7 @@ public sealed class EmailTriageTools(MailboxAgentService agentService)
             }
 
             var mailboxRef = EffectiveMailboxAlias(mailboxAlias);
-            var (account, result, error) = await agentService.ListInboxAsync(userId, listRequest!, mailboxRef);
+            var (account, result, error) = await agentService.ListMessagesAsync(userId, listRequest!, mailboxRef);
             if (error is not null)
             {
                 return error;
@@ -151,12 +151,12 @@ public sealed class EmailTriageTools(MailboxAgentService agentService)
 
             if (!listRequest!.CountOnly)
             {
-                _lastList = InboxListSnapshot.From(listRequest, result!, mailboxRef);
+                _lastList = MailboxListSnapshot.From(listRequest, result!, mailboxRef);
             }
 
             var body = listRequest.CountOnly
-                ? EmailMailboxTextHelpers.FormatInboxCount(result!.TotalMatched, listRequest.QueryLabel)
-                : EmailMailboxTextHelpers.FormatInboxList(result!.Messages, listRequest.QueryLabel, result.TotalMatched);
+                ? EmailMailboxTextHelpers.FormatMailboxCount(result!.TotalMatched, listRequest.QueryLabel)
+                : EmailMailboxTextHelpers.FormatMailboxList(result!.Messages, listRequest.QueryLabel, result.TotalMatched);
 
             return WithAccountHeader(account!, body);
         }
@@ -168,35 +168,35 @@ public sealed class EmailTriageTools(MailboxAgentService agentService)
         private async Task<string> GetInboxMessageAsync(uint uid, int listIndex, string folder, string mailboxAlias)
         {
             var mailboxRef = EffectiveMailboxAlias(mailboxAlias);
-            if (!InboxOpenRequestBuilder.TryResolve(uid, listIndex, folder, mailboxRef, _lastList, out var openRequest, out var resolveError))
+            if (!MailboxOpenRequestBuilder.TryResolve(uid, listIndex, folder, mailboxRef, _lastList, out var openRequest, out var resolveError))
             {
                 return resolveError!;
             }
 
-            var (account, message, error) = await agentService.OpenInboxAsync(userId, openRequest!, mailboxRef);
+            var (account, message, error) = await agentService.GetMessageAsync(userId, openRequest!, mailboxRef);
             if (error is not null)
             {
                 return error;
             }
 
-            return WithAccountHeader(account!, EmailMailboxTextHelpers.FormatInboxMessage(message!));
+            return WithAccountHeader(account!, EmailMailboxTextHelpers.FormatMailboxMessage(message!));
         }
 
         private async Task<string> GetInboxMessagesAsync(string uidsCsv, string folder, string mailboxAlias)
         {
-            if (!MailboxMessageBatchRequestBuilder.TryBuild(uidsCsv, folder, out var batchRequest, out var buildError))
+            if (!MessageBatchFiltersBuilder.TryBuild(uidsCsv, folder, out var filters, out var buildError))
             {
                 return buildError!;
             }
 
             var mailboxRef = EffectiveMailboxAlias(mailboxAlias);
-            var (account, messages, error) = await agentService.OpenInboxBatchAsync(userId, batchRequest!, mailboxRef);
+            var (account, messages, error) = await agentService.GetMessagesAsync(userId, filters!, mailboxRef);
             if (error is not null)
             {
                 return error;
             }
 
-            return WithAccountHeader(account!, EmailMailboxTextHelpers.FormatInboxMessages(messages!));
+            return WithAccountHeader(account!, EmailMailboxTextHelpers.FormatMailboxMessages(messages!));
         }
 
         #endregion
@@ -233,13 +233,13 @@ public sealed class EmailTriageTools(MailboxAgentService agentService)
 
         private async Task<string> DeleteMessagesAsync(string uidsCsv, string folder, string mailboxAlias)
         {
-            if (!MailboxMessageBatchRequestBuilder.TryBuild(uidsCsv, folder, out var batchRequest, out var buildError))
+            if (!MessageBatchFiltersBuilder.TryBuild(uidsCsv, folder, out var filters, out var buildError))
             {
                 return buildError!;
             }
 
             var mailboxRef = EffectiveMailboxAlias(mailboxAlias);
-            var (account, result, error) = await agentService.DeleteMessagesAsync(userId, batchRequest!, mailboxRef);
+            var (account, result, error) = await agentService.DeleteMessagesAsync(userId, filters!, mailboxRef);
             if (error is not null)
             {
                 return error;
@@ -254,13 +254,13 @@ public sealed class EmailTriageTools(MailboxAgentService agentService)
             string destinationFolder,
             string mailboxAlias)
         {
-            if (!MailboxMoveRequestBuilder.TryBuild(uidsCsv, folder, destinationFolder, out var moveRequest, out var buildError))
+            if (!MoveMessagesFiltersBuilder.TryBuild(uidsCsv, folder, destinationFolder, out var filters, out var buildError))
             {
                 return buildError!;
             }
 
             var mailboxRef = EffectiveMailboxAlias(mailboxAlias);
-            var (account, result, error) = await agentService.MoveMessagesAsync(userId, moveRequest!, mailboxRef);
+            var (account, result, error) = await agentService.MoveMessagesAsync(userId, filters!, mailboxRef);
             if (error is not null)
             {
                 return error;
@@ -275,13 +275,13 @@ public sealed class EmailTriageTools(MailboxAgentService agentService)
             string flagAction,
             string mailboxAlias)
         {
-            if (!MailboxFlagRequestBuilder.TryBuild(uidsCsv, folder, flagAction, out var flagRequest, out var buildError))
+            if (!SetMessageFlagsFiltersBuilder.TryBuild(uidsCsv, folder, flagAction, out var filters, out var buildError))
             {
                 return buildError!;
             }
 
             var mailboxRef = EffectiveMailboxAlias(mailboxAlias);
-            var (account, result, error) = await agentService.SetMessageFlagsAsync(userId, flagRequest!, mailboxRef);
+            var (account, result, error) = await agentService.SetMessageFlagsAsync(userId, filters!, mailboxRef);
             if (error is not null)
             {
                 return error;
@@ -292,13 +292,13 @@ public sealed class EmailTriageTools(MailboxAgentService agentService)
 
         private async Task<string> SendEmailAsync(string to, string subject, string body, string mailboxAlias)
         {
-            if (!SendMailRequestBuilder.TryBuild(to, subject, body, out var sendRequest, out var buildError))
+            if (!OutboundMailBuilder.TryBuild(to, subject, body, out var mail, out var buildError))
             {
                 return buildError!;
             }
 
             var mailboxRef = EffectiveMailboxAlias(mailboxAlias);
-            var (account, result, error) = await agentService.SendAsync(userId, sendRequest!, mailboxRef);
+            var (account, result, error) = await agentService.SendAsync(userId, mail!, mailboxRef);
             if (error is not null)
             {
                 return error;

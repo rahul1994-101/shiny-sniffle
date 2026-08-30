@@ -57,10 +57,7 @@ internal static class MailboxConnectionHelpers
     {
         try
         {
-            var smtp = CreateClient<SmtpClient>();
-            var (host, port, secure) = GetEndpoint(config, smtp: true);
-            await smtp.ConnectAsync(host, port, secure, cancellationToken);
-            await smtp.AuthenticateAsync(config.Username, config.Password, cancellationToken);
+            var smtp = await ConnectSmtpAsync(config, cancellationToken);
             try
             {
                 await DisconnectAsync(smtp, cancellationToken);
@@ -77,11 +74,14 @@ internal static class MailboxConnectionHelpers
         }
     }
 
-    internal static Task<T> ExecuteImapAsync<T>(EmailSettings config, Func<ImapClient, CancellationToken, Task<T>> execute, CancellationToken cancellationToken) =>
-        ExecuteAsync(config, cancellationToken, smtp: false, execute);
-
-    internal static Task<T> ExecuteSmtpAsync<T>(EmailSettings config, Func<SmtpClient, CancellationToken, Task<T>> execute, CancellationToken cancellationToken) =>
-        ExecuteAsync(config, cancellationToken, smtp: true, execute);
+    internal static async Task<SmtpClient> ConnectSmtpAsync(EmailSettings config, CancellationToken cancellationToken)
+    {
+        var smtp = CreateClient<SmtpClient>();
+        var (host, port, secure) = GetEndpoint(config, smtp: true);
+        await smtp.ConnectAsync(host, port, secure, cancellationToken);
+        await smtp.AuthenticateAsync(config.Username, config.Password, cancellationToken);
+        return smtp;
+    }
 
     internal static string FormatConnectionProbeMessage(bool imapOk, string? imapError, bool smtpOk, string? smtpError)
     {
@@ -121,24 +121,6 @@ internal static class MailboxConnectionHelpers
     #region # Private Helpers
 
     private const int ConnectTimeoutMs = 30_000;
-
-    private static async Task<T> ExecuteAsync<TClient, T>(EmailSettings config, CancellationToken cancellationToken, bool smtp, Func<TClient, CancellationToken, Task<T>> work) where TClient : MailService, new()
-    {
-        var client = CreateClient<TClient>();
-        var (host, port, secure) = GetEndpoint(config, smtp);
-        await client.ConnectAsync(host, port, secure, cancellationToken);
-        await client.AuthenticateAsync(config.Username, config.Password, cancellationToken);
-
-        try
-        {
-            return await work(client, cancellationToken);
-        }
-        finally
-        {
-            await DisconnectAsync(client, cancellationToken);
-            client.Dispose();
-        }
-    }
 
     private static (string Host, int Port, SecureSocketOptions Secure) GetEndpoint(EmailSettings config, bool smtp) =>
         smtp
@@ -183,27 +165,27 @@ internal static class MailboxConnectionHelpers
 
 #region # Queries
 
-/// <summary>Canonical mailbox read limits — enforced in <see cref="MailKitMailboxService"/>.</summary>
-public static class MailboxReadLimits
-{
-    public const int DefaultListLimit = 20;
-
-    public const int MinListLimit = 1;
-
-    public const int MaxListLimit = 50;
-
-    public const int SnippetMaxLength = 120;
-
-    public const int MaxMessageBodyLength = 12_000;
-
-    public const int MaxBatchGetCount = 5;
-
-    public static int ClampListLimit(int limit) =>
-        limit <= 0 ? DefaultListLimit : Math.Clamp(limit, MinListLimit, MaxListLimit);
-}
-
 internal static class MailboxFolderResolverHelpers
 {
+    private static readonly IReadOnlyDictionary<string, SpecialFolder> SpecialFolderAliases =
+        new Dictionary<string, SpecialFolder>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["sent"] = SpecialFolder.Sent,
+            ["sent items"] = SpecialFolder.Sent,
+            ["sent mail"] = SpecialFolder.Sent,
+            ["sent messages"] = SpecialFolder.Sent,
+            ["draft"] = SpecialFolder.Drafts,
+            ["drafts"] = SpecialFolder.Drafts,
+            ["trash"] = SpecialFolder.Trash,
+            ["deleted"] = SpecialFolder.Trash,
+            ["deleted items"] = SpecialFolder.Trash,
+            ["bin"] = SpecialFolder.Trash,
+            ["junk"] = SpecialFolder.Junk,
+            ["spam"] = SpecialFolder.Junk,
+            ["archive"] = SpecialFolder.Archive,
+            ["archives"] = SpecialFolder.Archive,
+        };
+
     internal static bool IsInboxAlias(string? folder)
     {
         if (string.IsNullOrWhiteSpace(folder))
@@ -259,7 +241,7 @@ internal static class MailboxFolderResolverHelpers
             return trash;
         }
 
-        foreach (var name in new[] { "Trash", "Deleted", "Deleted Items", "Bin" })
+        foreach (var name in TrashFallbackNames)
         {
             var match = await FindFolderByNameAsync(imap, name, cancellationToken);
             if (match is not null)
@@ -343,41 +325,14 @@ internal static class MailboxFolderResolverHelpers
             Role = DescribeRole(folder)
         };
 
-    private static bool TryMapSpecialFolder(string folder, out SpecialFolder special)
-    {
-        special = default;
-        var key = folder.ToLowerInvariant();
+    private static IEnumerable<string> TrashFallbackNames =>
+        SpecialFolderAliases
+            .Where(entry => entry.Value == SpecialFolder.Trash)
+            .Select(entry => entry.Key)
+            .Distinct(StringComparer.OrdinalIgnoreCase);
 
-        switch (key)
-        {
-            case "sent":
-            case "sent items":
-            case "sent mail":
-            case "sent messages":
-                special = SpecialFolder.Sent;
-                return true;
-            case "draft":
-            case "drafts":
-                special = SpecialFolder.Drafts;
-                return true;
-            case "trash":
-            case "deleted":
-            case "deleted items":
-            case "bin":
-                special = SpecialFolder.Trash;
-                return true;
-            case "junk":
-            case "spam":
-                special = SpecialFolder.Junk;
-                return true;
-            case "archive":
-            case "archives":
-                special = SpecialFolder.Archive;
-                return true;
-            default:
-                return false;
-        }
-    }
+    private static bool TryMapSpecialFolder(string folder, out SpecialFolder special) =>
+        SpecialFolderAliases.TryGetValue(folder.Trim(), out special);
 
     private static async Task<IMailFolder?> FindFolderByNameAsync(ImapClient imap, string name, CancellationToken cancellationToken)
     {
@@ -415,39 +370,7 @@ internal static class MailboxFolderResolverHelpers
     }
 }
 
-internal static class MailboxSearchHelpers
-{
-    internal static SearchQuery BuildQuery(ListMessagesFilters query)
-    {
-        SearchQuery search = query.SinceUtc is null
-            ? SearchQuery.All
-            : SearchQuery.DeliveredAfter(query.SinceUtc.Value);
-
-        if (query.UntilUtcExclusive is not null)
-        {
-            search = search.And(SearchQuery.DeliveredBefore(query.UntilUtcExclusive.Value));
-        }
-
-        if (query.UnreadOnly)
-        {
-            search = search.And(SearchQuery.NotSeen);
-        }
-
-        if (!string.IsNullOrWhiteSpace(query.FromContains))
-        {
-            search = search.And(SearchQuery.FromContains(query.FromContains.Trim()));
-        }
-
-        if (!string.IsNullOrWhiteSpace(query.SubjectContains))
-        {
-            search = search.And(SearchQuery.SubjectContains(query.SubjectContains.Trim()));
-        }
-
-        return search;
-    }
-}
-
-internal static class MailboxSummaryHelpers
+internal static class MailboxQueryHelpers
 {
     private const MessageSummaryItems ListFetchItems =
         MessageSummaryItems.UniqueId
@@ -455,9 +378,12 @@ internal static class MailboxSummaryHelpers
         | MessageSummaryItems.Flags
         | MessageSummaryItems.PreviewText;
 
+    private const MessageSummaryItems DetailFlagItems =
+        MessageSummaryItems.UniqueId | MessageSummaryItems.Flags;
+
     internal static async Task<ListMessagesResult> ListInFolderAsync(IMailFolder folder, ListMessagesFilters query, CancellationToken cancellationToken)
     {
-        var search = MailboxSearchHelpers.BuildQuery(query);
+        var search = BuildQuery(query);
         var ids = await folder.SearchAsync(search, cancellationToken);
         var totalMatched = ids.Count;
 
@@ -471,7 +397,7 @@ internal static class MailboxSummaryHelpers
             return new ListMessagesResult { TotalMatched = 0 };
         }
 
-        var limit = MailboxReadLimits.ClampListLimit(query.Limit);
+        var limit = MailboxLimits.ClampListLimit(query.Limit);
         var selected = ids.TakeLast(limit).Reverse().ToList();
         var fetched = await folder.FetchAsync(selected, ListFetchItems, cancellationToken);
         var byUid = fetched.ToDictionary(s => s.UniqueId, s => s);
@@ -493,43 +419,6 @@ internal static class MailboxSummaryHelpers
             TotalMatched = totalMatched
         };
     }
-
-    private static MessageSummary MapSummary(IMessageSummary summary)
-    {
-        var envelope = summary.Envelope;
-
-        return new MessageSummary
-        {
-            Uid = summary.UniqueId.Id,
-            From = envelope?.From?.ToString() ?? "(unknown)",
-            Subject = string.IsNullOrWhiteSpace(envelope?.Subject) ? "(no subject)" : envelope.Subject,
-            Date = envelope?.Date ?? DateTimeOffset.MinValue,
-            IsUnread = IsUnread(summary.Flags),
-            Snippet = FormatSnippet(summary.PreviewText)
-        };
-    }
-
-    private static bool IsUnread(MessageFlags? flags) =>
-        flags is null || !flags.Value.HasFlag(MessageFlags.Seen);
-
-    private static string? FormatSnippet(string? preview)
-    {
-        if (string.IsNullOrWhiteSpace(preview))
-        {
-            return null;
-        }
-
-        var text = preview.Replace('\r', ' ').Replace('\n', ' ').Trim();
-        return text.Length <= MailboxReadLimits.SnippetMaxLength
-            ? text
-            : text[..MailboxReadLimits.SnippetMaxLength] + "…";
-    }
-}
-
-internal static class MailboxMessageHelpers
-{
-    private const MessageSummaryItems DetailFlagItems =
-        MessageSummaryItems.UniqueId | MessageSummaryItems.Flags;
 
     internal static async Task<IReadOnlyList<MessageDetail>> GetDetailsAsync(IMailFolder folder, IReadOnlyList<uint> uids, CancellationToken cancellationToken)
     {
@@ -558,6 +447,50 @@ internal static class MailboxMessageHelpers
         return details;
     }
 
+    private static SearchQuery BuildQuery(ListMessagesFilters query)
+    {
+        SearchQuery search = query.SinceUtc is null
+            ? SearchQuery.All
+            : SearchQuery.DeliveredAfter(query.SinceUtc.Value);
+
+        if (query.UntilUtcExclusive is not null)
+        {
+            search = search.And(SearchQuery.DeliveredBefore(query.UntilUtcExclusive.Value));
+        }
+
+        if (query.UnreadOnly)
+        {
+            search = search.And(SearchQuery.NotSeen);
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.FromContains))
+        {
+            search = search.And(SearchQuery.FromContains(query.FromContains.Trim()));
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.SubjectContains))
+        {
+            search = search.And(SearchQuery.SubjectContains(query.SubjectContains.Trim()));
+        }
+
+        return search;
+    }
+
+    private static MessageSummary MapSummary(IMessageSummary summary)
+    {
+        var envelope = summary.Envelope;
+
+        return new MessageSummary
+        {
+            Uid = summary.UniqueId.Id,
+            From = envelope?.From?.ToString() ?? "(unknown)",
+            Subject = string.IsNullOrWhiteSpace(envelope?.Subject) ? "(no subject)" : envelope.Subject,
+            Date = envelope?.Date ?? DateTimeOffset.MinValue,
+            IsUnread = IsUnread(summary.Flags),
+            Snippet = FormatSnippet(summary.PreviewText)
+        };
+    }
+
     private static MessageDetail MapDetail(MimeMessage message, string folderName, uint uid, MessageFlags? flags)
     {
         var body = EmailMessageBodyHelpers.GetPlainBody(message);
@@ -571,9 +504,25 @@ internal static class MailboxMessageHelpers
             Body = body.Text,
             Folder = folderName,
             BodyFromHtml = body.FromHtml,
-            IsUnread = flags is null || !flags.Value.HasFlag(MessageFlags.Seen),
+            IsUnread = IsUnread(flags),
             AttachmentNames = EmailMessageBodyHelpers.GetAttachmentNames(message)
         };
+    }
+
+    private static bool IsUnread(MessageFlags? flags) =>
+        flags is null || !flags.Value.HasFlag(MessageFlags.Seen);
+
+    private static string? FormatSnippet(string? preview)
+    {
+        if (string.IsNullOrWhiteSpace(preview))
+        {
+            return null;
+        }
+
+        var text = preview.Replace('\r', ' ').Replace('\n', ' ').Trim();
+        return text.Length <= MailboxLimits.SnippetMaxLength
+            ? text
+            : text[..MailboxLimits.SnippetMaxLength] + "…";
     }
 }
 
@@ -663,9 +612,9 @@ internal static partial class EmailMessageBodyHelpers
     private static string TruncateBody(string text)
     {
         text = text.Trim();
-        return text.Length <= MailboxReadLimits.MaxMessageBodyLength
+        return text.Length <= MailboxLimits.MaxMessageBodyLength
             ? text
-            : text[..MailboxReadLimits.MaxMessageBodyLength] + "… (truncated)";
+            : text[..MailboxLimits.MaxMessageBodyLength] + "… (truncated)";
     }
 }
 
@@ -675,148 +624,49 @@ internal static partial class EmailMessageBodyHelpers
 
 internal static class MailboxCommandsHelpers
 {
-    internal static async Task<MailboxCommandResult> DeleteAsync(ImapClient imap, IReadOnlyList<MessageKey> messages, CancellationToken cancellationToken)
+    internal static async Task DeleteFromFolderAsync(IMailFolder sourceFolder, IList<UniqueId> uids, ImapClient imap, CancellationToken cancellationToken)
     {
-        var affected = 0;
-
-        foreach (var group in MailboxFolderResolverHelpers.GroupMessagesByFolder(messages))
+        if (MailboxFolderResolverHelpers.IsTrashFolder(sourceFolder))
         {
-            var sourceFolder = await MailboxFolderResolverHelpers.GetFolderAsync(imap, group.Key, cancellationToken);
-            await sourceFolder.OpenAsync(FolderAccess.ReadWrite, cancellationToken);
-
-            var uids = group.Select(m => new UniqueId(m.Uid)).ToList();
-            if (uids.Count == 0)
-            {
-                continue;
-            }
-
-            if (MailboxFolderResolverHelpers.IsTrashFolder(sourceFolder))
-            {
-                await sourceFolder.AddFlagsAsync(uids, MessageFlags.Deleted, silent: true, cancellationToken);
-                await sourceFolder.ExpungeAsync(uids, cancellationToken);
-            }
-            else
-            {
-                var trash = await MailboxFolderResolverHelpers.GetTrashFolderAsync(imap, cancellationToken);
-                await sourceFolder.MoveToAsync(uids, trash, cancellationToken);
-            }
-
-            affected += uids.Count;
+            await sourceFolder.AddFlagsAsync(uids, MessageFlags.Deleted, silent: true, cancellationToken);
+            await sourceFolder.ExpungeAsync(uids, cancellationToken);
         }
-
-        return new MailboxCommandResult
+        else
         {
-            Success = true,
-            AffectedCount = affected,
-            Message = affected == 1
-                ? "Moved 1 message to trash."
-                : $"Moved {affected} messages to trash."
-        };
+            var trash = await MailboxFolderResolverHelpers.GetTrashFolderAsync(imap, cancellationToken);
+            await sourceFolder.MoveToAsync(uids, trash, cancellationToken);
+        }
     }
 
-    internal static async Task<MailboxCommandResult> MoveAsync(ImapClient imap, IReadOnlyList<MessageKey> messages, string destinationFolder, CancellationToken cancellationToken)
-    {
-        var destination = await MailboxFolderResolverHelpers.GetFolderAsync(imap, destinationFolder, cancellationToken);
-        var affected = 0;
-
-        foreach (var group in MailboxFolderResolverHelpers.GroupMessagesByFolder(messages))
-        {
-            var sourceFolder = await MailboxFolderResolverHelpers.GetFolderAsync(imap, group.Key, cancellationToken);
-            await sourceFolder.OpenAsync(FolderAccess.ReadWrite, cancellationToken);
-
-            var uids = group.Select(m => new UniqueId(m.Uid)).ToList();
-            if (uids.Count == 0)
-            {
-                continue;
-            }
-
-            await sourceFolder.MoveToAsync(uids, destination, cancellationToken);
-            affected += uids.Count;
-        }
-
-        return new MailboxCommandResult
-        {
-            Success = true,
-            AffectedCount = affected,
-            Message = affected == 1
-                ? $"Moved 1 message to '{destination.FullName}'."
-                : $"Moved {affected} messages to '{destination.FullName}'."
-        };
-    }
-
-    internal static async Task<MailboxCommandResult> SetFlagsAsync(ImapClient imap, IReadOnlyList<MessageKey> messages, MessageFlagAction flag, CancellationToken cancellationToken)
-    {
-        var affected = 0;
-
-        foreach (var group in MailboxFolderResolverHelpers.GroupMessagesByFolder(messages))
-        {
-            var folder = await MailboxFolderResolverHelpers.GetFolderAsync(imap, group.Key, cancellationToken);
-            await folder.OpenAsync(FolderAccess.ReadWrite, cancellationToken);
-
-            var uids = group.Select(m => new UniqueId(m.Uid)).ToList();
-            if (uids.Count == 0)
-            {
-                continue;
-            }
-
-            switch (flag)
-            {
-                case MessageFlagAction.Read:
-                    await folder.AddFlagsAsync(uids, MessageFlags.Seen, silent: true, cancellationToken);
-                    break;
-                case MessageFlagAction.Unread:
-                    await folder.RemoveFlagsAsync(uids, MessageFlags.Seen, silent: true, cancellationToken);
-                    break;
-                case MessageFlagAction.Flagged:
-                    await folder.AddFlagsAsync(uids, MessageFlags.Flagged, silent: true, cancellationToken);
-                    break;
-                case MessageFlagAction.Unflagged:
-                    await folder.RemoveFlagsAsync(uids, MessageFlags.Flagged, silent: true, cancellationToken);
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(flag), flag, "Unsupported message flag action.");
-            }
-
-            affected += uids.Count;
-        }
-
-        var actionLabel = flag switch
-        {
-            MessageFlagAction.Read => "marked read",
-            MessageFlagAction.Unread => "marked unread",
-            MessageFlagAction.Flagged => "flagged",
-            MessageFlagAction.Unflagged => "unflagged",
-            _ => "updated"
-        };
-
-        return new MailboxCommandResult
-        {
-            Success = true,
-            AffectedCount = affected,
-            Message = affected == 1
-                ? $"1 message {actionLabel}."
-                : $"{affected} messages {actionLabel}."
-        };
-    }
-}
-
-internal static class MailboxSendHelpers
-{
-    internal static async Task<SendMailResult> SendAsync(SmtpClient smtp, EmailSettings config, OutboundMail mail, CancellationToken cancellationToken)
+    internal static MimeMessage BuildMessage(EmailSettings config, OutboundMail mail)
     {
         var message = new MimeMessage();
         message.From.Add(new MailboxAddress(config.EmailAddress, config.EmailAddress));
         message.To.Add(MailboxAddress.Parse(mail.To));
         message.Subject = mail.Subject;
         message.Body = new TextPart("plain") { Text = mail.Body };
+        return message;
+    }
 
-        await smtp.SendAsync(message, cancellationToken);
-
-        return new SendMailResult
+    internal static async Task ApplyFlagsInFolderAsync(IMailFolder folder, IList<UniqueId> uids, MessageFlagAction flag, CancellationToken cancellationToken)
+    {
+        switch (flag)
         {
-            Success = true,
-            Message = $"Email sent to {mail.To}."
-        };
+            case MessageFlagAction.Read:
+                await folder.AddFlagsAsync(uids, MessageFlags.Seen, silent: true, cancellationToken);
+                break;
+            case MessageFlagAction.Unread:
+                await folder.RemoveFlagsAsync(uids, MessageFlags.Seen, silent: true, cancellationToken);
+                break;
+            case MessageFlagAction.Flagged:
+                await folder.AddFlagsAsync(uids, MessageFlags.Flagged, silent: true, cancellationToken);
+                break;
+            case MessageFlagAction.Unflagged:
+                await folder.RemoveFlagsAsync(uids, MessageFlags.Flagged, silent: true, cancellationToken);
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(flag), flag, "Unsupported message flag action.");
+        }
     }
 }
 

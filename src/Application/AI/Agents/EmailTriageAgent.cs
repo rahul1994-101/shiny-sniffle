@@ -189,8 +189,8 @@ public sealed class EmailTriageAgent(IFoundryAgentFactory _agentFactory, EmailTr
         var name = "Email";
         var description = "Mailbox specialist that lists, summarizes, and sends mail through the connected account.";
         var maxGets = EmailReadConstants.MaxDeepReadsPerTurn;
-        var digestLimit = MailboxReadLimits.DefaultListLimit;
-        var maxListLimit = MailboxReadLimits.MaxListLimit;
+        var digestLimit = MailboxLimits.DefaultListLimit;
+        var maxListLimit = MailboxLimits.MaxListLimit;
         var optionalGets = EmailReadConstants.MaxDigestOptionalGets;
         var dateContext = EmailReadDateContext.AgentDateBlock();
         var todayIso = EmailReadDateContext.TodayUtcIso;
@@ -222,7 +222,7 @@ public sealed class EmailTriageAgent(IFoundryAgentFactory _agentFactory, EmailTr
               - Do NOT pass only the start date for a range—the user asked for multiple days.
               - Never guess the year from training data. Today is {todayIso} UTC.
             - folder: inbox (default), sent, drafts, trash, junk, or name from list_mailbox_folders. Same folder on list and get.
-            - limit: {MailboxReadLimits.MinListLimit}-{maxListLimit} (default {digestLimit}). Filters: unread_only, from_sender, subject_contains.
+            - limit: {MailboxLimits.MinListLimit}-{maxListLimit} (default {digestLimit}). Filters: unread_only, from_sender, subject_contains.
 
             Output choreography (Layer 6):
             - Tools fetch; you interpret. Never summarize or prioritize mail not returned by tools this turn.

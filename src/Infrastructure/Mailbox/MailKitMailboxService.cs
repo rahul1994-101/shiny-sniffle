@@ -5,7 +5,7 @@ namespace Infrastructure.Mailbox;
 
 public sealed class MailKitMailboxService : IMailboxService
 {
-    private static readonly MailboxCommandResult NoMessagesSpecified = new()
+    private static readonly CommandResult NoMessagesSpecified = new()
     {
         Success = false,
         Message = "No messages were specified."
@@ -40,7 +40,7 @@ public sealed class MailKitMailboxService : IMailboxService
         {
             var folder = await MailboxFolderResolverHelpers.GetFolderAsync(imap, filters.Folder, cancellationToken);
             await folder.OpenAsync(FolderAccess.ReadOnly, cancellationToken);
-            return await MailboxSummaryHelpers.ListInFolderAsync(folder, filters, cancellationToken);
+            return await MailboxQueryHelpers.ListInFolderAsync(folder, filters, cancellationToken);
         }
         finally
         {
@@ -49,7 +49,7 @@ public sealed class MailKitMailboxService : IMailboxService
         }
     }
 
-    public async Task<GetMessagesResult> GetMessagesAsync(EmailSettings config, GetMessagesFilters filters, CancellationToken cancellationToken = default)
+    public async Task<GetMessagesResult> GetMessagesAsync(EmailSettings config, MessageBatchFilters filters, CancellationToken cancellationToken = default)
     {
         var messages = filters.Messages;
         if (messages.Count == 0)
@@ -57,10 +57,10 @@ public sealed class MailKitMailboxService : IMailboxService
             return new GetMessagesResult();
         }
 
-        if (messages.Count > MailboxReadLimits.MaxBatchGetCount)
+        if (messages.Count > MailboxLimits.MaxBatchGetCount)
         {
             throw new ArgumentException(
-                $"At most {MailboxReadLimits.MaxBatchGetCount} messages can be read per call.",
+                $"At most {MailboxLimits.MaxBatchGetCount} messages can be read per call.",
                 nameof(filters));
         }
 
@@ -76,7 +76,7 @@ public sealed class MailKitMailboxService : IMailboxService
                 await folder.OpenAsync(FolderAccess.ReadOnly, cancellationToken);
 
                 var uids = group.Select(m => m.Uid).Distinct().ToList();
-                var folderDetails = await MailboxMessageHelpers.GetDetailsAsync(folder, uids, cancellationToken);
+                var folderDetails = await MailboxQueryHelpers.GetDetailsAsync(folder, uids, cancellationToken);
                 var detailsByUid = folderDetails.ToDictionary(d => d.Uid);
 
                 foreach (var message in group)
@@ -156,52 +156,221 @@ public sealed class MailKitMailboxService : IMailboxService
             };
         }
 
-        return await MailboxConnectionHelpers.ExecuteSmtpAsync(config, (smtp, ct) => MailboxSendHelpers.SendAsync(smtp, config, mail, ct), cancellationToken);
+        var smtp = await MailboxConnectionHelpers.ConnectSmtpAsync(config, cancellationToken);
+
+        try
+        {
+            var message = MailboxCommandsHelpers.BuildMessage(config, mail);
+            await smtp.SendAsync(message, cancellationToken);
+
+            return new SendMailResult
+            {
+                Success = true,
+                Message = $"Email sent to {mail.To}."
+            };
+        }
+        finally
+        {
+            await MailboxConnectionHelpers.DisconnectAsync(smtp, cancellationToken);
+            smtp.Dispose();
+        }
     }
 
-    public async Task<MailboxCommandResult> DeleteMessagesAsync(EmailSettings config, IReadOnlyList<MessageKey> messages, CancellationToken cancellationToken = default)
+    public async Task<CommandResult> DeleteMessagesAsync(EmailSettings config, MessageBatchFilters filters, CancellationToken cancellationToken = default)
     {
+        var messages = filters.Messages;
         if (messages.Count == 0)
         {
             return NoMessagesSpecified;
         }
 
-        return await MailboxConnectionHelpers.ExecuteImapAsync(config, (imap, ct) => MailboxCommandsHelpers.DeleteAsync(imap, messages, ct), cancellationToken);
+        if (messages.Count > MailboxLimits.MaxBatchCommandCount)
+        {
+            throw new ArgumentException(
+                $"At most {MailboxLimits.MaxBatchCommandCount} messages can be deleted per call.",
+                nameof(filters));
+        }
+
+        var imap = await MailboxConnectionHelpers.ConnectImapAsync(config, cancellationToken);
+
+        try
+        {
+            var movedToTrash = 0;
+            var expunged = 0;
+
+            foreach (var group in MailboxFolderResolverHelpers.GroupMessagesByFolder(messages))
+            {
+                var sourceFolder = await MailboxFolderResolverHelpers.GetFolderAsync(imap, group.Key, cancellationToken);
+                await sourceFolder.OpenAsync(FolderAccess.ReadWrite, cancellationToken);
+                var isTrash = MailboxFolderResolverHelpers.IsTrashFolder(sourceFolder);
+                var uids = group.Select(m => new UniqueId(m.Uid)).ToList();
+                await MailboxCommandsHelpers.DeleteFromFolderAsync(sourceFolder, uids, imap, cancellationToken);
+
+                if (isTrash)
+                {
+                    expunged += uids.Count;
+                }
+                else
+                {
+                    movedToTrash += uids.Count;
+                }
+            }
+
+            var affected = movedToTrash + expunged;
+            return new CommandResult
+            {
+                Success = true,
+                AffectedCount = affected,
+                Message = FormatDeleteMessage(movedToTrash, expunged)
+            };
+        }
+        finally
+        {
+            await MailboxConnectionHelpers.DisconnectAsync(imap, cancellationToken);
+            imap.Dispose();
+        }
     }
 
-    public async Task<MailboxCommandResult> MoveMessagesAsync(EmailSettings config, IReadOnlyList<MessageKey> messages, string destinationFolder, CancellationToken cancellationToken = default)
+    public async Task<CommandResult> MoveMessagesAsync(EmailSettings config, MoveMessagesFilters filters, CancellationToken cancellationToken = default)
     {
+        var messages = filters.Messages;
         if (messages.Count == 0)
         {
             return NoMessagesSpecified;
         }
 
-        if (string.IsNullOrWhiteSpace(destinationFolder))
+        if (messages.Count > MailboxLimits.MaxBatchCommandCount)
         {
-            return new MailboxCommandResult
+            throw new ArgumentException(
+                $"At most {MailboxLimits.MaxBatchCommandCount} messages can be moved per call.",
+                nameof(filters));
+        }
+
+        if (string.IsNullOrWhiteSpace(filters.DestinationFolder))
+        {
+            return new CommandResult
             {
                 Success = false,
                 Message = "Destination folder is required."
             };
         }
 
-        var destination = destinationFolder.Trim();
-        return await MailboxConnectionHelpers.ExecuteImapAsync(config, (imap, ct) => MailboxCommandsHelpers.MoveAsync(imap, messages, destination, ct), cancellationToken);
+        var destinationName = filters.DestinationFolder.Trim();
+        var imap = await MailboxConnectionHelpers.ConnectImapAsync(config, cancellationToken);
+
+        try
+        {
+            var destination = await MailboxFolderResolverHelpers.GetFolderAsync(imap, destinationName, cancellationToken);
+            var affected = 0;
+
+            foreach (var group in MailboxFolderResolverHelpers.GroupMessagesByFolder(messages))
+            {
+                var sourceFolder = await MailboxFolderResolverHelpers.GetFolderAsync(imap, group.Key, cancellationToken);
+                await sourceFolder.OpenAsync(FolderAccess.ReadWrite, cancellationToken);
+                var uids = group.Select(m => new UniqueId(m.Uid)).ToList();
+                await sourceFolder.MoveToAsync(uids, destination, cancellationToken);
+                affected += uids.Count;
+            }
+
+            return new CommandResult
+            {
+                Success = true,
+                AffectedCount = affected,
+                Message = affected == 1
+                    ? $"Moved 1 message to '{destination.FullName}'."
+                    : $"Moved {affected} messages to '{destination.FullName}'."
+            };
+        }
+        finally
+        {
+            await MailboxConnectionHelpers.DisconnectAsync(imap, cancellationToken);
+            imap.Dispose();
+        }
     }
 
-    public async Task<MailboxCommandResult> SetMessageFlagsAsync(EmailSettings config, IReadOnlyList<MessageKey> messages, MessageFlagAction flag, CancellationToken cancellationToken = default)
+    public async Task<CommandResult> SetMessageFlagsAsync(EmailSettings config, SetMessageFlagsFilters filters, CancellationToken cancellationToken = default)
     {
+        var messages = filters.Messages;
         if (messages.Count == 0)
         {
             return NoMessagesSpecified;
         }
 
-        return await MailboxConnectionHelpers.ExecuteImapAsync(config, (imap, ct) => MailboxCommandsHelpers.SetFlagsAsync(imap, messages, flag, ct), cancellationToken);
+        if (messages.Count > MailboxLimits.MaxBatchCommandCount)
+        {
+            throw new ArgumentException(
+                $"At most {MailboxLimits.MaxBatchCommandCount} messages can be updated per call.",
+                nameof(filters));
+        }
+
+        var imap = await MailboxConnectionHelpers.ConnectImapAsync(config, cancellationToken);
+
+        try
+        {
+            var affected = 0;
+
+            foreach (var group in MailboxFolderResolverHelpers.GroupMessagesByFolder(messages))
+            {
+                var folder = await MailboxFolderResolverHelpers.GetFolderAsync(imap, group.Key, cancellationToken);
+                await folder.OpenAsync(FolderAccess.ReadWrite, cancellationToken);
+                var uids = group.Select(m => new UniqueId(m.Uid)).ToList();
+                await MailboxCommandsHelpers.ApplyFlagsInFolderAsync(folder, uids, filters.Flag, cancellationToken);
+                affected += uids.Count;
+            }
+
+            var actionLabel = filters.Flag switch
+            {
+                MessageFlagAction.Read => "marked read",
+                MessageFlagAction.Unread => "marked unread",
+                MessageFlagAction.Flagged => "flagged",
+                MessageFlagAction.Unflagged => "unflagged",
+                _ => "updated"
+            };
+
+            return new CommandResult
+            {
+                Success = true,
+                AffectedCount = affected,
+                Message = affected == 1
+                    ? $"1 message {actionLabel}."
+                    : $"{affected} messages {actionLabel}."
+            };
+        }
+        finally
+        {
+            await MailboxConnectionHelpers.DisconnectAsync(imap, cancellationToken);
+            imap.Dispose();
+        }
     }
 
     #endregion
 
     #region # Private Helpers
+
+    private static string FormatDeleteMessage(int movedToTrash, int expunged)
+    {
+        if (movedToTrash > 0 && expunged > 0)
+        {
+            var moved = movedToTrash == 1
+                ? "Moved 1 message to trash"
+                : $"Moved {movedToTrash} messages to trash";
+            var deleted = expunged == 1
+                ? "permanently deleted 1 message"
+                : $"permanently deleted {expunged} messages";
+            return $"{moved}; {deleted}.";
+        }
+
+        if (expunged > 0)
+        {
+            return expunged == 1
+                ? "Permanently deleted 1 message."
+                : $"Permanently deleted {expunged} messages.";
+        }
+
+        return movedToTrash == 1
+            ? "Moved 1 message to trash."
+            : $"Moved {movedToTrash} messages to trash.";
+    }
 
     private readonly record struct MessageLookupKey(string? Folder, uint Uid)
     {

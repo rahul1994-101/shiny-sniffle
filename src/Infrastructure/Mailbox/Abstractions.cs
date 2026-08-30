@@ -12,7 +12,7 @@ public interface IMailboxService
 
     Task<ListMessagesResult> ListMessagesAsync(EmailSettings config, ListMessagesFilters filters, CancellationToken cancellationToken = default);
 
-    Task<GetMessagesResult> GetMessagesAsync(EmailSettings config, GetMessagesFilters filters, CancellationToken cancellationToken = default);
+    Task<GetMessagesResult> GetMessagesAsync(EmailSettings config, MessageBatchFilters filters, CancellationToken cancellationToken = default);
 
     Task<ListFoldersResult> ListFoldersAsync(EmailSettings config, CancellationToken cancellationToken = default);
 
@@ -22,11 +22,11 @@ public interface IMailboxService
 
     Task<SendMailResult> SendAsync(EmailSettings config, OutboundMail mail, CancellationToken cancellationToken = default);
 
-    Task<MailboxCommandResult> DeleteMessagesAsync(EmailSettings config, IReadOnlyList<MessageKey> messages, CancellationToken cancellationToken = default);
+    Task<CommandResult> DeleteMessagesAsync(EmailSettings config, MessageBatchFilters filters, CancellationToken cancellationToken = default);
 
-    Task<MailboxCommandResult> MoveMessagesAsync(EmailSettings config, IReadOnlyList<MessageKey> messages, string destinationFolder, CancellationToken cancellationToken = default);
+    Task<CommandResult> MoveMessagesAsync(EmailSettings config, MoveMessagesFilters filters, CancellationToken cancellationToken = default);
 
-    Task<MailboxCommandResult> SetMessageFlagsAsync(EmailSettings config, IReadOnlyList<MessageKey> messages, MessageFlagAction flag, CancellationToken cancellationToken = default);
+    Task<CommandResult> SetMessageFlagsAsync(EmailSettings config, SetMessageFlagsFilters filters, CancellationToken cancellationToken = default);
 
     #endregion
 }
