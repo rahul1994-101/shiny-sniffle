@@ -80,6 +80,22 @@ public sealed class EmailTriageAgent(IFoundryAgentFactory _agentFactory, EmailTr
             "Find emails with invoice in the subject.",
             "Show messages about 'project alpha' from this week."
         ]),
+        ("Filter inbox — body", "list_inbox_messages (body_contains)", [
+            "Find emails mentioning 'quarterly review' in the body.",
+            "Show messages whose body contains 'deadline' from this week."
+        ]),
+        ("Filter inbox — recipient", "list_inbox_messages (to_contains)", [
+            "Show emails sent to bob@example.com this week.",
+            "List messages addressed to the finance team alias."
+        ]),
+        ("Filter inbox — attachments", "list_inbox_messages (attachments_filter yes/no)", [
+            "Show emails with attachments from today.",
+            "List messages without attachments from this week."
+        ]),
+        ("Filter inbox — pagination", "list_inbox_messages (skip + limit)", [
+            "Show the next 20 emails after the first page from today.",
+            "Skip the 50 newest and list the next 20 from this week."
+        ]),
         ("Filter inbox — combined", "list_inbox_messages (since + unread_only + from_sender + subject_contains)", [
             "Unread emails from PayPal this week.",
             "How many unread invoices came in today?"
@@ -151,6 +167,16 @@ public sealed class EmailTriageAgent(IFoundryAgentFactory _agentFactory, EmailTr
             "Read that invoice email and tell me the attachment names.",
             "Open Uid 55 and list what files are attached."
         ]),
+        ("Download attachments", "get_attachments (uid or list_index; optional index/name)", [
+            "Download the PDF attachment from Uid 55.",
+            "Get attachment #0 from message #2 in my recent list.",
+            "Show me what's in the notes.txt attachment on Uid 42."
+        ]),
+        ("Folder stats", "get_folder (total + unread count)", [
+            "How many unread messages are in my inbox?",
+            "What's the message count in Sent?",
+            "How many emails are in Trash?"
+        ]),
         ("Read batch", "get_inbox_messages (up to 5 Uids, same folder)", [
             "Read the full bodies of Uids 42, 43, and 44 from today.",
             "Open the top 3 unread messages from this week."
@@ -163,6 +189,14 @@ public sealed class EmailTriageAgent(IFoundryAgentFactory _agentFactory, EmailTr
             "Archive Uid 55 from my inbox.",
             "Move Uids 12 and 13 to junk."
         ]),
+        ("Copy messages", "copy_messages (duplicate to another folder)", [
+            "Copy Uid 42 to my Archive folder.",
+            "Duplicate Uids 10 and 11 into the Projects folder."
+        ]),
+        ("Create folder", "create_folder (confirm name first)", [
+            "Create a folder called Projects.",
+            "Make a new IMAP folder named Receipts under Archive."
+        ]),
         ("Message flags", "set_message_flags (read, unread, flagged, unflagged)", [
             "Mark Uid 42 as read.",
             "Flag Uid 100 as important."
@@ -171,6 +205,19 @@ public sealed class EmailTriageAgent(IFoundryAgentFactory _agentFactory, EmailTr
             "Send an email to alice@example.com.",
             "Email my team about tomorrow's meeting.",
             "Draft and send a message to bob@example.com — subject: Hello, body: ..."
+        ]),
+        ("Send email — reply/forward", "send_email (mode reply/forward + reply_uid)", [
+            "Reply to Uid 42 saying thanks.",
+            "Forward Uid 55 to alice@example.com with a short note."
+        ]),
+        ("Send email — CC/BCC/attachments", "send_email (cc, bcc, attachments name|base64)", [
+            "Send to alice@example.com and CC bob@example.com.",
+            "Email the team with the report attached."
+        ]),
+        ("Save draft", "save_draft (optional recipients; reply/forward via reply_uid)", [
+            "Save a draft reply to Uid 42.",
+            "Save a draft email to bob@example.com about the meeting.",
+            "Save a forward draft of Uid 55 for later."
         ]),
         ("Off-topic / wrong agent", "Decline; route to Assistant", [
             "What agents are in this app?",
@@ -206,15 +253,20 @@ public sealed class EmailTriageAgent(IFoundryAgentFactory _agentFactory, EmailTr
 
             Tool rules:
             - mailbox_alias: when the user @-mentions @mailbox:alias, pass that alias (or leave empty — tools auto-use the mention). Empty with no mention = default connected account. Keep the same mailbox_alias across list/get/send/command calls in one turn.
-            - list_inbox_messages: previews (#N, Uid, from, subject, date). count_only for how-many. folder + since + filters as needed.
+            - list_inbox_messages: previews (#N, Uid, from, subject, date). count_only for how-many. skip for pagination. folder + since + filters as needed.
             - get_inbox_message: full body + attachment names. Use uid + folder from a list row, or list_index after list_inbox_messages (no need to repeat filters).
             - get_inbox_messages: batch full read (max {maxGets} Uids, same folder). Use for triage when multiple bodies are needed.
+            - get_attachments: download attachment content (metadata + text preview for small text files). Use uid or list_index; optional attachment_index or attachment_name.
+            - get_folder: folder stats (total count, unread) without listing messages.
             - delete_messages: move to trash. Confirm with the user first; use folder + Uids from a recent list.
             - move_messages: move to another folder (archive, junk, etc.). Confirm destination when unclear.
+            - copy_messages: copy to another folder without removing from source. Confirm destination when unclear.
             - set_message_flags: read, unread, flagged, or unflagged.
+            - create_folder: create a new IMAP folder. Confirm name with the user first.
             - list_mailbox_folders: when folder names are unknown.
             - get_mailbox_status: when setup or connectivity is uncertain.
-            - send_email: confirm to, subject, and body with the user first.
+            - send_email: confirm to, subject, and body with the user first. Supports cc/bcc, html_body, reply/forward (mode + reply_uid), attachments (name|base64).
+            - save_draft: save to Drafts without sending. Same shape as send_email; recipients/subject optional.
             - since (critical): prefer relative keywords—today, yesterday, this_week, last_week, last_N_days—for everyday requests. Empty means today.
               - When the user gives an explicit calendar range (e.g. "May 1 to May 7, {EmailReadDateContext.CurrentYear}"), pass either:
                 - since=yyyy-MM-dd..yyyy-MM-dd (e.g. {EmailReadDateContext.CurrentYear}-05-01..{EmailReadDateContext.CurrentYear}-05-07), or
@@ -222,7 +274,8 @@ public sealed class EmailTriageAgent(IFoundryAgentFactory _agentFactory, EmailTr
               - Do NOT pass only the start date for a range—the user asked for multiple days.
               - Never guess the year from training data. Today is {todayIso} UTC.
             - folder: inbox (default), sent, drafts, trash, junk, or name from list_mailbox_folders. Same folder on list and get.
-            - limit: {MailboxLimits.MinListLimit}-{maxListLimit} (default {digestLimit}). Filters: unread_only, from_sender, subject_contains.
+            - limit: {MailboxLimits.MinListLimit}-{maxListLimit} (default {digestLimit}). skip for pagination (newest-first).
+            - Filters: unread_only, from_sender, subject_contains, body_contains, to_contains, attachments_filter (yes/no).
 
             Output choreography (Layer 6):
             - Tools fetch; you interpret. Never summarize or prioritize mail not returned by tools this turn.

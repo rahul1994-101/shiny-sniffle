@@ -41,19 +41,23 @@ public sealed class EmailTriageTools(MailboxAgentService agentService)
                     ([Description("Start of date range — see tool description. For explicit user ranges use yyyy-MM-dd or today/yesterday/etc.")] string since,
                         [Description("End date yyyy-MM-dd (inclusive). Use with since start when user gives a from/to range; empty if since is already a full range.")] string until,
                         [Description("Max messages to return; see tool description for allowed range. Ignored when count_only is true.")] int limit,
+                        [Description("Skip this many matches from the newest end before applying limit (pagination). 0 means none.")] int skip,
                         [Description("When true, return only the message count for the range (no message list).")] bool countOnly,
                         [Description("When true, only unread messages. Combines with since and other filters.")] bool unreadOnly,
                         [Description("Filter by sender name or email substring. Empty means no sender filter.")] string fromSender,
                         [Description("Filter by subject keyword substring. Empty means no subject filter.")] string subjectContains,
+                        [Description("Filter by body text substring. Empty means no body filter.")] string bodyContains,
+                        [Description("Filter by recipient (To) substring. Empty means no to filter.")] string toContains,
+                        [Description("Attachment filter: empty (any), yes/with_attachments, or no/without_attachments.")] string attachmentsFilter,
                         [Description("IMAP folder: empty/inbox (default), sent, drafts, trash, junk, or name from list_mailbox_folders.")] string folder,
                         [Description(MailboxAliasHint)] string mailboxAlias) =>
-                        ListInboxMessagesAsync(since, until, limit, countOnly, unreadOnly, fromSender, subjectContains, folder, mailboxAlias),
+                        ListInboxMessagesAsync(since, until, limit, skip, countOnly, unreadOnly, fromSender, subjectContains, bodyContains, toContains, attachmentsFilter, folder, mailboxAlias),
                     name: "list_inbox_messages",
                     description:
                         "Lists or counts messages (#N, Uid, from, subject, date, preview) in a mailbox folder. " +
                         $"Since: {sinceHint} " +
-                        $"Limit: {limitHint}. " +
-                        "Optional filters: unread_only, from_sender, subject_contains (combine with since). " +
+                        $"Limit: {limitHint}. skip for pagination (newest-first). " +
+                        "Optional filters: unread_only, from_sender, subject_contains, body_contains, to_contains, attachments_filter. " +
                         "Set count_only for how-many questions. Use mailbox_alias when the user names a specific connected account."),
                 AIFunctionFactory.Create(
                     ([Description("IMAP UID from a list_inbox_messages row. Use 0 when using list_index.")] uint uid,
@@ -103,15 +107,68 @@ public sealed class EmailTriageTools(MailboxAgentService agentService)
                     description:
                         $"Updates flags on up to {MailboxLimits.MaxBatchCommandCount} messages: read, unread, flagged, or unflagged."),
                 AIFunctionFactory.Create(
+                    ([Description("Comma-separated IMAP Uids from list_inbox_messages (e.g. 42,43). Max 5 per call.")] string uids,
+                        [Description("Source folder: empty/inbox (default), sent, drafts, trash, junk, or name from list_mailbox_folders.")] string folder,
+                        [Description("Destination folder: sent, drafts, trash, junk, archive, or name from list_mailbox_folders.")] string destinationFolder,
+                        [Description(MailboxAliasHint)] string mailboxAlias) =>
+                        CopyMessagesAsync(uids, folder, destinationFolder, mailboxAlias),
+                    name: "copy_messages",
+                    description:
+                        $"Copies up to {MailboxLimits.MaxBatchCommandCount} messages to another folder without removing them from the source. Confirm destination with the user when unclear."),
+                AIFunctionFactory.Create(
+                    ([Description("IMAP UID from a list/get call. Use 0 when using list_index.")] uint uid,
+                        [Description("1-based list row (#1, #2, …). Use 0 when using uid. Uses the most recent list_inbox_messages in this turn.")] int listIndex,
+                        [Description("IMAP folder: empty/inbox (default). Override only when different from the list call.")] string folder,
+                        [Description("0-based attachment index from get_inbox_message output. Use -1 when using attachment_name or to fetch all.")] int attachmentIndex,
+                        [Description("Attachment file name (case-insensitive). Empty when using attachment_index or fetching all.")] string attachmentName,
+                        [Description(MailboxAliasHint)] string mailboxAlias) =>
+                        GetAttachmentsAsync(uid, listIndex, folder, attachmentIndex, attachmentName, mailboxAlias),
+                    name: "get_attachments",
+                    description:
+                        "Downloads attachment content for one message. Returns metadata and text preview for small text files; binary/large files show size only. " +
+                        "Use uid+folder from a list row, or list_index after list_inbox_messages. Optionally filter by attachment_index or attachment_name."),
+                AIFunctionFactory.Create(
+                    ([Description("IMAP folder: empty/inbox (default), sent, drafts, trash, junk, or name from list_mailbox_folders.")] string folder,
+                        [Description(MailboxAliasHint)] string mailboxAlias) =>
+                        GetFolderAsync(folder, mailboxAlias),
+                    name: "get_folder",
+                    description:
+                        "Returns folder stats: total message count, unread count, and Uid validity. Use for how-many-unread without listing messages."),
+                AIFunctionFactory.Create(
+                    ([Description("New folder name.")] string name,
+                        [Description("Parent folder path or alias. Empty creates under the personal namespace root.")] string parentFolder,
+                        [Description(MailboxAliasHint)] string mailboxAlias) =>
+                        CreateFolderAsync(name, parentFolder, mailboxAlias),
+                    name: "create_folder",
+                    description:
+                        "Creates a new IMAP folder. Confirm the name with the user first."),
+                AIFunctionFactory.Create(
                     ([Description(MailboxAliasHint)] string mailboxAlias) => ListMailboxFoldersAsync(mailboxAlias),
                     name: "list_mailbox_folders",
                     description:
                         "Lists IMAP folders (name, path, role) for a connected mailbox account."),
                 AIFunctionFactory.Create(
-                    (string to, string subject, string body, [Description(MailboxAliasHint)] string mailboxAlias) =>
-                        SendEmailAsync(to, subject, body, mailboxAlias),
+                    (string to, string cc, string bcc, string subject, string body, string htmlBody,
+                        [Description("Send mode: new (default), reply, or forward. Reply/forward require reply_uid from a prior get.")] string mode,
+                        [Description("Source message Uid for reply/forward. 0 for new mail.")] uint replyUid,
+                        [Description("Source folder for reply/forward: empty/inbox (default).")] string replyFolder,
+                        [Description("Optional attachments: name|base64;name2|base64 (semicolon between files).")] string attachments,
+                        [Description(MailboxAliasHint)] string mailboxAlias) =>
+                        SendEmailAsync(to, cc, bcc, subject, body, htmlBody, mode, replyUid, replyFolder, attachments, mailboxAlias),
                     name: "send_email",
-                    description: "Sends a plain-text email via SMTP from a connected mailbox account."),
+                    description:
+                        "Sends email via SMTP. Supports to/cc/bcc, plain or HTML body, reply/forward (mode + reply_uid), and attachments (name|base64). Confirm recipients and content with the user first."),
+                AIFunctionFactory.Create(
+                    (string to, string cc, string bcc, string subject, string body, string htmlBody,
+                        [Description("Draft mode: new (default), reply, or forward. Reply/forward require reply_uid from a prior get.")] string mode,
+                        [Description("Source message Uid for reply/forward draft. 0 for new draft.")] uint replyUid,
+                        [Description("Source folder for reply/forward: empty/inbox (default).")] string replyFolder,
+                        [Description("Optional attachments: name|base64;name2|base64 (semicolon between files).")] string attachments,
+                        [Description(MailboxAliasHint)] string mailboxAlias) =>
+                        SaveDraftAsync(to, cc, bcc, subject, body, htmlBody, mode, replyUid, replyFolder, attachments, mailboxAlias),
+                    name: "save_draft",
+                    description:
+                        "Saves a draft to the Drafts folder. Same shape as send_email but recipients/subject are optional. Reply/forward drafts need reply_uid from a prior get."),
                 AIFunctionFactory.Create(
                     ([Description(MailboxAliasHint)] string mailboxAlias) => GetMailboxStatusAsync(mailboxAlias),
                     name: "get_mailbox_status",
@@ -128,15 +185,20 @@ public sealed class EmailTriageTools(MailboxAgentService agentService)
             string since,
             string until,
             int limit,
+            int skip,
             bool countOnly,
             bool unreadOnly,
             string fromSender,
             string subjectContains,
+            string bodyContains,
+            string toContains,
+            string attachmentsFilter,
             string folder,
             string mailboxAlias)
         {
             if (!MailboxListRequestBuilder.TryBuild(
-                    since, until, limit, countOnly, unreadOnly, fromSender, subjectContains, folder,
+                    since, until, limit, skip, countOnly, unreadOnly, fromSender, subjectContains,
+                    bodyContains, toContains, attachmentsFilter, folder,
                     out var listRequest, out var buildError))
             {
                 return buildError!;
@@ -215,6 +277,19 @@ public sealed class EmailTriageTools(MailboxAgentService agentService)
             return WithAccountHeader(account!, EmailMailboxTextHelpers.FormatFolderList(result!.Folders));
         }
 
+        private async Task<string> GetFolderAsync(string folder, string mailboxAlias)
+        {
+            var mailboxRef = EffectiveMailboxAlias(mailboxAlias);
+            var filters = new GetFolderFilters { Folder = NullIfWhiteSpace(folder) };
+            var (account, result, error) = await agentService.GetFolderAsync(userId, filters, mailboxRef);
+            if (error is not null)
+            {
+                return error;
+            }
+
+            return WithAccountHeader(account!, EmailMailboxTextHelpers.FormatFolderStats(result!));
+        }
+
         private async Task<string> GetMailboxStatusAsync(string mailboxAlias)
         {
             var mailboxRef = EffectiveMailboxAlias(mailboxAlias);
@@ -225,6 +300,45 @@ public sealed class EmailTriageTools(MailboxAgentService agentService)
             }
 
             return WithAccountHeader(account!, status!.Message);
+        }
+
+        #endregion
+
+        #region # Queries — Attachments
+
+        private async Task<string> GetAttachmentsAsync(
+            uint uid,
+            int listIndex,
+            string folder,
+            int attachmentIndex,
+            string attachmentName,
+            string mailboxAlias)
+        {
+            var mailboxRef = EffectiveMailboxAlias(mailboxAlias);
+            if (uid == 0)
+            {
+                if (!MailboxOpenRequestBuilder.TryResolve(uid, listIndex, folder, mailboxRef, _lastList, out var openRequest, out var resolveError))
+                {
+                    return resolveError!;
+                }
+
+                uid = openRequest!.Message.Uid;
+                folder = openRequest.Message.Folder ?? folder;
+            }
+
+            if (!GetAttachmentsFiltersBuilder.TryBuild(uid, folder, attachmentIndex, attachmentName, out var filters, out var buildError))
+            {
+                return buildError!;
+            }
+
+            var (account, result, error) = await agentService.GetAttachmentsAsync(userId, filters!, mailboxRef);
+            if (error is not null)
+            {
+                return error;
+            }
+
+            var folderLabel = string.IsNullOrWhiteSpace(filters!.Message.Folder) ? "inbox" : filters.Message.Folder.Trim();
+            return WithAccountHeader(account!, EmailMailboxTextHelpers.FormatAttachments(uid, folderLabel, result!.Attachments));
         }
 
         #endregion
@@ -269,6 +383,27 @@ public sealed class EmailTriageTools(MailboxAgentService agentService)
             return WithAccountHeader(account!, EmailMailboxTextHelpers.FormatCommandResult(result!));
         }
 
+        private async Task<string> CopyMessagesAsync(
+            string uidsCsv,
+            string folder,
+            string destinationFolder,
+            string mailboxAlias)
+        {
+            if (!MessageTransferFiltersBuilder.TryBuild(uidsCsv, folder, destinationFolder, out var filters, out var buildError))
+            {
+                return buildError!;
+            }
+
+            var mailboxRef = EffectiveMailboxAlias(mailboxAlias);
+            var (account, result, error) = await agentService.CopyMessagesAsync(userId, filters!, mailboxRef);
+            if (error is not null)
+            {
+                return error;
+            }
+
+            return WithAccountHeader(account!, EmailMailboxTextHelpers.FormatCommandResult(result!));
+        }
+
         private async Task<string> SetMessageFlagsAsync(
             string uidsCsv,
             string folder,
@@ -290,9 +425,22 @@ public sealed class EmailTriageTools(MailboxAgentService agentService)
             return WithAccountHeader(account!, EmailMailboxTextHelpers.FormatCommandResult(result!));
         }
 
-        private async Task<string> SendEmailAsync(string to, string subject, string body, string mailboxAlias)
+        private async Task<string> SendEmailAsync(
+            string to,
+            string cc,
+            string bcc,
+            string subject,
+            string body,
+            string htmlBody,
+            string mode,
+            uint replyUid,
+            string replyFolder,
+            string attachments,
+            string mailboxAlias)
         {
-            if (!OutboundMailBuilder.TryBuild(to, subject, body, out var mail, out var buildError))
+            if (!OutboundMailBuilder.TryBuild(
+                    to, cc, bcc, subject, body, htmlBody, mode, replyUid, replyFolder, attachments,
+                    out var mail, out var buildError))
             {
                 return buildError!;
             }
@@ -305,6 +453,53 @@ public sealed class EmailTriageTools(MailboxAgentService agentService)
             }
 
             return WithAccountHeader(account!, result!.Message);
+        }
+
+        private async Task<string> SaveDraftAsync(
+            string to,
+            string cc,
+            string bcc,
+            string subject,
+            string body,
+            string htmlBody,
+            string mode,
+            uint replyUid,
+            string replyFolder,
+            string attachments,
+            string mailboxAlias)
+        {
+            if (!OutboundMailBuilder.TryBuildForDraft(
+                    to, cc, bcc, subject, body, htmlBody, mode, replyUid, replyFolder, attachments,
+                    out var mail, out var buildError))
+            {
+                return buildError!;
+            }
+
+            var mailboxRef = EffectiveMailboxAlias(mailboxAlias);
+            var (account, result, error) = await agentService.SaveDraftAsync(userId, mail!, mailboxRef);
+            if (error is not null)
+            {
+                return error;
+            }
+
+            return WithAccountHeader(account!, EmailMailboxTextHelpers.FormatSaveDraftResult(result!));
+        }
+
+        private async Task<string> CreateFolderAsync(string name, string parentFolder, string mailboxAlias)
+        {
+            if (!CreateFolderFiltersBuilder.TryBuild(name, parentFolder, out var filters, out var buildError))
+            {
+                return buildError!;
+            }
+
+            var mailboxRef = EffectiveMailboxAlias(mailboxAlias);
+            var (account, result, error) = await agentService.CreateFolderAsync(userId, filters!, mailboxRef);
+            if (error is not null)
+            {
+                return error;
+            }
+
+            return WithAccountHeader(account!, EmailMailboxTextHelpers.FormatCommandResult(result!));
         }
 
         #endregion

@@ -18,6 +18,8 @@ internal static class EmailReadConstants
 
     internal const int MaxDigestOptionalGets = 3;
 
+    internal const int MaxAttachmentTextPreviewBytes = 8_192;
+
     internal const string WorkspaceEmailHint = "Connect your mailbox in Workspace → Email accounts.";
 
     internal const string NotConfiguredForAgent =
@@ -385,10 +387,14 @@ internal static partial class MailboxListRangeParser
 internal sealed record MailboxListRequest(
     MailboxDateRange Range,
     int Limit,
+    int Skip,
     bool CountOnly,
     bool UnreadOnly,
     string? FromSender,
     string? SubjectContains,
+    string? BodyContains,
+    string? ToContains,
+    bool? HasAttachments,
     string? Folder)
 {
     internal ListMessagesFilters ToListMessagesFilters() =>
@@ -397,10 +403,14 @@ internal sealed record MailboxListRequest(
             SinceUtc = Range.SinceUtc,
             UntilUtcExclusive = Range.UntilUtcExclusive,
             Limit = Limit,
+            Skip = Skip,
             CountOnly = CountOnly,
             UnreadOnly = UnreadOnly,
             FromContains = FromSender,
             SubjectContains = SubjectContains,
+            BodyContains = BodyContains,
+            ToContains = ToContains,
+            HasAttachments = HasAttachments,
             Folder = Folder
         };
 
@@ -413,10 +423,14 @@ internal static class MailboxListRequestBuilder
         string since,
         string until,
         int limit,
+        int skip,
         bool countOnly,
         bool unreadOnly,
         string fromSender,
         string subjectContains,
+        string bodyContains,
+        string toContains,
+        string attachmentsFilter,
         string folder,
         out MailboxListRequest? request,
         out string? error)
@@ -428,16 +442,56 @@ internal static class MailboxListRequestBuilder
             return false;
         }
 
+        if (!TryParseAttachmentsFilter(attachmentsFilter, out var hasAttachments, out error))
+        {
+            request = null;
+            return false;
+        }
+
         request = new MailboxListRequest(
             range,
             MailboxLimits.ClampListLimit(limit),
+            MailboxLimits.ClampListSkip(skip),
             countOnly,
             unreadOnly,
             NullIfWhiteSpace(fromSender),
             NullIfWhiteSpace(subjectContains),
+            NullIfWhiteSpace(bodyContains),
+            NullIfWhiteSpace(toContains),
+            hasAttachments,
             NullIfWhiteSpace(folder));
         error = null;
         return true;
+    }
+
+    private static bool TryParseAttachmentsFilter(string? attachmentsFilter, out bool? hasAttachments, out string? error)
+    {
+        hasAttachments = null;
+        error = null;
+
+        if (string.IsNullOrWhiteSpace(attachmentsFilter))
+        {
+            return true;
+        }
+
+        switch (attachmentsFilter.Trim().ToLowerInvariant())
+        {
+            case "yes":
+            case "with":
+            case "with_attachments":
+            case "true":
+                hasAttachments = true;
+                return true;
+            case "no":
+            case "without":
+            case "without_attachments":
+            case "false":
+                hasAttachments = false;
+                return true;
+            default:
+                error = "attachments_filter must be empty (any), yes/with_attachments, or no/without_attachments.";
+                return false;
+        }
     }
 
     private static string? NullIfWhiteSpace(string? value) =>
@@ -690,40 +744,341 @@ internal static class OutboundMailBuilder
 {
     internal static bool TryBuild(
         string to,
+        string cc,
+        string bcc,
         string subject,
         string body,
+        string htmlBody,
+        string mode,
+        uint replyUid,
+        string replyFolder,
+        string attachments,
+        out OutboundMail? mail,
+        out string? error) =>
+        TryBuild(to, cc, bcc, subject, body, htmlBody, mode, replyUid, replyFolder, attachments, forDraft: false, out mail, out error);
+
+    internal static bool TryBuildForDraft(
+        string to,
+        string cc,
+        string bcc,
+        string subject,
+        string body,
+        string htmlBody,
+        string mode,
+        uint replyUid,
+        string replyFolder,
+        string attachments,
+        out OutboundMail? mail,
+        out string? error)
+    {
+        if (!TryBuild(to, cc, bcc, subject, body, htmlBody, mode, replyUid, replyFolder, attachments, forDraft: true, out mail, out error))
+        {
+            return false;
+        }
+
+        if (mail!.Mode == OutboundMailMode.New &&
+            string.IsNullOrWhiteSpace(mail.To) &&
+            mail.Cc.Count == 0 &&
+            mail.Bcc.Count == 0 &&
+            string.IsNullOrWhiteSpace(mail.Subject) &&
+            string.IsNullOrWhiteSpace(mail.Body) &&
+            string.IsNullOrWhiteSpace(mail.HtmlBody) &&
+            mail.Attachments.Count == 0)
+        {
+            error = "Draft needs at least one of: to/cc/bcc, subject, body, html_body, or attachments.";
+            mail = null;
+            return false;
+        }
+
+        return true;
+    }
+
+    private static bool TryBuild(
+        string to,
+        string cc,
+        string bcc,
+        string subject,
+        string body,
+        string htmlBody,
+        string mode,
+        uint replyUid,
+        string replyFolder,
+        string attachments,
+        bool forDraft,
         out OutboundMail? mail,
         out string? error)
     {
         mail = null;
         error = null;
 
-        if (string.IsNullOrWhiteSpace(to))
+        if (!TryParseMode(mode, out var mailMode, out error))
         {
-            error = "Recipient address is required.";
             return false;
         }
 
-        if (string.IsNullOrWhiteSpace(subject))
+        if (mailMode is OutboundMailMode.Reply or OutboundMailMode.Forward)
+        {
+            if (replyUid == 0)
+            {
+                error = "reply_uid is required for reply or forward mode (Uid from get_inbox_message or list row).";
+                return false;
+            }
+        }
+
+        var normalizedTo = NullIfWhiteSpace(to) ?? string.Empty;
+        if (!forDraft &&
+            mailMode == OutboundMailMode.New &&
+            string.IsNullOrWhiteSpace(normalizedTo))
+        {
+            var ccList = ParseAddressList(cc);
+            var bccList = ParseAddressList(bcc);
+            if (ccList.Count == 0 && bccList.Count == 0)
+            {
+                error = "At least one recipient is required (to, cc, or bcc).";
+                return false;
+            }
+        }
+
+        if (!forDraft && mailMode == OutboundMailMode.New && string.IsNullOrWhiteSpace(subject))
         {
             error = "Subject is required.";
             return false;
         }
 
-        if (!System.Net.Mail.MailAddress.TryCreate(to, out _))
+        if (!TryParseAddressList(normalizedTo, "to", out var toError))
         {
-            error = "Recipient email address is invalid.";
+            error = toError;
+            return false;
+        }
+
+        if (!TryParseAddressList(cc, "cc", out error))
+        {
+            return false;
+        }
+
+        if (!TryParseAddressList(bcc, "bcc", out error))
+        {
+            return false;
+        }
+
+        if (!TryParseAttachments(attachments, out var parsedAttachments, out error))
+        {
             return false;
         }
 
         mail = new OutboundMail
         {
-            To = to.Trim(),
-            Subject = subject.Trim(),
-            Body = body ?? string.Empty
+            To = normalizedTo,
+            Cc = ParseAddressList(cc),
+            Bcc = ParseAddressList(bcc),
+            Subject = subject?.Trim() ?? string.Empty,
+            Body = body ?? string.Empty,
+            HtmlBody = NullIfWhiteSpace(htmlBody),
+            Mode = mailMode,
+            InReplyTo = mailMode is OutboundMailMode.Reply or OutboundMailMode.Forward
+                ? new MessageKey { Uid = replyUid, Folder = NullIfWhiteSpace(replyFolder) }
+                : null,
+            Attachments = parsedAttachments
         };
         return true;
     }
+
+    private static bool TryParseMode(string? mode, out OutboundMailMode mailMode, out string? error)
+    {
+        mailMode = OutboundMailMode.New;
+        error = null;
+
+        if (string.IsNullOrWhiteSpace(mode))
+        {
+            return true;
+        }
+
+        switch (mode.Trim().ToLowerInvariant())
+        {
+            case "new":
+                return true;
+            case "reply":
+                mailMode = OutboundMailMode.Reply;
+                return true;
+            case "forward":
+                mailMode = OutboundMailMode.Forward;
+                return true;
+            default:
+                error = "mode must be new, reply, or forward.";
+                return false;
+        }
+    }
+
+    private static bool TryParseAddressList(string? addresses, string fieldName, out string? error)
+    {
+        error = null;
+        foreach (var address in ParseAddressList(addresses))
+        {
+            if (!System.Net.Mail.MailAddress.TryCreate(address, out _))
+            {
+                error = $"{fieldName} contains an invalid email address: '{address}'.";
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static IReadOnlyList<string> ParseAddressList(string? addresses)
+    {
+        if (string.IsNullOrWhiteSpace(addresses))
+        {
+            return [];
+        }
+
+        return addresses
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .ToList();
+    }
+
+    private static bool TryParseAttachments(
+        string? attachments,
+        out IReadOnlyList<OutboundAttachment> parsed,
+        out string? error)
+    {
+        parsed = [];
+        error = null;
+
+        if (string.IsNullOrWhiteSpace(attachments))
+        {
+            return true;
+        }
+
+        var results = new List<OutboundAttachment>();
+        foreach (var entry in attachments.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            var separator = entry.IndexOf('|');
+            if (separator <= 0 || separator >= entry.Length - 1)
+            {
+                error = "attachments format: name|base64;name2|base64 (semicolon between files, pipe between name and data).";
+                parsed = [];
+                return false;
+            }
+
+            var fileName = entry[..separator].Trim();
+            var base64 = entry[(separator + 1)..].Trim();
+
+            if (string.IsNullOrWhiteSpace(fileName))
+            {
+                error = "Each attachment entry needs a file name before the pipe.";
+                parsed = [];
+                return false;
+            }
+
+            byte[] content;
+            try
+            {
+                content = Convert.FromBase64String(base64);
+            }
+            catch (FormatException)
+            {
+                error = $"Attachment '{fileName}' has invalid base64 data.";
+                parsed = [];
+                return false;
+            }
+
+            if (content.Length > MailboxLimits.MaxOutboundAttachmentSizeBytes)
+            {
+                error = $"Attachment '{fileName}' exceeds the {MailboxLimits.MaxOutboundAttachmentSizeBytes / (1024 * 1024)} MB limit.";
+                parsed = [];
+                return false;
+            }
+
+            results.Add(new OutboundAttachment
+            {
+                FileName = fileName,
+                Content = content
+            });
+        }
+
+        if (results.Count > MailboxLimits.MaxOutboundAttachmentCount)
+        {
+            error = $"At most {MailboxLimits.MaxOutboundAttachmentCount} attachments are allowed per message.";
+            parsed = [];
+            return false;
+        }
+
+        parsed = results;
+        return true;
+    }
+
+    private static string? NullIfWhiteSpace(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+}
+
+internal static class GetAttachmentsFiltersBuilder
+{
+    internal static bool TryBuild(
+        uint uid,
+        string? folder,
+        int attachmentIndex,
+        string attachmentName,
+        out GetAttachmentsFilters? filters,
+        out string? error)
+    {
+        filters = null;
+        error = null;
+
+        if (uid == 0)
+        {
+            error = "Provide uid from a list_inbox_messages row or get_inbox_message.";
+            return false;
+        }
+
+        int? index = attachmentIndex >= 0 ? attachmentIndex : null;
+        var name = NullIfWhiteSpace(attachmentName);
+
+        if (index is not null && name is not null)
+        {
+            error = "Use attachment_index or attachment_name, not both.";
+            return false;
+        }
+
+        filters = new GetAttachmentsFilters
+        {
+            Message = new MessageKey { Uid = uid, Folder = NullIfWhiteSpace(folder) },
+            AttachmentIndex = index,
+            AttachmentName = name
+        };
+        return true;
+    }
+
+    private static string? NullIfWhiteSpace(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+}
+
+internal static class CreateFolderFiltersBuilder
+{
+    internal static bool TryBuild(
+        string name,
+        string parentFolder,
+        out CreateFolderFilters? filters,
+        out string? error)
+    {
+        filters = null;
+        error = null;
+
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            error = "Folder name is required.";
+            return false;
+        }
+
+        filters = new CreateFolderFilters
+        {
+            Name = name.Trim(),
+            ParentFolder = NullIfWhiteSpace(parentFolder)
+        };
+        return true;
+    }
+
+    private static string? NullIfWhiteSpace(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 }
 
 internal static class EmailMailboxTextHelpers
@@ -754,6 +1109,30 @@ internal static class EmailMailboxTextHelpers
         if (!string.IsNullOrWhiteSpace(query.SubjectContains))
         {
             parts.Add($"subject contains '{query.SubjectContains.Trim()}'");
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.BodyContains))
+        {
+            parts.Add($"body contains '{query.BodyContains.Trim()}'");
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.ToContains))
+        {
+            parts.Add($"to contains '{query.ToContains.Trim()}'");
+        }
+
+        if (query.HasAttachments == true)
+        {
+            parts.Add("with attachments");
+        }
+        else if (query.HasAttachments == false)
+        {
+            parts.Add("without attachments");
+        }
+
+        if (query.Skip > 0)
+        {
+            parts.Add($"skip {query.Skip}");
         }
 
         return string.Join(", ", parts);
@@ -898,6 +1277,122 @@ internal static class EmailMailboxTextHelpers
 
         return builder.ToString().TrimEnd();
     }
+
+    internal static string FormatFolderStats(GetFolderResult result)
+    {
+        var folder = result.Folder;
+        var builder = new StringBuilder();
+        builder.Append("Folder: ").Append(folder.Name);
+        if (!folder.Name.Equals(folder.FullName, StringComparison.Ordinal))
+        {
+            builder.Append(" (path: ").Append(folder.FullName).Append(')');
+        }
+
+        if (!string.IsNullOrWhiteSpace(folder.Role))
+        {
+            builder.Append(" [").Append(folder.Role).Append(']');
+        }
+
+        builder.AppendLine();
+        builder.Append("Total messages: ").AppendLine(result.TotalCount.ToString(CultureInfo.InvariantCulture));
+        builder.Append("Unread: ").AppendLine(result.UnreadCount.ToString(CultureInfo.InvariantCulture));
+        if (result.UidValidity is uint uidValidity)
+        {
+            builder.Append("Uid validity: ").Append(uidValidity);
+        }
+
+        return builder.ToString().TrimEnd();
+    }
+
+    internal static string FormatAttachments(uint uid, string folder, IReadOnlyList<AttachmentContent> attachments)
+    {
+        if (attachments.Count == 0)
+        {
+            return $"No attachments found for Uid {uid} in folder '{folder}'.";
+        }
+
+        var builder = new StringBuilder();
+        builder.AppendLine($"Attachments for Uid {uid} in folder '{folder}' ({attachments.Count}):");
+        foreach (var attachment in attachments)
+        {
+            builder.Append("- [").Append(attachment.Index).Append("] ")
+                .Append(attachment.FileName)
+                .Append(" (").Append(attachment.ContentType)
+                .Append(", ").Append(FormatByteSize(attachment.Content.Length)).AppendLine(")");
+
+            if (TryFormatAttachmentPreview(attachment, out var preview))
+            {
+                builder.AppendLine("  Content preview:");
+                builder.AppendLine(preview);
+            }
+            else
+            {
+                builder.AppendLine("  Content: omitted (binary or too large for preview).");
+            }
+        }
+
+        return builder.ToString().TrimEnd();
+    }
+
+    internal static string FormatSaveDraftResult(SaveDraftResult result) =>
+        result.Success
+            ? result.Message
+            : $"Could not save draft: {result.Message}";
+
+    private static bool TryFormatAttachmentPreview(AttachmentContent attachment, out string preview)
+    {
+        preview = string.Empty;
+
+        if (attachment.Content.Length == 0)
+        {
+            preview = "(empty file)";
+            return true;
+        }
+
+        if (attachment.Content.Length > EmailReadConstants.MaxAttachmentTextPreviewBytes)
+        {
+            return false;
+        }
+
+        var contentType = attachment.ContentType.ToLowerInvariant();
+        var fileName = attachment.FileName.ToLowerInvariant();
+        var looksText = contentType.StartsWith("text/", StringComparison.Ordinal) ||
+                        contentType.Contains("json", StringComparison.Ordinal) ||
+                        contentType.Contains("xml", StringComparison.Ordinal) ||
+                        fileName.EndsWith(".txt", StringComparison.Ordinal) ||
+                        fileName.EndsWith(".csv", StringComparison.Ordinal) ||
+                        fileName.EndsWith(".json", StringComparison.Ordinal) ||
+                        fileName.EndsWith(".xml", StringComparison.Ordinal);
+
+        if (!looksText)
+        {
+            return false;
+        }
+
+        try
+        {
+            preview = Encoding.UTF8.GetString(attachment.Content).TrimEnd();
+            if (preview.Contains('\0'))
+            {
+                preview = string.Empty;
+                return false;
+            }
+
+            return true;
+        }
+        catch (DecoderFallbackException)
+        {
+            return false;
+        }
+    }
+
+    private static string FormatByteSize(int bytes) =>
+        bytes switch
+        {
+            < 1024 => $"{bytes} B",
+            < 1024 * 1024 => $"{bytes / 1024.0:0.#} KB",
+            _ => $"{bytes / (1024.0 * 1024.0):0.#} MB"
+        };
 
     private static bool IsInboxAlias(string? folder) =>
         string.IsNullOrWhiteSpace(folder) || folder.Trim().Equals("inbox", StringComparison.OrdinalIgnoreCase);

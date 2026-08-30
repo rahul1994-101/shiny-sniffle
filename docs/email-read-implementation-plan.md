@@ -11,7 +11,7 @@ Roadmap for mailbox capabilities: **EmailTriageAgent** + **EmailTriageTools** �
 ```
 Infrastructure/Mailbox (IMailboxService)   ✅ complete — stable port
 Layers 0–5 + commands + @mailbox + 6a    ✅ shipped (Application/AI)
-Application mailbox consumption           ← current (wire remaining port methods)
+Application mailbox consumption           ✅ shipped (all port methods wired)
 Layer 6b–6e                               deferred (compare, memory, actions)
 ```
 
@@ -43,7 +43,7 @@ Treat `src/Infrastructure/Mailbox/` as a **full mail-client adapter**. Do not ad
 
 ---
 
-## Application consumption — current
+## Application consumption — shipped ✅
 
 **Goal:** wire the remaining port capabilities through Application facades and AI tools without duplicating infra logic.
 
@@ -79,23 +79,20 @@ SendChatMessage
 | List | `list_inbox_messages` | `ListMessagesAsync` |
 | Open one | `get_inbox_message` | `GetMessagesAsync` (batch of 1) |
 | Batch read | `get_inbox_messages` | `GetMessagesAsync` |
+| Attachments | `get_attachments` | `GetAttachmentsAsync` |
 | Folders | `list_mailbox_folders` | `ListFoldersAsync` |
+| Folder stats | `get_folder` | `GetFolderAsync` |
 | Send | `send_email` | `SendAsync` |
+| Save draft | `save_draft` | `SaveDraftAsync` |
 | Delete | `delete_messages` | `DeleteMessagesAsync` |
 | Move | `move_messages` | `MoveMessagesAsync` |
+| Copy | `copy_messages` | `CopyMessagesAsync` |
 | Flags | `set_message_flags` | `SetMessageFlagsAsync` |
+| Create folder | `create_folder` | `CreateFolderAsync` |
 
-### Not yet wired (Application gap)
+**Richer list filters:** `skip`, `body_contains`, `to_contains`, `attachments_filter` on `list_inbox_messages`.
 
-| Infra capability | Suggested next step |
-|------------------|---------------------|
-| `GetAttachmentsAsync` | `UserMailboxService` + `get_attachments` tool |
-| `GetFolderAsync` | `UserMailboxService` + optional `get_folder` tool |
-| `SaveDraftAsync` | `UserMailboxService` + `save_draft` tool; reply/forward via `OutboundMail` |
-| `CopyMessagesAsync` | `UserMailboxService` + `copy_messages` tool |
-| `CreateFolderAsync` | `UserMailboxService` + `create_folder` tool |
-| Richer list filters | Expose `Skip`, `BodyContains`, `ToContains`, `HasAttachments` in `MailboxListRequest` / tool params |
-| Richer send | CC/BCC, HTML body, attachments, reply/forward mode in `send_email` |
+**Richer send/draft:** `cc`, `bcc`, `html_body`, `mode` (new/reply/forward), `reply_uid` + `reply_folder`, `attachments` (`name|base64;…`) on `send_email` and `save_draft`.
 
 ### Application model notes
 
@@ -207,7 +204,7 @@ Agent-only: output modes (`digest`, `triage`, `compare`, `single`, `stats`, `act
 
 ## Suggested tickets
 
-1. **App consumption** — wire `GetAttachments`, `SaveDraft`, `Copy`, `GetFolder`, `CreateFolder` + richer list/send — **current**
+1. ~~**App consumption** — wire `GetAttachments`, `SaveDraft`, `Copy`, `GetFolder`, `CreateFolder` + richer list/send~~ ✅
 2. **6b** — `compare_mail_periods` tool + formatter
 3. **6d** — Thread last-list memory
 4. **6e** — `action_list` hardening when action workflows start

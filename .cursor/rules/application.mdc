@@ -149,8 +149,8 @@ EmailTriageTools → MailboxAgentService → UserMailboxService → IMailboxServ
 | **Helpers** | Date parsing, filter builders, text formatting | `Shared/MailboxReadHelpers.cs` |
 | **Tools** | Agent tool catalog + per-turn `MailboxListSnapshot` | `AI/Tools/EmailTriageTools.cs` |
 
-**Wired today:** list/get messages, folders, status, send, delete, move, set flags.
+**Wired today:** full port surface — list/get messages, attachments, folders, folder stats, status, send, save draft, delete, move, copy, set flags, create folder; richer list filters and send/draft params.
 
-**Not yet wired to Application/AI:** `GetAttachmentsAsync`, `GetFolderAsync`, `SaveDraftAsync`, `CopyMessagesAsync`, `CreateFolderAsync`; richer `ListMessagesFilters` (pagination, `BodyContains`, `ToContains`, `HasAttachments`); richer `OutboundMail` (reply/forward, CC/BCC, attachments).
+**Deferred to Layer 6b–6e:** compare helper, thread memory, action_list hardening.
 
 **Conventions:** map at the port (`ToMailRuntime()` before `IMailboxService`); infra filters in agent commands (no thin duplicate request types); agent-facing names OK in Application (`GetStatusAsync` wraps `TestConnectionAsync`). See `conventions.mdc`.

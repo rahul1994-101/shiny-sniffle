@@ -61,6 +61,18 @@ public sealed class UserMailboxService(
         CancellationToken cancellationToken = default) =>
         mailboxService.ListFoldersAsync(context.Runtime, cancellationToken);
 
+    internal Task<GetAttachmentsResult> GetAttachmentsAsync(
+        MailboxAccountContext context,
+        GetAttachmentsFilters filters,
+        CancellationToken cancellationToken = default) =>
+        mailboxService.GetAttachmentsAsync(context.Runtime, filters, cancellationToken);
+
+    internal Task<GetFolderResult> GetFolderAsync(
+        MailboxAccountContext context,
+        GetFolderFilters filters,
+        CancellationToken cancellationToken = default) =>
+        mailboxService.GetFolderAsync(context.Runtime, filters, cancellationToken);
+
     #endregion
 
     #region # Commands
@@ -88,6 +100,24 @@ public sealed class UserMailboxService(
         SetMessageFlagsFilters filters,
         CancellationToken cancellationToken = default) =>
         mailboxService.SetMessageFlagsAsync(context.Runtime, filters, cancellationToken);
+
+    internal Task<SaveDraftResult> SaveDraftAsync(
+        MailboxAccountContext context,
+        OutboundMail mail,
+        CancellationToken cancellationToken = default) =>
+        mailboxService.SaveDraftAsync(context.Runtime, mail, cancellationToken);
+
+    internal Task<CommandResult> CopyMessagesAsync(
+        MailboxAccountContext context,
+        MessageTransferFilters filters,
+        CancellationToken cancellationToken = default) =>
+        mailboxService.CopyMessagesAsync(context.Runtime, filters, cancellationToken);
+
+    internal Task<CommandResult> CreateFolderAsync(
+        MailboxAccountContext context,
+        CreateFolderFilters filters,
+        CancellationToken cancellationToken = default) =>
+        mailboxService.CreateFolderAsync(context.Runtime, filters, cancellationToken);
 
     #endregion
 
@@ -203,6 +233,32 @@ public sealed class MailboxAgentService(UserMailboxService mailboxService)
             "Could not list mailbox folders",
             cancellationToken);
 
+    internal Task<(MailboxAccountContext? Account, GetAttachmentsResult? Result, string? Error)> GetAttachmentsAsync(
+        Guid userId,
+        GetAttachmentsFilters filters,
+        string? mailboxRef,
+        CancellationToken cancellationToken = default) =>
+        ExecuteAsync(
+            userId,
+            mailboxRef,
+            EmailReadConstants.NotConfiguredForGet,
+            (account, ct) => mailboxService.GetAttachmentsAsync(account, filters, ct),
+            "Could not fetch attachments",
+            cancellationToken);
+
+    internal Task<(MailboxAccountContext? Account, GetFolderResult? Result, string? Error)> GetFolderAsync(
+        Guid userId,
+        GetFolderFilters filters,
+        string? mailboxRef,
+        CancellationToken cancellationToken = default) =>
+        ExecuteAsync(
+            userId,
+            mailboxRef,
+            EmailReadConstants.NotConfiguredForFolders,
+            (account, ct) => mailboxService.GetFolderAsync(account, filters, ct),
+            "Could not read folder stats",
+            cancellationToken);
+
     internal async Task<(MailboxAccountContext? Account, TestConnectionResult? Status, string? Error)> GetStatusAsync(
         Guid userId,
         string? mailboxRef,
@@ -282,6 +338,40 @@ public sealed class MailboxAgentService(UserMailboxService mailboxService)
             cancellationToken);
     }
 
+    internal Task<(MailboxAccountContext? Account, CommandResult? Result, string? Error)> CopyMessagesAsync(
+        Guid userId,
+        MessageTransferFilters filters,
+        string? mailboxRef,
+        CancellationToken cancellationToken = default)
+    {
+        var batchError = ValidateCommandBatchSize(filters.Messages.Count);
+        if (batchError is not null)
+        {
+            return Task.FromResult<(MailboxAccountContext?, CommandResult?, string?)>((null, null, batchError));
+        }
+
+        return ExecuteAsync(
+            userId,
+            mailboxRef,
+            EmailReadConstants.NotConfiguredForCommands,
+            (account, ct) => mailboxService.CopyMessagesAsync(account, filters, ct),
+            "Could not copy messages",
+            cancellationToken);
+    }
+
+    internal Task<(MailboxAccountContext? Account, CommandResult? Result, string? Error)> CreateFolderAsync(
+        Guid userId,
+        CreateFolderFilters filters,
+        string? mailboxRef,
+        CancellationToken cancellationToken = default) =>
+        ExecuteAsync(
+            userId,
+            mailboxRef,
+            EmailReadConstants.NotConfiguredForCommands,
+            (account, ct) => mailboxService.CreateFolderAsync(account, filters, ct),
+            "Could not create folder",
+            cancellationToken);
+
     internal async Task<(MailboxAccountContext? Account, SendMailResult? Result, string? Error)> SendAsync(
         Guid userId,
         OutboundMail mail,
@@ -305,6 +395,32 @@ public sealed class MailboxAgentService(UserMailboxService mailboxService)
         catch (Exception ex)
         {
             return (null, null, $"Could not send email: {ex.Message}");
+        }
+    }
+
+    internal async Task<(MailboxAccountContext? Account, SaveDraftResult? Result, string? Error)> SaveDraftAsync(
+        Guid userId,
+        OutboundMail mail,
+        string? mailboxRef,
+        CancellationToken cancellationToken = default)
+    {
+        var (account, error) = await RequireAccountAsync(
+            userId, mailboxRef, EmailReadConstants.NotConfiguredForSend, cancellationToken);
+        if (error is not null)
+        {
+            return (null, null, error);
+        }
+
+        try
+        {
+            var result = await mailboxService.SaveDraftAsync(account!, mail, cancellationToken);
+            return result.Success
+                ? (account, result, null)
+                : (account, result, result.Message);
+        }
+        catch (Exception ex)
+        {
+            return (null, null, $"Could not save draft: {ex.Message}");
         }
     }
 
