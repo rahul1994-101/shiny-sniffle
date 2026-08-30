@@ -83,7 +83,7 @@ internal static class MailboxConnectionHelpers
         return smtp;
     }
 
-    internal static string FormatConnectionProbeMessage(bool imapOk, string? imapError, bool smtpOk, string? smtpError)
+    internal static string FormatConnectionTestMessage(bool imapOk, string? imapError, bool smtpOk, string? smtpError)
     {
         var parts = new List<string>();
         if (imapOk)
@@ -325,6 +325,38 @@ internal static class MailboxFolderResolverHelpers
             Role = DescribeRole(folder)
         };
 
+    internal static async Task<IMailFolder> GetDraftsFolderAsync(ImapClient imap, CancellationToken cancellationToken)
+    {
+        var drafts = imap.GetFolder(SpecialFolder.Drafts);
+        if (drafts is not null && drafts.Exists)
+        {
+            return drafts;
+        }
+
+        foreach (var name in new[] { "drafts", "draft" })
+        {
+            var match = await FindFolderByNameAsync(imap, name, cancellationToken);
+            if (match is not null)
+            {
+                return match;
+            }
+        }
+
+        throw new InvalidOperationException("Drafts folder was not found on this mailbox.");
+    }
+
+    internal static async Task<IMailFolder> GetParentFolderAsync(ImapClient imap, string? parentFolder, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(parentFolder))
+        {
+            var ns = imap.PersonalNamespaces.FirstOrDefault()
+                ?? throw new InvalidOperationException("No personal namespace is available on this mailbox.");
+            return imap.GetFolder(ns);
+        }
+
+        return await GetFolderAsync(imap, parentFolder, cancellationToken);
+    }
+
     private static IEnumerable<string> TrashFallbackNames =>
         SpecialFolderAliases
             .Where(entry => entry.Value == SpecialFolder.Trash)
@@ -381,13 +413,18 @@ internal static class MailboxQueryHelpers
     private const MessageSummaryItems DetailFlagItems =
         MessageSummaryItems.UniqueId | MessageSummaryItems.Flags;
 
-    internal static async Task<ListMessagesResult> ListInFolderAsync(IMailFolder folder, ListMessagesFilters query, CancellationToken cancellationToken)
+    internal static async Task<ListMessagesResult> ListInFolderAsync(IMailFolder folder, ListMessagesFilters filters, CancellationToken cancellationToken)
     {
-        var search = BuildQuery(query);
+        var search = BuildQuery(filters);
         var ids = await folder.SearchAsync(search, cancellationToken);
+        if (filters.HasAttachments is bool requireAttachments)
+        {
+            ids = await FilterByAttachmentsAsync(folder, ids, requireAttachments, cancellationToken);
+        }
+
         var totalMatched = ids.Count;
 
-        if (query.CountOnly)
+        if (filters.CountOnly)
         {
             return new ListMessagesResult { TotalMatched = totalMatched };
         }
@@ -397,8 +434,10 @@ internal static class MailboxQueryHelpers
             return new ListMessagesResult { TotalMatched = 0 };
         }
 
-        var limit = MailboxLimits.ClampListLimit(query.Limit);
-        var selected = ids.TakeLast(limit).Reverse().ToList();
+        var limit = MailboxLimits.ClampListLimit(filters.Limit);
+        var skip = MailboxLimits.ClampListSkip(filters.Skip);
+        var window = ids.TakeLast(Math.Min(skip + limit, ids.Count)).Reverse().ToList();
+        var selected = window.Skip(skip).Take(limit).ToList();
         var fetched = await folder.FetchAsync(selected, ListFetchItems, cancellationToken);
         var byUid = fetched.ToDictionary(s => s.UniqueId, s => s);
 
@@ -447,33 +486,108 @@ internal static class MailboxQueryHelpers
         return details;
     }
 
-    private static SearchQuery BuildQuery(ListMessagesFilters query)
+    internal static async Task<GetAttachmentsResult> GetAttachmentsAsync(IMailFolder folder, uint uid, GetAttachmentsFilters filters, CancellationToken cancellationToken)
     {
-        SearchQuery search = query.SinceUtc is null
-            ? SearchQuery.All
-            : SearchQuery.DeliveredAfter(query.SinceUtc.Value);
-
-        if (query.UntilUtcExclusive is not null)
+        var message = await folder.GetMessageAsync(new UniqueId(uid), cancellationToken);
+        var parts = EmailMessageBodyHelpers.CollectAttachmentParts(message);
+        if (parts.Count == 0)
         {
-            search = search.And(SearchQuery.DeliveredBefore(query.UntilUtcExclusive.Value));
+            return new GetAttachmentsResult();
         }
 
-        if (query.UnreadOnly)
+        IEnumerable<(int Index, MimePart Part)> selected = filters.AttachmentIndex is int index
+            ? parts.Where(entry => entry.Index == index)
+            : !string.IsNullOrWhiteSpace(filters.AttachmentName)
+                ? parts.Where(entry => entry.Part.FileName is not null &&
+                    entry.Part.FileName.Equals(filters.AttachmentName.Trim(), StringComparison.OrdinalIgnoreCase))
+                : parts;
+
+        var attachments = new List<AttachmentContent>();
+        foreach (var (partIndex, part) in selected.Take(MailboxLimits.MaxAttachmentCount))
+        {
+            var content = await EmailMessageBodyHelpers.ReadAttachmentContentAsync(part, partIndex, cancellationToken);
+            attachments.Add(content);
+        }
+
+        return new GetAttachmentsResult { Attachments = attachments };
+    }
+
+    internal static async Task<GetFolderResult> GetFolderStatsAsync(IMailFolder folder, CancellationToken cancellationToken)
+    {
+        await folder.OpenAsync(FolderAccess.ReadOnly, cancellationToken);
+        var unreadIds = await folder.SearchAsync(SearchQuery.NotSeen, cancellationToken);
+
+        return new GetFolderResult
+        {
+            Folder = MailboxFolderResolverHelpers.MapFolder(folder),
+            TotalCount = folder.Count,
+            UnreadCount = unreadIds.Count,
+            UidValidity = folder.UidValidity
+        };
+    }
+
+    private static SearchQuery BuildQuery(ListMessagesFilters filters)
+    {
+        SearchQuery search = filters.SinceUtc is null
+            ? SearchQuery.All
+            : SearchQuery.DeliveredAfter(filters.SinceUtc.Value);
+
+        if (filters.UntilUtcExclusive is not null)
+        {
+            search = search.And(SearchQuery.DeliveredBefore(filters.UntilUtcExclusive.Value));
+        }
+
+        if (filters.UnreadOnly)
         {
             search = search.And(SearchQuery.NotSeen);
         }
 
-        if (!string.IsNullOrWhiteSpace(query.FromContains))
+        if (!string.IsNullOrWhiteSpace(filters.FromContains))
         {
-            search = search.And(SearchQuery.FromContains(query.FromContains.Trim()));
+            search = search.And(SearchQuery.FromContains(filters.FromContains.Trim()));
         }
 
-        if (!string.IsNullOrWhiteSpace(query.SubjectContains))
+        if (!string.IsNullOrWhiteSpace(filters.SubjectContains))
         {
-            search = search.And(SearchQuery.SubjectContains(query.SubjectContains.Trim()));
+            search = search.And(SearchQuery.SubjectContains(filters.SubjectContains.Trim()));
+        }
+
+        if (!string.IsNullOrWhiteSpace(filters.BodyContains))
+        {
+            search = search.And(SearchQuery.BodyContains(filters.BodyContains.Trim()));
+        }
+
+        if (!string.IsNullOrWhiteSpace(filters.ToContains))
+        {
+            search = search.And(SearchQuery.ToContains(filters.ToContains.Trim()));
         }
 
         return search;
+    }
+
+    private static async Task<IList<UniqueId>> FilterByAttachmentsAsync(IMailFolder folder, IList<UniqueId> ids, bool requireAttachments, CancellationToken cancellationToken)
+    {
+        if (ids.Count == 0)
+        {
+            return ids;
+        }
+
+        var fetched = await folder.FetchAsync(
+            ids,
+            MessageSummaryItems.UniqueId | MessageSummaryItems.BodyStructure,
+            cancellationToken);
+        var filtered = new List<UniqueId>(fetched.Count);
+
+        foreach (var summary in fetched)
+        {
+            var hasAttachments = summary.Attachments.Any();
+            if (hasAttachments == requireAttachments)
+            {
+                filtered.Add(summary.UniqueId);
+            }
+        }
+
+        return filtered;
     }
 
     private static MessageSummary MapSummary(IMessageSummary summary)
@@ -499,15 +613,23 @@ internal static class MailboxQueryHelpers
         {
             Uid = uid,
             From = message.From?.ToString() ?? "(unknown)",
+            To = FormatAddresses(message.To),
+            Cc = FormatAddresses(message.Cc),
             Subject = string.IsNullOrWhiteSpace(message.Subject) ? "(no subject)" : message.Subject,
             Date = message.Date,
             Body = body.Text,
             Folder = folderName,
             BodyFromHtml = body.FromHtml,
             IsUnread = IsUnread(flags),
-            AttachmentNames = EmailMessageBodyHelpers.GetAttachmentNames(message)
+            AttachmentNames = EmailMessageBodyHelpers.GetAttachmentNames(message),
+            MessageId = message.MessageId,
+            InReplyTo = message.InReplyTo,
+            References = message.References.Select(reference => reference.ToString()).ToList()
         };
     }
+
+    private static IReadOnlyList<string> FormatAddresses(InternetAddressList addresses) =>
+        addresses.Mailboxes.Select(mailbox => mailbox.ToString()).ToList();
 
     private static bool IsUnread(MessageFlags? flags) =>
         flags is null || !flags.Value.HasFlag(MessageFlags.Seen);
@@ -576,27 +698,67 @@ internal static partial class EmailMessageBodyHelpers
     {
         var names = new List<string>();
 
-        foreach (var entity in message.Attachments)
+        foreach (var (_, part) in CollectAttachmentParts(message))
         {
-            if (entity is not MimePart part)
-            {
-                continue;
-            }
-
-            var rawName = part.FileName
-                ?? part.ContentDisposition?.FileName
-                ?? part.ContentType.Name;
-
-            if (string.IsNullOrWhiteSpace(rawName))
-            {
-                names.Add("(unnamed)");
-                continue;
-            }
-
-            names.Add(MimeUtils.Unquote(rawName.Trim()));
+            names.Add(GetPartFileName(part));
         }
 
         return names;
+    }
+
+    internal static IReadOnlyList<(int Index, MimePart Part)> CollectAttachmentParts(MimeMessage message)
+    {
+        var parts = new List<(int Index, MimePart Part)>();
+        var index = 0;
+
+        foreach (var entity in message.Attachments)
+        {
+            if (entity is MimePart part)
+            {
+                parts.Add((index++, part));
+            }
+        }
+
+        return parts;
+    }
+
+    internal static async Task<AttachmentContent> ReadAttachmentContentAsync(MimePart part, int index, CancellationToken cancellationToken)
+    {
+        if (part.Content is null)
+        {
+            throw new InvalidOperationException($"Attachment '{GetPartFileName(part)}' has no readable content.");
+        }
+
+        using var stream = new MemoryStream();
+        await part.Content.DecodeToAsync(stream, cancellationToken);
+        var bytes = stream.ToArray();
+        if (bytes.Length > MailboxLimits.MaxAttachmentSizeBytes)
+        {
+            throw new InvalidOperationException(
+                $"Attachment '{GetPartFileName(part)}' exceeds the {MailboxLimits.MaxAttachmentSizeBytes / (1024 * 1024)} MB limit.");
+        }
+
+        return new AttachmentContent
+        {
+            Index = index,
+            FileName = GetPartFileName(part),
+            ContentType = part.ContentType.MimeType,
+            Content = bytes
+        };
+    }
+
+    private static string GetPartFileName(MimePart part)
+    {
+        var rawName = part.FileName
+            ?? part.ContentDisposition?.FileName
+            ?? part.ContentType.Name;
+
+        if (string.IsNullOrWhiteSpace(rawName))
+        {
+            return "(unnamed)";
+        }
+
+        return MimeUtils.Unquote(rawName.Trim());
     }
 
     private static string ConvertHtmlToPlainText(string html)
@@ -638,14 +800,50 @@ internal static class MailboxCommandsHelpers
         }
     }
 
-    internal static MimeMessage BuildMessage(EmailSettings config, OutboundMail mail)
+    internal static async Task<MimeMessage?> TryFetchOriginalAsync(ImapClient imap, MessageKey? messageKey, CancellationToken cancellationToken)
+    {
+        if (messageKey is null)
+        {
+            return null;
+        }
+
+        var folder = await MailboxFolderResolverHelpers.GetFolderAsync(imap, messageKey.Folder, cancellationToken);
+        await folder.OpenAsync(FolderAccess.ReadOnly, cancellationToken);
+        return await folder.GetMessageAsync(new UniqueId(messageKey.Uid), cancellationToken);
+    }
+
+    internal static MimeMessage BuildMessage(EmailSettings config, OutboundMail mail, MimeMessage? original = null)
     {
         var message = new MimeMessage();
         message.From.Add(new MailboxAddress(config.EmailAddress, config.EmailAddress));
-        message.To.Add(MailboxAddress.Parse(mail.To));
-        message.Subject = mail.Subject;
-        message.Body = new TextPart("plain") { Text = mail.Body };
+
+        foreach (var to in ResolveToAddresses(mail, original))
+        {
+            message.To.Add(to);
+        }
+
+        foreach (var cc in mail.Cc)
+        {
+            message.Cc.Add(MailboxAddress.Parse(cc.Trim()));
+        }
+
+        foreach (var bcc in mail.Bcc)
+        {
+            message.Bcc.Add(MailboxAddress.Parse(bcc.Trim()));
+        }
+
+        message.Subject = BuildSubject(mail, original);
+        ApplyThreadingHeaders(message, mail, original);
+        message.Body = BuildBody(mail, original);
+
         return message;
+    }
+
+    internal static async Task<(uint? Uid, string FolderFullName)> AppendDraftAsync(IMailFolder draftsFolder, MimeMessage message, CancellationToken cancellationToken)
+    {
+        await draftsFolder.OpenAsync(FolderAccess.ReadWrite, cancellationToken);
+        var uid = await draftsFolder.AppendAsync(message, MessageFlags.Draft | MessageFlags.Seen, cancellationToken);
+        return (uid?.Id, draftsFolder.FullName);
     }
 
     internal static async Task ApplyFlagsInFolderAsync(IMailFolder folder, IList<UniqueId> uids, MessageFlagAction flag, CancellationToken cancellationToken)
@@ -668,6 +866,130 @@ internal static class MailboxCommandsHelpers
                 throw new ArgumentOutOfRangeException(nameof(flag), flag, "Unsupported message flag action.");
         }
     }
+
+    private static IEnumerable<MailboxAddress> ResolveToAddresses(OutboundMail mail, MimeMessage? original)
+    {
+        if (!string.IsNullOrWhiteSpace(mail.To))
+        {
+            foreach (var address in ParseAddressList(mail.To))
+            {
+                yield return address;
+            }
+
+            yield break;
+        }
+
+        if (mail.Mode == OutboundMailMode.Reply && original?.From?.Mailboxes.FirstOrDefault() is MailboxAddress replyTo)
+        {
+            yield return replyTo;
+        }
+    }
+
+    private static IEnumerable<MailboxAddress> ParseAddressList(string addresses)
+    {
+        foreach (var part in addresses.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            yield return MailboxAddress.Parse(part);
+        }
+    }
+
+    private static string BuildSubject(OutboundMail mail, MimeMessage? original)
+    {
+        var subject = mail.Subject?.Trim() ?? string.Empty;
+        if (!string.IsNullOrWhiteSpace(subject) || original is null)
+        {
+            return subject;
+        }
+
+        var originalSubject = original.Subject?.Trim() ?? string.Empty;
+        return mail.Mode switch
+        {
+            OutboundMailMode.Reply when !originalSubject.StartsWith("Re:", StringComparison.OrdinalIgnoreCase) =>
+                $"Re: {originalSubject}",
+            OutboundMailMode.Forward when !originalSubject.StartsWith("Fwd:", StringComparison.OrdinalIgnoreCase) &&
+                !originalSubject.StartsWith("Fw:", StringComparison.OrdinalIgnoreCase) =>
+                $"Fwd: {originalSubject}",
+            _ => originalSubject
+        };
+    }
+
+    private static void ApplyThreadingHeaders(MimeMessage message, OutboundMail mail, MimeMessage? original)
+    {
+        if (original?.MessageId is null)
+        {
+            return;
+        }
+
+        if (mail.Mode is OutboundMailMode.Reply or OutboundMailMode.Forward)
+        {
+            message.InReplyTo = original.MessageId;
+        }
+
+        if (mail.Mode == OutboundMailMode.Reply)
+        {
+            foreach (var reference in original.References)
+            {
+                message.References.Add(reference);
+            }
+
+            message.References.Add(original.MessageId);
+        }
+    }
+
+    private static MimeEntity BuildBody(OutboundMail mail, MimeMessage? original)
+    {
+        var plainBody = BuildPlainBody(mail, original);
+        var builder = new BodyBuilder
+        {
+            TextBody = plainBody
+        };
+
+        if (!string.IsNullOrWhiteSpace(mail.HtmlBody))
+        {
+            builder.HtmlBody = mail.HtmlBody;
+        }
+
+        foreach (var attachment in mail.Attachments)
+        {
+            builder.Attachments.Add(
+                attachment.FileName,
+                attachment.Content,
+                ContentType.Parse(attachment.ContentType));
+        }
+
+        return builder.ToMessageBody();
+    }
+
+    private static string BuildPlainBody(OutboundMail mail, MimeMessage? original)
+    {
+        var userText = mail.Body ?? string.Empty;
+        if (original is null || mail.Mode == OutboundMailMode.New)
+        {
+            return userText;
+        }
+
+        var originalBody = EmailMessageBodyHelpers.GetPlainBody(original).Text;
+        return mail.Mode switch
+        {
+            OutboundMailMode.Reply =>
+                string.IsNullOrWhiteSpace(userText)
+                    ? originalBody
+                    : $"{userText}\n\n---\nOn {original.Date:yyyy-MM-dd HH:mm}, {original.From} wrote:\n{originalBody}",
+            OutboundMailMode.Forward =>
+                string.IsNullOrWhiteSpace(userText)
+                    ? FormatForwardBody(original, originalBody)
+                    : $"{userText}\n\n{FormatForwardBody(original, originalBody)}",
+            _ => userText
+        };
+    }
+
+    private static string FormatForwardBody(MimeMessage original, string originalBody) =>
+        "---------- Forwarded message ---------\n" +
+        $"From: {original.From}\n" +
+        $"Date: {original.Date:yyyy-MM-dd HH:mm}\n" +
+        $"Subject: {original.Subject}\n" +
+        $"To: {original.To}\n\n" +
+        originalBody;
 }
 
 #endregion

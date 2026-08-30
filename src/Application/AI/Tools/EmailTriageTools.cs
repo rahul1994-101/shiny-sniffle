@@ -254,7 +254,7 @@ public sealed class EmailTriageTools(MailboxAgentService agentService)
             string destinationFolder,
             string mailboxAlias)
         {
-            if (!MoveMessagesFiltersBuilder.TryBuild(uidsCsv, folder, destinationFolder, out var filters, out var buildError))
+            if (!MessageTransferFiltersBuilder.TryBuild(uidsCsv, folder, destinationFolder, out var filters, out var buildError))
             {
                 return buildError!;
             }

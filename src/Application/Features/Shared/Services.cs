@@ -79,7 +79,7 @@ public sealed class UserMailboxService(
 
     internal Task<CommandResult> MoveMessagesAsync(
         MailboxAccountContext context,
-        MoveMessagesFilters filters,
+        MessageTransferFilters filters,
         CancellationToken cancellationToken = default) =>
         mailboxService.MoveMessagesAsync(context.Runtime, filters, cancellationToken);
 
@@ -242,7 +242,7 @@ public sealed class MailboxAgentService(UserMailboxService mailboxService)
 
     internal Task<(MailboxAccountContext? Account, CommandResult? Result, string? Error)> MoveMessagesAsync(
         Guid userId,
-        MoveMessagesFilters filters,
+        MessageTransferFilters filters,
         string? mailboxRef,
         CancellationToken cancellationToken = default)
     {

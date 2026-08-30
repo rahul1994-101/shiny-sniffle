@@ -624,13 +624,13 @@ internal static class MessageBatchFiltersBuilder
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 }
 
-internal static class MoveMessagesFiltersBuilder
+internal static class MessageTransferFiltersBuilder
 {
     internal static bool TryBuild(
         string uidsCsv,
         string? folder,
         string destinationFolder,
-        out MoveMessagesFilters? filters,
+        out MessageTransferFilters? filters,
         out string? error)
     {
         filters = null;
@@ -647,7 +647,7 @@ internal static class MoveMessagesFiltersBuilder
             return false;
         }
 
-        filters = new MoveMessagesFilters
+        filters = new MessageTransferFilters
         {
             Messages = batch!.Messages,
             DestinationFolder = destinationFolder.Trim()

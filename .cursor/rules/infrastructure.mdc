@@ -60,7 +60,21 @@ Canonical definition — Application repos must match:
 
 External-system shapes live in `Infrastructure/{Concern}/DTOs.cs` — not Application or WebApp.
 
-Mail: runtime config is `EmailSettings`; Application builds it from `EmailAccount` + catalog via `EmailSettingsMapping` (`Features/Workspace/EmailAccounts/Helpers.cs`).
+Mail: runtime config is `EmailSettings`; Application builds it from `StoredMailboxSettings` via `EmailSettingsMapping` (`Features/Workspace/EmailAccounts/Helpers.cs`).
+
+## Mailbox (`Infrastructure/Mailbox/`) — complete
+
+**Status:** treat as a stable, full mail-client port. Extend here only for new IMAP/SMTP capabilities — not agent/tool concerns.
+
+| Region | Port methods |
+|--------|----------------|
+| **Connection** | `TestConnectionAsync` → `TestConnectionResult` |
+| **Queries** | `ListMessagesAsync`, `GetMessagesAsync`, `GetAttachmentsAsync`, `ListFoldersAsync`, `GetFolderAsync` |
+| **Commands** | `SendAsync`, `SaveDraftAsync`, `CopyMessagesAsync`, `DeleteMessagesAsync`, `MoveMessagesAsync`, `SetMessageFlagsAsync`, `CreateFolderAsync` |
+
+**Layout:** `Abstractions.cs` · `DTOs.cs` (incl. `MailboxLimits`) · `Helpers.cs` (nested `MailboxConnectionHelpers` / `MailboxQueryHelpers` / `MailboxCommandsHelpers`) · `MailKitMailboxService.cs`.
+
+**Next work:** Application consumption — see `application.mdc` and `docs/email-read-implementation-plan.md`.
 
 ## Foundry config
 

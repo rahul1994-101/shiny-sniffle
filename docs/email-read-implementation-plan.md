@@ -2,18 +2,108 @@
 
 > Index: [docs/README.md](README.md) · Business: [product.md](product.md) · Memory layers: [ai-memory.md](ai-memory.md)
 
-Roadmap for mailbox capabilities: **EmailTriageAgent** + **EmailTriageTools** → `UserMailboxService` / `MailboxAccountResolver` / `MailKitMailboxService`.
+Roadmap for mailbox capabilities: **EmailTriageAgent** + **EmailTriageTools** → `MailboxAgentService` → `UserMailboxService` → `IMailboxService` (`MailKitMailboxService`).
 
 ---
 
 ## Status
 
 ```
-Layers 0–5 + commands + @mailbox + 6a   ✅ shipped
-Polish pass (helpers, resolver, tools)  ✅ shipped
-Manual Email/AI refactor                ← next (see Code map)
-Layer 6b–6e                             deferred (`compare_mail_periods`, memory, actions)
+Infrastructure/Mailbox (IMailboxService)   ✅ complete — stable port
+Layers 0–5 + commands + @mailbox + 6a    ✅ shipped (Application/AI)
+Application mailbox consumption           ← current (wire remaining port methods)
+Layer 6b–6e                               deferred (compare, memory, actions)
 ```
+
+---
+
+## Infrastructure/Mailbox — complete ✅
+
+Treat `src/Infrastructure/Mailbox/` as a **full mail-client adapter**. Do not add agent/tool concepts here.
+
+| Region | Methods | Input / output |
+|--------|---------|----------------|
+| **Connection** | `TestConnectionAsync` | → `TestConnectionResult` |
+| **Queries** | `ListMessagesAsync` | `ListMessagesFilters` → `ListMessagesResult` |
+| | `GetMessagesAsync` | `MessageBatchFilters` → `GetMessagesResult` |
+| | `GetAttachmentsAsync` | `GetAttachmentsFilters` → `GetAttachmentsResult` |
+| | `ListFoldersAsync` | → `ListFoldersResult` |
+| | `GetFolderAsync` | `GetFolderFilters` → `GetFolderResult` |
+| **Commands** | `SendAsync` | `OutboundMail` → `SendMailResult` |
+| | `SaveDraftAsync` | `OutboundMail` → `SaveDraftResult` |
+| | `CopyMessagesAsync` | `MessageTransferFilters` → `CommandResult` |
+| | `DeleteMessagesAsync` | `MessageBatchFilters` → `CommandResult` |
+| | `MoveMessagesAsync` | `MessageTransferFilters` → `CommandResult` |
+| | `SetMessageFlagsAsync` | `SetMessageFlagsFilters` → `CommandResult` |
+| | `CreateFolderAsync` | `CreateFolderFilters` → `CommandResult` |
+
+**Files:** `Abstractions.cs` · `DTOs.cs` (`EmailSettings`, `MailboxLimits`, filters/results) · `Helpers.cs` (Connection / Queries / Commands nested helpers) · `MailKitMailboxService.cs`.
+
+**Conventions:** `conventions.mdc` — simple domain verbs on port; `...Filters` / `...Result` pairing; `MessageKey` for batch identity; Application maps `StoredMailboxSettings` → `EmailSettings` at the boundary.
+
+---
+
+## Application consumption — current
+
+**Goal:** wire the remaining port capabilities through Application facades and AI tools without duplicating infra logic.
+
+### Stack
+
+```text
+SendChatMessage
+  → EntityRefMentionContextService (@mailbox alias)
+  → ChatOrchestrator → EmailTriageAgent
+        → EmailTriageTools.Session
+              → MailboxAgentService          (account + error tuple)
+                    → UserMailboxService     (app requests → infra filters)
+                          → MailboxAccountResolver
+                          → EmailSettingsMapping.ToMailRuntime()
+                          → IMailboxService
+```
+
+| Layer | Key files |
+|-------|-----------|
+| **Chat entry** | `Features/Chat/ChatMessages/Commands/SendChatMessage.cs` |
+| **Mentions** | `Features/Shared/EntityRefMentionContextService.cs` |
+| **Agent** | `AI/Agents/EmailTriageAgent.cs` |
+| **Tools** | `AI/Tools/EmailTriageTools.cs` |
+| **Facades** | `Features/Shared/Services.cs` (`UserMailboxService`, `MailboxAgentService`) |
+| **Helpers** | `Features/Shared/MailboxReadHelpers.cs` |
+| **Account** | `Features/Workspace/EmailAccounts/MailboxAccountResolver.cs`, `DTOs.cs` (`StoredMailboxSettings`, `MailboxAccountContext`) |
+
+### Wired (tools + facades)
+
+| Capability | Tool | Infra method |
+|------------|------|--------------|
+| Status | `get_mailbox_status` | `TestConnectionAsync` |
+| List | `list_inbox_messages` | `ListMessagesAsync` |
+| Open one | `get_inbox_message` | `GetMessagesAsync` (batch of 1) |
+| Batch read | `get_inbox_messages` | `GetMessagesAsync` |
+| Folders | `list_mailbox_folders` | `ListFoldersAsync` |
+| Send | `send_email` | `SendAsync` |
+| Delete | `delete_messages` | `DeleteMessagesAsync` |
+| Move | `move_messages` | `MoveMessagesAsync` |
+| Flags | `set_message_flags` | `SetMessageFlagsAsync` |
+
+### Not yet wired (Application gap)
+
+| Infra capability | Suggested next step |
+|------------------|---------------------|
+| `GetAttachmentsAsync` | `UserMailboxService` + `get_attachments` tool |
+| `GetFolderAsync` | `UserMailboxService` + optional `get_folder` tool |
+| `SaveDraftAsync` | `UserMailboxService` + `save_draft` tool; reply/forward via `OutboundMail` |
+| `CopyMessagesAsync` | `UserMailboxService` + `copy_messages` tool |
+| `CreateFolderAsync` | `UserMailboxService` + `create_folder` tool |
+| Richer list filters | Expose `Skip`, `BodyContains`, `ToContains`, `HasAttachments` in `MailboxListRequest` / tool params |
+| Richer send | CC/BCC, HTML body, attachments, reply/forward mode in `send_email` |
+
+### Application model notes
+
+- **Persistence:** `StoredMailboxSettings` (Application) — not infra `EmailSettings`
+- **Runtime:** `EmailSettingsMapping.ToMailRuntime()` before every `IMailboxService` call
+- **Single-message get:** Application wrapper over `GetMessagesAsync` (not on infra port)
+- **Batch filters:** agents call infra `MessageBatchFilters` / `MessageTransferFilters` directly via builders in `MailboxReadHelpers.cs`
+- **Agent errors:** unified `(Account, Result, Error)` tuple in `MailboxAgentService`
 
 ---
 
@@ -23,16 +113,14 @@ Layer 6b–6e                             deferred (`compare_mail_periods`, memo
 
 | Layer | What users get |
 |-------|----------------|
-| **0 Foundation** | Mailbox configured/reachable; inbox list by `since` + `limit`; snippet previews (~120 chars); shared limits in `MailboxReadLimits` |
+| **0 Foundation** | Mailbox configured/reachable; inbox list by `since` + `limit`; snippet previews (~120 chars); limits in `MailboxLimits` |
 | **1 Time / volume** | Rich `since` (`today`, `yesterday`, `this_week`, `last_N_days`, date ranges); `count_only`; “N shown of M matched” when capped at 50 |
 | **2 Filters** | `unread_only`, `from_sender`, `subject_contains` (AND with time range) |
 | **3 Open one** | `get_inbox_message` by Uid or list `#N`; full plain-text body (12k cap); stable Uid per list row |
-| **4 Rich content** | HTML → plain text; attachment names on get (no download yet) |
+| **4 Rich content** | HTML → plain text; attachment names on get (download at infra — tool pending) |
 | **5 Folders** | `folder` on list/get (inbox, sent, drafts, trash, junk, custom); `list_mailbox_folders` |
 
-**Key types:** `InboxQuery`, `InboxListRangeParser`, `InboxMessageDetail`, `MailboxFolderInfo`, `EmailMessageBodyHelpers`.
-
-**Deferred from read stack:** attachment download, thread/conversation grouping (provider-specific).
+**Key Application types:** `MailboxListRequest`, `MailboxOpenRequest`, `MailboxListSnapshot`, `MailboxListRangeParser`, `EmailMailboxTextHelpers`.
 
 ---
 
@@ -47,25 +135,22 @@ Layer 6b–6e                             deferred (`compare_mail_periods`, memo
 | **Batch read** | `get_inbox_messages` (max 5 Uids per call) |
 | **Multi-account** | `mailbox_alias` param + `@mailbox:alias` mention auto-fill via `MailboxAccountResolver` |
 
-**Stack:** `EmailTriageTools` → `UserMailboxService` → `MailboxAccountResolver` → `MailKitMailboxService`.
-
 **E2E mention flow:** user `@mailbox:alias` → `EntityRefMentionContextService.TryResolveDefaultMailboxAliasAsync` → `RunChatAgentRequest.MailboxAlias` → `EmailTriageTools.Session` default when tool omits `mailbox_alias`.
 
 ---
 
-## Shipped — polish pass
+## Shipped — polish + infra refactor
 
-Structural cleanup before further feature work. Build verified.
+Structural cleanup across Infrastructure and Application. Build verified.
 
 | Area | What changed |
 |------|----------------|
-| **Application helpers** | Mailbox-specific types moved to `Features/Shared/MailboxReadHelpers.cs` (`InboxListRangeParser`, `EmailMailboxTextHelpers`, `EmailReadConstants`, …) |
+| **Infra port** | Full query/command surface; service owns orchestration; helpers are mechanical; DTO naming (`...Filters` / `...Result`, `MessageKey`, `MessageTransferFilters`, `CommandResult`) |
+| **Settings split** | `StoredMailboxSettings` (Application persistence) vs `EmailSettings` (infra runtime) |
+| **Application helpers** | `MailboxReadHelpers.cs` — parsers, builders, text formatting |
 | **Account resolution** | `MailboxAccountResolver` — default account, alias, or `mailbox:alias` → `MailboxAccountContext` |
-| **User facade** | `UserMailboxService.RequireContextAsync` — throws on unresolved account (no silent empty/null) |
-| **AI tools** | `EmailTriageTools.Session` — per-turn `userId` + default mailbox alias (no mutable scoped state) |
-| **Tool output** | All tools prefix `Account: alias (email)` via `WithAccountHeader` |
-| **Infrastructure** | `MailKitMailboxService` split into connection/search/summary/message/command helpers; `FetchAsync` for list snippets |
-| **Agent catalog** | `EmailTriageAgent.SupportedUserPrompts` covers all current tools |
+| **Facades** | `UserMailboxService` + `MailboxAgentService`; infra filters in agent commands |
+| **AI tools** | `EmailTriageTools.Session` — per-turn state; `WithAccountHeader` on all outputs |
 
 ---
 
@@ -81,121 +166,50 @@ Agent-only: output modes (`digest`, `triage`, `compare`, `single`, `stats`, `act
 
 **Principle:** Tools fetch; agent interprets. Default flow: `list_inbox_messages` → selective `get_inbox_message` / `get_inbox_messages` (≤5 per turn).
 
-### User intents → output mode
-
-| Intent | Example | Mode | Choreography |
-|--------|---------|------|--------------|
-| Skim | “What’s new today?” | `digest` | list (today, ~20) → 0–3 optional gets |
-| Triage | “What needs my attention?” | `triage` | list (unread + recent) → get top 3–5 → Needs reply / FYI / Low |
-| Deep one | “Summarize the Amazon invoice” | `single` | list (filter) → get one Uid |
-| Count / delta | “More mail than yesterday?” | `compare` | two `count_only` calls *(6b: dedicated tool)* |
-| Volume | “Who emailed me most this week?” | `stats` | list (this_week) → group by sender from rows |
-| Sent review | “What did I send Bob this week?” | `digest` | list (folder=sent) → optional gets |
-| Prep for action | “Which invoices need paying?” | `action_list` | list → get ≤5 → `ACTION_ITEMS` |
-
 ### Remaining sub-layers
 
 ##### 6b — Compare helper
 
-Deterministic period comparison—no model arithmetic on counts.
-
-| Build | Notes |
-|-------|--------|
-| `compare_mail_periods` tool | Two parsed ranges → two `count_only` (optional dual list) |
-| Formatted result | e.g. “Today: 12 · Yesterday: 8 (+4)” via `EmailMailboxTextHelpers.FormatPeriodCompare` |
-| Params | `period_a` / `period_b` via `InboxListRangeParser`; same `folder` + filters on both |
+`compare_mail_periods` tool — two parsed ranges → two `count_only` calls.
 
 ##### 6c — Digest tool (optional)
 
-`summarize_mail_scope` — one call returns structured list preamble (+ optional server-side deep reads). **Defer** if 6a multi-tool choreography is fast enough.
+`summarize_mail_scope` — defer if 6a choreography is fast enough.
 
 ##### 6d — Thread reference memory
 
-`EmailMemory` snapshot per chat thread: last `{ folder, query, [{ index, uid, from, subject }] }` so “#2” / “that Amazon one” resolves without re-list. See [ai-memory.md](ai-memory.md).
+`EmailMemory` snapshot per chat thread — see [ai-memory.md](ai-memory.md).
 
 ##### 6e — Action-oriented output
 
-`action_list` sections (`ACTION_ITEMS`, `DRAFT_CANDIDATES`, `ARCHIVE_CANDIDATES`) with Uid + folder for future workflows. Agent identifies only—no execution in Layer 6.
+`action_list` sections for future workflows.
 
 ### Policies
 
 | Constant | Value | Location |
 |----------|-------|----------|
-| `MaxDeepReadsPerTurn` | 5 | `EmailReadConstants` (agent prompt) |
-| `MaxDigestOptionalGets` | 3 | `EmailReadConstants` (agent prompt) |
-| `DefaultListLimit` | 20 | `MailboxReadLimits` |
-| `MaxListLimit` | 50 | `MailboxReadLimits` |
-| `MaxBatchGetCount` | 5 | `MailboxReadLimits` |
-
-### Out of scope (Layer 6)
-
-Attachment download, thread grouping, auto-send/archive/rules, LLM summarization inside C# services, **scheduled send** (separate product track).
-
-### Acceptance prompts
-
-| Prompt | Pass if |
-|--------|---------|
-| “Summarize my inbox today” | Today first; ≤5 gets; labeled Summary; no invented mail |
-| “What needs my attention?” | Unread + recent; Needs reply / FYI; cites Uids |
-| “More email than yesterday?” | Two counts; numeric comparison; no fake totals |
-| “Summarize the PayPal email from this week” | list + filter + one get; attachments if present |
-| “What did I send Bob this week?” | folder=sent; no inbox bleed |
-| “Which messages look like invoices?” | filter list; action candidates with Uid + folder |
-
----
-
-## Code map
-
-### Current stack (refactor starting point)
-
-```text
-WebApp  SendChatMessage
-          → EntityRefMentionContextService (mention context + default mailbox alias)
-          → ChatOrchestrator → EmailTriageAgent
-                → EmailTriageTools.Session
-                      → UserMailboxService
-                            → MailboxAccountResolver
-                            → IMailboxService (MailKitMailboxService)
-                                  → MailboxConnectionHelpers
-                                  → MailboxSearchHelpers / MailboxSummaryHelpers
-                                  → MailboxMessageHelpers / MailboxCommandsHelpers
-```
-
-| Layer | Key files |
-|-------|-----------|
-| **Chat entry** | `Features/Chat/ChatMessages/Commands/SendChatMessage.cs` |
-| **Mentions** | `Features/Shared/EntityRefMentionContextService.cs`, `EntityRefMentions.cs` |
-| **Agent** | `AI/Agents/EmailTriageAgent.cs`, `AI/ChatOrchestrator.cs` |
-| **Tools** | `AI/Tools/EmailTriageTools.cs` (`Session` nested class) |
-| **App mailbox** | `Features/Shared/Services.cs` (`UserMailboxService`), `MailboxReadHelpers.cs` |
-| **Account resolve** | `Features/Workspace/EmailAccounts/MailboxAccountResolver.cs`, `Repository.cs` |
-| **Infrastructure** | `Infrastructure/Mailbox/` — `Abstractions.cs`, `DTOs.cs`, `Helpers.cs`, `MailKitMailboxService.cs`, `Mailbox*Helpers.cs` |
-
-### Deferred feature work
-
-| Sub-layer | `EmailTriageTools` | Agent / Memory |
-|-----------|-------------------|----------------|
-| 6b Compare | `compare_mail_periods` | Compare template |
-| 6c Digest | `summarize_mail_scope` (optional) | Shorter choreography |
-| 6d Reference | — | `EmailMemory` snapshot |
-| 6e Actions | — | `action_list` → future workflows |
+| `MaxDeepReadsPerTurn` | 5 | `EmailReadConstants` |
+| `MaxDigestOptionalGets` | 3 | `EmailReadConstants` |
+| `DefaultListLimit` | 20 | `MailboxLimits` |
+| `MaxListLimit` | 50 | `MailboxLimits` |
+| `MaxBatchGetCount` | 5 | `MailboxLimits` |
+| `MaxBatchCommandCount` | 5 | `MailboxLimits` |
 
 ---
 
 ## Out of scope (this doc)
 
 - **Scheduled send / brief** (product schedules — separate pass)
-- Mailbox connection UI (Workspace → Email accounts; provider templates under Settings)
-- Assistant agent routing
+- Mailbox connection UI (Workspace → Email accounts)
+- Further Infrastructure/Mailbox changes unless new IMAP/SMTP capability is required
 
 ---
 
 ## Suggested tickets
 
-1. **Refactor** — manual cleanup of Email/AI flow (boundaries, naming, error contracts) — **current**
+1. **App consumption** — wire `GetAttachments`, `SaveDraft`, `Copy`, `GetFolder`, `CreateFolder` + richer list/send — **current**
 2. **6b** — `compare_mail_periods` tool + formatter
-3. **6d** — Thread last-list memory (if “that email” reference is painful)
+3. **6d** — Thread last-list memory
 4. **6e** — `action_list` hardening when action workflows start
-5. **Future** — attachment download, thread support, 6c digest tool if latency hurts
 
 Update this doc when a layer ships or priorities change.

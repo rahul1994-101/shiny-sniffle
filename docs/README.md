@@ -14,15 +14,16 @@ All commercial and product decisions → **`product.md`** only.
 
 | | |
 |---|---|
-| **Next** | **Manual refactor** of Email/AI flow — [email-read-implementation-plan.md](email-read-implementation-plan.md) § Code map |
+| **Next** | **Application mailbox consumption** — wire `UserMailboxService` / `MailboxAgentService` / `EmailTriageTools` to the full `IMailboxService` port — [email-read-implementation-plan.md](email-read-implementation-plan.md) § Application consumption |
 | **Deferred** | Layer **6b** (`compare_mail_periods`), [ai-memory.md](ai-memory.md) user/working memory, Tags/Buckets admin UI |
 
 ### Recently shipped
 
+- **Infrastructure/Mailbox** — full mail-client port (`IMailboxService`): connection, queries (list/get/attachments/folders), commands (send/draft/copy/delete/move/flags/create-folder); conventions locked in `conventions.mdc`
 - **Settings**; Workspace **Email accounts** + **Contacts**
 - **Chat mentions** — `/` global search, `@` two-step picker, Tag/Bucket in picker, `EntityRefMentionText` bubbles (see **product.md §5.5**)
 - **Email triage** — read (0–5) + commands (send/delete/move/flags) + batch get + `@mailbox:alias` resolution + Layer 6a output contracts
-- **Mailbox stack** — `MailKitMailboxService` + helpers; `MailboxAccountResolver`; `MailboxReadHelpers`; `EmailTriageTools.Session` (per-turn state)
+- **Application mailbox (partial)** — `UserMailboxService`, `MailboxAgentService`, `MailboxReadHelpers`, `EmailTriageTools.Session`; `StoredMailboxSettings` ↔ `EmailSettings` split
 - **AI memory** — short-term window + thread summary roll-up
 
 ---
@@ -31,7 +32,7 @@ All commercial and product decisions → **`product.md`** only.
 
 | Doc | Status |
 |-----|--------|
-| [email-read-implementation-plan.md](email-read-implementation-plan.md) | 0–5 + commands + 6a + polish ✅ · **refactor next** · 6b deferred |
+| [email-read-implementation-plan.md](email-read-implementation-plan.md) | Infra/Mailbox ✅ · App consumption **next** · 6b deferred |
 | [ai-memory.md](ai-memory.md) | Thread ✅ · user/working planned |
 | [design-system.md](design-system.md) | WebApp UI tokens, `ui-*`, glass, motion |
 

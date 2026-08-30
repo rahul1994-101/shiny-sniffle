@@ -126,3 +126,31 @@ Roadmaps: `docs/ai-memory.md`, `docs/email-read-implementation-plan.md`. Detail:
 **Boundaries:** Agents = LLM · Tools = repos · Features handlers save + call orchestrator · Foundry factory in Infrastructure.
 
 **Naming:** `{Domain}TriageAgent`, `{Domain}TriageTools`, `{Role}Agent`, `RunAsync` / `CreateTools` / `RunChatAgentAsync`.
+
+---
+
+## Mailbox consumption (current focus)
+
+**Infra port is complete** — Application adapts upstream; do not push agent/tool names into `Infrastructure/Mailbox`.
+
+```text
+EmailTriageTools → MailboxAgentService → UserMailboxService → IMailboxService
+                         ↑                      ↑
+              (account + error tuple)    MailboxAccountResolver
+                                         EmailSettingsMapping.ToMailRuntime()
+```
+
+| Layer | Role | Key files |
+|-------|------|-----------|
+| **Account** | Resolve user → `MailboxAccountContext` (alias, runtime `EmailSettings`) | `EmailAccounts/MailboxAccountResolver.cs`, `Repository.cs` |
+| **Persistence** | `StoredMailboxSettings` — merge/draft/save; not infra `EmailSettings` | `EmailAccounts/DTOs.cs`, `Helpers.cs` (`EmailSettingsMapping`) |
+| **Facade** | Map app requests → infra filters; single-message wrapper over batch get | `Shared/Services.cs` (`UserMailboxService`) |
+| **Agent facade** | `(Account, Result, Error)` tuple; batch validation | `Shared/Services.cs` (`MailboxAgentService`) |
+| **Helpers** | Date parsing, filter builders, text formatting | `Shared/MailboxReadHelpers.cs` |
+| **Tools** | Agent tool catalog + per-turn `MailboxListSnapshot` | `AI/Tools/EmailTriageTools.cs` |
+
+**Wired today:** list/get messages, folders, status, send, delete, move, set flags.
+
+**Not yet wired to Application/AI:** `GetAttachmentsAsync`, `GetFolderAsync`, `SaveDraftAsync`, `CopyMessagesAsync`, `CreateFolderAsync`; richer `ListMessagesFilters` (pagination, `BodyContains`, `ToContains`, `HasAttachments`); richer `OutboundMail` (reply/forward, CC/BCC, attachments).
+
+**Conventions:** map at the port (`ToMailRuntime()` before `IMailboxService`); infra filters in agent commands (no thin duplicate request types); agent-facing names OK in Application (`GetStatusAsync` wraps `TestConnectionAsync`). See `conventions.mdc`.

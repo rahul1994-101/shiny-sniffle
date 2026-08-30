@@ -28,8 +28,8 @@ Each concern folder is its **own language** — consumers adapt; nothing upstrea
 
 - **Simple domain verbs** — what the adapter does in mailbox/mail terms: `ListMessagesAsync`, `TestConnectionAsync`, `SendAsync`
 - **Not** technical/protocol jargon: no `Probe`, `Execute`, `Connect` on the port
-- **Result types mirror methods:** `TestConnectionAsync` → `TestConnectionResult`, `ListMessagesAsync` → `ListMessagesResult`, `GetMessagesAsync` → `GetMessagesResult`, `SendAsync` → `SendMailResult`; delete/move/set-flags share `CommandResult`
-- **Query/command inputs use `Filters` suffix:** `ListMessagesAsync` → `ListMessagesFilters`, `GetMessagesAsync` / `DeleteMessagesAsync` → shared `MessageBatchFilters`, `MoveMessagesAsync` → `MoveMessagesFilters`, etc.; shared keys (`MessageKey`) live inside filters; `SendAsync` keeps `OutboundMail` as its input shape
+- **Result types mirror methods:** `TestConnectionAsync` → `TestConnectionResult`, `ListMessagesAsync` → `ListMessagesResult`, `GetMessagesAsync` → `GetMessagesResult`, `GetAttachmentsAsync` → `GetAttachmentsResult`, `GetFolderAsync` → `GetFolderResult`, `SendAsync` → `SendMailResult`, `SaveDraftAsync` → `SaveDraftResult`; delete/move/copy/set-flags/create-folder share `CommandResult`
+- **Query/command inputs use `Filters` suffix:** `ListMessagesAsync` → `ListMessagesFilters`, `GetMessagesAsync` / `DeleteMessagesAsync` → shared `MessageBatchFilters`, `MoveMessagesAsync` / `CopyMessagesAsync` → shared `MessageTransferFilters`, etc.; shared keys (`MessageKey`) live inside filters; `SendAsync` keeps `OutboundMail` as its input shape
 - **No upstream concepts:** no agent tool names, no "configured", no Application persistence types
 
 **Helpers (internal only):**
