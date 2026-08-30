@@ -27,7 +27,7 @@ public sealed class UpdateChatThreadAgentRequestValidator : AbstractValidator<Up
     }
 }
 
-public sealed class UpdateChatThreadAgentRequestHandler(ChatThreadRepository chatThreadRepo, UserMailboxService mailboxService)
+public sealed class UpdateChatThreadAgentRequestHandler(ChatThreadRepository chatThreadRepo, WorkspaceReferenceService workspaceRefs)
     : IRequestHandler<UpdateChatThreadAgentRequest, UpdateChatThreadAgentResponse>
 {
     public async ValueTask<Result<UpdateChatThreadAgentResponse>> HandleAsync(UpdateChatThreadAgentRequest request, CancellationToken cancellationToken = default)
@@ -37,7 +37,7 @@ public sealed class UpdateChatThreadAgentRequestHandler(ChatThreadRepository cha
         #region # Execute
 
         var mailboxConfigured = request.ChatAgent != ChatAgent.Email
-            || await mailboxService.IsConfiguredAsync(request.UserId, cancellationToken: cancellationToken);
+            || await workspaceRefs.IsMailboxConfiguredAsync(request.UserId, cancellationToken: cancellationToken);
         ChatThreadDto? chatThread = null;
         if (mailboxConfigured)
         {

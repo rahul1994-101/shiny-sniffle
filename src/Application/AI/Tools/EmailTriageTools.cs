@@ -1,3 +1,4 @@
+using Application.Features.Shared;
 using Application.Features.Workspace.EmailAccounts;
 using Infrastructure.Mailbox;
 using Microsoft.Extensions.AI;
@@ -5,26 +6,30 @@ using System.ComponentModel;
 
 namespace Application.AI.Tools;
 
-public sealed class EmailTriageTools(MailboxAgentService agentService)
+public sealed class EmailTriageTools(WorkspaceMailboxService mailboxService, WorkspaceReferenceService workspaceRefs)
 {
     #region # Public
 
-    public IList<AITool> CreateTools(Guid userId, Guid threadId, string? defaultMailboxAlias = null)
+    public IList<AITool> CreateTools(Guid userId, Guid threadId, MailboxAccountContext? defaultMailboxAccount = null)
     {
         _ = threadId;
-        return new Session(agentService, userId, NullIfWhiteSpace(defaultMailboxAlias)).CreateTools();
+        return new Session(mailboxService, workspaceRefs, userId, defaultMailboxAccount).CreateTools();
     }
 
-    private static string? NullIfWhiteSpace(string? value) =>
-        string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+    private static string? NullIfWhiteSpace(string? value)
+    {
+        return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+    }
 
     #endregion
 
-    private sealed class Session(MailboxAgentService agentService, Guid userId, string? defaultMailboxAlias)
+    private sealed class Session(WorkspaceMailboxService mailboxService, WorkspaceReferenceService workspaceRefs, Guid userId, MailboxAccountContext? defaultMailboxAccount)
     {
         private const string MailboxAliasHint =
             "Connected mailbox alias or mailbox:alias; empty uses @mailbox mention from this turn, else default account.";
 
+        private MailboxAccountContext? _defaultAccount = defaultMailboxAccount;
+        private readonly Dictionary<string, MailboxAccountContext> _accountCache = new(StringComparer.OrdinalIgnoreCase);
         private MailboxListSnapshot? _lastList;
 
         #region # Tool catalog
@@ -196,31 +201,36 @@ public sealed class EmailTriageTools(MailboxAgentService agentService)
             string folder,
             string mailboxAlias)
         {
-            if (!MailboxListRequestBuilder.TryBuild(
+            if (!ListMessagesQueryBuilder.TryBuild(
                     since, until, limit, skip, countOnly, unreadOnly, fromSender, subjectContains,
                     bodyContains, toContains, attachmentsFilter, folder,
-                    out var listRequest, out var buildError))
+                    out var query, out var buildError))
             {
                 return buildError!;
             }
 
-            var mailboxRef = EffectiveMailboxAlias(mailboxAlias);
-            var (account, result, error) = await agentService.ListMessagesAsync(userId, listRequest!, mailboxRef);
-            if (error is not null)
+            var (account, accountError) = await GetAccountAsync(mailboxAlias);
+            if (accountError is not null)
             {
-                return error;
+                return accountError;
             }
 
-            if (!listRequest!.CountOnly)
+            var outcome = await mailboxService.ListMessagesAsync(account!, query!.Filters);
+            if (!outcome.IsSuccess)
             {
-                _lastList = MailboxListSnapshot.From(listRequest, result!, mailboxRef);
+                return outcome.Error!;
             }
 
-            var body = listRequest.CountOnly
-                ? EmailMailboxTextHelpers.FormatMailboxCount(result!.TotalMatched, listRequest.QueryLabel)
-                : EmailMailboxTextHelpers.FormatMailboxList(result!.Messages, listRequest.QueryLabel, result.TotalMatched);
+            if (!query.Filters.CountOnly)
+            {
+                _lastList = MailboxListSnapshot.From(query.Filters, outcome.Value!, account!.Alias);
+            }
 
-            return WithAccountHeader(account!, body);
+            var body = query.Filters.CountOnly
+                ? EmailMailboxTextHelpers.FormatMailboxCount(outcome.Value!.TotalMatched, query.QueryLabel)
+                : EmailMailboxTextHelpers.FormatMailboxList(outcome.Value!.Messages, query.QueryLabel, outcome.Value.TotalMatched);
+
+            return WithAccountHeader(outcome.Account!, body);
         }
 
         #endregion
@@ -229,77 +239,63 @@ public sealed class EmailTriageTools(MailboxAgentService agentService)
 
         private async Task<string> GetInboxMessageAsync(uint uid, int listIndex, string folder, string mailboxAlias)
         {
-            var mailboxRef = EffectiveMailboxAlias(mailboxAlias);
-            if (!MailboxOpenRequestBuilder.TryResolve(uid, listIndex, folder, mailboxRef, _lastList, out var openRequest, out var resolveError))
+            var (account, accountError) = await GetAccountAsync(mailboxAlias);
+            if (accountError is not null)
+            {
+                return accountError;
+            }
+
+            if (!MailboxOpenRequestBuilder.TryResolve(uid, listIndex, folder, account!.Alias, _lastList, out var openRequest, out var resolveError))
             {
                 return resolveError!;
             }
 
-            var (account, message, error) = await agentService.GetMessageAsync(userId, openRequest!, mailboxRef);
-            if (error is not null)
-            {
-                return error;
-            }
-
-            return WithAccountHeader(account!, EmailMailboxTextHelpers.FormatMailboxMessage(message!));
+            return await RunMailboxAsync(
+                account,
+                resolvedAccount => mailboxService.GetMessageAsync(resolvedAccount, openRequest!.Message),
+                EmailMailboxTextHelpers.FormatMailboxMessage);
         }
 
-        private async Task<string> GetInboxMessagesAsync(string uidsCsv, string folder, string mailboxAlias)
+        private Task<string> GetInboxMessagesAsync(string uidsCsv, string folder, string mailboxAlias)
         {
             if (!MessageBatchFiltersBuilder.TryBuild(uidsCsv, folder, out var filters, out var buildError))
             {
-                return buildError!;
+                return Task.FromResult(buildError!);
             }
 
-            var mailboxRef = EffectiveMailboxAlias(mailboxAlias);
-            var (account, messages, error) = await agentService.GetMessagesAsync(userId, filters!, mailboxRef);
-            if (error is not null)
-            {
-                return error;
-            }
-
-            return WithAccountHeader(account!, EmailMailboxTextHelpers.FormatMailboxMessages(messages!));
+            return RunMailboxAsync(
+                mailboxAlias,
+                account => mailboxService.GetMessagesAsync(account, filters!),
+                result => EmailMailboxTextHelpers.FormatMailboxMessages(result.Messages));
         }
 
         #endregion
 
         #region # Queries — Folders & status
 
-        private async Task<string> ListMailboxFoldersAsync(string mailboxAlias)
+        private Task<string> ListMailboxFoldersAsync(string mailboxAlias)
         {
-            var mailboxRef = EffectiveMailboxAlias(mailboxAlias);
-            var (account, result, error) = await agentService.ListFoldersAsync(userId, mailboxRef);
-            if (error is not null)
-            {
-                return error;
-            }
-
-            return WithAccountHeader(account!, EmailMailboxTextHelpers.FormatFolderList(result!.Folders));
+            return RunMailboxAsync(
+                mailboxAlias,
+                account => mailboxService.ListFoldersAsync(account),
+                result => EmailMailboxTextHelpers.FormatFolderList(result.Folders));
         }
 
-        private async Task<string> GetFolderAsync(string folder, string mailboxAlias)
+        private Task<string> GetFolderAsync(string folder, string mailboxAlias)
         {
-            var mailboxRef = EffectiveMailboxAlias(mailboxAlias);
             var filters = new GetFolderFilters { Folder = NullIfWhiteSpace(folder) };
-            var (account, result, error) = await agentService.GetFolderAsync(userId, filters, mailboxRef);
-            if (error is not null)
-            {
-                return error;
-            }
-
-            return WithAccountHeader(account!, EmailMailboxTextHelpers.FormatFolderStats(result!));
+            return RunMailboxAsync(
+                mailboxAlias,
+                account => mailboxService.GetFolderAsync(account, filters),
+                EmailMailboxTextHelpers.FormatFolderStats);
         }
 
-        private async Task<string> GetMailboxStatusAsync(string mailboxAlias)
+        private Task<string> GetMailboxStatusAsync(string mailboxAlias)
         {
-            var mailboxRef = EffectiveMailboxAlias(mailboxAlias);
-            var (account, status, error) = await agentService.GetStatusAsync(userId, mailboxRef);
-            if (error is not null)
-            {
-                return error;
-            }
-
-            return WithAccountHeader(account!, status!.Message);
+            return RunMailboxAsync(
+                mailboxAlias,
+                account => mailboxService.TestConnectionAsync(account),
+                status => status!.Message);
         }
 
         #endregion
@@ -314,10 +310,15 @@ public sealed class EmailTriageTools(MailboxAgentService agentService)
             string attachmentName,
             string mailboxAlias)
         {
-            var mailboxRef = EffectiveMailboxAlias(mailboxAlias);
+            var (account, accountError) = await GetAccountAsync(mailboxAlias);
+            if (accountError is not null)
+            {
+                return accountError;
+            }
+
             if (uid == 0)
             {
-                if (!MailboxOpenRequestBuilder.TryResolve(uid, listIndex, folder, mailboxRef, _lastList, out var openRequest, out var resolveError))
+                if (!MailboxOpenRequestBuilder.TryResolve(uid, listIndex, folder, account!.Alias, _lastList, out var openRequest, out var resolveError))
                 {
                     return resolveError!;
                 }
@@ -331,38 +332,34 @@ public sealed class EmailTriageTools(MailboxAgentService agentService)
                 return buildError!;
             }
 
-            var (account, result, error) = await agentService.GetAttachmentsAsync(userId, filters!, mailboxRef);
-            if (error is not null)
+            var outcome = await mailboxService.GetAttachmentsAsync(account!, filters!);
+            if (!outcome.IsSuccess)
             {
-                return error;
+                return outcome.Error!;
             }
 
             var folderLabel = string.IsNullOrWhiteSpace(filters!.Message.Folder) ? "inbox" : filters.Message.Folder.Trim();
-            return WithAccountHeader(account!, EmailMailboxTextHelpers.FormatAttachments(uid, folderLabel, result!.Attachments));
+            return WithAccountHeader(outcome.Account!, EmailMailboxTextHelpers.FormatAttachments(uid, folderLabel, outcome.Value!.Attachments));
         }
 
         #endregion
 
         #region # Commands
 
-        private async Task<string> DeleteMessagesAsync(string uidsCsv, string folder, string mailboxAlias)
+        private Task<string> DeleteMessagesAsync(string uidsCsv, string folder, string mailboxAlias)
         {
             if (!MessageBatchFiltersBuilder.TryBuild(uidsCsv, folder, out var filters, out var buildError))
             {
-                return buildError!;
+                return Task.FromResult(buildError!);
             }
 
-            var mailboxRef = EffectiveMailboxAlias(mailboxAlias);
-            var (account, result, error) = await agentService.DeleteMessagesAsync(userId, filters!, mailboxRef);
-            if (error is not null)
-            {
-                return error;
-            }
-
-            return WithAccountHeader(account!, EmailMailboxTextHelpers.FormatCommandResult(result!));
+            return RunMailboxAsync(
+                mailboxAlias,
+                account => mailboxService.DeleteMessagesAsync(account, filters!),
+                EmailMailboxTextHelpers.FormatCommandResult);
         }
 
-        private async Task<string> MoveMessagesAsync(
+        private Task<string> MoveMessagesAsync(
             string uidsCsv,
             string folder,
             string destinationFolder,
@@ -370,20 +367,16 @@ public sealed class EmailTriageTools(MailboxAgentService agentService)
         {
             if (!MessageTransferFiltersBuilder.TryBuild(uidsCsv, folder, destinationFolder, out var filters, out var buildError))
             {
-                return buildError!;
+                return Task.FromResult(buildError!);
             }
 
-            var mailboxRef = EffectiveMailboxAlias(mailboxAlias);
-            var (account, result, error) = await agentService.MoveMessagesAsync(userId, filters!, mailboxRef);
-            if (error is not null)
-            {
-                return error;
-            }
-
-            return WithAccountHeader(account!, EmailMailboxTextHelpers.FormatCommandResult(result!));
+            return RunMailboxAsync(
+                mailboxAlias,
+                account => mailboxService.MoveMessagesAsync(account, filters!),
+                EmailMailboxTextHelpers.FormatCommandResult);
         }
 
-        private async Task<string> CopyMessagesAsync(
+        private Task<string> CopyMessagesAsync(
             string uidsCsv,
             string folder,
             string destinationFolder,
@@ -391,20 +384,16 @@ public sealed class EmailTriageTools(MailboxAgentService agentService)
         {
             if (!MessageTransferFiltersBuilder.TryBuild(uidsCsv, folder, destinationFolder, out var filters, out var buildError))
             {
-                return buildError!;
+                return Task.FromResult(buildError!);
             }
 
-            var mailboxRef = EffectiveMailboxAlias(mailboxAlias);
-            var (account, result, error) = await agentService.CopyMessagesAsync(userId, filters!, mailboxRef);
-            if (error is not null)
-            {
-                return error;
-            }
-
-            return WithAccountHeader(account!, EmailMailboxTextHelpers.FormatCommandResult(result!));
+            return RunMailboxAsync(
+                mailboxAlias,
+                account => mailboxService.CopyMessagesAsync(account, filters!),
+                EmailMailboxTextHelpers.FormatCommandResult);
         }
 
-        private async Task<string> SetMessageFlagsAsync(
+        private Task<string> SetMessageFlagsAsync(
             string uidsCsv,
             string folder,
             string flagAction,
@@ -412,20 +401,16 @@ public sealed class EmailTriageTools(MailboxAgentService agentService)
         {
             if (!SetMessageFlagsFiltersBuilder.TryBuild(uidsCsv, folder, flagAction, out var filters, out var buildError))
             {
-                return buildError!;
+                return Task.FromResult(buildError!);
             }
 
-            var mailboxRef = EffectiveMailboxAlias(mailboxAlias);
-            var (account, result, error) = await agentService.SetMessageFlagsAsync(userId, filters!, mailboxRef);
-            if (error is not null)
-            {
-                return error;
-            }
-
-            return WithAccountHeader(account!, EmailMailboxTextHelpers.FormatCommandResult(result!));
+            return RunMailboxAsync(
+                mailboxAlias,
+                account => mailboxService.SetMessageFlagsAsync(account, filters!),
+                EmailMailboxTextHelpers.FormatCommandResult);
         }
 
-        private async Task<string> SendEmailAsync(
+        private Task<string> SendEmailAsync(
             string to,
             string cc,
             string bcc,
@@ -442,20 +427,16 @@ public sealed class EmailTriageTools(MailboxAgentService agentService)
                     to, cc, bcc, subject, body, htmlBody, mode, replyUid, replyFolder, attachments,
                     out var mail, out var buildError))
             {
-                return buildError!;
+                return Task.FromResult(buildError!);
             }
 
-            var mailboxRef = EffectiveMailboxAlias(mailboxAlias);
-            var (account, result, error) = await agentService.SendAsync(userId, mail!, mailboxRef);
-            if (error is not null)
-            {
-                return error;
-            }
-
-            return WithAccountHeader(account!, result!.Message);
+            return RunMailboxAsync(
+                mailboxAlias,
+                account => mailboxService.SendAsync(account, mail!),
+                result => result!.Message);
         }
 
-        private async Task<string> SaveDraftAsync(
+        private Task<string> SaveDraftAsync(
             string to,
             string cc,
             string bcc,
@@ -472,48 +453,124 @@ public sealed class EmailTriageTools(MailboxAgentService agentService)
                     to, cc, bcc, subject, body, htmlBody, mode, replyUid, replyFolder, attachments,
                     out var mail, out var buildError))
             {
-                return buildError!;
+                return Task.FromResult(buildError!);
             }
 
-            var mailboxRef = EffectiveMailboxAlias(mailboxAlias);
-            var (account, result, error) = await agentService.SaveDraftAsync(userId, mail!, mailboxRef);
-            if (error is not null)
-            {
-                return error;
-            }
-
-            return WithAccountHeader(account!, EmailMailboxTextHelpers.FormatSaveDraftResult(result!));
+            return RunMailboxAsync(
+                mailboxAlias,
+                account => mailboxService.SaveDraftAsync(account, mail!),
+                EmailMailboxTextHelpers.FormatSaveDraftResult);
         }
 
-        private async Task<string> CreateFolderAsync(string name, string parentFolder, string mailboxAlias)
+        private Task<string> CreateFolderAsync(string name, string parentFolder, string mailboxAlias)
         {
             if (!CreateFolderFiltersBuilder.TryBuild(name, parentFolder, out var filters, out var buildError))
             {
-                return buildError!;
+                return Task.FromResult(buildError!);
             }
 
-            var mailboxRef = EffectiveMailboxAlias(mailboxAlias);
-            var (account, result, error) = await agentService.CreateFolderAsync(userId, filters!, mailboxRef);
-            if (error is not null)
-            {
-                return error;
-            }
-
-            return WithAccountHeader(account!, EmailMailboxTextHelpers.FormatCommandResult(result!));
+            return RunMailboxAsync(
+                mailboxAlias,
+                account => mailboxService.CreateFolderAsync(account, filters!),
+                EmailMailboxTextHelpers.FormatCommandResult);
         }
 
         #endregion
 
         #region # Session helpers
 
-        private string? EffectiveMailboxAlias(string? mailboxAlias) =>
-            NullIfWhiteSpace(mailboxAlias) ?? defaultMailboxAlias;
+        private async Task<(MailboxAccountContext? Account, string? Error)> GetAccountAsync(string? mailboxAlias)
+        {
+            if (_defaultAccount is not null && !_accountCache.ContainsKey(_defaultAccount.Alias))
+            {
+                CacheAccount(_defaultAccount);
+            }
 
-        private static string WithAccountHeader(MailboxAccountContext account, string body) =>
-            $"{EmailReadConstants.FormatMailboxHeader(account)}\n{body}";
+            var alias = NullIfWhiteSpace(mailboxAlias) ?? _defaultAccount?.Alias;
 
-        private static string? NullIfWhiteSpace(string? value) =>
-            string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+            if (alias is null)
+            {
+                if (_defaultAccount is not null)
+                {
+                    return (_defaultAccount, null);
+                }
+
+                var defaultOutcome = await workspaceRefs.TryResolveMailboxAsync(userId, null);
+                if (!defaultOutcome.IsSuccess)
+                {
+                    return (null, defaultOutcome.Error);
+                }
+
+                _defaultAccount = defaultOutcome.Account;
+                CacheAccount(_defaultAccount!);
+                return (_defaultAccount, null);
+            }
+
+            if (_accountCache.TryGetValue(alias, out var cached))
+            {
+                return (cached, null);
+            }
+
+            if (_defaultAccount is not null && string.Equals(_defaultAccount.Alias, alias, StringComparison.OrdinalIgnoreCase))
+            {
+                CacheAccount(_defaultAccount);
+                return (_defaultAccount, null);
+            }
+
+            var resolved = await workspaceRefs.TryResolveMailboxAsync(userId, alias);
+            if (!resolved.IsSuccess)
+            {
+                return (null, resolved.Error);
+            }
+
+            CacheAccount(resolved.Account!);
+            return (resolved.Account, null);
+        }
+
+        private void CacheAccount(MailboxAccountContext account)
+        {
+            _accountCache[account.Alias] = account;
+        }
+
+        private static string WithAccountHeader(MailboxAccountContext account, string body)
+        {
+            return $"{EmailReadConstants.FormatMailboxHeader(account)}\n{body}";
+        }
+
+        private static string? NullIfWhiteSpace(string? value)
+        {
+            return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+        }
+
+        private async Task<string> RunMailboxAsync<TResult>(
+            string? mailboxAlias,
+            Func<MailboxAccountContext, Task<MailboxResult<TResult>>> invoke,
+            Func<TResult, string> format)
+            where TResult : class
+        {
+            var (account, error) = await GetAccountAsync(mailboxAlias);
+            if (error is not null)
+            {
+                return error;
+            }
+
+            return await RunMailboxAsync(account!, invoke, format);
+        }
+
+        private static async Task<string> RunMailboxAsync<TResult>(
+            MailboxAccountContext account,
+            Func<MailboxAccountContext, Task<MailboxResult<TResult>>> invoke,
+            Func<TResult, string> format)
+            where TResult : class
+        {
+            var outcome = await invoke(account);
+            if (!outcome.IsSuccess)
+            {
+                return outcome.Error!;
+            }
+
+            return WithAccountHeader(outcome.Account!, format(outcome.Value!));
+        }
 
         #endregion
     }

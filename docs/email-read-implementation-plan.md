@@ -2,7 +2,7 @@
 
 > Index: [docs/README.md](README.md) · Business: [product.md](product.md) · Memory layers: [ai-memory.md](ai-memory.md)
 
-Roadmap for mailbox capabilities: **EmailTriageAgent** + **EmailTriageTools** → `MailboxAgentService` → `UserMailboxService` → `IMailboxService` (`MailKitMailboxService`).
+Roadmap for mailbox capabilities: **EmailTriageAgent** + **EmailTriageTools** → `WorkspaceMailboxService` → `IMailboxService` (`MailKitMailboxService`).
 
 ---
 
@@ -51,25 +51,23 @@ Treat `src/Infrastructure/Mailbox/` as a **full mail-client adapter**. Do not ad
 
 ```text
 SendChatMessage
-  → EntityRefMentionContextService (@mailbox alias)
+  → EntityRefMentionContextService → WorkspaceReferenceService
   → ChatOrchestrator → EmailTriageAgent
-        → EmailTriageTools.Session
-              → MailboxAgentService          (account + error tuple)
-                    → UserMailboxService     (app requests → infra filters)
-                          → MailboxAccountResolver
-                          → EmailSettingsMapping.ToMailRuntime()
-                          → IMailboxService
+        → EmailTriageTools.Session (cached MailboxAccountContext)
+              → WorkspaceMailboxService    (account + filters → MailboxResult<T>)
+                    → IMailboxService
 ```
 
 | Layer | Key files |
 |-------|-----------|
 | **Chat entry** | `Features/Chat/ChatMessages/Commands/SendChatMessage.cs` |
-| **Mentions** | `Features/Shared/EntityRefMentionContextService.cs` |
+| **Mentions** | `Features/Shared/References/Services.cs` (`EntityRefMentionContextService`) |
 | **Agent** | `AI/Agents/EmailTriageAgent.cs` |
 | **Tools** | `AI/Tools/EmailTriageTools.cs` |
-| **Facades** | `Features/Shared/Services.cs` (`UserMailboxService`, `MailboxAgentService`) |
+| **References** | `Features/Shared/References/` — `Helpers.cs`, `Services.cs`, `DTOs.cs`, `Queries/SearchEntityRefMentions.cs` |
+| **Gateway** | `Features/Shared/Services.cs` (`WorkspaceMailboxService`), `DTOs.cs` (`MailboxResult<T>`) |
 | **Helpers** | `Features/Shared/MailboxReadHelpers.cs` |
-| **Account** | `Features/Workspace/EmailAccounts/MailboxAccountResolver.cs`, `DTOs.cs` (`StoredMailboxSettings`, `MailboxAccountContext`) |
+| **Account DTOs** | `EmailAccounts/DTOs.cs` (`StoredMailboxSettings`, `MailboxAccountContext`) |
 
 ### Wired (tools + facades)
 
@@ -100,7 +98,7 @@ SendChatMessage
 - **Runtime:** `EmailSettingsMapping.ToMailRuntime()` before every `IMailboxService` call
 - **Single-message get:** Application wrapper over `GetMessagesAsync` (not on infra port)
 - **Batch filters:** agents call infra `MessageBatchFilters` / `MessageTransferFilters` directly via builders in `MailboxReadHelpers.cs`
-- **Agent errors:** unified `(Account, Result, Error)` tuple in `MailboxAgentService`
+- **Results:** `MailboxResult<T>` in `WorkspaceMailboxService`
 
 ---
 
@@ -117,7 +115,7 @@ SendChatMessage
 | **4 Rich content** | HTML → plain text; attachment names on get (download at infra — tool pending) |
 | **5 Folders** | `folder` on list/get (inbox, sent, drafts, trash, junk, custom); `list_mailbox_folders` |
 
-**Key Application types:** `MailboxListRequest`, `MailboxOpenRequest`, `MailboxListSnapshot`, `MailboxListRangeParser`, `EmailMailboxTextHelpers`.
+**Key Application types:** `MailboxListQuery`, `MailboxOpenRequest`, `MailboxListSnapshot`, `MailboxListRangeParser`, `EmailMailboxTextHelpers`.
 
 ---
 
@@ -130,9 +128,9 @@ SendChatMessage
 | **Move / archive** | `move_messages` |
 | **Flags** | `set_message_flags` (read, unread, flagged, unflagged) |
 | **Batch read** | `get_inbox_messages` (max 5 Uids per call) |
-| **Multi-account** | `mailbox_alias` param + `@mailbox:alias` mention auto-fill via `MailboxAccountResolver` |
+| **Multi-account** | `mailbox_alias` param + `@mailbox:alias` mention auto-fill via `WorkspaceReferenceService.TryResolveMailboxAsync` |
 
-**E2E mention flow:** user `@mailbox:alias` → `EntityRefMentionContextService.TryResolveDefaultMailboxAliasAsync` → `RunChatAgentRequest.MailboxAlias` → `EmailTriageTools.Session` default when tool omits `mailbox_alias`.
+**E2E mention flow:** user `@mailbox:alias` → `EntityRefMentionContextService.ResolveAsync` → `RunChatAgentRequest.DefaultMailboxAccount` → `EmailTriageTools.Session` default when tool omits `mailbox_alias`.
 
 ---
 
@@ -145,8 +143,8 @@ Structural cleanup across Infrastructure and Application. Build verified.
 | **Infra port** | Full query/command surface; service owns orchestration; helpers are mechanical; DTO naming (`...Filters` / `...Result`, `MessageKey`, `MessageTransferFilters`, `CommandResult`) |
 | **Settings split** | `StoredMailboxSettings` (Application persistence) vs `EmailSettings` (infra runtime) |
 | **Application helpers** | `MailboxReadHelpers.cs` — parsers, builders, text formatting |
-| **Account resolution** | `MailboxAccountResolver` — default account, alias, or `mailbox:alias` → `MailboxAccountContext` |
-| **Facades** | `UserMailboxService` + `MailboxAgentService`; infra filters in agent commands |
+| **Account resolution** | `WorkspaceReferenceService` dispatches to `MailboxAccountResolver` — default account, alias, or `mailbox:alias` → `MailboxAccountContext` (upstream; not in gateway) |
+| **Gateway** | `WorkspaceMailboxService` — resolved account + infra filters only; `MailboxResult<T>` |
 | **AI tools** | `EmailTriageTools.Session` — per-turn state; `WithAccountHeader` on all outputs |
 
 ---

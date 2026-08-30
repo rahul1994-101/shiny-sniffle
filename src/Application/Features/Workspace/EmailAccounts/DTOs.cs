@@ -45,12 +45,14 @@ public sealed class MailboxAccountContext
 
     public string EmailAddress { get; init; } = string.Empty;
 
+    public string ProviderName { get; init; } = string.Empty;
+
     public bool IsDefault { get; init; }
 
     public EmailSettings Runtime { get; init; } = null!;
 }
 
-public sealed class MailboxAccountResolveResult
+internal sealed class MailboxAccountResolveResult
 {
     public MailboxAccountContext? Context { get; init; }
 

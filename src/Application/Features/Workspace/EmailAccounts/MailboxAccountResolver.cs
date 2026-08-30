@@ -1,5 +1,4 @@
 using Application.Features.Shared;
-using Infrastructure.Mailbox;
 
 namespace Application.Features.Workspace.EmailAccounts;
 
@@ -8,7 +7,24 @@ namespace Application.Features.Workspace.EmailAccounts;
 /// </summary>
 public sealed class MailboxAccountResolver(EmailAccountRepository emailAccountRepo)
 {
-    public async Task<MailboxAccountResolveResult> ResolveAsync(
+    public async Task<bool> IsConfiguredAsync(Guid userId, string? mailboxRef = null, CancellationToken cancellationToken = default)
+    {
+        var outcome = await TryResolveAccountAsync(userId, mailboxRef, cancellationToken);
+        return outcome.IsSuccess;
+    }
+
+    public async Task<MailboxResult<MailboxAccountContext>> TryResolveAccountAsync(Guid userId, string? mailboxRef = null, CancellationToken cancellationToken = default)
+    {
+        var resolved = await ResolveAsync(userId, mailboxRef, cancellationToken);
+        if (resolved.Context is null)
+        {
+            return MailboxResult<MailboxAccountContext>.Fail(resolved.ErrorMessage!);
+        }
+
+        return MailboxResult<MailboxAccountContext>.Ok(resolved.Context, resolved.Context);
+    }
+
+    internal async Task<MailboxAccountResolveResult> ResolveAsync(
         Guid userId,
         string? mailboxRef = null,
         CancellationToken cancellationToken = default)
@@ -39,13 +55,13 @@ public sealed class MailboxAccountResolver(EmailAccountRepository emailAccountRe
         if (account is null)
         {
             return alias is not null
-                ? MailboxAccountResolveResult.Fail(EmailReadConstants.FormatMailboxNotFound(alias))
-                : MailboxAccountResolveResult.Fail(EmailReadConstants.NotConfiguredForAgent);
+                ? MailboxAccountResolveResult.Fail(MailboxMessages.AccountNotFound(alias))
+                : MailboxAccountResolveResult.Fail(MailboxMessages.NotConfigured);
         }
 
         if (account.EmailProvider is null)
         {
-            return MailboxAccountResolveResult.Fail(EmailReadConstants.NotConfiguredForAgent);
+            return MailboxAccountResolveResult.Fail(MailboxMessages.NotConfigured);
         }
 
         var settings = EmailAccountMapping.ToStoredSettings(account, account.EmailProvider);
@@ -53,8 +69,8 @@ public sealed class MailboxAccountResolver(EmailAccountRepository emailAccountRe
         if (runtime is null)
         {
             var message = alias is not null
-                ? $"Mailbox {account.EmailAddress} is incomplete. Finish setup in Workspace → Email accounts."
-                : EmailReadConstants.NotConfiguredForAgent;
+                ? MailboxMessages.IncompleteAccount(account.EmailAddress)
+                : MailboxMessages.NotConfigured;
 
             return MailboxAccountResolveResult.Fail(message);
         }
@@ -64,6 +80,7 @@ public sealed class MailboxAccountResolver(EmailAccountRepository emailAccountRe
             EmailAccountId = account.Id,
             Alias = account.Alias,
             EmailAddress = account.EmailAddress,
+            ProviderName = account.EmailProvider.Name,
             IsDefault = account.IsDefault,
             Runtime = runtime
         });

@@ -13,7 +13,7 @@ public sealed class EmailTriageAgent(IFoundryAgentFactory _agentFactory, EmailTr
     {
         #region # Execute
 
-        var tools = _emailTools.CreateTools(request.UserId, request.ThreadId, request.MailboxAlias);
+        var tools = _emailTools.CreateTools(request.UserId, request.ThreadId, request.DefaultMailboxAccount);
         var agent = CreateFoundryAgent(tools);
         var messages = history.ToList();
         var response = await agent.RunAsync(messages, cancellationToken: cancellationToken);

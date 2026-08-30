@@ -49,7 +49,7 @@ Features/{Domain}/{Area}/
 
 Same file names in `{Slice}/` and `Shared/` — multiple types per file; no one-off `*Mapping.cs` files.
 
-**Workspace referables:** `id` = stable FK key; `alias` = per-user unique handle (slugified via `EntityAliasRules`); AI refs (`contact:`, `mailbox:`, …) resolved via `EntityRefResolver` at boundaries only.
+**Workspace referables:** `id` = stable FK key; `alias` = per-user unique handle (slugified via `EntityAliasRules`); AI refs (`contact:`, `mailbox:`, …) resolved via `WorkspaceReferenceService` at boundaries only.
 
 **`Dbo.EmailProvider`:** system rows (`IsSystem`, `UserId = null`) read-only for all; custom rows owned by user. List scoped to system + that user's custom rows.
 
@@ -134,18 +134,19 @@ Roadmaps: `docs/ai-memory.md`, `docs/email-read-implementation-plan.md`. Detail:
 **Infra port is complete** — Application adapts upstream; do not push agent/tool names into `Infrastructure/Mailbox`.
 
 ```text
-EmailTriageTools → MailboxAgentService → UserMailboxService → IMailboxService
-                         ↑                      ↑
-              (account + error tuple)    MailboxAccountResolver
-                                         EmailSettingsMapping.ToMailRuntime()
+EntityRefMentionContextService ─┐
+EmailTriageTools.Session ───────┼→ WorkspaceReferenceService  (ref → id / MailboxAccountContext)
+CreateChatThread / UpdateChatThreadAgent ─┘
+EmailTriageTools ───────────────→ WorkspaceMailboxService → IMailboxService
+TestEmailAccountConnection ─────→ WorkspaceMailboxService.TestConnectionWithDraftAsync
+              ↑ EmailSettingsMapping (internal to gateway setup path)
 ```
 
 | Layer | Role | Key files |
 |-------|------|-----------|
-| **Account** | Resolve user → `MailboxAccountContext` (alias, runtime `EmailSettings`) | `EmailAccounts/MailboxAccountResolver.cs`, `Repository.cs` |
+| **References** | Single workspace dispatch — identity + per-module action resolvers | `Shared/References/Services.cs` (`WorkspaceReferenceService`, `EntityRefMentionContextService`) |
+| **Gateway** | Resolved account + infra filters → port mirror → `MailboxResult<T>`; setup draft test | `Shared/Services.cs` (`WorkspaceMailboxService`) |
 | **Persistence** | `StoredMailboxSettings` — merge/draft/save; not infra `EmailSettings` | `EmailAccounts/DTOs.cs`, `Helpers.cs` (`EmailSettingsMapping`) |
-| **Facade** | Map app requests → infra filters; single-message wrapper over batch get | `Shared/Services.cs` (`UserMailboxService`) |
-| **Agent facade** | `(Account, Result, Error)` tuple; batch validation | `Shared/Services.cs` (`MailboxAgentService`) |
 | **Helpers** | Date parsing, filter builders, text formatting | `Shared/MailboxReadHelpers.cs` |
 | **Tools** | Agent tool catalog + per-turn `MailboxListSnapshot` | `AI/Tools/EmailTriageTools.cs` |
 
@@ -154,3 +155,16 @@ EmailTriageTools → MailboxAgentService → UserMailboxService → IMailboxServ
 **Deferred to Layer 6b–6e:** compare helper, thread memory, action_list hardening.
 
 **Conventions:** map at the port (`ToMailRuntime()` before `IMailboxService`); infra filters in agent commands (no thin duplicate request types); agent-facing names OK in Application (`GetStatusAsync` wraps `TestConnectionAsync`). See `conventions.mdc`.
+
+---
+
+## Workspace entity references (@mentions)
+
+Two project-wide requirements; each workspace module participates differently:
+
+| Requirement | Role | Key files |
+|-------------|------|-----------|
+| **Identity** | `kind:alias` handles — parse, search, alias ↔ id | `Shared/References/Helpers.cs` (`EntityRefs`, `EntityRefMentions`), per-slice `SearchMentionItemsAsync` |
+| **Action** | User-scoped runtime — ref → usable entity → work | Per-module resolver (mailbox: `MailboxAccountResolver`); callers use `WorkspaceReferenceService` in `References/Services.cs` |
+
+**Mention pipeline:** `EntityRefMentionContextService.ResolveAsync` parses once, resolves via `WorkspaceReferenceService` — identity kinds → `TryResolveIdAsync` + repo formatting; mailbox → `TryResolveMailboxAsync`. For Email agent turns, also pre-resolves the default mailbox account once. Tools receive `DefaultMailboxAccount` and cache per alias; gateway accepts only resolved accounts.

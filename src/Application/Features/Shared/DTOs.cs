@@ -1,54 +1,35 @@
+using Application.Features.Workspace.EmailAccounts;
+
 namespace Application.Features.Shared;
 
-public sealed class TagRefDto
+/// <summary>Result of a workspace mailbox operation against a resolved account.</summary>
+public sealed class MailboxResult<T> where T : class
 {
-    public Guid Id { get; init; }
+    public MailboxAccountContext? Account { get; init; }
 
-    public string Name { get; init; } = string.Empty;
+    public T? Value { get; init; }
 
-    public string Alias { get; init; } = string.Empty;
+    public string? Error { get; init; }
 
-    public string EntityRef => EntityRefs.Format(EntityRefs.Kind.Tag, Alias);
+    public bool IsSuccess => Error is null && Value is not null;
 
-    public string? Color { get; init; }
+    public static MailboxResult<T> Ok(MailboxAccountContext account, T value) =>
+        new() { Account = account, Value = value };
 
-    public string? Context { get; init; }
+    public static MailboxResult<T> Fail(string error) =>
+        new() { Error = error };
 }
 
-public sealed class BucketRefDto
+/// <summary>Consumer-neutral mailbox messages for the Application middle layer.</summary>
+public static class MailboxMessages
 {
-    public Guid Id { get; init; }
+    public const string WorkspaceEmailHint = "Connect your mailbox in Workspace → Email accounts.";
 
-    public string Name { get; init; } = string.Empty;
+    public const string NotConfigured = $"Mailbox is not configured. {WorkspaceEmailHint}";
 
-    public string Alias { get; init; } = string.Empty;
+    public static string AccountNotFound(string aliasOrRef) =>
+        $"No connected mailbox found for '{aliasOrRef}'. Check Workspace → Email accounts, or omit mailbox_alias to use the default account.";
 
-    public string EntityRef => EntityRefs.Format(EntityRefs.Kind.Bucket, Alias);
-
-    public string? Color { get; init; }
-
-    public string? Context { get; init; }
-}
-
-public sealed class ErTaxonomyDto
-{
-    public IReadOnlyList<TagRefDto> Tags { get; init; } = [];
-
-    public IReadOnlyList<BucketRefDto> Buckets { get; init; } = [];
-}
-
-/// <summary>Lightweight row for the <c>@kind:alias</c> mention picker (no taxonomy).</summary>
-public sealed class EntityRefMentionItemDto
-{
-    public EntityRefs.Kind Kind { get; init; }
-
-    public string Alias { get; init; } = string.Empty;
-
-    public string PrimaryLabel { get; init; } = string.Empty;
-
-    public string? SecondaryLabel { get; init; }
-
-    public string? TooltipText { get; init; }
-
-    public string? AvatarText { get; init; }
+    public static string IncompleteAccount(string emailAddress) =>
+        $"Mailbox {emailAddress} is incomplete. Finish setup in Workspace → Email accounts.";
 }

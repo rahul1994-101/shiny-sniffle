@@ -29,7 +29,7 @@ public static class DependencyInjection
         #region Feature repositories
 
         services.AddScoped<SharedRepository>();
-        services.AddScoped<EntityRefResolver>();
+        services.AddScoped<WorkspaceReferenceService>();
         services.AddScoped<EntityRefMentionContextService>();
         services.AddScoped<UserRepository>();
         services.AddScoped<ChatThreadRepository>();
@@ -45,8 +45,7 @@ public static class DependencyInjection
 
         #region Feature services (Shared/Services.cs)
 
-        services.AddScoped<UserMailboxService>();
-        services.AddScoped<MailboxAgentService>();
+        services.AddScoped<WorkspaceMailboxService>();
 
         #endregion
 

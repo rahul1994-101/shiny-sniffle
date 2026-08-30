@@ -29,7 +29,7 @@ public sealed class CreateChatThreadRequestValidator : AbstractValidator<CreateC
     }
 }
 
-public sealed class CreateChatThreadRequestHandler(ChatThreadRepository chatThreadRepo, UserMailboxService mailboxService)
+public sealed class CreateChatThreadRequestHandler(ChatThreadRepository chatThreadRepo, WorkspaceReferenceService workspaceRefs)
     : IRequestHandler<CreateChatThreadRequest, CreateChatThreadResponse>
 {
     public async ValueTask<Result<CreateChatThreadResponse>> HandleAsync(CreateChatThreadRequest request, CancellationToken cancellationToken = default)
@@ -39,7 +39,7 @@ public sealed class CreateChatThreadRequestHandler(ChatThreadRepository chatThre
         #region # Execute
 
         var mailboxConfigured = request.ChatAgent != ChatAgent.Email
-            || await mailboxService.IsConfiguredAsync(request.UserId, cancellationToken: cancellationToken);
+            || await workspaceRefs.IsMailboxConfiguredAsync(request.UserId, cancellationToken: cancellationToken);
         ChatThreadDto? chatThread = null;
         if (mailboxConfigured)
         {

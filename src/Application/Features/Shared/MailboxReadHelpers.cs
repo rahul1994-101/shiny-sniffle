@@ -20,35 +20,12 @@ internal static class EmailReadConstants
 
     internal const int MaxAttachmentTextPreviewBytes = 8_192;
 
-    internal const string WorkspaceEmailHint = "Connect your mailbox in Workspace → Email accounts.";
-
-    internal const string NotConfiguredForAgent =
-        $"Mailbox is not configured. {WorkspaceEmailHint}";
-
-    internal const string NotConfiguredForList =
-        $"Mailbox is not configured. {WorkspaceEmailHint} Then ask again to list mail.";
-
-    internal const string NotConfiguredForSend =
-        $"Mailbox is not configured. {WorkspaceEmailHint} Before sending mail.";
-
-    internal const string NotConfiguredForGet =
-        $"Mailbox is not configured. {WorkspaceEmailHint} Then ask again to read a message.";
-
-    internal const string NotConfiguredForFolders =
-        $"Mailbox is not configured. {WorkspaceEmailHint} Then ask again to list folders.";
-
-    internal const string NotConfiguredForCommands =
-        $"Mailbox is not configured. {WorkspaceEmailHint} Then ask again to change mail.";
-
     internal const string SinceParseHint =
         "Could not parse the date range. Use today, yesterday, this_week, last_N_days, yyyy-MM-dd..yyyy-MM-dd, " +
         "yyyy-MM-dd to yyyy-MM-dd, or since + until (yyyy-MM-dd).";
 
     internal static string FormatSinceParseHint() =>
         $"{SinceParseHint} Today (UTC) is {EmailReadDateContext.TodayUtcIso}. Example range: 2026-05-01..2026-05-07.";
-
-    internal static string FormatMailboxNotFound(string aliasOrRef) =>
-        $"No connected mailbox found for '{aliasOrRef}'. Check Workspace → Email accounts, or omit mailbox_alias to use the default account.";
 
     internal static string FormatMailboxHeader(MailboxAccountContext account) =>
         $"Account: {account.Alias} ({account.EmailAddress}){(account.IsDefault ? " · default" : string.Empty)}";
@@ -383,41 +360,10 @@ internal static partial class MailboxListRangeParser
     #endregion
 }
 
-/// <summary>Parsed, validated inbox list parameters — built once from tool args or session state.</summary>
-internal sealed record MailboxListRequest(
-    MailboxDateRange Range,
-    int Limit,
-    int Skip,
-    bool CountOnly,
-    bool UnreadOnly,
-    string? FromSender,
-    string? SubjectContains,
-    string? BodyContains,
-    string? ToContains,
-    bool? HasAttachments,
-    string? Folder)
-{
-    internal ListMessagesFilters ToListMessagesFilters() =>
-        new()
-        {
-            SinceUtc = Range.SinceUtc,
-            UntilUtcExclusive = Range.UntilUtcExclusive,
-            Limit = Limit,
-            Skip = Skip,
-            CountOnly = CountOnly,
-            UnreadOnly = UnreadOnly,
-            FromContains = FromSender,
-            SubjectContains = SubjectContains,
-            BodyContains = BodyContains,
-            ToContains = ToContains,
-            HasAttachments = HasAttachments,
-            Folder = Folder
-        };
+/// <summary>Parsed, validated list query — infra filters plus agent-facing label.</summary>
+internal sealed record MailboxListQuery(ListMessagesFilters Filters, string QueryLabel);
 
-    internal string QueryLabel => EmailMailboxTextHelpers.FormatMailboxQueryLabel(Range.Label, ToListMessagesFilters());
-}
-
-internal static class MailboxListRequestBuilder
+internal static class ListMessagesQueryBuilder
 {
     internal static bool TryBuild(
         string since,
@@ -432,34 +378,38 @@ internal static class MailboxListRequestBuilder
         string toContains,
         string attachmentsFilter,
         string folder,
-        out MailboxListRequest? request,
+        out MailboxListQuery? query,
         out string? error)
     {
         if (!MailboxListRangeParser.TryParse(since, until, out var range) || range is null)
         {
-            request = null;
+            query = null;
             error = EmailReadConstants.FormatSinceParseHint();
             return false;
         }
 
         if (!TryParseAttachmentsFilter(attachmentsFilter, out var hasAttachments, out error))
         {
-            request = null;
+            query = null;
             return false;
         }
 
-        request = new MailboxListRequest(
-            range,
-            MailboxLimits.ClampListLimit(limit),
-            MailboxLimits.ClampListSkip(skip),
-            countOnly,
-            unreadOnly,
-            NullIfWhiteSpace(fromSender),
-            NullIfWhiteSpace(subjectContains),
-            NullIfWhiteSpace(bodyContains),
-            NullIfWhiteSpace(toContains),
-            hasAttachments,
-            NullIfWhiteSpace(folder));
+        var filters = new ListMessagesFilters
+        {
+            SinceUtc = range.SinceUtc,
+            UntilUtcExclusive = range.UntilUtcExclusive,
+            Limit = MailboxLimits.ClampListLimit(limit),
+            Skip = MailboxLimits.ClampListSkip(skip),
+            CountOnly = countOnly,
+            UnreadOnly = unreadOnly,
+            FromContains = NullIfWhiteSpace(fromSender),
+            SubjectContains = NullIfWhiteSpace(subjectContains),
+            BodyContains = NullIfWhiteSpace(bodyContains),
+            ToContains = NullIfWhiteSpace(toContains),
+            HasAttachments = hasAttachments,
+            Folder = NullIfWhiteSpace(folder)
+        };
+        query = new MailboxListQuery(filters, EmailMailboxTextHelpers.FormatMailboxQueryLabel(range.Label, filters));
         error = null;
         return true;
     }
@@ -500,12 +450,12 @@ internal static class MailboxListRequestBuilder
 
 /// <summary>Ordered Uids from the most recent non–count-only list in an agent turn.</summary>
 internal sealed record MailboxListSnapshot(
-    MailboxListRequest Request,
+    ListMessagesFilters Filters,
     IReadOnlyList<uint> Uids,
     string? MailboxAlias)
 {
-    internal static MailboxListSnapshot From(MailboxListRequest request, ListMessagesResult result, string? mailboxAlias) =>
-        new(request, result.Messages.Select(m => m.Uid).ToList(), mailboxAlias);
+    internal static MailboxListSnapshot From(ListMessagesFilters filters, ListMessagesResult result, string? mailboxAlias) =>
+        new(filters, result.Messages.Select(m => m.Uid).ToList(), mailboxAlias);
 
     internal bool MatchesMailbox(string? mailboxAlias) =>
         string.Equals(MailboxAlias ?? string.Empty, mailboxAlias ?? string.Empty, StringComparison.OrdinalIgnoreCase);
@@ -574,7 +524,7 @@ internal static class MailboxOpenRequestBuilder
             request = new MailboxOpenRequest(new MessageKey
             {
                 Uid = resolvedUid,
-                Folder = folderOverride ?? lastList.Request.Folder
+                Folder = folderOverride ?? lastList.Filters.Folder
             });
             return true;
         }

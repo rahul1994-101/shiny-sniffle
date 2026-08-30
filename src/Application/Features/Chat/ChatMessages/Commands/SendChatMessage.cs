@@ -1,6 +1,7 @@
 using Application.AI;
 using Application.AI.Memory;
 using Application.Features.Chat.ChatThreads;
+using Application.Models;
 using FluentValidation;
 
 namespace Application.Features.Chat.ChatMessages.Commands;
@@ -59,13 +60,10 @@ public sealed class SendChatMessageRequestHandler(
                 Content = text
             }, cancellationToken);
 
-            var mentionContext = await mentionContextService.BuildContextBlockAsync(
+            var mentions = await mentionContextService.ResolveAsync(
                 request.UserId,
                 text,
-                cancellationToken);
-            var mailboxAlias = await mentionContextService.TryResolveDefaultMailboxAliasAsync(
-                request.UserId,
-                text,
+                resolveDefaultMailbox: thread.ChatAgent == ChatAgent.Email,
                 cancellationToken);
 
             var agentRun = await chatOrchestrator.RunChatAgentAsync(new RunChatAgentRequest
@@ -73,8 +71,8 @@ public sealed class SendChatMessageRequestHandler(
                 UserId = request.UserId,
                 ThreadId = request.ThreadId,
                 ChatAgent = thread.ChatAgent,
-                MentionContext = mentionContext,
-                MailboxAlias = mailboxAlias
+                MentionContext = mentions.ContextBlock,
+                DefaultMailboxAccount = mentions.DefaultMailboxAccount
             }, cancellationToken);
 
             var assistantMessage = await chatMessageRepo.AddAsync(new ChatMessage
