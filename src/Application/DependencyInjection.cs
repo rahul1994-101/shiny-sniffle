@@ -37,6 +37,7 @@ public static class DependencyInjection
         services.AddScoped<EmailProviderRepository>();
         services.AddScoped<EmailAccountRepository>();
         services.AddScoped<MailboxAccountResolver>();
+        services.AddScoped<EmailAccountMailboxService>();
         services.AddScoped<ContactRepository>();
         services.AddScoped<TagRepository>();
         services.AddScoped<BucketRepository>();

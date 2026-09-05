@@ -138,14 +138,15 @@ EntityRefMentionContextService ─┐
 EmailTriageTools.Session ───────┼→ WorkspaceReferenceService  (ref → id / MailboxAccountContext)
 CreateChatThread / UpdateChatThreadAgent ─┘
 EmailTriageTools ───────────────→ WorkspaceMailboxService → IMailboxService
-TestEmailAccountConnection ─────→ WorkspaceMailboxService.TestConnectionWithDraftAsync
-              ↑ EmailSettingsMapping (internal to gateway setup path)
+TestEmailAccountConnection ─────→ EmailAccountMailboxService → IMailboxService
+              ↑ EmailSettingsMapping (stored/draft merge in EmailAccounts slice)
 ```
 
 | Layer | Role | Key files |
 |-------|------|-----------|
 | **References** | Single workspace dispatch — identity + per-module action resolvers | `Shared/References/Services.cs` (`WorkspaceReferenceService`, `EntityRefMentionContextService`) |
-| **Gateway** | Resolved account + infra filters → port mirror → `MailboxResult<T>`; setup draft test | `Shared/Services.cs` (`WorkspaceMailboxService`) |
+| **Gateway** | Resolved account + infra filters → port mirror → `MailboxResult<T>` | `Shared/Services.cs` (`WorkspaceMailboxService`) |
+| **Email setup** | Stored/draft merge + connection probe (Path B) | `EmailAccounts/Services.cs` (`EmailAccountMailboxService`) |
 | **Persistence** | `StoredMailboxSettings` — merge/draft/save; not infra `EmailSettings` | `EmailAccounts/DTOs.cs`, `Helpers.cs` (`EmailSettingsMapping`) |
 | **Helpers** | Date parsing, filter builders, text formatting | `Shared/MailboxReadHelpers.cs` |
 | **Tools** | Agent tool catalog + per-turn `MailboxListSnapshot` | `AI/Tools/EmailTriageTools.cs` |

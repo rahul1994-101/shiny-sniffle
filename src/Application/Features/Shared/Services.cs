@@ -7,216 +7,24 @@ namespace Application.Features.Shared;
 /// Consumer-agnostic Application gateway to <see cref="IMailboxService"/> for a resolved <see cref="MailboxAccountContext"/>.
 /// Account resolution belongs upstream — see <see cref="WorkspaceReferenceService"/>.
 /// </summary>
-public sealed class WorkspaceMailboxService(EmailAccountRepository emailAccountRepo, IMailboxService mailboxService)
+public sealed class WorkspaceMailboxService(IMailboxService mailboxService)
 {
-    #region # Setup
-
-    public async Task<TestConnectionResult> TestConnectionWithDraftAsync(Guid userId, EmailSettingsDto? draft = null, CancellationToken cancellationToken = default)
-    {
-        var stored = await emailAccountRepo.GetDefaultStoredMailboxSettingsAsync(userId, cancellationToken);
-        var resolved = EmailSettingsMapping.ResolveForMail(stored, draft);
-        var runtime = EmailSettingsMapping.ToMailRuntime(resolved);
-        if (runtime is null)
-        {
-            return new TestConnectionResult
-            {
-                Message = "Complete mailbox settings (including password) before testing the connection."
-            };
-        }
-
-        return await mailboxService.TestConnectionAsync(runtime, cancellationToken);
-    }
-
-    #endregion
-
     #region # Queries
 
-    public Task<MailboxResult<ListMessagesResult>> ListMessagesAsync(MailboxAccountContext account, ListMessagesFilters filters, CancellationToken cancellationToken = default)
-    {
-        return ExecuteAsync(account, ListMessages, "Could not list messages", cancellationToken);
-
-        Task<ListMessagesResult> ListMessages(MailboxAccountContext resolvedAccount, CancellationToken ct)
-        {
-            return mailboxService.ListMessagesAsync(resolvedAccount.Runtime, filters, ct);
-        }
-    }
-
-    public Task<MailboxResult<MessageDetail>> GetMessageAsync(MailboxAccountContext account, MessageKey message, CancellationToken cancellationToken = default)
-    {
-        return GetMessageCoreAsync(account, message, cancellationToken);
-    }
-
-    public Task<MailboxResult<GetMessagesResult>> GetMessagesAsync(MailboxAccountContext account, MessageBatchFilters filters, CancellationToken cancellationToken = default)
-    {
-        return ExecuteAsync(account, GetMessages, "Could not read messages", cancellationToken);
-
-        Task<GetMessagesResult> GetMessages(MailboxAccountContext resolvedAccount, CancellationToken ct)
-        {
-            return mailboxService.GetMessagesAsync(resolvedAccount.Runtime, filters, ct);
-        }
-    }
-
-    public Task<MailboxResult<ListFoldersResult>> ListFoldersAsync(MailboxAccountContext account, CancellationToken cancellationToken = default)
-    {
-        return ExecuteAsync(account, ListFolders, "Could not list mailbox folders", cancellationToken);
-
-        Task<ListFoldersResult> ListFolders(MailboxAccountContext resolvedAccount, CancellationToken ct)
-        {
-            return mailboxService.ListFoldersAsync(resolvedAccount.Runtime, ct);
-        }
-    }
-
-    public Task<MailboxResult<GetAttachmentsResult>> GetAttachmentsAsync(MailboxAccountContext account, GetAttachmentsFilters filters, CancellationToken cancellationToken = default)
-    {
-        return ExecuteAsync(account, GetAttachments, "Could not fetch attachments", cancellationToken);
-
-        Task<GetAttachmentsResult> GetAttachments(MailboxAccountContext resolvedAccount, CancellationToken ct)
-        {
-            return mailboxService.GetAttachmentsAsync(resolvedAccount.Runtime, filters, ct);
-        }
-    }
-
-    public Task<MailboxResult<GetFolderResult>> GetFolderAsync(MailboxAccountContext account, GetFolderFilters filters, CancellationToken cancellationToken = default)
-    {
-        return ExecuteAsync(account, GetFolder, "Could not read folder stats", cancellationToken);
-
-        Task<GetFolderResult> GetFolder(MailboxAccountContext resolvedAccount, CancellationToken ct)
-        {
-            return mailboxService.GetFolderAsync(resolvedAccount.Runtime, filters, ct);
-        }
-    }
-
-    public Task<MailboxResult<TestConnectionResult>> TestConnectionAsync(MailboxAccountContext account, CancellationToken cancellationToken = default)
-    {
-        return ExecuteAsync(account, GetStatus, "Could not check mailbox status", cancellationToken);
-
-        Task<TestConnectionResult> GetStatus(MailboxAccountContext resolvedAccount, CancellationToken ct)
-        {
-            return mailboxService.TestConnectionAsync(resolvedAccount.Runtime, ct);
-        }
-    }
-
-    #endregion
-
-    #region # Commands
-
-    public Task<MailboxResult<CommandResult>> DeleteMessagesAsync(MailboxAccountContext account, MessageBatchFilters filters, CancellationToken cancellationToken = default)
-    {
-        return ExecuteAsync(account, DeleteMessages, "Could not delete messages", cancellationToken);
-
-        Task<CommandResult> DeleteMessages(MailboxAccountContext resolvedAccount, CancellationToken ct)
-        {
-            return mailboxService.DeleteMessagesAsync(resolvedAccount.Runtime, filters, ct);
-        }
-    }
-
-    public Task<MailboxResult<CommandResult>> MoveMessagesAsync(MailboxAccountContext account, MessageTransferFilters filters, CancellationToken cancellationToken = default)
-    {
-        return ExecuteAsync(account, MoveMessages, "Could not move messages", cancellationToken);
-
-        Task<CommandResult> MoveMessages(MailboxAccountContext resolvedAccount, CancellationToken ct)
-        {
-            return mailboxService.MoveMessagesAsync(resolvedAccount.Runtime, filters, ct);
-        }
-    }
-
-    public Task<MailboxResult<CommandResult>> SetMessageFlagsAsync(MailboxAccountContext account, SetMessageFlagsFilters filters, CancellationToken cancellationToken = default)
-    {
-        return ExecuteAsync(account, SetMessageFlags, "Could not update message flags", cancellationToken);
-
-        Task<CommandResult> SetMessageFlags(MailboxAccountContext resolvedAccount, CancellationToken ct)
-        {
-            return mailboxService.SetMessageFlagsAsync(resolvedAccount.Runtime, filters, ct);
-        }
-    }
-
-    public Task<MailboxResult<CommandResult>> CopyMessagesAsync(MailboxAccountContext account, MessageTransferFilters filters, CancellationToken cancellationToken = default)
-    {
-        return ExecuteAsync(account, CopyMessages, "Could not copy messages", cancellationToken);
-
-        Task<CommandResult> CopyMessages(MailboxAccountContext resolvedAccount, CancellationToken ct)
-        {
-            return mailboxService.CopyMessagesAsync(resolvedAccount.Runtime, filters, ct);
-        }
-    }
-
-    public Task<MailboxResult<CommandResult>> CreateFolderAsync(MailboxAccountContext account, CreateFolderFilters filters, CancellationToken cancellationToken = default)
-    {
-        return ExecuteAsync(account, CreateFolder, "Could not create folder", cancellationToken);
-
-        Task<CommandResult> CreateFolder(MailboxAccountContext resolvedAccount, CancellationToken ct)
-        {
-            return mailboxService.CreateFolderAsync(resolvedAccount.Runtime, filters, ct);
-        }
-    }
-
-    public Task<MailboxResult<SendMailResult>> SendAsync(MailboxAccountContext account, OutboundMail mail, CancellationToken cancellationToken = default)
-    {
-        return ExecuteWithSuccessResultAsync(account, SendMail, "Could not send email", SendMailError, cancellationToken);
-
-        Task<SendMailResult> SendMail(MailboxAccountContext resolvedAccount, CancellationToken ct)
-        {
-            return mailboxService.SendAsync(resolvedAccount.Runtime, mail, ct);
-        }
-
-        static string? SendMailError(SendMailResult result)
-        {
-            return result.Success ? null : result.Message;
-        }
-    }
-
-    public Task<MailboxResult<SaveDraftResult>> SaveDraftAsync(MailboxAccountContext account, OutboundMail mail, CancellationToken cancellationToken = default)
-    {
-        return ExecuteWithSuccessResultAsync(account, SaveDraft, "Could not save draft", SaveDraftError, cancellationToken);
-
-        Task<SaveDraftResult> SaveDraft(MailboxAccountContext resolvedAccount, CancellationToken ct)
-        {
-            return mailboxService.SaveDraftAsync(resolvedAccount.Runtime, mail, ct);
-        }
-
-        static string? SaveDraftError(SaveDraftResult result)
-        {
-            return result.Success ? null : result.Message;
-        }
-    }
-
-    #endregion
-
-    #region # Orchestration
-
-    private async Task<MailboxResult<T>> ExecuteAsync<T>(MailboxAccountContext account, Func<MailboxAccountContext, CancellationToken, Task<T>> execute, string failurePrefix, CancellationToken cancellationToken)
-        where T : class
+    public async Task<MailboxResult<ListMessagesResult>> ListMessagesAsync(MailboxAccountContext account, ListMessagesFilters filters, CancellationToken cancellationToken = default)
     {
         try
         {
-            var result = await execute(account, cancellationToken);
-            return MailboxResult<T>.Ok(account, result);
+            var result = await mailboxService.ListMessagesAsync(account.Runtime, filters, cancellationToken);
+            return MailboxResult<ListMessagesResult>.Ok(account, result);
         }
         catch (Exception ex)
         {
-            return MailboxResult<T>.Fail($"{failurePrefix}: {ex.Message}");
+            return MailboxResult<ListMessagesResult>.Fail($"Could not list messages: {ex.Message}");
         }
     }
 
-    private async Task<MailboxResult<T>> ExecuteWithSuccessResultAsync<T>(MailboxAccountContext account, Func<MailboxAccountContext, CancellationToken, Task<T>> execute, string failurePrefix, Func<T, string?> resultError, CancellationToken cancellationToken)
-        where T : class
-    {
-        var outcome = await ExecuteAsync(account, execute, failurePrefix, cancellationToken);
-        if (!outcome.IsSuccess || outcome.Value is null)
-        {
-            return outcome;
-        }
-
-        var message = resultError(outcome.Value);
-        if (message is null)
-        {
-            return outcome;
-        }
-
-        return MailboxResult<T>.Fail(message);
-    }
-
-    private async Task<MailboxResult<MessageDetail>> GetMessageCoreAsync(MailboxAccountContext account, MessageKey message, CancellationToken cancellationToken)
+    public async Task<MailboxResult<MessageDetail>> GetMessageAsync(MailboxAccountContext account, MessageKey message, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -235,6 +43,176 @@ public sealed class WorkspaceMailboxService(EmailAccountRepository emailAccountR
         catch (Exception ex)
         {
             return MailboxResult<MessageDetail>.Fail($"Could not read message: {ex.Message}");
+        }
+    }
+
+    public async Task<MailboxResult<GetMessagesResult>> GetMessagesAsync(MailboxAccountContext account, MessageBatchFilters filters, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var result = await mailboxService.GetMessagesAsync(account.Runtime, filters, cancellationToken);
+            return MailboxResult<GetMessagesResult>.Ok(account, result);
+        }
+        catch (Exception ex)
+        {
+            return MailboxResult<GetMessagesResult>.Fail($"Could not read messages: {ex.Message}");
+        }
+    }
+
+    public async Task<MailboxResult<ListFoldersResult>> ListFoldersAsync(MailboxAccountContext account, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var result = await mailboxService.ListFoldersAsync(account.Runtime, cancellationToken);
+            return MailboxResult<ListFoldersResult>.Ok(account, result);
+        }
+        catch (Exception ex)
+        {
+            return MailboxResult<ListFoldersResult>.Fail($"Could not list mailbox folders: {ex.Message}");
+        }
+    }
+
+    public async Task<MailboxResult<GetAttachmentsResult>> GetAttachmentsAsync(MailboxAccountContext account, GetAttachmentsFilters filters, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var result = await mailboxService.GetAttachmentsAsync(account.Runtime, filters, cancellationToken);
+            return MailboxResult<GetAttachmentsResult>.Ok(account, result);
+        }
+        catch (Exception ex)
+        {
+            return MailboxResult<GetAttachmentsResult>.Fail($"Could not fetch attachments: {ex.Message}");
+        }
+    }
+
+    public async Task<MailboxResult<GetFolderResult>> GetFolderAsync(MailboxAccountContext account, GetFolderFilters filters, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var result = await mailboxService.GetFolderAsync(account.Runtime, filters, cancellationToken);
+            return MailboxResult<GetFolderResult>.Ok(account, result);
+        }
+        catch (Exception ex)
+        {
+            return MailboxResult<GetFolderResult>.Fail($"Could not read folder stats: {ex.Message}");
+        }
+    }
+
+    public async Task<MailboxResult<TestConnectionResult>> TestConnectionAsync(MailboxAccountContext account, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var result = await mailboxService.TestConnectionAsync(account.Runtime, cancellationToken);
+            return MailboxResult<TestConnectionResult>.Ok(account, result);
+        }
+        catch (Exception ex)
+        {
+            return MailboxResult<TestConnectionResult>.Fail($"Could not check mailbox status: {ex.Message}");
+        }
+    }
+
+    #endregion
+
+    #region # Commands
+
+    public async Task<MailboxResult<CommandResult>> DeleteMessagesAsync(MailboxAccountContext account, MessageBatchFilters filters, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var result = await mailboxService.DeleteMessagesAsync(account.Runtime, filters, cancellationToken);
+            return MailboxResult<CommandResult>.Ok(account, result);
+        }
+        catch (Exception ex)
+        {
+            return MailboxResult<CommandResult>.Fail($"Could not delete messages: {ex.Message}");
+        }
+    }
+
+    public async Task<MailboxResult<CommandResult>> MoveMessagesAsync(MailboxAccountContext account, MessageTransferFilters filters, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var result = await mailboxService.MoveMessagesAsync(account.Runtime, filters, cancellationToken);
+            return MailboxResult<CommandResult>.Ok(account, result);
+        }
+        catch (Exception ex)
+        {
+            return MailboxResult<CommandResult>.Fail($"Could not move messages: {ex.Message}");
+        }
+    }
+
+    public async Task<MailboxResult<CommandResult>> SetMessageFlagsAsync(MailboxAccountContext account, SetMessageFlagsFilters filters, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var result = await mailboxService.SetMessageFlagsAsync(account.Runtime, filters, cancellationToken);
+            return MailboxResult<CommandResult>.Ok(account, result);
+        }
+        catch (Exception ex)
+        {
+            return MailboxResult<CommandResult>.Fail($"Could not update message flags: {ex.Message}");
+        }
+    }
+
+    public async Task<MailboxResult<CommandResult>> CopyMessagesAsync(MailboxAccountContext account, MessageTransferFilters filters, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var result = await mailboxService.CopyMessagesAsync(account.Runtime, filters, cancellationToken);
+            return MailboxResult<CommandResult>.Ok(account, result);
+        }
+        catch (Exception ex)
+        {
+            return MailboxResult<CommandResult>.Fail($"Could not copy messages: {ex.Message}");
+        }
+    }
+
+    public async Task<MailboxResult<CommandResult>> CreateFolderAsync(MailboxAccountContext account, CreateFolderFilters filters, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var result = await mailboxService.CreateFolderAsync(account.Runtime, filters, cancellationToken);
+            return MailboxResult<CommandResult>.Ok(account, result);
+        }
+        catch (Exception ex)
+        {
+            return MailboxResult<CommandResult>.Fail($"Could not create folder: {ex.Message}");
+        }
+    }
+
+    public async Task<MailboxResult<SendMailResult>> SendAsync(MailboxAccountContext account, OutboundMail mail, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var result = await mailboxService.SendAsync(account.Runtime, mail, cancellationToken);
+            if (!result.Success)
+            {
+                return MailboxResult<SendMailResult>.Fail(result.Message);
+            }
+
+            return MailboxResult<SendMailResult>.Ok(account, result);
+        }
+        catch (Exception ex)
+        {
+            return MailboxResult<SendMailResult>.Fail($"Could not send email: {ex.Message}");
+        }
+    }
+
+    public async Task<MailboxResult<SaveDraftResult>> SaveDraftAsync(MailboxAccountContext account, OutboundMail mail, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var result = await mailboxService.SaveDraftAsync(account.Runtime, mail, cancellationToken);
+            if (!result.Success)
+            {
+                return MailboxResult<SaveDraftResult>.Fail(result.Message);
+            }
+
+            return MailboxResult<SaveDraftResult>.Ok(account, result);
+        }
+        catch (Exception ex)
+        {
+            return MailboxResult<SaveDraftResult>.Fail($"Could not save draft: {ex.Message}");
         }
     }
 

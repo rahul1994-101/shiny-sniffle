@@ -1,5 +1,4 @@
 using Application.Features.Dbo.EmailProviders;
-using Application.Features.Shared;
 using FluentValidation;
 using Infrastructure.Mailbox;
 
@@ -26,7 +25,7 @@ public sealed class TestEmailAccountConnectionRequestValidator : AbstractValidat
 }
 
 public sealed class TestEmailAccountConnectionRequestHandler(
-    WorkspaceMailboxService mailboxService,
+    EmailAccountMailboxService emailAccountMailboxService,
     EmailAccountRepository emailAccountRepo,
     EmailProviderRepository emailProviderRepo)
     : IRequestHandler<TestEmailAccountConnectionRequest, TestEmailAccountConnectionResponse>
@@ -74,7 +73,7 @@ public sealed class TestEmailAccountConnectionRequestHandler(
             return result;
         }
 
-        var testResult = await mailboxService.TestConnectionWithDraftAsync(request.UserId, settingsDto, cancellationToken);
+        var testResult = await emailAccountMailboxService.TestConnectionWithDraftAsync(request.UserId, settingsDto, cancellationToken);
 
         #endregion
 
