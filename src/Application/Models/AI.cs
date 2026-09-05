@@ -15,6 +15,9 @@ public sealed class RunChatAgentRequest
 
     /// <summary>Pre-resolved default mailbox for this turn (mention or default account).</summary>
     public MailboxAccountContext? DefaultMailboxAccount { get; init; }
+
+    /// <summary>True when more than one mailbox was mentioned — tools must receive <c>mailbox_alias</c>.</summary>
+    public bool RequireMailboxAlias { get; init; }
 }
 
 public sealed class RunChatAgentResponse

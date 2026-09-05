@@ -17,8 +17,10 @@ internal static class AzureOpenAiEndpointHelpers
         var enumName = "V" + apiVersion.Trim().Replace("-", "_", StringComparison.Ordinal);
         if (!Enum.TryParse<AzureOpenAIClientOptions.ServiceVersion>(enumName, ignoreCase: true, out var version))
         {
+            var supported = string.Join(", ", Enum.GetNames<AzureOpenAIClientOptions.ServiceVersion>()
+                .Select(name => name.StartsWith('V') ? name[1..].Replace('_', '-').ToLowerInvariant() : name));
             throw new InvalidOperationException(
-                $"Foundry:ApiVersion '{apiVersion}' is not a supported Azure OpenAI API version.");
+                $"Foundry:ApiVersion '{apiVersion}' is not a supported Azure OpenAI API version. Supported: {supported}.");
         }
 
         return new AzureOpenAIClientOptions(version);

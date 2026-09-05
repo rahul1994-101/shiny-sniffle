@@ -236,6 +236,9 @@
 
 .nav-actions {
     padding: 0.75rem 0.75rem 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
 }
 
 .btn-new-chat {

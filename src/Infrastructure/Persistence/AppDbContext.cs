@@ -11,6 +11,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
 
     public DbSet<ChatMessage> ChatMessages { get; set; }
 
+    public DbSet<EmailThreadMemory> EmailThreadMemories { get; set; }
+
     public DbSet<EmailProvider> EmailProviders { get; set; }
 
     public DbSet<EmailAccount> EmailAccounts { get; set; }
@@ -89,6 +91,25 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             entity.HasOne<ChatThread>()
                 .WithMany()
                 .HasForeignKey(e => e.ChatThreadId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+        modelBuilder.Entity<EmailThreadMemory>(entity =>
+        {
+            entity.ToTable("EmailThreadMemory", "chat");
+            entity.HasKey(e => new { e.ChatThreadId, e.MailboxAlias });
+            entity.Property(e => e.ChatThreadId).HasColumnName("chatThreadId");
+            entity.Property(e => e.MailboxAlias).HasColumnName("mailboxAlias").HasMaxLength(64).IsRequired();
+            entity.Property(e => e.UserId).HasColumnName("userId");
+            entity.Property(e => e.ListSnapshotJson).HasColumnName("listSnapshotJson");
+            entity.Property(e => e.UpdatedAt).HasColumnName("updatedAt");
+            entity.HasIndex(e => e.UserId);
+            entity.HasOne<ChatThread>()
+                .WithMany()
+                .HasForeignKey(e => e.ChatThreadId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne<User>()
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
                 .OnDelete(DeleteBehavior.Restrict);
         });
         modelBuilder.Entity<EmailProvider>(entity =>

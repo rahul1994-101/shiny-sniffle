@@ -12,7 +12,8 @@ Roadmap for mailbox capabilities: **EmailTriageAgent** + **EmailTriageTools** �
 Infrastructure/Mailbox (IMailboxService)   ✅ complete — stable port
 Layers 0–5 + commands + @mailbox + 6a    ✅ shipped (Application/AI)
 Application mailbox consumption           ✅ shipped (all port methods wired)
-Layer 6b–6e                               deferred (compare, memory, actions)
+Layer 6b compare + 6d list memory        ✅ shipped
+6c digest tool / 6e action entity        skipped (agent choreography + chat queue)
 ```
 
 ---
@@ -129,7 +130,7 @@ SendChatMessage
 | **Batch read** | `get_inbox_messages` (max 5 Uids per call) |
 | **Multi-account** | `mailbox_alias` param + `@mailbox:alias` mention auto-fill via `WorkspaceReferenceService.TryResolveMailboxAsync` |
 
-**E2E mention flow:** user `@mailbox:alias` → `EntityRefMentionContextService.ResolveAsync` → `RunChatAgentRequest.DefaultMailboxAccount` → `EmailTriageTools.Session` default when tool omits `mailbox_alias`.
+**E2E mention flow:** user `@mailbox:alias` → `EntityRefMentionContextService.ResolveAsync` → `RunChatAgentRequest.DefaultMailboxAccount` → `EmailTriageTools.Session` default when tool omits `mailbox_alias`. Several mailbox mentions → `RequireMailboxAlias` (no default).
 
 ---
 
@@ -144,7 +145,7 @@ Structural cleanup across Infrastructure and Application. Build verified.
 | **AI tool helpers** | `AI/Tools/MailboxReadHelpers.cs` — parsers, builders, text formatting |
 | **Account resolution** | `WorkspaceReferenceService` dispatches to `MailboxAccountResolver` — default account, alias, or `mailbox:alias` → `MailboxAccountContext` (upstream; not in gateway) |
 | **Gateway** | `WorkspaceMailboxService` — resolved account + infra filters only; `Result<T>` |
-| **AI tools** | `EmailTriageTools.Session` — per-turn state; `WithAccountHeader` on all outputs |
+| **AI tools** | `EmailTriageTools.Session` — per-turn state; `WithAccountHeader` on all outputs; CT + batch caps + deep-read cap; reply/forward via `list_index` |
 
 ---
 
@@ -154,29 +155,21 @@ Agent-only: output modes (`digest`, `triage`, `compare`, `single`, `stats`, `act
 
 ---
 
-## Layer 6 — Smart output (deferred)
+## Layer 6 — Smart output
 
 **Goal:** Turn raw tool text into **useful answers**—digests, triage, comparisons, deep reads—without inventing content.
 
 **Principle:** Tools fetch; agent interprets. Default flow: `list_inbox_messages` → selective `get_inbox_message` / `get_inbox_messages` (≤5 per turn).
 
-### Remaining sub-layers
+| Sub-layer | Status |
+|-----------|--------|
+| **6a** output modes | ✅ agent instructions |
+| **6b** `compare_mail_periods` | ✅ tool |
+| **6c** digest tool | skipped — 6a choreography is enough |
+| **6d** thread list memory | ✅ `chat.EmailThreadMemory` (per mailbox alias) + inject last lists |
+| **6e** action_list | ✅ prompt mode; no separate ActionItem table (act in chat with `confirmed=true`) |
 
-##### 6b — Compare helper
-
-`compare_mail_periods` tool — two parsed ranges → two `count_only` calls.
-
-##### 6c — Digest tool (optional)
-
-`summarize_mail_scope` — defer if 6a choreography is fast enough.
-
-##### 6d — Thread reference memory
-
-`EmailMemory` snapshot per chat thread — see [ai-memory.md](ai-memory.md).
-
-##### 6e — Action-oriented output
-
-`action_list` sections for future workflows.
+**Daily loop (UI):** New chat defaults to Email; empty-state suggestions send triage, digest, reply, attachment, and folder prompts.
 
 ### Policies
 
@@ -202,8 +195,9 @@ Agent-only: output modes (`digest`, `triage`, `compare`, `single`, `stats`, `act
 ## Suggested tickets
 
 1. ~~**App consumption** — wire `GetAttachments`, `SaveDraft`, `Copy`, `GetFolder`, `CreateFolder` + richer list/send~~ ✅
-2. **6b** — `compare_mail_periods` tool + formatter
-3. **6d** — Thread last-list memory
-4. **6e** — `action_list` hardening when action workflows start
+2. ~~**6b** — `compare_mail_periods`~~ ✅
+3. ~~**6d** — Thread last-list memory~~ ✅
+4. **Scheduled brief** — in-app morning run (still product, not required to triage on demand)
+5. **Persisted action queue** — only if chat + confirm is not enough
 
 Update this doc when a layer ships or priorities change.

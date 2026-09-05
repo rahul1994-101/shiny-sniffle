@@ -14,8 +14,8 @@ All commercial and product decisions → **`product.md`** only.
 
 | | |
 |---|---|
-| **Next** | **Application mailbox consumption** — wire `UserMailboxService` / `MailboxAgentService` / `EmailTriageTools` to the full `IMailboxService` port — [email-read-implementation-plan.md](email-read-implementation-plan.md) § Application consumption |
-| **Deferred** | Layer **6b** (`compare_mail_periods`), [ai-memory.md](ai-memory.md) user/working memory, Tags/Buckets admin UI |
+| **Next** | Scheduled in-app brief (optional habit); user memory facts |
+| **Deferred** | User memory (profile/facts), persisted ActionItem table, Tags/Buckets assignment pickers |
 
 ### Recently shipped
 
@@ -24,7 +24,8 @@ All commercial and product decisions → **`product.md`** only.
 - **Chat mentions** — `/` global search, `@` two-step picker, Tag/Bucket in picker, `EntityRefMentionText` bubbles (see **product.md §5.5**)
 - **Email triage** — read (0–5) + commands (send/delete/move/flags) + batch get + `@mailbox:alias` resolution + Layer 6a output contracts
 - **Application mailbox** — `WorkspaceMailboxService`, `EmailTriageTools.Session`, `AI/Tools/MailboxReadHelpers`; `StoredMailboxSettings` ↔ `EmailSettings` split
-- **AI memory** — short-term window + thread summary roll-up
+- **AI memory** — short-term window + thread summary + Email last-list working memory
+- **Email daily loop** — confirm-gated send/delete, contact recipients, compare tool; new chats default to Email with empty-state suggestions
 
 ---
 
@@ -32,8 +33,8 @@ All commercial and product decisions → **`product.md`** only.
 
 | Doc | Status |
 |-----|--------|
-| [email-read-implementation-plan.md](email-read-implementation-plan.md) | Infra/Mailbox ✅ · App consumption **next** · 6b deferred |
-| [ai-memory.md](ai-memory.md) | Thread ✅ · user/working planned |
+| [email-read-implementation-plan.md](email-read-implementation-plan.md) | Infra + app + 6a/6b/6d ✅ · scheduled brief later |
+| [ai-memory.md](ai-memory.md) | Thread + Email list working memory ✅ · user memory planned |
 | [design-system.md](design-system.md) | WebApp UI tokens, `ui-*`, glass, motion |
 
 **Conventions:** [`.cursor/rules/`](../.cursor/rules/)

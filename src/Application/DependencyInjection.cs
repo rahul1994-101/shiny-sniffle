@@ -59,6 +59,7 @@ public static class DependencyInjection
         services.AddScoped<EmailTriageTools>();
         services.AddScoped<EmailTriageAgent>();
         services.AddScoped<ThreadMemoryService>();
+        services.AddScoped<EmailThreadMemoryService>();
         services.AddScoped<AssistantAgent>();
         services.AddScoped<ChatOrchestrator>();
 

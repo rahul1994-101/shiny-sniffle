@@ -70,6 +70,45 @@ public sealed class ChatThreadRepository(IDbContextFactory<AppDbContext> _dbCont
         return ChatThreadDto.FromEntity(entity);
     }
 
+    public async Task<IReadOnlyList<string>> GetEmailListSnapshotJsonsAsync(Guid userId, Guid threadId, CancellationToken cancellationToken = default)
+    {
+        await using var ctx = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        return await ctx.EmailThreadMemories
+            .AsNoTracking()
+            .Where(x => x.ChatThreadId == threadId && x.UserId == userId)
+            .OrderBy(x => x.MailboxAlias)
+            .Select(x => x.ListSnapshotJson)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task UpsertEmailListSnapshotAsync(Guid userId, Guid threadId, string mailboxAlias, string listSnapshotJson, CancellationToken cancellationToken = default)
+    {
+        await using var ctx = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var alias = mailboxAlias.Trim();
+        var entity = await ctx.EmailThreadMemories
+            .FirstOrDefaultAsync(x => x.ChatThreadId == threadId && x.UserId == userId && x.MailboxAlias == alias, cancellationToken);
+
+        var now = DateTime.UtcNow;
+        if (entity is null)
+        {
+            await ctx.EmailThreadMemories.AddAsync(new EmailThreadMemory
+            {
+                ChatThreadId = threadId,
+                MailboxAlias = alias,
+                UserId = userId,
+                ListSnapshotJson = listSnapshotJson,
+                UpdatedAt = now
+            }, cancellationToken);
+        }
+        else
+        {
+            entity.ListSnapshotJson = listSnapshotJson;
+            entity.UpdatedAt = now;
+        }
+
+        await ctx.SaveChangesAsync(cancellationToken);
+    }
+
     public async Task<bool> DeleteAsync(Guid userId, Guid threadId, Guid updatedBy, CancellationToken cancellationToken = default)
     {
         await using var ctx = await _dbContextFactory.CreateDbContextAsync(cancellationToken);

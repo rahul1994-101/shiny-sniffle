@@ -56,7 +56,8 @@ public sealed class ContactRepository(
         Guid userId,
         SaveContactDto dto,
         Guid updatedBy,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        ContactSource source = ContactSource.Manual)
     {
         await using var ctx = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
         var now = DateTime.UtcNow;
@@ -129,7 +130,7 @@ public sealed class ContactRepository(
                 Email = email,
                 Phone = phone,
                 Context = context,
-                Source = ContactSource.Manual
+                Source = source
             };
             entity.CreatedBy = updatedBy;
             entity.UpdatedBy = updatedBy;
@@ -225,6 +226,46 @@ public sealed class ContactRepository(
             .Where(x => x.UserId == userId && x.Alias == alias && x.Id != excludeId)
             .WhereNotDeleted()
             .AnyAsync(cancellationToken);
+
+    public async Task<ContactDto?> GetContactByAliasAsync(Guid userId, string alias, CancellationToken cancellationToken = default)
+    {
+        var normalized = EntityAliasRules.SlugifyOptional(alias);
+        if (normalized is null)
+        {
+            return null;
+        }
+
+        await using var ctx = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var row = await ctx.Contacts
+            .AsNoTracking()
+            .Where(x => x.UserId == userId && x.Alias == normalized)
+            .WhereActiveAndNotDeleted()
+            .FirstOrDefaultAsync(cancellationToken);
+
+        return row is null ? null : ContactDto.FromEntity(row);
+    }
+
+    public async Task<IReadOnlyList<ContactSummaryDto>> SearchContactsForAIAsync(Guid userId, string query, int limit, CancellationToken cancellationToken = default)
+    {
+        await using var ctx = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var baseQuery = ctx.Contacts
+            .AsNoTracking()
+            .Where(x => x.UserId == userId)
+            .WhereActiveAndNotDeleted();
+
+        var trimmed = query.Trim();
+        if (trimmed.Length == 0)
+        {
+            var recent = await baseQuery
+                .OrderByDescending(c => c.UpdatedAt)
+                .Take(limit)
+                .ToListAsync(cancellationToken);
+            return recent.ConvertAll(c => ContactSummaryDto.FromEntity(c));
+        }
+
+        var rows = await LoadContactsForQueryAsync(baseQuery, trimmed, limit, cancellationToken);
+        return rows.ConvertAll(c => ContactSummaryDto.FromEntity(c));
+    }
 
     public async Task<(IReadOnlyList<EntityRefMentionItemDto> Items, int TotalCount)> SearchMentionItemsAsync(
         Guid userId,

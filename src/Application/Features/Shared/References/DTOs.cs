@@ -13,6 +13,9 @@ public sealed class EntityRefMentionResolution
     /// <summary>Pre-resolved mailbox for this turn (mention or default when requested).</summary>
     public MailboxAccountContext? DefaultMailboxAccount { get; init; }
 
+    /// <summary>True when more than one mailbox was mentioned — tools must receive <c>mailbox_alias</c>.</summary>
+    public bool RequireMailboxAlias { get; init; }
+
     public string? DefaultMailboxAlias => DefaultMailboxAccount?.Alias;
 }
 

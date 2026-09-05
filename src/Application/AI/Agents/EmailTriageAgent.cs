@@ -1,5 +1,6 @@
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
+using Application.AI.Memory;
 using Application.AI.Tools;
 using Infrastructure.Foundry;
 using Infrastructure.Mailbox;
@@ -7,16 +8,24 @@ using Infrastructure.Mailbox;
 namespace Application.AI.Agents;
 
 /// <summary>Email Triage system — mailbox ingest, prioritize, and act via tools.</summary>
-public sealed class EmailTriageAgent(IFoundryAgentFactory _agentFactory, EmailTriageTools _emailTools)
+public sealed class EmailTriageAgent(IFoundryAgentFactory _agentFactory, EmailTriageTools _emailTools, EmailThreadMemoryService _emailMemory)
 {
     public async Task<RunChatAgentResponse> RunAsync(RunChatAgentRequest request, IReadOnlyList<Microsoft.Extensions.AI.ChatMessage> history, CancellationToken cancellationToken = default)
     {
         #region # Execute
 
-        var tools = _emailTools.CreateTools(request.UserId, request.ThreadId, request.DefaultMailboxAccount);
-        var agent = CreateFoundryAgent(tools);
+        var lastLists = await _emailMemory.GetLastListsAsync(request.UserId, request.ThreadId, cancellationToken);
+        var run = _emailTools.CreateRun(request.UserId, request.ThreadId, request.DefaultMailboxAccount, request.RequireMailboxAlias, lastLists);
+        var agent = CreateFoundryAgent(run.Tools);
         var messages = history.ToList();
+        var memoryBlock = EmailThreadMemoryService.FormatContextBlock(lastLists);
+        if (!string.IsNullOrWhiteSpace(memoryBlock))
+        {
+            messages.Insert(0, new Microsoft.Extensions.AI.ChatMessage(Microsoft.Extensions.AI.ChatRole.System, memoryBlock));
+        }
+
         var response = await agent.RunAsync(messages, cancellationToken: cancellationToken);
+        await run.PersistAsync(cancellationToken);
 
         #endregion
 
@@ -110,7 +119,7 @@ public sealed class EmailTriageAgent(IFoundryAgentFactory _agentFactory, EmailTr
             "Triage my unread mail from today.",
             "Which emails should I reply to first?"
         ]),
-        ("Smart output — compare", "output mode compare: count_only × 2 periods", [
+        ("Smart output — compare", "compare_mail_periods", [
             "Do I have more email than yesterday?",
             "Compare how many messages I got today vs yesterday.",
             "Was this week busier than last week?"
@@ -201,13 +210,23 @@ public sealed class EmailTriageAgent(IFoundryAgentFactory _agentFactory, EmailTr
             "Mark Uid 42 as read.",
             "Flag Uid 100 as important."
         ]),
-        ("Send email", "send_email (confirm to/subject/body first)", [
+        ("Find contact", "search_contacts", [
+            "What's Sarah's email?",
+            "Look up contact Bob.",
+            "Do I have a contact for alice@example.com?"
+        ]),
+        ("Save contact", "save_contact (confirm first)", [
+            "Save Alice from that invoice as a contact.",
+            "Remember bob@example.com as Bob."
+        ]),
+        ("Send email", "send_email (confirmed=true after user agrees)", [
             "Send an email to alice@example.com.",
             "Email my team about tomorrow's meeting.",
             "Draft and send a message to bob@example.com — subject: Hello, body: ..."
         ]),
-        ("Send email — reply/forward", "send_email (mode reply/forward + reply_uid)", [
+        ("Send email — reply/forward", "send_email (mode reply/forward + reply_uid or list_index)", [
             "Reply to Uid 42 saying thanks.",
+            "Reply to #2 from the list saying thanks.",
             "Forward Uid 55 to alice@example.com with a short note."
         ]),
         ("Send email — CC/BCC/attachments", "send_email (cc, bcc, attachments name|base64)", [
@@ -252,22 +271,22 @@ public sealed class EmailTriageAgent(IFoundryAgentFactory _agentFactory, EmailTr
             - Do not guess or invent message contents, send outcomes, or mailbox status.
 
             Tool rules:
-            - mailbox_alias: when the user @-mentions @mailbox:alias, pass that alias (or leave empty — tools auto-use the mention). Empty with no mention = default connected account. Keep the same mailbox_alias across list/get/send/command calls in one turn.
+            - mailbox_alias: when the user @-mentions one @mailbox:alias, pass that alias (or leave empty — tools auto-use the mention). Several mailbox mentions → pass mailbox_alias on every call (no default). Empty with no mention = default connected account. Keep the same mailbox_alias across list/get/send/command calls in one turn.
             - list_inbox_messages: previews (#N, Uid, from, subject, date). count_only for how-many. skip for pagination. folder + since + filters as needed.
             - get_inbox_message: full body + attachment names. Use uid + folder from a list row, or list_index after list_inbox_messages (no need to repeat filters).
             - get_inbox_messages: batch full read (max {maxGets} Uids, same folder). Use for triage when multiple bodies are needed.
             - get_attachments: download attachment content (metadata + text preview for small text files). Use uid or list_index; optional attachment_index or attachment_name.
             - get_folder: folder stats (total count, unread) without listing messages.
-            - delete_messages: move to trash. Confirm with the user first; use folder + Uids from a recent list.
-            - move_messages: move to another folder (archive, junk, etc.). Confirm destination when unclear.
-            - copy_messages: copy to another folder without removing from source. Confirm destination when unclear.
+            - delete_messages / move_messages / copy_messages / create_folder / send_email / save_contact: first call with confirmed=false (preview), tell the user the plan, then call again with confirmed=true only after they agree. Never send or destroy mail without that second call.
             - set_message_flags: read, unread, flagged, or unflagged.
-            - create_folder: create a new IMAP folder. Confirm name with the user first.
             - list_mailbox_folders: when folder names are unknown.
             - get_mailbox_status: when setup or connectivity is uncertain.
-            - send_email: confirm to, subject, and body with the user first. Supports cc/bcc, html_body, reply/forward (mode + reply_uid), attachments (name|base64).
-            - save_draft: save to Drafts without sending. Same shape as send_email; recipients/subject optional.
-            - since (critical): prefer relative keywords—today, yesterday, this_week, last_week, last_N_days—for everyday requests. Empty means today.
+            - send_email: to/cc/bcc accept emails or contact:alias. Use search_contacts when the user names a person. Supports html_body, reply/forward (mode + reply_uid or list_index), attachments (name|base64).
+            - save_draft: save to Drafts without sending. Same recipients as send_email; no confirmed flag.
+            - compare_mail_periods: two since keywords (today vs yesterday, this_week vs last_week). Prefer this over two list calls for volume comparisons.
+            - search_contacts / save_contact: workspace people. save_contact needs confirmed=true.
+            - Last mailbox lists from earlier in this thread may be injected as system context — one list per mailbox account. Reuse #N / Uids only for that same account; list again when switching accounts if that account has no saved list.
+            - since (critical): prefer relative keywords—today, yesterday, this_week (Mon UTC–now), last_week (previous Mon–Sun UTC), last_N_days—for everyday requests. Empty means today.
               - When the user gives an explicit calendar range (e.g. "May 1 to May 7, {EmailReadDateContext.CurrentYear}"), pass either:
                 - since=yyyy-MM-dd..yyyy-MM-dd (e.g. {EmailReadDateContext.CurrentYear}-05-01..{EmailReadDateContext.CurrentYear}-05-07), or
                 - since=start yyyy-MM-dd and until=end yyyy-MM-dd (inclusive).

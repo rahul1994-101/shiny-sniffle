@@ -2,7 +2,7 @@ using FluentValidation;
 
 namespace Application.Features.Chat.ChatThreads.Commands;
 
-public sealed record CreateChatThreadRequest(Guid UserId, string Title, ChatAgent ChatAgent = default)
+public sealed record CreateChatThreadRequest(Guid UserId, string Title, ChatAgent ChatAgent = ChatAgent.Email)
     : ICommand<CreateChatThreadResponse>;
 
 public sealed class CreateChatThreadResponse : ChatThreadDto

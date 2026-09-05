@@ -23,7 +23,7 @@ Current user message
 | **Short-term** | Last 12 `ChatMessage` rows | ✅ `ChatMemoryLimits.ShortTermMessageLimit` |
 | **Thread** | `ChatThread.memorySummary`, `memorySummaryThroughMessageId` | ✅ `ThreadMemoryService` rolls summary when count > 12 |
 | **User** | `User`; future `UserSetting` + `UserMemoryFact` | Not injected yet |
-| **Working** | Future `ChatThreadWorkingMemory` (JSON) or cache | Not started |
+| **Working** | `chat.EmailThreadMemory` last list JSON per mailbox alias | ✅ Email list snapshot (Layer 6d) |
 
 **Shipped behavior (thread):** Before run, prepend `memorySummary` if present. After send, incrementally summarize messages outside the 12-row window (gpt-4o-mini) and persist on `ChatThread`. Columns in `Infrastructure/Database/chat/Tables/ChatThread.sql`.
 
@@ -42,12 +42,13 @@ Current user message
 
 ### Working memory (phase D)
 
-- Ephemeral task state for Email multi-step flows (list → pick → read → draft → send).
-- Separate JSON row/table; cleared on task complete. **Do not** put on `ChatThread`.
+- ✅ Email last-list snapshot: `chat.EmailThreadMemory` (`EmailThreadMemoryService`).
+- Injected as a system block on Email turns; tools reuse `#N` / Uids across turns.
+- **Do not** store this JSON on `ChatThread`.
 
 ### Email thread reference (ties to [email-read Layer 6d](email-read-implementation-plan.md))
 
-- `EmailMemory` — last list/get snapshot per thread for “#2”, “that Amazon one”.
+- ✅ Last list snapshot per thread **and mailbox alias** for “#2”, “that Amazon one”.
 
 ## Key files
 
@@ -66,4 +67,4 @@ src/Infrastructure/Persistence/Chat/ChatThread.cs
 | A | Thread memory | ✅ Done |
 | B | User memory | Next — inject profile/settings |
 | C | User facts | “Remember this” |
-| D | Working memory | Email multi-step flows |
+| D | Working memory | ✅ Email last-list snapshot |

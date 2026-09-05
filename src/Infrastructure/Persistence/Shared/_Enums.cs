@@ -21,10 +21,10 @@ public enum ContactSource
     /// <summary>Bulk or file import (future).</summary>
     Import = 1,
 
-    /// <summary>Promoted from email/triage (e.g. “save as contact”) (future).</summary>
+    /// <summary>Promoted from email/triage (save as contact).</summary>
     FromEmail = 2,
 
-    /// <summary>Created by the in-app assistant / agent tool (future).</summary>
+    /// <summary>Created by the in-app assistant / agent tool.</summary>
     Agent = 3,
 
     /// <summary>External API or integration (future).</summary>

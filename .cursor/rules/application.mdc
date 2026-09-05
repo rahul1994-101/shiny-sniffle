@@ -159,9 +159,11 @@ TestEmailAccountConnection ─────→ EmailAccountMailboxService → IMa
 | **Persistence** | `StoredMailboxSettings` — merge/draft/save; not infra `EmailSettings` | `EmailAccounts/DTOs.cs`, `Helpers.cs` (`EmailSettingsMapping`) |
 | **Tools** | Agent catalog, filter builders, text formatting | `AI/Tools/EmailTriageTools.cs`, `AI/Tools/MailboxReadHelpers.cs` |
 
+**Tools session:** pass `CancellationToken` through to the gateway; validate batch Uid counts in builders (fail before IMAP); cache mailbox by alias **and** `mailbox:alias`; enforce `MaxDeepReadsPerTurn` on get tools; when several `@mailbox` mentions resolve, require `mailbox_alias` (no default). Persist last list to `EmailThreadMemory` keyed by mailbox alias. Destructive/send tools require `confirmed=true`. `last_week` is the previous Mon–Sun UTC (not a rolling 7 days). Command `Success == false` is `Result.Failure` on the gateway (same as send/draft).
+
 **Wired today:** full port surface — list/get messages, attachments, folders, folder stats, status, send, save draft, delete, move, copy, set flags, create folder; richer list filters and send/draft params.
 
-**Deferred to Layer 6b–6e:** compare helper, thread memory, action_list hardening.
+**Email working memory:** last list snapshot per thread **and mailbox alias** in `chat.EmailThreadMemory` via `EmailThreadMemoryService` — `#N` / sender hints work across turns without overwriting another account's list. Send/delete/move/copy/create_folder/save_contact are gated on `confirmed=true`. Recipients resolve `contact:alias`. Tools include `compare_mail_periods`, `search_contacts`, `save_contact`.
 
 **Conventions:** map at the port (`ToMailRuntime()` before `IMailboxService`); infra filters in agent commands (no thin duplicate request types); agent-facing names OK in Application (`GetStatusAsync` wraps `TestConnectionAsync`). See `conventions.mdc`.
 
@@ -176,4 +178,4 @@ Two project-wide requirements; each workspace module participates differently:
 | **Identity** | `kind:alias` handles — parse, search, alias ↔ id | `Shared/References/Helpers.cs` (`EntityRefs`, `EntityRefMentions`), per-slice `SearchMentionItemsAsync` |
 | **Action** | User-scoped runtime — ref → usable entity → work | Per-module resolver (mailbox: `MailboxAccountResolver`); callers use `WorkspaceReferenceService` in `References/Services.cs` |
 
-**Mention pipeline (AI, not the mail gateway):** `EntityRefMentionContextService.ResolveAsync` parses once, resolves via `WorkspaceReferenceService` — identity kinds → `TryResolveIdAsync` + repo formatting; mailbox → `TryResolveMailboxAsync`. For Email agent turns, also pre-resolves the default mailbox account once. Tools receive `DefaultMailboxAccount` and cache per alias; gateway accepts only resolved accounts.
+**Mention pipeline (AI, not the mail gateway):** `EntityRefMentionContextService.ResolveAsync` parses once, resolves via `WorkspaceReferenceService` — identity kinds → `TryResolveIdAsync` + repo formatting; mailbox → `TryResolveMailboxAsync`. For Email agent turns, also pre-resolves the default mailbox account once (unless several mailboxes were mentioned — then `RequireMailboxAlias`). Tools receive `DefaultMailboxAccount` and cache per alias and `mailbox:alias`; gateway accepts only resolved accounts.

@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using Application.Features.Workspace.EmailAccounts;
 using Infrastructure.Mailbox;
@@ -50,7 +51,7 @@ internal static class EmailReadDateContext
     }
 
     internal static string SinceToolHint() =>
-        "Relative: today, yesterday, this_week, last_week, last_N_days. " +
+        "Relative: today, yesterday, this_week (Mon UTC–now), last_week (previous Mon–Sun UTC), last_N_days. " +
         "Explicit range: yyyy-MM-dd..yyyy-MM-dd, yyyy-MM-dd to yyyy-MM-dd, or since=yyyy-MM-dd + until=yyyy-MM-dd. " +
         $"Today (UTC) is {TodayUtcIso}. Empty since means today.";
 }
@@ -125,7 +126,8 @@ internal static partial class MailboxListRangeParser
                 return true;
             case "last_week":
             case "last week":
-                range = new MailboxDateRange(today.AddDays(-7), null, "last week");
+                var thisWeekStart = StartOfWeekUtc(today);
+                range = new MailboxDateRange(thisWeekStart.AddDays(-7), thisWeekStart, "last week");
                 return true;
             case "this_week":
             case "this week":
@@ -448,32 +450,162 @@ internal static class ListMessagesQueryBuilder
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 }
 
-/// <summary>Ordered Uids from the most recent non–count-only list in an agent turn.</summary>
+/// <summary>Ordered rows from the most recent non–count-only list (this turn or persisted thread memory).</summary>
+internal sealed record MailboxListRow(uint Uid, string From, string Subject, DateTimeOffset Date, bool IsUnread);
+
 internal sealed record MailboxListSnapshot(
     ListMessagesFilters Filters,
-    IReadOnlyList<uint> Uids,
-    string? MailboxAlias)
+    IReadOnlyList<MailboxListRow> Rows,
+    string? MailboxAlias,
+    string QueryLabel,
+    int TotalMatched)
 {
-    internal static MailboxListSnapshot From(ListMessagesFilters filters, ListMessagesResult result, string? mailboxAlias) =>
-        new(filters, result.Messages.Select(m => m.Uid).ToList(), mailboxAlias);
+    internal IReadOnlyList<uint> Uids => Rows.Select(r => r.Uid).ToList();
+
+    internal static MailboxListSnapshot From(ListMessagesFilters filters, ListMessagesResult result, string? mailboxAlias, string queryLabel) =>
+        new(
+            filters,
+            result.Messages.Select(m => new MailboxListRow(m.Uid, m.From, m.Subject, m.Date, m.IsUnread)).ToList(),
+            mailboxAlias,
+            queryLabel,
+            result.TotalMatched);
+
+    private static readonly JsonSerializerOptions MemoryJsonOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+    };
+
+    internal static MailboxListSnapshot? TryParseMemory(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+        {
+            return null;
+        }
+
+        try
+        {
+            var state = JsonSerializer.Deserialize<EmailListMemoryState>(json, MemoryJsonOptions);
+            return state is null ? null : FromMemory(state);
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
+
+    internal string ToMemoryJson() =>
+        JsonSerializer.Serialize(ToMemory(), MemoryJsonOptions);
+
+    private static MailboxListSnapshot FromMemory(EmailListMemoryState state) =>
+        new(
+            new ListMessagesFilters { Folder = string.IsNullOrWhiteSpace(state.Folder) ? null : state.Folder },
+            state.Rows.Select(r => new MailboxListRow(r.Uid, r.From, r.Subject, r.Date, r.IsUnread)).ToList(),
+            state.MailboxAlias,
+            state.QueryLabel,
+            state.TotalMatched);
+
+    private EmailListMemoryState ToMemory() =>
+        new()
+        {
+            MailboxAlias = MailboxAlias,
+            Folder = Filters.Folder,
+            QueryLabel = QueryLabel,
+            TotalMatched = TotalMatched,
+            Rows = Rows.Select(r => new EmailListMemoryRow
+            {
+                Uid = r.Uid,
+                From = r.From,
+                Subject = r.Subject,
+                Date = r.Date,
+                IsUnread = r.IsUnread
+            }).ToList()
+        };
 
     internal bool MatchesMailbox(string? mailboxAlias) =>
         string.Equals(MailboxAlias ?? string.Empty, mailboxAlias ?? string.Empty, StringComparison.OrdinalIgnoreCase);
 
     internal bool TryGetUid(int listIndex, out uint uid, out string? error)
     {
-        if (listIndex < 1 || listIndex > Uids.Count)
+        if (listIndex < 1 || listIndex > Rows.Count)
         {
             uid = 0;
             error =
-                $"List index #{listIndex} is out of range ({Uids.Count} message(s) in the recent list). List again or use a Uid.";
+                $"List index #{listIndex} is out of range ({Rows.Count} message(s) in the recent list). List again or use a Uid.";
             return false;
         }
 
-        uid = Uids[listIndex - 1];
+        uid = Rows[listIndex - 1].Uid;
         error = null;
         return true;
     }
+
+    internal bool TryFindByHint(string hint, out uint uid, out int listIndex, out string? error)
+    {
+        uid = 0;
+        listIndex = 0;
+        error = null;
+        var needle = hint.Trim();
+        if (needle.Length == 0)
+        {
+            error = "Provide a sender or subject hint to find a message from the recent list.";
+            return false;
+        }
+
+        var matches = new List<(int Index, MailboxListRow Row)>();
+        for (var i = 0; i < Rows.Count; i++)
+        {
+            var row = Rows[i];
+            if (row.From.Contains(needle, StringComparison.OrdinalIgnoreCase) ||
+                row.Subject.Contains(needle, StringComparison.OrdinalIgnoreCase))
+            {
+                matches.Add((i + 1, row));
+            }
+        }
+
+        if (matches.Count == 0)
+        {
+            error = $"No recent-list row matches '{needle}'. List again or use a Uid / list_index.";
+            return false;
+        }
+
+        if (matches.Count > 1)
+        {
+            error =
+                $"Several recent-list rows match '{needle}' (#{string.Join(", #", matches.Select(m => m.Index))}). " +
+                "Use list_index or Uid.";
+            return false;
+        }
+
+        listIndex = matches[0].Index;
+        uid = matches[0].Row.Uid;
+        return true;
+    }
+}
+
+internal sealed class EmailListMemoryState
+{
+    public string? MailboxAlias { get; init; }
+
+    public string? Folder { get; init; }
+
+    public string QueryLabel { get; init; } = string.Empty;
+
+    public int TotalMatched { get; init; }
+
+    public List<EmailListMemoryRow> Rows { get; init; } = [];
+}
+
+internal sealed class EmailListMemoryRow
+{
+    public uint Uid { get; init; }
+
+    public string From { get; init; } = string.Empty;
+
+    public string Subject { get; init; } = string.Empty;
+
+    public DateTimeOffset Date { get; init; }
+
+    public bool IsUnread { get; init; }
 }
 
 /// <summary>Resolved message target — uid or list row from session snapshot.</summary>
@@ -505,7 +637,7 @@ internal static class MailboxOpenRequestBuilder
             if (lastList is null)
             {
                 error =
-                    "No recent list in this turn. Call list_inbox_messages first, or open by Uid from a list row.";
+                    "No recent list for this mailbox account in this thread. Call list_inbox_messages first, or open by Uid from a list row.";
                 return false;
             }
 
@@ -543,12 +675,20 @@ internal static class MessageBatchFiltersBuilder
         string uidsCsv,
         string? folder,
         out MessageBatchFilters? filters,
+        out string? error) =>
+        TryBuild(uidsCsv, folder, MailboxLimits.MaxBatchCommandCount, out filters, out error);
+
+    internal static bool TryBuild(
+        string uidsCsv,
+        string? folder,
+        int maxCount,
+        out MessageBatchFilters? filters,
         out string? error)
     {
         filters = null;
         error = null;
 
-        if (!TryParseUids(uidsCsv, out var uids, out error))
+        if (!TryParseUids(uidsCsv, maxCount, out var uids, out error))
         {
             return false;
         }
@@ -561,7 +701,7 @@ internal static class MessageBatchFiltersBuilder
         return true;
     }
 
-    internal static bool TryParseUids(string uidsCsv, out List<uint> uids, out string? error)
+    internal static bool TryParseUids(string uidsCsv, int maxCount, out List<uint> uids, out string? error)
     {
         uids = [];
         error = null;
@@ -587,6 +727,13 @@ internal static class MessageBatchFiltersBuilder
         if (uids.Count == 0)
         {
             error = "Provide at least one Uid from list_inbox_messages (comma-separated, e.g. 42,43).";
+            return false;
+        }
+
+        if (uids.Count > maxCount)
+        {
+            error = $"At most {maxCount} Uid(s) per call.";
+            uids = [];
             return false;
         }
 
@@ -1086,6 +1233,69 @@ internal static class EmailMailboxTextHelpers
         }
 
         return string.Join(", ", parts);
+    }
+
+    internal static string FormatLastListsMemory(IReadOnlyList<MailboxListSnapshot> snapshots)
+    {
+        var blocks = snapshots
+            .Where(s => s.Rows.Count > 0)
+            .Select(FormatLastListMemory)
+            .Where(block => block.Length > 0)
+            .ToList();
+        return blocks.Count == 0 ? string.Empty : string.Join("\n\n", blocks);
+    }
+
+    internal static string FormatLastListMemory(MailboxListSnapshot snapshot)
+    {
+        if (snapshot.Rows.Count == 0)
+        {
+            return string.Empty;
+        }
+
+        var builder = new StringBuilder();
+        builder.Append("## Last mailbox list (this thread · ");
+        builder.Append(snapshot.MailboxAlias ?? "default");
+        builder.AppendLine(")");
+        builder.Append("Account: ").Append(snapshot.MailboxAlias ?? "default");
+        builder.Append(" · ").Append(snapshot.QueryLabel);
+        if (snapshot.TotalMatched > snapshot.Rows.Count)
+        {
+            builder.Append(" · ").Append(snapshot.Rows.Count).Append(" shown of ").Append(snapshot.TotalMatched).Append(" matched");
+        }
+
+        builder.AppendLine(".");
+        builder.AppendLine("Use list_index (#N) or Uid for follow-ups on this same account without listing again unless the user asks for a new scope.");
+        for (var i = 0; i < snapshot.Rows.Count; i++)
+        {
+            var row = snapshot.Rows[i];
+            builder.Append('#').Append(i + 1)
+                .Append(" | Uid: ").Append(row.Uid)
+                .Append(" | From: ").Append(row.From)
+                .Append(" | Subject: ").Append(row.Subject)
+                .Append(" | Date: ").Append(row.Date.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture));
+            if (row.IsUnread)
+            {
+                builder.Append(" | Unread");
+            }
+
+            builder.AppendLine();
+        }
+
+        return builder.ToString().TrimEnd();
+    }
+
+    internal static string FormatMailboxCompare(string firstLabel, int firstCount, string secondLabel, int secondCount)
+    {
+        var delta = firstCount - secondCount;
+        var direction = delta switch
+        {
+            > 0 => $"{delta} more than {secondLabel}",
+            < 0 => $"{Math.Abs(delta)} fewer than {secondLabel}",
+            _ => $"the same as {secondLabel}"
+        };
+
+        return
+            $"Comparison: {firstLabel} = {firstCount}; {secondLabel} = {secondCount} ({direction}).";
     }
 
     internal static string FormatMailboxCount(int count, string queryLabel) =>

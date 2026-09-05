@@ -18,7 +18,11 @@
 
     <div class="chat-messages" @ref="_messagesRegion">
 
-        <ChatMessageList Messages="_messages" IsAssistantLoading="_sending" />
+        <ChatMessageList Messages="_messages"
+                         IsAssistantLoading="_sending"
+                         IsEmail="@(_chatAgent == ChatAgent.Email)"
+                         StarterDisabled="_sending"
+                         OnStarterPick="SendPromptAsync" />
 
     </div>
 
@@ -236,6 +240,18 @@
         var result = await Mediator.SendAsync(new GetAllChatMessagesByThreadIdRequest(CurrentUser.Id, _activeThreadId));
 
         _messages = result.HasError ? [] : result.Payload?.Messages ?? [];
+
+    }
+
+
+
+    private Task SendPromptAsync(string prompt)
+
+    {
+
+        _draft = prompt;
+
+        return SendAsync();
 
     }
 

@@ -26,6 +26,7 @@ public sealed class EntityRefMentionContextService(
         var handles = EntityRefMentions.ExtractFromText(message);
         var lines = handles.Count == 0 ? null : new List<string> { "## Referenced entities" };
         MailboxAccountContext? defaultMailboxAccount = null;
+        var resolvedMailboxCount = 0;
 
         foreach (var handle in handles)
         {
@@ -40,6 +41,7 @@ public sealed class EntityRefMentionContextService(
                 var outcome = await workspaceRefs.TryResolveMailboxAsync(userId, handle, cancellationToken);
                 if (!outcome.HasError)
                 {
+                    resolvedMailboxCount++;
                     defaultMailboxAccount ??= outcome.Payload;
                     lines!.Add(FormatMailboxLine(handle, outcome.Payload!));
                 }
@@ -70,7 +72,13 @@ public sealed class EntityRefMentionContextService(
             lines!.Add(line);
         }
 
-        if (resolveDefaultMailbox && defaultMailboxAccount is null)
+        var requireMailboxAlias = resolvedMailboxCount > 1;
+        if (requireMailboxAlias)
+        {
+            defaultMailboxAccount = null;
+            lines!.Add("- Multiple mailboxes mentioned. Pass mailbox_alias on every mailbox tool call this turn; do not assume a default.");
+        }
+        else if (resolveDefaultMailbox && defaultMailboxAccount is null)
         {
             var defaultOutcome = await workspaceRefs.TryResolveMailboxAsync(userId, null, cancellationToken);
             if (!defaultOutcome.HasError)
@@ -82,7 +90,8 @@ public sealed class EntityRefMentionContextService(
         return new EntityRefMentionResolution
         {
             ContextBlock = lines is { Count: > 1 } ? string.Join('\n', lines) : null,
-            DefaultMailboxAccount = defaultMailboxAccount
+            DefaultMailboxAccount = defaultMailboxAccount,
+            RequireMailboxAlias = requireMailboxAlias
         };
     }
 

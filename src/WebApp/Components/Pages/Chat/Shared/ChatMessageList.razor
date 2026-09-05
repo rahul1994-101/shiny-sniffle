@@ -2,8 +2,13 @@
 {
     <div class="chat-empty">
         <div class="chat-empty-mark" aria-hidden="true"></div>
-        <h2 class="chat-empty-title">How can I help you today?</h2>
-        <p class="chat-empty-hint">Choose a chat in the sidebar or start below. Each thread is separate until you refresh.</p>
+        <h2 class="chat-empty-title">@(IsEmail ? "Ready to triage your inbox" : "How can I help you today?")</h2>
+        <p class="chat-empty-hint">@(IsEmail
+            ? "Ask in your own words or pick a suggestion. Replies, archives, and sends stay in this chat."
+            : "Choose a chat in the sidebar or start below. Each thread is separate until you refresh.")</p>
+        <EmailTriageStarters Visible="@IsEmail"
+                             Disabled="@StarterDisabled"
+                             OnPick="OnStarterPick" />
     </div>
 }
 else
@@ -71,4 +76,13 @@ else
 
     [Parameter]
     public bool IsAssistantLoading { get; set; }
+
+    [Parameter]
+    public bool IsEmail { get; set; }
+
+    [Parameter]
+    public bool StarterDisabled { get; set; }
+
+    [Parameter]
+    public EventCallback<string> OnStarterPick { get; set; }
 }

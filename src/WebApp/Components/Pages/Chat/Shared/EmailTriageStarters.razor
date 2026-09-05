@@ -1,0 +1,41 @@
+@if (Visible)
+{
+    <div class="email-starters" role="group" aria-label="Email suggestions">
+        <p class="email-starters-label">Suggestions</p>
+        <div class="email-starters-grid">
+            @foreach (var starter in Starters)
+            {
+                <button type="button"
+                        class="email-starter"
+                        disabled="@Disabled"
+                        @onclick="() => OnPick.InvokeAsync(starter.Prompt)">
+                    <span class="email-starter-title">@starter.Title</span>
+                    <span class="email-starter-desc">@starter.Hint</span>
+                </button>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public bool Visible { get; set; }
+
+    [Parameter]
+    public bool Disabled { get; set; }
+
+    [Parameter]
+    public EventCallback<string> OnPick { get; set; }
+
+    private static readonly (string Title, string Hint, string Prompt)[] Starters =
+    [
+        ("Triage unread", "What needs a reply today", "Triage my unread mail from today. If nothing is unread today, widen to this week."),
+        ("What's new", "Digest today's inbox", "What's new in my inbox today? Give me a digest with Summary, Highlights, and Counts."),
+        ("Needs a reply", "Oldest unanswered first", "Find unread messages that look like they need a reply. Start with the oldest and summarize each one."),
+        ("Find attachments", "Recent files in the inbox", "List recent inbox messages that have attachments and name the files."),
+        ("This week's noise", "Newsletters and promos", "Scan this week's inbox for newsletters, promotions, and bulk mail I can ignore."),
+        ("Compare volume", "Today vs yesterday", "Compare how many messages I got today vs yesterday."),
+        ("Folder unread", "Counts by folder", "List my mailbox folders with unread counts."),
+        ("Draft a reply", "Write it, don't send", "Open the most important unread message from today and draft a reply. Do not send until I confirm.")
+    ];
+}

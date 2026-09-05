@@ -16,7 +16,9 @@
 
     color: var(--app-muted);
 
-    padding: 2rem 0;
+    padding: 1.5rem 0 1rem;
+
+    width: 100%;
 
 }
 
@@ -62,7 +64,7 @@
 
     margin: 0;
 
-    max-width: 22rem;
+    max-width: 26rem;
 
     font-size: var(--ui-type-body);
 

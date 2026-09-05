@@ -72,7 +72,8 @@ public sealed class SendChatMessageRequestHandler(
                 ThreadId = request.ThreadId,
                 ChatAgent = thread.ChatAgent,
                 MentionContext = mentions.ContextBlock,
-                DefaultMailboxAccount = mentions.DefaultMailboxAccount
+                DefaultMailboxAccount = mentions.DefaultMailboxAccount,
+                RequireMailboxAlias = mentions.RequireMailboxAlias
             }, cancellationToken);
 
             var assistantMessage = await chatMessageRepo.AddAsync(new ChatMessage

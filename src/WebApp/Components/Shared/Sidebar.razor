@@ -154,11 +154,19 @@
 
     #region # Create/Delete
 
-    private async Task StartNewChatAsync()
+    private Task StartNewChatAsync() =>
+        StartChatAsync("New chat");
+
+    private async Task StartChatAsync(string title, ChatAgent chatAgent = ChatAgent.Email)
     {
-        var result = await Mediator.SendAsync(new ChatThreadCmd.CreateChatThreadRequest(CurrentUser.Id, "New chat"));
+        var result = await Mediator.SendAsync(new ChatThreadCmd.CreateChatThreadRequest(CurrentUser.Id, title, chatAgent));
         if (result.HasError)
         {
+            if (chatAgent == ChatAgent.Email)
+            {
+                NavigationManager.NavigateTo("/workspace/email/accounts");
+            }
+
             return;
         }
 
@@ -181,10 +189,13 @@
         if (_threads.Count == 0)
         {
             var created = await Mediator.SendAsync(new ChatThreadCmd.CreateChatThreadRequest(CurrentUser.Id, "New chat"));
-            if (!created.HasError)
+            if (created.HasError)
             {
-                _threads.Insert(0, created.Payload!);
+                NavigationManager.NavigateTo("/workspace/email/accounts");
+                return;
             }
+
+            _threads.Insert(0, created.Payload!);
         }
 
         if (_threads.Count > 0)

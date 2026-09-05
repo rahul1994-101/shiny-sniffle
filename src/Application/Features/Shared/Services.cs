@@ -142,8 +142,7 @@ public sealed class WorkspaceMailboxService(IMailboxService mailboxService)
         var result = new Result<CommandResult>();
         try
         {
-            var commandResult = await mailboxService.DeleteMessagesAsync(account.Runtime, filters, cancellationToken);
-            result.Success(commandResult);
+            CompleteCommand(result, await mailboxService.DeleteMessagesAsync(account.Runtime, filters, cancellationToken));
         }
         catch (Exception ex)
         {
@@ -158,8 +157,7 @@ public sealed class WorkspaceMailboxService(IMailboxService mailboxService)
         var result = new Result<CommandResult>();
         try
         {
-            var commandResult = await mailboxService.MoveMessagesAsync(account.Runtime, filters, cancellationToken);
-            result.Success(commandResult);
+            CompleteCommand(result, await mailboxService.MoveMessagesAsync(account.Runtime, filters, cancellationToken));
         }
         catch (Exception ex)
         {
@@ -174,8 +172,7 @@ public sealed class WorkspaceMailboxService(IMailboxService mailboxService)
         var result = new Result<CommandResult>();
         try
         {
-            var commandResult = await mailboxService.SetMessageFlagsAsync(account.Runtime, filters, cancellationToken);
-            result.Success(commandResult);
+            CompleteCommand(result, await mailboxService.SetMessageFlagsAsync(account.Runtime, filters, cancellationToken));
         }
         catch (Exception ex)
         {
@@ -190,8 +187,7 @@ public sealed class WorkspaceMailboxService(IMailboxService mailboxService)
         var result = new Result<CommandResult>();
         try
         {
-            var commandResult = await mailboxService.CopyMessagesAsync(account.Runtime, filters, cancellationToken);
-            result.Success(commandResult);
+            CompleteCommand(result, await mailboxService.CopyMessagesAsync(account.Runtime, filters, cancellationToken));
         }
         catch (Exception ex)
         {
@@ -206,8 +202,7 @@ public sealed class WorkspaceMailboxService(IMailboxService mailboxService)
         var result = new Result<CommandResult>();
         try
         {
-            var commandResult = await mailboxService.CreateFolderAsync(account.Runtime, filters, cancellationToken);
-            result.Success(commandResult);
+            CompleteCommand(result, await mailboxService.CreateFolderAsync(account.Runtime, filters, cancellationToken));
         }
         catch (Exception ex)
         {
@@ -259,6 +254,21 @@ public sealed class WorkspaceMailboxService(IMailboxService mailboxService)
         }
 
         return result;
+    }
+
+    #endregion
+
+    #region # Private Helpers
+
+    private static void CompleteCommand(Result<CommandResult> result, CommandResult commandResult)
+    {
+        if (!commandResult.Success)
+        {
+            result.Failure(ErrorCode.BadRequest, commandResult.Message);
+            return;
+        }
+
+        result.Success(commandResult);
     }
 
     #endregion
