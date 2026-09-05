@@ -410,7 +410,7 @@ else
         if (catalogResult.HasError)
         {
             _status.Set(
-                catalogResult.Errors.FirstOrDefault()?.Message ?? "Failed to load provider catalog.",
+                catalogResult.FirstErrorMessage ?? "Failed to load provider catalog.",
                 isError: true);
             _catalog.Clear();
         }
@@ -423,7 +423,7 @@ else
         if (accountsResult.HasError)
         {
             _status.Set(
-                accountsResult.Errors.FirstOrDefault()?.Message ?? "Failed to load email accounts.",
+                accountsResult.FirstErrorMessage ?? "Failed to load email accounts.",
                 isError: true);
             _accounts.Clear();
         }
@@ -481,7 +481,7 @@ else
         if (result.HasError)
         {
             _status.Set(
-                result.Errors.FirstOrDefault()?.Message ?? "Failed to load account.",
+                result.FirstErrorMessage ?? "Failed to load account.",
                 isError: true);
             _busy = TabBusy.None;
             return;
@@ -518,7 +518,7 @@ else
         if (result.HasError)
         {
             _status.Set(
-                result.Errors.FirstOrDefault()?.Message ?? "Failed to save account.",
+                result.FirstErrorMessage ?? "Failed to save account.",
                 isError: true);
         }
         else
@@ -544,7 +544,7 @@ else
         if (result.HasError)
         {
             _status.Set(
-                result.Errors.FirstOrDefault()?.Message ?? "Connection test failed.",
+                result.FirstErrorMessage ?? "Connection test failed.",
                 isError: true);
         }
         else
@@ -575,7 +575,7 @@ else
         if (result.HasError)
         {
             _status.Set(
-                result.Errors.FirstOrDefault()?.Message ?? "Failed to delete account.",
+                result.FirstErrorMessage ?? "Failed to delete account.",
                 isError: true);
         }
         else
@@ -600,7 +600,7 @@ else
         if (result.HasError)
         {
             _status.Set(
-                result.Errors.FirstOrDefault()?.Message ?? "Failed to update default account.",
+                result.FirstErrorMessage ?? "Failed to update default account.",
                 isError: true);
         }
         else

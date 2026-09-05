@@ -54,19 +54,18 @@ SendChatMessage
   → EntityRefMentionContextService → WorkspaceReferenceService
   → ChatOrchestrator → EmailTriageAgent
         → EmailTriageTools.Session (cached MailboxAccountContext)
-              → WorkspaceMailboxService    (account + filters → MailboxResult<T>)
+              → WorkspaceMailboxService    (account + filters → Result<T>)
                     → IMailboxService
 ```
 
 | Layer | Key files |
 |-------|-----------|
 | **Chat entry** | `Features/Chat/ChatMessages/Commands/SendChatMessage.cs` |
-| **Mentions** | `Features/Shared/References/Services.cs` (`EntityRefMentionContextService`) |
+| **Mentions** | `AI/EntityRefMentionContextService.cs` |
 | **Agent** | `AI/Agents/EmailTriageAgent.cs` |
-| **Tools** | `AI/Tools/EmailTriageTools.cs` |
+| **Tools** | `AI/Tools/EmailTriageTools.cs`, `AI/Tools/MailboxReadHelpers.cs` |
 | **References** | `Features/Shared/References/` — `Helpers.cs`, `Services.cs`, `DTOs.cs`, `Queries/SearchEntityRefMentions.cs` |
-| **Gateway** | `Features/Shared/Services.cs` (`WorkspaceMailboxService`), `DTOs.cs` (`MailboxResult<T>`) |
-| **Helpers** | `Features/Shared/MailboxReadHelpers.cs` |
+| **Gateway** | `Features/Shared/Services.cs` (`WorkspaceMailboxService`); `MediatR.Results.Result<T>` |
 | **Account DTOs** | `EmailAccounts/DTOs.cs` (`StoredMailboxSettings`, `MailboxAccountContext`) |
 
 ### Wired (tools + facades)
@@ -97,8 +96,8 @@ SendChatMessage
 - **Persistence:** `StoredMailboxSettings` (Application) — not infra `EmailSettings`
 - **Runtime:** `EmailSettingsMapping.ToMailRuntime()` before every `IMailboxService` call
 - **Single-message get:** Application wrapper over `GetMessagesAsync` (not on infra port)
-- **Batch filters:** agents call infra `MessageBatchFilters` / `MessageTransferFilters` directly via builders in `MailboxReadHelpers.cs`
-- **Results:** `MailboxResult<T>` in `WorkspaceMailboxService`
+- **Batch filters:** agents call infra `MessageBatchFilters` / `MessageTransferFilters` directly via builders in `AI/Tools/MailboxReadHelpers.cs`
+- **Results:** `MediatR.Results.Result<T>` in services; handlers unchanged
 
 ---
 
@@ -142,9 +141,9 @@ Structural cleanup across Infrastructure and Application. Build verified.
 |------|----------------|
 | **Infra port** | Full query/command surface; service owns orchestration; helpers are mechanical; DTO naming (`...Filters` / `...Result`, `MessageKey`, `MessageTransferFilters`, `CommandResult`) |
 | **Settings split** | `StoredMailboxSettings` (Application persistence) vs `EmailSettings` (infra runtime) |
-| **Application helpers** | `MailboxReadHelpers.cs` — parsers, builders, text formatting |
+| **AI tool helpers** | `AI/Tools/MailboxReadHelpers.cs` — parsers, builders, text formatting |
 | **Account resolution** | `WorkspaceReferenceService` dispatches to `MailboxAccountResolver` — default account, alias, or `mailbox:alias` → `MailboxAccountContext` (upstream; not in gateway) |
-| **Gateway** | `WorkspaceMailboxService` — resolved account + infra filters only; `MailboxResult<T>` |
+| **Gateway** | `WorkspaceMailboxService` — resolved account + infra filters only; `Result<T>` |
 | **AI tools** | `EmailTriageTools.Session` — per-turn state; `WithAccountHeader` on all outputs |
 
 ---

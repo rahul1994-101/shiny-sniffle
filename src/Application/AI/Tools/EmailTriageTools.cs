@@ -1,6 +1,7 @@
 using Application.Features.Shared;
 using Application.Features.Workspace.EmailAccounts;
 using Infrastructure.Mailbox;
+using MediatR.Results;
 using Microsoft.Extensions.AI;
 using System.ComponentModel;
 
@@ -216,21 +217,21 @@ public sealed class EmailTriageTools(WorkspaceMailboxService mailboxService, Wor
             }
 
             var outcome = await mailboxService.ListMessagesAsync(account!, query!.Filters);
-            if (!outcome.IsSuccess)
+            if (outcome.HasError)
             {
-                return outcome.Error!;
+                return outcome.FirstErrorMessage!;
             }
 
             if (!query.Filters.CountOnly)
             {
-                _lastList = MailboxListSnapshot.From(query.Filters, outcome.Value!, account!.Alias);
+                _lastList = MailboxListSnapshot.From(query.Filters, outcome.Payload!, account!.Alias);
             }
 
             var body = query.Filters.CountOnly
-                ? EmailMailboxTextHelpers.FormatMailboxCount(outcome.Value!.TotalMatched, query.QueryLabel)
-                : EmailMailboxTextHelpers.FormatMailboxList(outcome.Value!.Messages, query.QueryLabel, outcome.Value.TotalMatched);
+                ? EmailMailboxTextHelpers.FormatMailboxCount(outcome.Payload!.TotalMatched, query.QueryLabel)
+                : EmailMailboxTextHelpers.FormatMailboxList(outcome.Payload!.Messages, query.QueryLabel, outcome.Payload.TotalMatched);
 
-            return WithAccountHeader(outcome.Account!, body);
+            return WithAccountHeader(account!, body);
         }
 
         #endregion
@@ -333,13 +334,13 @@ public sealed class EmailTriageTools(WorkspaceMailboxService mailboxService, Wor
             }
 
             var outcome = await mailboxService.GetAttachmentsAsync(account!, filters!);
-            if (!outcome.IsSuccess)
+            if (outcome.HasError)
             {
-                return outcome.Error!;
+                return outcome.FirstErrorMessage!;
             }
 
             var folderLabel = string.IsNullOrWhiteSpace(filters!.Message.Folder) ? "inbox" : filters.Message.Folder.Trim();
-            return WithAccountHeader(outcome.Account!, EmailMailboxTextHelpers.FormatAttachments(uid, folderLabel, outcome.Value!.Attachments));
+            return WithAccountHeader(account!, EmailMailboxTextHelpers.FormatAttachments(uid, folderLabel, outcome.Payload!.Attachments));
         }
 
         #endregion
@@ -496,12 +497,12 @@ public sealed class EmailTriageTools(WorkspaceMailboxService mailboxService, Wor
                 }
 
                 var defaultOutcome = await workspaceRefs.TryResolveMailboxAsync(userId, null);
-                if (!defaultOutcome.IsSuccess)
+                if (defaultOutcome.HasError)
                 {
-                    return (null, defaultOutcome.Error);
+                    return (null, defaultOutcome.FirstErrorMessage);
                 }
 
-                _defaultAccount = defaultOutcome.Account;
+                _defaultAccount = defaultOutcome.Payload;
                 CacheAccount(_defaultAccount!);
                 return (_defaultAccount, null);
             }
@@ -518,13 +519,13 @@ public sealed class EmailTriageTools(WorkspaceMailboxService mailboxService, Wor
             }
 
             var resolved = await workspaceRefs.TryResolveMailboxAsync(userId, alias);
-            if (!resolved.IsSuccess)
+            if (resolved.HasError)
             {
-                return (null, resolved.Error);
+                return (null, resolved.FirstErrorMessage);
             }
 
-            CacheAccount(resolved.Account!);
-            return (resolved.Account, null);
+            CacheAccount(resolved.Payload!);
+            return (resolved.Payload, null);
         }
 
         private void CacheAccount(MailboxAccountContext account)
@@ -544,7 +545,7 @@ public sealed class EmailTriageTools(WorkspaceMailboxService mailboxService, Wor
 
         private async Task<string> RunMailboxAsync<TResult>(
             string? mailboxAlias,
-            Func<MailboxAccountContext, Task<MailboxResult<TResult>>> invoke,
+            Func<MailboxAccountContext, Task<Result<TResult>>> invoke,
             Func<TResult, string> format)
             where TResult : class
         {
@@ -559,17 +560,17 @@ public sealed class EmailTriageTools(WorkspaceMailboxService mailboxService, Wor
 
         private static async Task<string> RunMailboxAsync<TResult>(
             MailboxAccountContext account,
-            Func<MailboxAccountContext, Task<MailboxResult<TResult>>> invoke,
+            Func<MailboxAccountContext, Task<Result<TResult>>> invoke,
             Func<TResult, string> format)
             where TResult : class
         {
             var outcome = await invoke(account);
-            if (!outcome.IsSuccess)
+            if (outcome.HasError)
             {
-                return outcome.Error!;
+                return outcome.FirstErrorMessage!;
             }
 
-            return WithAccountHeader(outcome.Account!, format(outcome.Value!));
+            return WithAccountHeader(account, format(outcome.Payload!));
         }
 
         #endregion

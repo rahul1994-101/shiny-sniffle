@@ -23,7 +23,7 @@ All commercial and product decisions → **`product.md`** only.
 - **Settings**; Workspace **Email accounts** + **Contacts**
 - **Chat mentions** — `/` global search, `@` two-step picker, Tag/Bucket in picker, `EntityRefMentionText` bubbles (see **product.md §5.5**)
 - **Email triage** — read (0–5) + commands (send/delete/move/flags) + batch get + `@mailbox:alias` resolution + Layer 6a output contracts
-- **Application mailbox (partial)** — `UserMailboxService`, `MailboxAgentService`, `MailboxReadHelpers`, `EmailTriageTools.Session`; `StoredMailboxSettings` ↔ `EmailSettings` split
+- **Application mailbox** — `WorkspaceMailboxService`, `EmailTriageTools.Session`, `AI/Tools/MailboxReadHelpers`; `StoredMailboxSettings` ↔ `EmailSettings` split
 - **AI memory** — short-term window + thread summary roll-up
 
 ---

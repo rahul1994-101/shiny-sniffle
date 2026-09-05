@@ -14,6 +14,10 @@ public class Result
 
     public Collection<Error> Errors { get; }
 
+    public string? FirstErrorMessage =>
+        HasError && Errors.Count > 0 ? Errors[0].Message : null;
+
+
     public virtual void Success()
     {
         HasError = false;

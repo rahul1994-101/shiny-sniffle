@@ -338,39 +338,6 @@ internal static class EntityRefMentionSearch
 
 #endregion
 
-#region # Results
-
-public readonly record struct EntityRefResolveResult(
-    bool Success,
-    Guid Id,
-    EntityRefs.Kind Kind,
-    string? Error)
-{
-    public static EntityRefResolveResult Found(EntityRefs.Kind kind, Guid id) =>
-        new(true, id, kind, null);
-
-    public static EntityRefResolveResult InvalidRef(string error) =>
-        new(false, Guid.Empty, default, error);
-
-    public static EntityRefResolveResult NotFound(string error) =>
-        new(false, Guid.Empty, default, error);
-}
-
-public readonly record struct EntityRefFormatResult(
-    bool Success,
-    string EntityRef,
-    string? Error)
-{
-    public static EntityRefFormatResult Found(string entityRef) =>
-        new(true, entityRef, null);
-
-    public static EntityRefFormatResult Invalid(string error) =>
-        new(false, string.Empty, error);
-
-    public static EntityRefFormatResult NotFound(string error) =>
-        new(false, string.Empty, error);
-}
-
 internal static class EntityRefResolverCopy
 {
     internal static string KindLabel(EntityRefs.Kind kind) => kind switch
@@ -382,5 +349,3 @@ internal static class EntityRefResolverCopy
         _ => "item"
     };
 }
-
-#endregion

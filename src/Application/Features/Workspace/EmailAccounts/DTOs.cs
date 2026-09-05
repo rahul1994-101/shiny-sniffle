@@ -52,21 +52,6 @@ public sealed class MailboxAccountContext
     public EmailSettings Runtime { get; init; } = null!;
 }
 
-internal sealed class MailboxAccountResolveResult
-{
-    public MailboxAccountContext? Context { get; init; }
-
-    public string? ErrorMessage { get; init; }
-
-    public bool IsSuccess => Context is not null;
-
-    internal static MailboxAccountResolveResult Ok(MailboxAccountContext context) =>
-        new() { Context = context };
-
-    internal static MailboxAccountResolveResult Fail(string message) =>
-        new() { ErrorMessage = message };
-}
-
 public class EmailAccountDto
 {
     public Guid Id { get; init; }

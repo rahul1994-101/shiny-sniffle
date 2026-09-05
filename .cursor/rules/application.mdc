@@ -88,10 +88,18 @@ Promote to `SharedRepository` only when query truly spans entity folders.
 
 ## Handlers
 
-1. `var result = new Result<T>();` first line
+1. `var result = new Result<T>();` first line — instance `Success` / `Failure` only
 2. `#region # Execute` + `#region # Handle Result` — see `conventions.mdc`
 3. No EF — inject repos only
 4. `#region # Private Helpers` for non-DB orchestration only
+
+**Read:** `HasError` → `FirstErrorMessage`; else `Payload`. Same for WebApp and AI tools.
+
+## Services & utilities (`Shared/Services`, resolvers, gateways)
+
+Same ceremony as handlers: `var result = new Result<T>();` → instance `Success` / `Failure` → `return result`. Do **not** use static factory helpers on `Result`.
+
+Do **not** add slice-specific result wrappers when `Result<T>` + a payload type suffices.
 
 | Repo param | Name |
 |------------|------|
@@ -117,7 +125,7 @@ Roadmaps: `docs/ai-memory.md`, `docs/email-read-implementation-plan.md`. Detail:
 
 | Folder | Role |
 |--------|------|
-| **AI/** root | `ChatOrchestrator` — turn routing |
+| **AI/** root | `ChatOrchestrator` — turn routing; `EntityRefMentionContextService` — `@mention` LLM context |
 | **Agents/** | LLM only; no DB |
 | **Tools/** | Slice repos + Shared services; no LLM; no `IDbContextFactory` |
 | **Memory/** | DB enrich; Foundry summarize on refresh |
@@ -144,12 +152,12 @@ TestEmailAccountConnection ─────→ EmailAccountMailboxService → IMa
 
 | Layer | Role | Key files |
 |-------|------|-----------|
-| **References** | Single workspace dispatch — identity + per-module action resolvers | `Shared/References/Services.cs` (`WorkspaceReferenceService`, `EntityRefMentionContextService`) |
-| **Gateway** | Resolved account + infra filters → port mirror → `MailboxResult<T>` | `Shared/Services.cs` (`WorkspaceMailboxService`) |
+| **Mentions (AI)** | Parse `@kind:alias`, LLM context, default mailbox for the turn | `AI/EntityRefMentionContextService.cs` |
+| **References** | Single workspace dispatch — identity + per-module action resolvers | `Shared/References/Services.cs` (`WorkspaceReferenceService`) |
+| **Gateway** | Resolved account + infra filters → port mirror → `Result<T>` | `Shared/Services.cs` (`WorkspaceMailboxService`) |
 | **Email setup** | Stored/draft merge + connection probe (Path B) | `EmailAccounts/Services.cs` (`EmailAccountMailboxService`) |
 | **Persistence** | `StoredMailboxSettings` — merge/draft/save; not infra `EmailSettings` | `EmailAccounts/DTOs.cs`, `Helpers.cs` (`EmailSettingsMapping`) |
-| **Helpers** | Date parsing, filter builders, text formatting | `Shared/MailboxReadHelpers.cs` |
-| **Tools** | Agent tool catalog + per-turn `MailboxListSnapshot` | `AI/Tools/EmailTriageTools.cs` |
+| **Tools** | Agent catalog, filter builders, text formatting | `AI/Tools/EmailTriageTools.cs`, `AI/Tools/MailboxReadHelpers.cs` |
 
 **Wired today:** full port surface — list/get messages, attachments, folders, folder stats, status, send, save draft, delete, move, copy, set flags, create folder; richer list filters and send/draft params.
 
@@ -168,4 +176,4 @@ Two project-wide requirements; each workspace module participates differently:
 | **Identity** | `kind:alias` handles — parse, search, alias ↔ id | `Shared/References/Helpers.cs` (`EntityRefs`, `EntityRefMentions`), per-slice `SearchMentionItemsAsync` |
 | **Action** | User-scoped runtime — ref → usable entity → work | Per-module resolver (mailbox: `MailboxAccountResolver`); callers use `WorkspaceReferenceService` in `References/Services.cs` |
 
-**Mention pipeline:** `EntityRefMentionContextService.ResolveAsync` parses once, resolves via `WorkspaceReferenceService` — identity kinds → `TryResolveIdAsync` + repo formatting; mailbox → `TryResolveMailboxAsync`. For Email agent turns, also pre-resolves the default mailbox account once. Tools receive `DefaultMailboxAccount` and cache per alias; gateway accepts only resolved accounts.
+**Mention pipeline (AI, not the mail gateway):** `EntityRefMentionContextService.ResolveAsync` parses once, resolves via `WorkspaceReferenceService` — identity kinds → `TryResolveIdAsync` + repo formatting; mailbox → `TryResolveMailboxAsync`. For Email agent turns, also pre-resolves the default mailbox account once. Tools receive `DefaultMailboxAccount` and cache per alias; gateway accepts only resolved accounts.

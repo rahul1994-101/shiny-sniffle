@@ -300,7 +300,7 @@ else
         if (result.HasError)
         {
             _status.Set(
-                result.Errors.FirstOrDefault()?.Message ?? "Failed to load email providers.",
+                result.FirstErrorMessage ?? "Failed to load email providers.",
                 isError: true);
             _providers.Clear();
         }
@@ -329,7 +329,7 @@ else
         if (result.HasError)
         {
             _status.Set(
-                result.Errors.FirstOrDefault()?.Message ?? "Failed to save provider.",
+                result.FirstErrorMessage ?? "Failed to save provider.",
                 isError: true);
         }
         else
@@ -361,7 +361,7 @@ else
         if (result.HasError)
         {
             _status.Set(
-                result.Errors.FirstOrDefault()?.Message ?? "Failed to delete provider.",
+                result.FirstErrorMessage ?? "Failed to delete provider.",
                 isError: true);
         }
         else

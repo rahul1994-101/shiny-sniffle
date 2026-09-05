@@ -17,6 +17,26 @@ Custom CQRS dispatcher — **not** the Jimmy Bogard NuGet package.
 
 Pipeline: `ValidationBehavior` → `ExceptionBehavior` → handler.
 
+## `Result` / `Result<T>`
+
+One write style everywhere: `var result = new Result<T>();` → instance `Success` / `Failure` → `return result`.
+
+**Read:** `HasError`, `Payload`, `FirstErrorMessage` — same for handlers, services, WebApp, and AI tools.
+
+```csharp
+var result = new Result<SignInResponse>();
+#region # Execute
+var session = await userRepo.FindSessionByEmailAndPasswordAsync(...);
+#endregion
+#region # Handle Result
+if (session is null) result.Failure(ErrorCode.NotFound, "Invalid Credentials");
+else result.Success(session.AsResponse<SignInResponse>());
+#endregion
+return result;
+```
+
+Do not introduce parallel result types (`MailboxResult`, custom `*ResolveResult`, etc.) — use `Result<T>` with domain payload types (`EntityRefId`, …).
+
 ## Registration
 
 ```csharp

@@ -310,7 +310,7 @@ else
         if (result.HasError)
         {
             _status.Set(
-                result.Errors.FirstOrDefault()?.Message ?? "Failed to load contacts.",
+                result.FirstErrorMessage ?? "Failed to load contacts.",
                 isError: true);
             _contacts.Clear();
         }
@@ -342,7 +342,7 @@ else
         if (result.HasError || result.Payload is null)
         {
             _status.Set(
-                result.Errors.FirstOrDefault()?.Message ?? "Failed to load contact.",
+                result.FirstErrorMessage ?? "Failed to load contact.",
                 isError: true);
             return;
         }
@@ -374,7 +374,7 @@ else
         if (result.HasError)
         {
             _status.Set(
-                result.Errors.FirstOrDefault()?.Message ?? "Failed to save contact.",
+                result.FirstErrorMessage ?? "Failed to save contact.",
                 isError: true);
         }
         else
@@ -406,7 +406,7 @@ else
         if (result.HasError)
         {
             _status.Set(
-                result.Errors.FirstOrDefault()?.Message ?? "Failed to delete contact.",
+                result.FirstErrorMessage ?? "Failed to delete contact.",
                 isError: true);
         }
         else

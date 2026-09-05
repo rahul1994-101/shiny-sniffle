@@ -1,4 +1,5 @@
 using Application.Features.Shared;
+using MediatR.Results;
 
 namespace Application.Features.Workspace.EmailAccounts;
 
@@ -7,28 +8,9 @@ namespace Application.Features.Workspace.EmailAccounts;
 /// </summary>
 public sealed class MailboxAccountResolver(EmailAccountRepository emailAccountRepo)
 {
-    public async Task<bool> IsConfiguredAsync(Guid userId, string? mailboxRef = null, CancellationToken cancellationToken = default)
+    public async Task<Result<MailboxAccountContext>> TryResolveAccountAsync(Guid userId, string? mailboxRef = null, CancellationToken cancellationToken = default)
     {
-        var outcome = await TryResolveAccountAsync(userId, mailboxRef, cancellationToken);
-        return outcome.IsSuccess;
-    }
-
-    public async Task<MailboxResult<MailboxAccountContext>> TryResolveAccountAsync(Guid userId, string? mailboxRef = null, CancellationToken cancellationToken = default)
-    {
-        var resolved = await ResolveAsync(userId, mailboxRef, cancellationToken);
-        if (resolved.Context is null)
-        {
-            return MailboxResult<MailboxAccountContext>.Fail(resolved.ErrorMessage!);
-        }
-
-        return MailboxResult<MailboxAccountContext>.Ok(resolved.Context, resolved.Context);
-    }
-
-    internal async Task<MailboxAccountResolveResult> ResolveAsync(
-        Guid userId,
-        string? mailboxRef = null,
-        CancellationToken cancellationToken = default)
-    {
+        var result = new Result<MailboxAccountContext>();
         cancellationToken.ThrowIfCancellationRequested();
 
         string? alias = null;
@@ -39,8 +21,10 @@ public sealed class MailboxAccountResolver(EmailAccountRepository emailAccountRe
             {
                 if (kind != EntityRefs.Kind.Mailbox)
                 {
-                    return MailboxAccountResolveResult.Fail(
+                    result.Failure(
+                        ErrorCode.BadRequest,
                         $"Expected a mailbox reference (mailbox:alias), got \"{trimmed}\".");
+                    return result;
                 }
 
                 alias = parsedAlias;
@@ -54,14 +38,18 @@ public sealed class MailboxAccountResolver(EmailAccountRepository emailAccountRe
         var account = await emailAccountRepo.GetActiveAccountAsync(userId, alias, cancellationToken);
         if (account is null)
         {
-            return alias is not null
-                ? MailboxAccountResolveResult.Fail(MailboxMessages.AccountNotFound(alias))
-                : MailboxAccountResolveResult.Fail(MailboxMessages.NotConfigured);
+            var message = alias is not null
+                ? MailboxMessages.AccountNotFound(alias)
+                : MailboxMessages.NotConfigured;
+
+            result.Failure(ErrorCode.NotFound, message);
+            return result;
         }
 
         if (account.EmailProvider is null)
         {
-            return MailboxAccountResolveResult.Fail(MailboxMessages.NotConfigured);
+            result.Failure(ErrorCode.NotFound, MailboxMessages.NotConfigured);
+            return result;
         }
 
         var settings = EmailAccountMapping.ToStoredSettings(account, account.EmailProvider);
@@ -72,10 +60,11 @@ public sealed class MailboxAccountResolver(EmailAccountRepository emailAccountRe
                 ? MailboxMessages.IncompleteAccount(account.EmailAddress)
                 : MailboxMessages.NotConfigured;
 
-            return MailboxAccountResolveResult.Fail(message);
+            result.Failure(ErrorCode.NotFound, message);
+            return result;
         }
 
-        return MailboxAccountResolveResult.Ok(new MailboxAccountContext
+        result.Success(new MailboxAccountContext
         {
             EmailAccountId = account.Id,
             Alias = account.Alias,
@@ -84,5 +73,7 @@ public sealed class MailboxAccountResolver(EmailAccountRepository emailAccountRe
             IsDefault = account.IsDefault,
             Runtime = runtime
         });
+
+        return result;
     }
 }

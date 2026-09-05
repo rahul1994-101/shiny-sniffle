@@ -38,8 +38,13 @@ public sealed class CreateChatThreadRequestHandler(ChatThreadRepository chatThre
 
         #region # Execute
 
-        var mailboxConfigured = request.ChatAgent != ChatAgent.Email
-            || await workspaceRefs.IsMailboxConfiguredAsync(request.UserId, cancellationToken: cancellationToken);
+        var mailboxConfigured = true;
+        if (request.ChatAgent == ChatAgent.Email)
+        {
+            var mailbox = await workspaceRefs.TryResolveMailboxAsync(request.UserId, cancellationToken: cancellationToken);
+            mailboxConfigured = !mailbox.HasError;
+        }
+
         ChatThreadDto? chatThread = null;
         if (mailboxConfigured)
         {

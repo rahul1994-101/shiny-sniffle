@@ -4,7 +4,7 @@ using System.Text.RegularExpressions;
 using Application.Features.Workspace.EmailAccounts;
 using Infrastructure.Mailbox;
 
-namespace Application.Features.Shared;
+namespace Application.AI.Tools;
 
 internal sealed record MailboxDateRange(
     DateTime SinceUtc,

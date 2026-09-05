@@ -178,7 +178,7 @@ else
             var result = await Mediator.SendAsync(new SaveTagRequest(CurrentUser.Id, _form.ToDto()));
             if (result.HasError)
             {
-                _status.Set(result.Errors.FirstOrDefault()?.Message ?? "Save failed.", isError: true);
+                _status.Set(result.FirstErrorMessage ?? "Save failed.", isError: true);
             }
             else
             {
@@ -215,7 +215,7 @@ else
         var result = await Mediator.SendAsync(new SetTagActiveRequest(CurrentUser.Id, tag.Id, isActive));
         if (result.HasError)
         {
-            _status.Set(result.Errors.FirstOrDefault()?.Message ?? "Update failed.", isError: true);
+            _status.Set(result.FirstErrorMessage ?? "Update failed.", isError: true);
         }
         else
         {

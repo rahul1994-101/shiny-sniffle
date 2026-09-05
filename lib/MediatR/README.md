@@ -40,6 +40,12 @@ public sealed class SignInRequestHandler(UserRepository userRepo)
 
 Use-case conventions: `.cursor/rules/application.mdc`.
 
+## Result — write and read
+
+**Write (all call sites):** `var result = new Result<T>();` → instance `Success` / `Failure` → `return result`.
+
+**Read (all consumers):** `HasError` + `FirstErrorMessage` / `Payload`.
+
 ## Namespaces
 
 ```text

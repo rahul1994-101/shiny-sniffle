@@ -2,6 +2,9 @@ using Application.Features.Workspace.EmailAccounts;
 
 namespace Application.Features.Shared;
 
+/// <summary>Identity resolution payload for a workspace entity reference.</summary>
+public sealed record EntityRefId(EntityRefs.Kind Kind, Guid Id);
+
 /// <summary>Resolved <c>@kind:alias</c> tokens from one chat message — context for the LLM plus mailbox tool defaults.</summary>
 public sealed class EntityRefMentionResolution
 {

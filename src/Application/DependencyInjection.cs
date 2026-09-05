@@ -30,7 +30,6 @@ public static class DependencyInjection
 
         services.AddScoped<SharedRepository>();
         services.AddScoped<WorkspaceReferenceService>();
-        services.AddScoped<EntityRefMentionContextService>();
         services.AddScoped<UserRepository>();
         services.AddScoped<ChatThreadRepository>();
         services.AddScoped<ChatMessageRepository>();
@@ -56,6 +55,7 @@ public static class DependencyInjection
 
         #region AI
 
+        services.AddScoped<EntityRefMentionContextService>();
         services.AddScoped<EmailTriageTools>();
         services.AddScoped<EmailTriageAgent>();
         services.AddScoped<ThreadMemoryService>();

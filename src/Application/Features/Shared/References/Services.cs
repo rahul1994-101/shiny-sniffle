@@ -1,8 +1,6 @@
-using Application.Features.Workspace.Buckets;
-using Application.Features.Workspace.Contacts;
 using Application.Features.Workspace.EmailAccounts;
-using Application.Features.Workspace.Tags;
 using Infrastructure.Persistence;
+using MediatR.Results;
 using Microsoft.EntityFrameworkCore;
 
 namespace Application.Features.Shared;
@@ -14,25 +12,30 @@ public sealed class WorkspaceReferenceService(IDbContextFactory<AppDbContext> db
 {
     #region # Identity
 
-    public async Task<EntityRefResolveResult> TryResolveIdAsync(Guid userId, string entityRef, CancellationToken cancellationToken = default)
+    public Task<Result<EntityRefId>> TryResolveIdAsync(Guid userId, string entityRef, CancellationToken cancellationToken = default)
     {
+        var result = new Result<EntityRefId>();
         if (!EntityRefs.TryParse(entityRef, out var kind, out var alias))
         {
-            return EntityRefResolveResult.InvalidRef(
+            result.Failure(
+                ErrorCode.BadRequest,
                 string.IsNullOrWhiteSpace(entityRef)
                     ? "Entity reference is required."
                     : $"Could not parse entity reference \"{entityRef.Trim()}\". Expected kind:alias (e.g. contact:sarah).");
+            return Task.FromResult(result);
         }
 
-        return await TryResolveIdAsync(userId, kind, alias, cancellationToken);
+        return TryResolveIdAsync(userId, kind, alias, cancellationToken);
     }
 
-    public async Task<EntityRefResolveResult> TryResolveIdAsync(Guid userId, EntityRefs.Kind kind, string alias, CancellationToken cancellationToken = default)
+    public async Task<Result<EntityRefId>> TryResolveIdAsync(Guid userId, EntityRefs.Kind kind, string alias, CancellationToken cancellationToken = default)
     {
+        var result = new Result<EntityRefId>();
         var normalizedAlias = EntityAliasRules.SlugifyOptional(alias);
         if (normalizedAlias is null)
         {
-            return EntityRefResolveResult.InvalidRef("Alias is required.");
+            result.Failure(ErrorCode.BadRequest, "Alias is required.");
+            return result;
         }
 
         await using var ctx = await dbContextFactory.CreateDbContextAsync(cancellationToken);
@@ -48,18 +51,23 @@ public sealed class WorkspaceReferenceService(IDbContextFactory<AppDbContext> db
 
         if (id is null)
         {
-            return EntityRefResolveResult.NotFound(
+            result.Failure(
+                ErrorCode.NotFound,
                 $"No active {EntityRefResolverCopy.KindLabel(kind)} found for {EntityRefs.Format(kind, normalizedAlias)}.");
+            return result;
         }
 
-        return EntityRefResolveResult.Found(kind, id.Value);
+        result.Success(new EntityRefId(kind, id.Value));
+        return result;
     }
 
-    public async Task<EntityRefFormatResult> TryFormatAsync(Guid userId, EntityRefs.Kind kind, Guid id, CancellationToken cancellationToken = default)
+    public async Task<Result<string>> TryFormatAsync(Guid userId, EntityRefs.Kind kind, Guid id, CancellationToken cancellationToken = default)
     {
+        var result = new Result<string>();
         if (id == Guid.Empty)
         {
-            return EntityRefFormatResult.Invalid("Id is required.");
+            result.Failure(ErrorCode.BadRequest, "Id is required.");
+            return result;
         }
 
         await using var ctx = await dbContextFactory.CreateDbContextAsync(cancellationToken);
@@ -75,24 +83,21 @@ public sealed class WorkspaceReferenceService(IDbContextFactory<AppDbContext> db
 
         if (alias is null)
         {
-            return EntityRefFormatResult.NotFound(
+            result.Failure(
+                ErrorCode.NotFound,
                 $"No active {EntityRefResolverCopy.KindLabel(kind)} found for id {id:D}.");
+            return result;
         }
 
-        return EntityRefFormatResult.Found(EntityRefs.Format(kind, alias));
+        result.Success(EntityRefs.Format(kind, alias));
+        return result;
     }
 
     #endregion
 
     #region # Mailbox
 
-    public async Task<bool> IsMailboxConfiguredAsync(Guid userId, string? mailboxRef = null, CancellationToken cancellationToken = default)
-    {
-        var outcome = await TryResolveMailboxAsync(userId, mailboxRef, cancellationToken);
-        return outcome.IsSuccess;
-    }
-
-    public Task<MailboxResult<MailboxAccountContext>> TryResolveMailboxAsync(Guid userId, string? mailboxRef = null, CancellationToken cancellationToken = default)
+    public Task<Result<MailboxAccountContext>> TryResolveMailboxAsync(Guid userId, string? mailboxRef = null, CancellationToken cancellationToken = default)
     {
         return mailboxAccountResolver.TryResolveAccountAsync(userId, mailboxRef, cancellationToken);
     }
@@ -198,171 +203,4 @@ public sealed class WorkspaceReferenceService(IDbContextFactory<AppDbContext> db
             .FirstOrDefaultAsync(cancellationToken);
 
     #endregion
-}
-
-/// <summary>
-/// Parses <c>@kind:alias</c> tokens once per message and builds LLM context from <see cref="WorkspaceReferenceService"/>.
-/// </summary>
-public sealed class EntityRefMentionContextService(
-    WorkspaceReferenceService workspaceRefs,
-    ContactRepository contactRepo,
-    TagRepository tagRepo,
-    BucketRepository bucketRepo)
-{
-    /// <summary>
-    /// Single pass over message mentions — LLM context block and pre-resolved default mailbox for tools.
-    /// </summary>
-    public async Task<EntityRefMentionResolution> ResolveAsync(
-        Guid userId,
-        string message,
-        bool resolveDefaultMailbox = false,
-        CancellationToken cancellationToken = default)
-    {
-        var handles = EntityRefMentions.ExtractFromText(message);
-        var lines = handles.Count == 0 ? null : new List<string> { "## Referenced entities" };
-        MailboxAccountContext? defaultMailboxAccount = null;
-
-        foreach (var handle in handles)
-        {
-            if (!EntityRefs.TryParse(handle, out var kind, out var alias))
-            {
-                lines!.Add($"- `{handle}`: could not parse reference.");
-                continue;
-            }
-
-            if (kind == EntityRefs.Kind.Mailbox)
-            {
-                var outcome = await workspaceRefs.TryResolveMailboxAsync(userId, handle, cancellationToken);
-                if (outcome.IsSuccess)
-                {
-                    defaultMailboxAccount ??= outcome.Account;
-                    lines!.Add(FormatMailboxLine(handle, outcome.Account!));
-                }
-                else
-                {
-                    lines!.Add($"- `{handle}`: {outcome.Error}");
-                }
-
-                continue;
-            }
-
-            var resolve = await workspaceRefs.TryResolveIdAsync(userId, kind, alias, cancellationToken);
-            if (!resolve.Success)
-            {
-                lines!.Add($"- `{handle}`: {resolve.Error}");
-                continue;
-            }
-
-            var line = kind switch
-            {
-                EntityRefs.Kind.Contact => await FormatContactAsync(userId, resolve.Id, handle, cancellationToken),
-                EntityRefs.Kind.Tag => await FormatTagAsync(userId, resolve.Id, handle, cancellationToken),
-                EntityRefs.Kind.Bucket => await FormatBucketAsync(userId, resolve.Id, handle, cancellationToken),
-                _ => $"- `{handle}`: resolved (id {resolve.Id:D})."
-            };
-
-            lines!.Add(line);
-        }
-
-        if (resolveDefaultMailbox && defaultMailboxAccount is null)
-        {
-            var defaultOutcome = await workspaceRefs.TryResolveMailboxAsync(userId, null, cancellationToken);
-            if (defaultOutcome.IsSuccess)
-            {
-                defaultMailboxAccount = defaultOutcome.Account;
-            }
-        }
-
-        return new EntityRefMentionResolution
-        {
-            ContextBlock = lines is { Count: > 1 } ? string.Join('\n', lines) : null,
-            DefaultMailboxAccount = defaultMailboxAccount
-        };
-    }
-
-    private static string FormatMailboxLine(string handle, MailboxAccountContext account)
-    {
-        var defaultLabel = account.IsDefault ? "; default mailbox" : string.Empty;
-        return
-            $"- `{handle}` (mailbox): {account.EmailAddress} via {account.ProviderName}{defaultLabel}. " +
-            $"Use mailbox_alias `{account.Alias}` on all mailbox tool calls this turn unless the user names another account.";
-    }
-
-    private async Task<string> FormatContactAsync(
-        Guid userId,
-        Guid contactId,
-        string handle,
-        CancellationToken cancellationToken)
-    {
-        var contact = await contactRepo.GetContactByIdAsync(userId, contactId, cancellationToken);
-        if (contact is null)
-        {
-            return $"- `{handle}`: contact not found.";
-        }
-
-        var details = new List<string> { contact.ListLabel };
-        if (!string.IsNullOrWhiteSpace(contact.Email))
-        {
-            details.Add($"email {contact.Email}");
-        }
-
-        if (!string.IsNullOrWhiteSpace(contact.Phone))
-        {
-            details.Add($"phone {contact.Phone}");
-        }
-
-        if (!string.IsNullOrWhiteSpace(contact.Context))
-        {
-            details.Add($"notes: {contact.Context.Trim()}");
-        }
-
-        return $"- `{handle}` (contact): {string.Join("; ", details)}.";
-    }
-
-    private async Task<string> FormatTagAsync(
-        Guid userId,
-        Guid tagId,
-        string handle,
-        CancellationToken cancellationToken)
-    {
-        var tag = await tagRepo.GetTagByIdAsync(userId, tagId, cancellationToken);
-        if (tag is null)
-        {
-            return $"- `{handle}`: tag not found.";
-        }
-
-        return $"- `{handle}` (tag): {FormatCatalogDetails(tag.Name, tag.Color, tag.Context)}.";
-    }
-
-    private async Task<string> FormatBucketAsync(
-        Guid userId,
-        Guid bucketId,
-        string handle,
-        CancellationToken cancellationToken)
-    {
-        var bucket = await bucketRepo.GetBucketByIdAsync(userId, bucketId, cancellationToken);
-        if (bucket is null)
-        {
-            return $"- `{handle}`: bucket not found.";
-        }
-
-        return $"- `{handle}` (bucket): {FormatCatalogDetails(bucket.Name, bucket.Color, bucket.Context)}.";
-    }
-
-    private static string FormatCatalogDetails(string name, string? color, string? context)
-    {
-        var details = new List<string> { name };
-
-        if (!string.IsNullOrWhiteSpace(color))
-        {
-            details.Add($"color {color.Trim()}");
-        }
-
-        if (!string.IsNullOrWhiteSpace(context))
-        {
-            details.Add($"notes: {context.Trim()}");
-        }
-
-        return string.Join("; ", details);
-    }
 }

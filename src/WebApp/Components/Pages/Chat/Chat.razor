@@ -299,7 +299,7 @@
 
                 RemoveOptimisticUserMessage();
 
-                _sendError = sendResult.Errors.FirstOrDefault()?.Message ?? "Could not send message.";
+                _sendError = sendResult.FirstErrorMessage ?? "Could not send message.";
 
                 _draft = text;
 

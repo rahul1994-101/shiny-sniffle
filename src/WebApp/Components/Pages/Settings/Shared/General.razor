@@ -163,7 +163,7 @@ else
         if (result.HasError)
         {
             _status.Set(
-                result.Errors.FirstOrDefault()?.Message ?? "Failed to load account settings.",
+                result.FirstErrorMessage ?? "Failed to load account settings.",
                 isError: true);
         }
         else
@@ -211,7 +211,7 @@ else
         if (result.HasError)
         {
             _status.Set(
-                result.Errors.FirstOrDefault()?.Message ?? "Failed to save profile.",
+                result.FirstErrorMessage ?? "Failed to save profile.",
                 isError: true);
         }
         else

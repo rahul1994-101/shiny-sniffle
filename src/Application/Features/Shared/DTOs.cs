@@ -1,25 +1,4 @@
-using Application.Features.Workspace.EmailAccounts;
-
 namespace Application.Features.Shared;
-
-/// <summary>Result of a workspace mailbox operation against a resolved account.</summary>
-public sealed class MailboxResult<T> where T : class
-{
-    public MailboxAccountContext? Account { get; init; }
-
-    public T? Value { get; init; }
-
-    public string? Error { get; init; }
-
-    public bool IsSuccess => Error is null && Value is not null;
-
-    public static MailboxResult<T> Ok(MailboxAccountContext account, T value) =>
-        new() { Account = account, Value = value };
-
-    public static MailboxResult<T> Fail(string error) =>
-        new() { Error = error };
-}
-
 /// <summary>Consumer-neutral mailbox messages for the Application middle layer.</summary>
 public static class MailboxMessages
 {
