@@ -74,6 +74,8 @@ Mail: runtime config is `EmailSettings`; Application builds it from `StoredMailb
 
 **Layout:** `Abstractions.cs` · `DTOs.cs` (incl. `MailboxLimits`) · `Helpers.cs` (nested `MailboxConnectionHelpers` / `MailboxQueryHelpers` / `MailboxCommandsHelpers`) · `MailKitMailboxService.cs`.
 
+**IMAP sessions:** `MailKitMailboxService` is scoped. IMAP clients are reused per account for the request (serialized — `ImapClient` is not thread-safe) and released on dispose. `TestConnectionAsync` still uses a fresh probe.
+
 **Next work:** Application consumption — see `application.mdc` and `docs/email-read-implementation-plan.md`.
 
 ## Foundry config

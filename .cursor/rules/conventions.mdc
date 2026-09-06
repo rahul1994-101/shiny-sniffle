@@ -36,7 +36,7 @@ Each concern folder is its **own language** — consumers adapt; nothing upstrea
 
 - **Mechanics, not use cases** — connect/disconnect, resolve folder, build search query, fetch/map MIME; no full port-method flows
 - Technical names are fine: `ConnectImapAsync`, `ConnectSmtpAsync`, `TryImapSessionAsync`, `ListInFolderAsync`, `GetDetailsAsync`, `DeleteFromFolderAsync`, `ApplyFlagsInFolderAsync`
-- `{Impl}.cs` owns connect → steps → result → disconnect for all port methods; no delegate wrappers
+- `{Impl}.cs` owns connect → steps → result; scoped IMAP clients are reused per account and disconnected on dispose (`TestConnectionAsync` still probes a fresh session). Do not expose connect/session types on the port.
 - MailKit/IMAP/SMTP detail stays here — not on `IMailboxService`
 
 **Canonical example:** `src/Infrastructure/Mailbox/`

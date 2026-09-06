@@ -1,12 +1,15 @@
 using MailKit;
 using MailKit.Net.Imap;
 using MimeKit;
+using System.Collections.Concurrent;
 using System.Net.Mail;
 
 namespace Infrastructure.Mailbox;
 
-public sealed class MailKitMailboxService : IMailboxService
+public sealed class MailKitMailboxService : IMailboxService, IAsyncDisposable
 {
+    private readonly ConcurrentDictionary<string, ImapSession> _imapSessions = new(StringComparer.OrdinalIgnoreCase);
+
     private static readonly CommandResult NoMessagesSpecified = new()
     {
         Success = false,
@@ -34,21 +37,14 @@ public sealed class MailKitMailboxService : IMailboxService
 
     #region # Queries
 
-    public async Task<ListMessagesResult> ListMessagesAsync(EmailSettings config, ListMessagesFilters filters, CancellationToken cancellationToken = default)
+    public Task<ListMessagesResult> ListMessagesAsync(EmailSettings config, ListMessagesFilters filters, CancellationToken cancellationToken = default)
     {
-        var imap = await MailboxConnectionHelpers.ConnectImapAsync(config, cancellationToken);
-
-        try
+        return WithImapAsync(config, async imap =>
         {
             var folder = await MailboxFolderResolverHelpers.GetFolderAsync(imap, filters.Folder, cancellationToken);
             await folder.OpenAsync(FolderAccess.ReadOnly, cancellationToken);
             return await MailboxQueryHelpers.ListInFolderAsync(folder, filters, cancellationToken);
-        }
-        finally
-        {
-            await MailboxConnectionHelpers.DisconnectAsync(imap, cancellationToken);
-            imap.Dispose();
-        }
+        }, cancellationToken);
     }
 
     public async Task<GetMessagesResult> GetMessagesAsync(EmailSettings config, MessageBatchFilters filters, CancellationToken cancellationToken = default)
@@ -66,9 +62,7 @@ public sealed class MailKitMailboxService : IMailboxService
                 nameof(filters));
         }
 
-        var imap = await MailboxConnectionHelpers.ConnectImapAsync(config, cancellationToken);
-
-        try
+        return await WithImapAsync(config, async imap =>
         {
             var found = new Dictionary<MessageLookupKey, MessageDetail>(MessageLookupKey.Comparer);
 
@@ -100,12 +94,7 @@ public sealed class MailKitMailboxService : IMailboxService
             }
 
             return new GetMessagesResult { Messages = ordered };
-        }
-        finally
-        {
-            await MailboxConnectionHelpers.DisconnectAsync(imap, cancellationToken);
-            imap.Dispose();
-        }
+        }, cancellationToken);
     }
 
     public async Task<GetAttachmentsResult> GetAttachmentsAsync(EmailSettings config, GetAttachmentsFilters filters, CancellationToken cancellationToken = default)
@@ -115,26 +104,17 @@ public sealed class MailKitMailboxService : IMailboxService
             throw new ArgumentException("Message Uid is required.", nameof(filters));
         }
 
-        var imap = await MailboxConnectionHelpers.ConnectImapAsync(config, cancellationToken);
-
-        try
+        return await WithImapAsync(config, async imap =>
         {
             var folder = await MailboxFolderResolverHelpers.GetFolderAsync(imap, filters.Message.Folder, cancellationToken);
             await folder.OpenAsync(FolderAccess.ReadOnly, cancellationToken);
             return await MailboxQueryHelpers.GetAttachmentsAsync(folder, filters.Message.Uid, filters, cancellationToken);
-        }
-        finally
-        {
-            await MailboxConnectionHelpers.DisconnectAsync(imap, cancellationToken);
-            imap.Dispose();
-        }
+        }, cancellationToken);
     }
 
-    public async Task<ListFoldersResult> ListFoldersAsync(EmailSettings config, CancellationToken cancellationToken = default)
+    public Task<ListFoldersResult> ListFoldersAsync(EmailSettings config, CancellationToken cancellationToken = default)
     {
-        var imap = await MailboxConnectionHelpers.ConnectImapAsync(config, cancellationToken);
-
-        try
+        return WithImapAsync(config, async imap =>
         {
             var folders = new List<FolderInfo>();
 
@@ -157,28 +137,16 @@ public sealed class MailKitMailboxService : IMailboxService
                     .OrderBy(f => f.FullName, StringComparer.OrdinalIgnoreCase)
                     .ToList()
             };
-        }
-        finally
-        {
-            await MailboxConnectionHelpers.DisconnectAsync(imap, cancellationToken);
-            imap.Dispose();
-        }
+        }, cancellationToken);
     }
 
-    public async Task<GetFolderResult> GetFolderAsync(EmailSettings config, GetFolderFilters filters, CancellationToken cancellationToken = default)
+    public Task<GetFolderResult> GetFolderAsync(EmailSettings config, GetFolderFilters filters, CancellationToken cancellationToken = default)
     {
-        var imap = await MailboxConnectionHelpers.ConnectImapAsync(config, cancellationToken);
-
-        try
+        return WithImapAsync(config, async imap =>
         {
             var folder = await MailboxFolderResolverHelpers.GetFolderAsync(imap, filters.Folder, cancellationToken);
             return await MailboxQueryHelpers.GetFolderStatsAsync(folder, cancellationToken);
-        }
-        finally
-        {
-            await MailboxConnectionHelpers.DisconnectAsync(imap, cancellationToken);
-            imap.Dispose();
-        }
+        }, cancellationToken);
     }
 
     #endregion
@@ -193,7 +161,7 @@ public sealed class MailKitMailboxService : IMailboxService
             return new SendMailResult { Success = false, Message = validationError };
         }
 
-        var (original, originalError) = await TryResolveOriginalAsync(config, mail, imap: null, cancellationToken);
+        var (original, originalError) = await TryResolveOriginalAsync(config, mail, cancellationToken);
         if (originalError is not null)
         {
             return new SendMailResult { Success = false, Message = originalError };
@@ -242,11 +210,9 @@ public sealed class MailKitMailboxService : IMailboxService
             return new SaveDraftResult { Success = false, Message = validationError };
         }
 
-        var imap = await MailboxConnectionHelpers.ConnectImapAsync(config, cancellationToken);
-
-        try
+        return await WithImapAsync(config, async imap =>
         {
-            var (original, originalError) = await TryResolveOriginalAsync(config, mail, imap, cancellationToken);
+            var (original, originalError) = await FetchOriginalOnSessionAsync(imap, mail, cancellationToken);
             if (originalError is not null)
             {
                 return new SaveDraftResult { Success = false, Message = originalError };
@@ -265,12 +231,7 @@ public sealed class MailKitMailboxService : IMailboxService
                     ? $"Draft saved to '{folderName}'."
                     : $"Draft saved to '{folderName}' (Uid {uid})."
             };
-        }
-        finally
-        {
-            await MailboxConnectionHelpers.DisconnectAsync(imap, cancellationToken);
-            imap.Dispose();
-        }
+        }, cancellationToken);
     }
 
     public async Task<CommandResult> CopyMessagesAsync(EmailSettings config, MessageTransferFilters filters, CancellationToken cancellationToken = default)
@@ -298,9 +259,7 @@ public sealed class MailKitMailboxService : IMailboxService
         }
 
         var destinationName = filters.DestinationFolder.Trim();
-        var imap = await MailboxConnectionHelpers.ConnectImapAsync(config, cancellationToken);
-
-        try
+        return await WithImapAsync(config, async imap =>
         {
             var destination = await MailboxFolderResolverHelpers.GetFolderAsync(imap, destinationName, cancellationToken);
             var affected = 0;
@@ -322,12 +281,7 @@ public sealed class MailKitMailboxService : IMailboxService
                     ? $"Copied 1 message to '{destination.FullName}'."
                     : $"Copied {affected} messages to '{destination.FullName}'."
             };
-        }
-        finally
-        {
-            await MailboxConnectionHelpers.DisconnectAsync(imap, cancellationToken);
-            imap.Dispose();
-        }
+        }, cancellationToken);
     }
 
     public async Task<CommandResult> DeleteMessagesAsync(EmailSettings config, MessageBatchFilters filters, CancellationToken cancellationToken = default)
@@ -345,9 +299,7 @@ public sealed class MailKitMailboxService : IMailboxService
                 nameof(filters));
         }
 
-        var imap = await MailboxConnectionHelpers.ConnectImapAsync(config, cancellationToken);
-
-        try
+        return await WithImapAsync(config, async imap =>
         {
             var movedToTrash = 0;
             var expunged = 0;
@@ -377,12 +329,7 @@ public sealed class MailKitMailboxService : IMailboxService
                 AffectedCount = affected,
                 Message = FormatDeleteMessage(movedToTrash, expunged)
             };
-        }
-        finally
-        {
-            await MailboxConnectionHelpers.DisconnectAsync(imap, cancellationToken);
-            imap.Dispose();
-        }
+        }, cancellationToken);
     }
 
     public async Task<CommandResult> MoveMessagesAsync(EmailSettings config, MessageTransferFilters filters, CancellationToken cancellationToken = default)
@@ -410,9 +357,7 @@ public sealed class MailKitMailboxService : IMailboxService
         }
 
         var destinationName = filters.DestinationFolder.Trim();
-        var imap = await MailboxConnectionHelpers.ConnectImapAsync(config, cancellationToken);
-
-        try
+        return await WithImapAsync(config, async imap =>
         {
             var destination = await MailboxFolderResolverHelpers.GetFolderAsync(imap, destinationName, cancellationToken);
             var affected = 0;
@@ -434,12 +379,7 @@ public sealed class MailKitMailboxService : IMailboxService
                     ? $"Moved 1 message to '{destination.FullName}'."
                     : $"Moved {affected} messages to '{destination.FullName}'."
             };
-        }
-        finally
-        {
-            await MailboxConnectionHelpers.DisconnectAsync(imap, cancellationToken);
-            imap.Dispose();
-        }
+        }, cancellationToken);
     }
 
     public async Task<CommandResult> SetMessageFlagsAsync(EmailSettings config, SetMessageFlagsFilters filters, CancellationToken cancellationToken = default)
@@ -457,9 +397,7 @@ public sealed class MailKitMailboxService : IMailboxService
                 nameof(filters));
         }
 
-        var imap = await MailboxConnectionHelpers.ConnectImapAsync(config, cancellationToken);
-
-        try
+        return await WithImapAsync(config, async imap =>
         {
             var affected = 0;
 
@@ -489,12 +427,7 @@ public sealed class MailKitMailboxService : IMailboxService
                     ? $"1 message {actionLabel}."
                     : $"{affected} messages {actionLabel}."
             };
-        }
-        finally
-        {
-            await MailboxConnectionHelpers.DisconnectAsync(imap, cancellationToken);
-            imap.Dispose();
-        }
+        }, cancellationToken);
     }
 
     public async Task<CommandResult> CreateFolderAsync(EmailSettings config, CreateFolderFilters filters, CancellationToken cancellationToken = default)
@@ -509,9 +442,7 @@ public sealed class MailKitMailboxService : IMailboxService
         }
 
         var folderName = filters.Name.Trim();
-        var imap = await MailboxConnectionHelpers.ConnectImapAsync(config, cancellationToken);
-
-        try
+        return await WithImapAsync(config, async imap =>
         {
             var parent = await MailboxFolderResolverHelpers.GetParentFolderAsync(imap, filters.ParentFolder, cancellationToken);
             var created = await parent.CreateAsync(folderName, true, cancellationToken);
@@ -522,12 +453,7 @@ public sealed class MailKitMailboxService : IMailboxService
                 AffectedCount = 1,
                 Message = $"Created folder '{created.FullName}'."
             };
-        }
-        finally
-        {
-            await MailboxConnectionHelpers.DisconnectAsync(imap, cancellationToken);
-            imap.Dispose();
-        }
+        }, cancellationToken);
     }
 
     #endregion
@@ -537,43 +463,123 @@ public sealed class MailKitMailboxService : IMailboxService
     private static bool RequiresOriginalMessage(OutboundMail mail) =>
         mail.Mode is OutboundMailMode.Reply or OutboundMailMode.Forward;
 
-    private static async Task<(MimeMessage? Original, string? Error)> TryResolveOriginalAsync(
+    private Task<(MimeMessage? Original, string? Error)> TryResolveOriginalAsync(
         EmailSettings config,
         OutboundMail mail,
-        ImapClient? imap,
         CancellationToken cancellationToken)
     {
         if (!RequiresOriginalMessage(mail))
         {
-            return (null, null);
+            return Task.FromResult<(MimeMessage?, string?)>((null, null));
         }
 
+        return WithImapAsync(config, imap => FetchOriginalOnSessionAsync(imap, mail, cancellationToken), cancellationToken);
+    }
+
+    private static async Task<(MimeMessage? Original, string? Error)> FetchOriginalOnSessionAsync(
+        ImapClient imap,
+        OutboundMail mail,
+        CancellationToken cancellationToken)
+    {
         if (mail.InReplyTo is null)
         {
             return (null, "InReplyTo message is required for reply and forward.");
         }
 
-        var ownsConnection = imap is null;
-        if (ownsConnection)
+        var original = await MailboxCommandsHelpers.TryFetchOriginalAsync(imap, mail.InReplyTo, cancellationToken);
+        return original is null
+            ? (null, "The source message for reply or forward was not found.")
+            : (original, null);
+    }
+
+    private async Task<T> WithImapAsync<T>(EmailSettings config, Func<ImapClient, Task<T>> action, CancellationToken cancellationToken)
+    {
+        var session = _imapSessions.GetOrAdd(ImapSessionKey(config), static _ => new ImapSession());
+        await session.Gate.WaitAsync(cancellationToken);
+        try
         {
-            imap = await MailboxConnectionHelpers.ConnectImapAsync(config, cancellationToken);
+            for (var attempt = 0; ; attempt++)
+            {
+                try
+                {
+                    var imap = await EnsureImapAsync(session, config, cancellationToken);
+                    return await action(imap);
+                }
+                catch (Exception ex) when (attempt == 0 && IsStaleImapSession(ex))
+                {
+                    await DropImapAsync(session, CancellationToken.None);
+                }
+            }
+        }
+        finally
+        {
+            session.Gate.Release();
+        }
+    }
+
+    private static async Task<ImapClient> EnsureImapAsync(ImapSession session, EmailSettings config, CancellationToken cancellationToken)
+    {
+        if (session.Client is { IsConnected: true, IsAuthenticated: true })
+        {
+            return session.Client;
+        }
+
+        await DropImapAsync(session, cancellationToken);
+        session.Client = await MailboxConnectionHelpers.ConnectImapAsync(config, cancellationToken);
+        return session.Client;
+    }
+
+    private static async Task DropImapAsync(ImapSession session, CancellationToken cancellationToken)
+    {
+        var client = session.Client;
+        session.Client = null;
+        if (client is null)
+        {
+            return;
         }
 
         try
         {
-            var original = await MailboxCommandsHelpers.TryFetchOriginalAsync(imap!, mail.InReplyTo, cancellationToken);
-            return original is null
-                ? (null, "The source message for reply or forward was not found.")
-                : (original, null);
+            await MailboxConnectionHelpers.DisconnectAsync(client, cancellationToken);
         }
-        finally
+        catch (Exception)
         {
-            if (ownsConnection && imap is not null)
+            // Best-effort close of a stale socket.
+        }
+
+        client.Dispose();
+    }
+
+    private static string ImapSessionKey(EmailSettings config) =>
+        $"{config.ImapHost}|{config.ImapPort}|{config.Username}|{config.EmailAddress}";
+
+    private static bool IsStaleImapSession(Exception ex) =>
+        ex is ServiceNotConnectedException or ImapProtocolException or IOException or ObjectDisposedException;
+
+    public async ValueTask DisposeAsync()
+    {
+        foreach (var session in _imapSessions.Values)
+        {
+            await session.Gate.WaitAsync();
+            try
             {
-                await MailboxConnectionHelpers.DisconnectAsync(imap, cancellationToken);
-                imap.Dispose();
+                await DropImapAsync(session, CancellationToken.None);
+            }
+            finally
+            {
+                session.Gate.Release();
+                session.Gate.Dispose();
             }
         }
+
+        _imapSessions.Clear();
+    }
+
+    private sealed class ImapSession
+    {
+        public SemaphoreSlim Gate { get; } = new(1, 1);
+
+        public ImapClient? Client { get; set; }
     }
 
     private static string? ValidateOutboundMail(OutboundMail mail, bool requireRecipients)

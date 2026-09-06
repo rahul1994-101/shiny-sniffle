@@ -14,6 +14,8 @@ public sealed class ContactSummaryDto
 
     public string? Phone { get; init; }
 
+    public string? Context { get; init; }
+
     public IReadOnlyList<TagRefDto> Tags { get; init; } = [];
 
     public IReadOnlyList<BucketRefDto> Buckets { get; init; } = [];
@@ -25,6 +27,7 @@ public sealed class ContactSummaryDto
         Alias = entity.Alias,
         Email = entity.Email,
         Phone = entity.Phone,
+        Context = entity.Context,
         Tags = taxonomy?.Tags ?? [],
         Buckets = taxonomy?.Buckets ?? []
     };

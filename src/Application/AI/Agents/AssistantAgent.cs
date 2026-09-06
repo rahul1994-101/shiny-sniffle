@@ -12,7 +12,8 @@ public sealed class AssistantAgent(IFoundryAgentFactory _agentFactory)
 
         var agent = CreateAssistantAgent();
         var messages = history.ToList();
-        var response = await agent.RunAsync(messages, cancellationToken: cancellationToken);
+        var assistantContent = await AgentResponseHelpers.StreamAssistantTextAsync(
+            agent, messages, request.Progress, "Thinking…", cancellationToken);
 
         #endregion
 
@@ -20,7 +21,7 @@ public sealed class AssistantAgent(IFoundryAgentFactory _agentFactory)
 
         return new RunChatAgentResponse
         {
-            AssistantContent = AgentResponseHelpers.ExtractAssistantText(response)
+            AssistantContent = assistantContent
         };
 
         #endregion

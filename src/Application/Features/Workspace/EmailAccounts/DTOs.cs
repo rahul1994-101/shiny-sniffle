@@ -17,6 +17,8 @@ public sealed class EmailAccountSummaryDto
 
     public bool IsDefault { get; init; }
 
+    public string? Context { get; init; }
+
     public IReadOnlyList<TagRefDto> Tags { get; init; } = [];
 
     public IReadOnlyList<BucketRefDto> Buckets { get; init; } = [];
@@ -31,6 +33,7 @@ public sealed class EmailAccountSummaryDto
         ProviderName = provider.Name,
         EmailAddress = account.EmailAddress,
         IsDefault = account.IsDefault,
+        Context = account.Context,
         Tags = taxonomy?.Tags ?? [],
         Buckets = taxonomy?.Buckets ?? []
     };
@@ -48,6 +51,8 @@ public sealed class MailboxAccountContext
     public string ProviderName { get; init; } = string.Empty;
 
     public bool IsDefault { get; init; }
+
+    public string? Context { get; init; }
 
     public EmailSettings Runtime { get; init; } = null!;
 }

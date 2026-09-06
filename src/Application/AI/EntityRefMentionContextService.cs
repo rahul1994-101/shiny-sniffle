@@ -1,3 +1,4 @@
+using Application.Features.Shared;
 using Application.Features.Workspace.Buckets;
 using Application.Features.Workspace.Contacts;
 using Application.Features.Workspace.EmailAccounts;
@@ -20,7 +21,6 @@ public sealed class EntityRefMentionContextService(
     public async Task<EntityRefMentionResolution> ResolveAsync(
         Guid userId,
         string message,
-        bool resolveDefaultMailbox = false,
         CancellationToken cancellationToken = default)
     {
         var handles = EntityRefMentions.ExtractFromText(message);
@@ -97,8 +97,9 @@ public sealed class EntityRefMentionContextService(
     private static string FormatMailboxLine(string handle, MailboxAccountContext account)
     {
         var defaultLabel = account.IsDefault ? "; default mailbox" : string.Empty;
+        var notes = CatalogFieldRules.FormatNotesSuffix(account.Context);
         return
-            $"- `{handle}` (mailbox): {account.EmailAddress} via {account.ProviderName}{defaultLabel}. " +
+            $"- `{handle}` (mailbox): {account.EmailAddress} via {account.ProviderName}{defaultLabel}{notes}. " +
             $"Use mailbox_alias `{account.Alias}` on all mailbox tool calls this turn unless the user names another account.";
     }
 

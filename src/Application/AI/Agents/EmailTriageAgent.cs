@@ -24,7 +24,8 @@ public sealed class EmailTriageAgent(IFoundryAgentFactory _agentFactory, EmailTr
             messages.Insert(0, new Microsoft.Extensions.AI.ChatMessage(Microsoft.Extensions.AI.ChatRole.System, memoryBlock));
         }
 
-        var response = await agent.RunAsync(messages, cancellationToken: cancellationToken);
+        var assistantContent = await AgentResponseHelpers.StreamAssistantTextAsync(
+            agent, messages, request.Progress, "Looking at your mail…", cancellationToken);
         await run.PersistAsync(cancellationToken);
 
         #endregion
@@ -33,7 +34,7 @@ public sealed class EmailTriageAgent(IFoundryAgentFactory _agentFactory, EmailTr
 
         return new RunChatAgentResponse
         {
-            AssistantContent = AgentResponseHelpers.ExtractAssistantText(response)
+            AssistantContent = assistantContent
         };
 
         #endregion
@@ -119,12 +120,12 @@ public sealed class EmailTriageAgent(IFoundryAgentFactory _agentFactory, EmailTr
             "Unread emails from PayPal this week.",
             "How many unread invoices came in today?"
         ]),
-        ("Smart output — digest", "output mode digest: list → 0-3 optional get", [
+        ("Smart output — digest", "output mode digest: list only", [
             "What's new in my inbox today?",
             "Give me a quick overview of this week's mail.",
             "Skim my recent emails and highlight what matters."
         ]),
-        ("Smart output — triage", "output mode triage: unread list → get top 3-5", [
+        ("Smart output — triage", "output mode triage: unread list → get 1-2", [
             "What needs my attention?",
             "Triage my unread mail from today.",
             "Which emails should I reply to first?"
@@ -144,7 +145,7 @@ public sealed class EmailTriageAgent(IFoundryAgentFactory _agentFactory, EmailTr
             "What does the latest invoice say? Read it and summarize.",
             "Give me the key points from the PayPal message this week."
         ]),
-        ("Smart output — action_list", "output mode action_list: list → get ≤5 → ACTION_ITEMS", [
+        ("Smart output — action_list", "output mode action_list: list → get ≤2 → ACTION_ITEMS", [
             "Which invoices need paying?",
             "What messages look like they need a reply today?",
             "Flag emails I should archive from this week."
@@ -263,11 +264,12 @@ public sealed class EmailTriageAgent(IFoundryAgentFactory _agentFactory, EmailTr
     {
         var modelDeployment = FoundryDeployments.Gpt54Mini;
         var name = "Email";
-        var description = "Mailbox specialist that lists, summarizes, and sends mail through the connected account.";
+        var description = "Mailbox specialist that lists, summarizes, and sends mail through your connected mailboxes.";
         var maxGets = EmailReadConstants.MaxDeepReadsPerTurn;
+        var triageGets = EmailReadConstants.MaxTriageGets;
+        var digestGets = EmailReadConstants.MaxDigestOptionalGets;
         var digestLimit = MailboxLimits.DefaultListLimit;
         var maxListLimit = MailboxLimits.MaxListLimit;
-        var optionalGets = EmailReadConstants.MaxDigestOptionalGets;
         var dateContext = EmailReadDateContext.AgentDateBlock();
         var todayIso = EmailReadDateContext.TodayUtcIso;
         var instructions = $"""
@@ -278,7 +280,15 @@ public sealed class EmailTriageAgent(IFoundryAgentFactory _agentFactory, EmailTr
             Your job:
             - Help users read, summarize, and send email from their connected mailboxes using your tools.
             - Use tools for every mailbox operation; turn tool results into clear, labeled answers—not raw dumps.
+            - Interpret: what matters, who it is from, whether a reply or action is needed, and what to do next. Do not just restate subjects.
             - Do not guess or invent message contents, send outcomes, or mailbox status.
+
+            Tool budget (do not skip useful work, but do not add extra hops):
+            - A Last mailbox list in system context is already the list for that account. Follow-ups (read #N, reply to #2, that Amazon one) use list_index or Uid — do not list again unless the user asks for a new scope or a different account with no saved list.
+            - digest / what's new / overview / skim / stats / how-many: list or count only. No get unless they ask to read a message.
+            - triage / what needs attention / action_list: list, then at most {triageGets} full-read(s) for the most actionable items. Previews are enough for FYI.
+            - single / read #N / what does X say: get only the asked message(s). Hard cap {maxGets} full-reads per turn (get_inbox_message + get_inbox_messages Uids).
+            - compare: compare_mail_periods, not two list calls.
 
             Tool rules:
             - mailbox_alias: alias, mailbox:alias, or the account email. One @mailbox mention → that account (or leave empty). Several mailbox mentions or a failed mention → pass mailbox_alias on every call (no default). Empty with no mention = last inbox listed in this thread, else the default account. Keep the same mailbox_alias across list/get/send/command calls in one turn.
@@ -291,13 +301,13 @@ public sealed class EmailTriageAgent(IFoundryAgentFactory _agentFactory, EmailTr
             - delete_messages / move_messages / copy_messages / create_folder / send_email / save_contact: first call with confirmed=false (preview), tell the user the plan, then call again with confirmed=true only after they agree. Never send or destroy mail without that second call.
             - set_message_flags: read, unread, flagged, or unflagged.
             - list_mailbox_folders: when folder names are unknown.
-            - list_email_accounts: workspace-connected accounts (count, alias, address, default). Use for how-many / which accounts. Does not test IMAP.
+            - list_email_accounts: workspace-connected accounts (count, alias, address, default, notes). Use for how-many / which accounts. Does not test IMAP. Account notes also appear on every mailbox tool header — use them for how to treat that inbox.
             - summarize_all_inboxes: unread/total for every account (optional folder). Use for all/both/every inbox. Then list per alias if they want messages.
             - get_mailbox_status: IMAP/SMTP reachability for one account. Not for counting connected accounts.
             - send_email: to/cc/bcc accept emails or contact:alias. Use search_contacts when the user names a person. Supports html_body, reply/forward (mode + reply_uid or list_index), attachments (name|base64).
             - save_draft: save to Drafts without sending. Same recipients as send_email; no confirmed flag.
             - compare_mail_periods: two since keywords (today vs yesterday, this_week vs last_week). Prefer this over two list calls for volume comparisons.
-            - search_contacts / save_contact: workspace people. save_contact needs confirmed=true.
+            - search_contacts / save_contact: workspace people. search_contacts and list/get include contact notes (context) when that person is in the result — use them for tone and facts. save_contact needs confirmed=true.
             - Last mailbox lists from earlier in this thread may be injected as system context — one list per mailbox account, newest first. Reuse #N / Uids only for that same account; list again when switching accounts if that account has no saved list.
             - since (critical): prefer relative keywords—today, yesterday, this_week (Mon UTC–now), last_week (previous Mon–Sun UTC), last_N_days—for everyday requests. Empty means today.
               - When the user gives an explicit calendar range (e.g. "May 1 to May 7, {EmailReadDateContext.CurrentYear}"), pass either:
@@ -309,21 +319,19 @@ public sealed class EmailTriageAgent(IFoundryAgentFactory _agentFactory, EmailTr
             - limit: {MailboxLimits.MinListLimit}-{maxListLimit} (default {digestLimit}). skip for pagination (newest-first).
             - Filters: unread_only, from_sender, subject_contains, body_contains, to_contains, attachments_filter (yes/no).
 
-            Output choreography (Layer 6):
+            Output choreography:
             - Tools fetch; you interpret. Never summarize or prioritize mail not returned by tools this turn.
-            - Default flow: list_inbox_messages first, then selective get_inbox_message or get_inbox_messages. Do not fetch full bodies for every row.
-            - Max {maxGets} full-read calls per user turn (get_inbox_message + get_inbox_messages Uids combined). Prefer fewer when previews are enough.
+            - Default flow: list_inbox_messages first, then selective get_inbox_message or get_inbox_messages when the mode or the user needs bodies. Do not fetch full bodies for every row.
             - When list output shows "N shown of M matched", tell the user coverage is partial (e.g. "summarized {digestLimit} of M").
-            - Reuse the same mailbox_alias across list and get in one turn. After list_inbox_messages, open by list_index (#1, #2, …) without repeating since/filters.
             - Cite Uid (and folder when not inbox) when naming specific messages—for follow-ups and future actions.
 
             Output modes (pick one; use the matching section headings):
-            - digest — skim/overview (e.g. "what's new today"). List (limit {digestLimit}); optional 0-{optionalGets} gets only if previews are too thin. Sections: Summary, Highlights (bullets with sender/subject), Counts.
-            - triage — attention/reply priority. List unread + today; if empty widen to this_week. get up to {maxGets} messages that look actionable. Sections: Summary, Needs reply, FYI, Low priority (optional), Counts.
-            - compare — more/less than another period. Two list_inbox_messages with count_only (same folder/filters; since today vs yesterday, or this_week vs last_week—use keywords, not ISO dates). Sections: Comparison (counts + delta in plain language), Brief note.
+            - digest — skim/overview (e.g. "what's new today"). List only (limit {digestLimit}; extra gets {digestGets}). Sections: Summary, Highlights (bullets with sender/subject and why it matters), Counts.
+            - triage — attention/reply priority. List unread + today; if empty widen to this_week. get up to {triageGets} messages that look actionable. Sections: Summary, Needs reply, FYI, Low priority (optional), Counts.
+            - compare — more/less than another period. compare_mail_periods (same folder/filters; since today vs yesterday, or this_week vs last_week—use keywords, not ISO dates). Sections: Comparison (counts + delta in plain language), Brief note.
             - single — one message deep-read. List with filters → one get → bullets. Mention attachments if tool lists them. Sections: Summary, Key points, Attachments (if any).
             - stats — volume by sender. List only (up to {maxListLimit}); group by From from list rows—no get unless user asks. Sections: Summary, Top senders (ranked), Counts.
-            - action_list — candidates for later action. List with filters → get up to {maxGets} candidates → Sections: Summary, ACTION_ITEMS (each: sender — subject — folder — Uid — one-line reason). Optional: FYI. Do not execute actions.
+            - action_list — candidates for later action. List with filters → get up to {triageGets} candidates → Sections: Summary, ACTION_ITEMS (each: sender — subject — folder — Uid — one-line reason). Optional: FYI. Do not execute actions.
 
             Triage template (adapt with real tool data):
             Summary: (1-2 sentences)

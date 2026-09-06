@@ -20,6 +20,8 @@
 
         <ChatMessageList Messages="_messages"
                          IsAssistantLoading="_sending"
+                         StreamStatus="@_streamStatus"
+                         StreamText="@_streamText"
                          ChatAgent="_chatAgent"
                          StarterDisabled="_sending"
                          OnStarterPick="SendPromptAsync" />
@@ -201,6 +203,8 @@
 
         _sending = false;
 
+        ClearStream();
+
 
 
         await LoadMessagesAsync();
@@ -230,6 +234,12 @@
     private string? _sendError;
 
     private bool _optimisticUserPending;
+
+    private string? _streamStatus;
+
+    private string? _streamText;
+
+    private Guid _streamThreadId;
 
 
 
@@ -291,6 +301,12 @@
 
         _sending = true;
 
+        _streamThreadId = _activeThreadId;
+
+        _streamStatus = null;
+
+        _streamText = null;
+
         _scrollMessagesAfterRender = true;
 
 
@@ -305,7 +321,9 @@
 
                 _activeThreadId,
 
-                text));
+                text,
+
+                Progress: new Progress<ChatTurnProgress>(OnChatTurnProgress)));
 
 
 
@@ -342,6 +360,8 @@
         {
 
             _sending = false;
+
+            ClearStream();
 
         }
 
@@ -398,6 +418,52 @@
 
 
         _optimisticUserPending = false;
+
+    }
+
+
+
+    private void OnChatTurnProgress(ChatTurnProgress update)
+
+    {
+
+        _ = InvokeAsync(() =>
+
+        {
+
+            if (!_sending || _activeThreadId != _streamThreadId)
+
+            {
+
+                return;
+
+            }
+
+
+
+            _streamStatus = update.Status;
+
+            _streamText = update.PartialContent;
+
+            _scrollMessagesAfterRender = true;
+
+            StateHasChanged();
+
+        });
+
+    }
+
+
+
+    private void ClearStream()
+
+    {
+
+        _streamStatus = null;
+
+        _streamText = null;
+
+        _streamThreadId = Guid.Empty;
 
     }
 

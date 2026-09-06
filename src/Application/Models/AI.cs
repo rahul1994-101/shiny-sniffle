@@ -18,7 +18,13 @@ public sealed class RunChatAgentRequest
 
     /// <summary>True when more than one mailbox was mentioned — tools must receive <c>mailbox_alias</c>.</summary>
     public bool RequireMailboxAlias { get; init; }
+
+    /// <summary>Optional UI callback for the live status line and growing reply.</summary>
+    public IProgress<ChatTurnProgress>? Progress { get; init; }
 }
+
+/// <summary>One status line plus the reply so far. Status is everyday language, not tool names.</summary>
+public sealed record ChatTurnProgress(string? Status, string? PartialContent);
 
 public sealed class RunChatAgentResponse
 {

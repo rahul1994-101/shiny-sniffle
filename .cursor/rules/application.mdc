@@ -126,14 +126,14 @@ Roadmaps: `docs/ai-memory.md`, `docs/email-read-implementation-plan.md`. Detail:
 | Folder | Role |
 |--------|------|
 | **AI/** root | `ChatOrchestrator` — turn routing; `EntityRefMentionContextService` — `@mention` LLM context |
-| **Agents/** | LLM only; no DB |
+| **Agents/** | LLM only; no DB — chat turns stream via `RunStreamingAsync` + optional `ChatTurnProgress` |
 | **Tools/** | Slice repos + Shared services; no LLM; no `IDbContextFactory` |
-| **Memory/** | DB enrich; Foundry summarize on refresh |
+| **Memory/** | DB enrich; Foundry summarize via `ScheduleRefresh` after the turn returns |
 | **Workflows/** | Multi-step, not single agent turn |
 
 **Boundaries:** Agents = LLM · Tools = repos · Features handlers save + call orchestrator · Foundry factory in Infrastructure.
 
-**Naming:** `{Domain}TriageAgent`, `{Domain}TriageTools`, `{Role}Agent`, `RunAsync` / `CreateTools` / `RunChatAgentAsync`.
+**Naming:** `{Domain}TriageAgent`, `{Domain}TriageTools`, `{Role}Agent`, `RunAsync` / `CreateTools` / `RunChatAgentAsync`. Chat turns report `ChatTurnProgress` (one status line + partial reply) when the UI passes `IProgress`.
 
 ---
 
@@ -159,7 +159,7 @@ TestEmailAccountConnection ─────→ EmailAccountMailboxService → IMa
 | **Persistence** | `StoredMailboxSettings` — merge/draft/save; not infra `EmailSettings` | `EmailAccounts/DTOs.cs`, `Helpers.cs` (`EmailSettingsMapping`) |
 | **Tools** | Agent catalog, filter builders, text formatting | `AI/Tools/EmailTriageTools.cs`, `AI/Tools/MailboxReadHelpers.cs` |
 
-**Tools session:** pass `CancellationToken` through to the gateway; validate batch Uid counts in builders (fail before IMAP); cache mailbox by alias **and** `mailbox:alias`; enforce `MaxDeepReadsPerTurn` on get tools; when several `@mailbox` mentions resolve, require `mailbox_alias` (no default). Persist last list to `EmailThreadMemory` keyed by mailbox alias. Destructive/send tools require `confirmed=true`. `last_week` is the previous Mon–Sun UTC (not a rolling 7 days). Command `Success == false` is `Result.Failure` on the gateway (same as send/draft).
+**Tools session:** pass `CancellationToken` through to the gateway; validate batch Uid counts in builders (fail before IMAP); cache mailbox by alias **and** `mailbox:alias`; enforce `MaxDeepReadsPerTurn` on get tools; when several `@mailbox` mentions resolve, require `mailbox_alias` (no default). Persist last list to `EmailThreadMemory` keyed by mailbox alias — follow-ups use `list_index` without listing again. Digest/stats are list-only (`MaxDigestOptionalGets` 0); triage/action_list get ≤ `MaxTriageGets` (2). Destructive/send tools require `confirmed=true`. `last_week` is the previous Mon–Sun UTC (not a rolling 7 days). Command `Success == false` is `Result.Failure` on the gateway (same as send/draft).
 
 **Wired today:** full port surface — list/get messages, attachments, folders, folder stats, status, send, save draft, delete, move, copy, set flags, create folder; richer list filters and send/draft params.
 

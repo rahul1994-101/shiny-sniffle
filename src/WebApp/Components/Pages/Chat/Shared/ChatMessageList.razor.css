@@ -208,6 +208,112 @@
 
 
 
+.msg-bubble-streaming {
+
+    min-width: 8rem;
+
+}
+
+
+
+.msg-stream-status {
+
+    color: var(--app-muted);
+
+    font-size: 0.875rem;
+
+    line-height: 1.35;
+
+}
+
+
+
+.msg-stream-status + .msg-text {
+
+    margin-top: 0.45rem;
+
+}
+
+
+
+.msg-stream-status-pulse {
+
+    animation: msg-stream-pulse 1.4s ease-in-out infinite;
+
+}
+
+
+
+.msg-stream-caret {
+
+    display: inline-block;
+
+    width: 0.42em;
+
+    height: 0.95em;
+
+    margin-left: 0.12rem;
+
+    vertical-align: text-bottom;
+
+    background: var(--app-muted);
+
+    animation: msg-stream-caret-blink 1s step-end infinite;
+
+}
+
+
+
+@keyframes msg-stream-pulse {
+
+    0%, 100% {
+
+        opacity: 0.7;
+
+    }
+
+    50% {
+
+        opacity: 1;
+
+    }
+
+}
+
+
+
+@keyframes msg-stream-caret-blink {
+
+    0%, 100% {
+
+        opacity: 1;
+
+    }
+
+    50% {
+
+        opacity: 0;
+
+    }
+
+}
+
+
+
+@media (prefers-reduced-motion: reduce) {
+
+    .msg-stream-status-pulse,
+
+    .msg-stream-caret {
+
+        animation: none;
+
+    }
+
+}
+
+
+
 .msg-avatar {
 
     flex-shrink: 0;

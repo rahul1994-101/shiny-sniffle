@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using Application.Features.Shared;
 using Application.Features.Workspace.EmailAccounts;
 using Infrastructure.Mailbox;
 
@@ -17,7 +18,9 @@ internal static class EmailReadConstants
 {
     internal const int MaxDeepReadsPerTurn = 5;
 
-    internal const int MaxDigestOptionalGets = 3;
+    internal const int MaxTriageGets = 2;
+
+    internal const int MaxDigestOptionalGets = 0;
 
     internal const int MaxAttachmentTextPreviewBytes = 8_192;
 
@@ -29,7 +32,7 @@ internal static class EmailReadConstants
         $"{SinceParseHint} Today (UTC) is {EmailReadDateContext.TodayUtcIso}. Example range: 2026-05-01..2026-05-07.";
 
     internal static string FormatMailboxHeader(MailboxAccountContext account) =>
-        $"Account: {account.Alias} ({account.EmailAddress}){(account.IsDefault ? " · default" : string.Empty)}";
+        $"Account: {account.Alias} ({account.EmailAddress}){(account.IsDefault ? " · default" : string.Empty)}{CatalogFieldRules.FormatNotesSuffix(account.Context)}";
 }
 
 /// <summary>Current UTC calendar for Email agent/tools — avoids wrong-year ISO dates from the model.</summary>
@@ -661,7 +664,7 @@ internal static class MailboxOpenRequestBuilder
             return true;
         }
 
-        error = "Provide uid from a list row, or list_index (1-based) after list_inbox_messages in this turn.";
+        error = "Provide uid from a list row, or list_index (1-based) from the last list for this mailbox in this thread.";
         return false;
     }
 

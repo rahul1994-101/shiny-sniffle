@@ -75,6 +75,7 @@ public sealed class MailboxAccountResolver(EmailAccountRepository emailAccountRe
             EmailAddress = account.EmailAddress,
             ProviderName = account.EmailProvider.Name,
             IsDefault = account.IsDefault,
+            Context = account.Context,
             Runtime = runtime
         });
 

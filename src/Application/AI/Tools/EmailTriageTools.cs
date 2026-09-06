@@ -44,6 +44,7 @@ public sealed class EmailTriageTools(
 
         private MailboxAccountContext? _defaultAccount = defaultMailboxAccount;
         private readonly string? _stickyAlias = LastUsedAlias(lastLists);
+        private Dictionary<string, ContactSummaryDto>? _contactsByEmail;
         private readonly Dictionary<string, MailboxAccountContext> _accountCache = new(StringComparer.OrdinalIgnoreCase);
         private readonly Dictionary<string, MailboxListSnapshot> _lists = ToListMap(lastLists);
         private readonly HashSet<string> _dirtyAliases = new(StringComparer.OrdinalIgnoreCase);
@@ -84,7 +85,7 @@ public sealed class EmailTriageTools(
                         "Set count_only for how-many questions. Use mailbox_alias when the user names a specific connected account."),
                 AIFunctionFactory.Create(
                     ([Description("IMAP UID from a list_inbox_messages row. Use 0 when using list_index.")] uint uid,
-                        [Description("1-based list row (#1, #2, …). Use 0 when using uid. Uses the most recent list_inbox_messages in this turn.")] int listIndex,
+                        [Description("1-based list row (#1, #2, …). Use 0 when using uid. Uses the last list for this mailbox in this thread.")] int listIndex,
                         [Description("IMAP folder: empty/inbox (default). Override only when different from the list call.")] string folder,
                         [Description(MailboxAliasHint)] string mailboxAlias,
                         CancellationToken cancellationToken) =>
@@ -92,7 +93,7 @@ public sealed class EmailTriageTools(
                     name: "get_inbox_message",
                     description:
                         "Fetches one message by UID or list row (#N) with full plain-text body and attachment names. " +
-                        "After list_inbox_messages, open by list_index without repeating filters. " +
+                        "After a list in this thread (this turn or saved), open by list_index — do not list again. " +
                         "Or pass uid + folder from a list row."),
                 AIFunctionFactory.Create(
                     ([Description("Comma-separated IMAP Uids from list_inbox_messages (e.g. 42,43). Max 5 per call.")] string uids,
@@ -152,7 +153,7 @@ public sealed class EmailTriageTools(
                         "Call once to preview, then again with confirmed=true after the user agrees."),
                 AIFunctionFactory.Create(
                     ([Description("IMAP UID from a list/get call. Use 0 when using list_index.")] uint uid,
-                        [Description("1-based list row (#1, #2, …). Use 0 when using uid. Uses the most recent list_inbox_messages in this turn.")] int listIndex,
+                        [Description("1-based list row (#1, #2, …). Use 0 when using uid. Uses the last list for this mailbox in this thread.")] int listIndex,
                         [Description("IMAP folder: empty/inbox (default). Override only when different from the list call.")] string folder,
                         [Description("0-based attachment index from get_inbox_message output. Use -1 when using attachment_name or to fetch all.")] int attachmentIndex,
                         [Description("Attachment file name (case-insensitive). Empty when using attachment_index or fetching all.")] string attachmentName,
@@ -162,7 +163,7 @@ public sealed class EmailTriageTools(
                     name: "get_attachments",
                     description:
                         "Downloads attachment content for one message. Returns metadata and text preview for small text files; binary/large files show size only. " +
-                        "Use uid+folder from a list row, or list_index after list_inbox_messages. Optionally filter by attachment_index or attachment_name."),
+                        "Use uid+folder from a list row, or list_index from the last list in this thread. Optionally filter by attachment_index or attachment_name."),
                 AIFunctionFactory.Create(
                     ([Description("IMAP folder: empty/inbox (default), sent, drafts, trash, junk, or name from list_mailbox_folders.")] string folder,
                         [Description(MailboxAliasHint)] string mailboxAlias,
@@ -196,7 +197,7 @@ public sealed class EmailTriageTools(
                         [Description("Optional HTML body. Empty uses plain text only.")] string htmlBody,
                         [Description("Send mode: new (default), reply, or forward. Reply/forward require reply_uid or list_index from a prior list/get.")] string mode,
                         [Description("Source message Uid for reply/forward. 0 when using list_index or for new mail.")] uint replyUid,
-                        [Description("1-based list row for reply/forward when reply_uid is 0. Uses the most recent list_inbox_messages.")] int listIndex,
+                        [Description("1-based list row for reply/forward when reply_uid is 0. Uses the last list for this mailbox in this thread.")] int listIndex,
                         [Description("Source folder for reply/forward: empty/inbox (default).")] string replyFolder,
                         [Description("Optional attachments: name|base64;name2|base64 (semicolon between files).")] string attachments,
                         [Description(MailboxAliasHint)] string mailboxAlias,
@@ -217,7 +218,7 @@ public sealed class EmailTriageTools(
                         [Description("Optional HTML body. Empty uses plain text only.")] string htmlBody,
                         [Description("Draft mode: new (default), reply, or forward. Reply/forward require reply_uid or list_index.")] string mode,
                         [Description("Source message Uid for reply/forward draft. 0 when using list_index or for new draft.")] uint replyUid,
-                        [Description("1-based list row for reply/forward when reply_uid is 0. Uses the most recent list_inbox_messages.")] int listIndex,
+                        [Description("1-based list row for reply/forward when reply_uid is 0. Uses the last list for this mailbox in this thread.")] int listIndex,
                         [Description("Source folder for reply/forward: empty/inbox (default).")] string replyFolder,
                         [Description("Optional attachments: name|base64;name2|base64 (semicolon between files).")] string attachments,
                         [Description(MailboxAliasHint)] string mailboxAlias,
@@ -231,7 +232,7 @@ public sealed class EmailTriageTools(
                         ListEmailAccountsAsync(cancellationToken),
                     name: "list_email_accounts",
                     description:
-                        "Lists workspace-connected email accounts (alias, address, provider, default). " +
+                        "Lists workspace-connected email accounts (alias, address, provider, default, notes). " +
                         "Use for how-many / which accounts. Does not test IMAP — use get_mailbox_status for reachability, " +
                         "or summarize_all_inboxes for unread counts on every account."),
                 AIFunctionFactory.Create(
@@ -267,12 +268,12 @@ public sealed class EmailTriageTools(
                         SearchContactsAsync(query, cancellationToken),
                     name: "search_contacts",
                     description:
-                        "Looks up workspace contacts by name, alias, or email. Use before send_email when the user names a person instead of an address."),
+                        "Looks up workspace contacts by name, alias, or email. Returns notes (context) when set — use them for tone and facts. Use before send_email when the user names a person instead of an address."),
                 AIFunctionFactory.Create(
                     ([Description("First name.")] string firstName,
                         [Description("Last name. Empty is allowed.")] string lastName,
                         [Description("Email address.")] string email,
-                        [Description("Optional notes for later recall.")] string context,
+                        [Description("Optional notes the agent should use when dealing with this person.")] string context,
                         [Description("Must be true after the user agrees to save this person.")] bool confirmed,
                         CancellationToken cancellationToken) =>
                         SaveContactAsync(firstName, lastName, email, context, confirmed, cancellationToken),
@@ -302,8 +303,14 @@ public sealed class EmailTriageTools(
             string mailboxAlias,
             CancellationToken cancellationToken)
         {
+            var (resolvedFrom, fromError) = await ResolveFromFilterAsync(fromSender, cancellationToken);
+            if (fromError is not null)
+            {
+                return fromError;
+            }
+
             if (!ListMessagesQueryBuilder.TryBuild(
-                    since, until, limit, skip, countOnly, unreadOnly, fromSender, subjectContains,
+                    since, until, limit, skip, countOnly, unreadOnly, resolvedFrom, subjectContains,
                     bodyContains, toContains, attachmentsFilter, folder,
                     out var query, out var buildError))
             {
@@ -331,6 +338,11 @@ public sealed class EmailTriageTools(
                 ? EmailMailboxTextHelpers.FormatMailboxCount(outcome.Payload!.TotalMatched, query.QueryLabel)
                 : EmailMailboxTextHelpers.FormatMailboxList(outcome.Payload!.Messages, query.QueryLabel, outcome.Payload.TotalMatched);
 
+            var headers = query.Filters.CountOnly
+                ? (IEnumerable<string>)[resolvedFrom]
+                : outcome.Payload!.Messages.Select(m => m.From);
+            body = await AppendKnownContactsAsync(body, headers, cancellationToken);
+
             return WithAccountHeader(account!, body);
         }
 
@@ -357,10 +369,18 @@ public sealed class EmailTriageTools(
                 return deepReadError;
             }
 
-            return await RunMailboxAsync(
-                account,
-                resolvedAccount => mailboxService.GetMessageAsync(resolvedAccount, openRequest!.Message, cancellationToken),
-                EmailMailboxTextHelpers.FormatMailboxMessage);
+            var outcome = await mailboxService.GetMessageAsync(account, openRequest!.Message, cancellationToken);
+            if (outcome.HasError)
+            {
+                return outcome.FirstErrorMessage!;
+            }
+
+            var message = outcome.Payload!;
+            var body = await AppendKnownContactsAsync(
+                EmailMailboxTextHelpers.FormatMailboxMessage(message),
+                ContactHeaders(message),
+                cancellationToken);
+            return WithAccountHeader(account, body);
         }
 
         private async Task<string> GetInboxMessagesAsync(string uidsCsv, string folder, string mailboxAlias, CancellationToken cancellationToken)
@@ -382,10 +402,18 @@ public sealed class EmailTriageTools(
                 return deepReadError;
             }
 
-            return await RunMailboxAsync(
-                account!,
-                resolvedAccount => mailboxService.GetMessagesAsync(resolvedAccount, filters, cancellationToken),
-                result => EmailMailboxTextHelpers.FormatMailboxMessages(result.Messages));
+            var outcome = await mailboxService.GetMessagesAsync(account!, filters, cancellationToken);
+            if (outcome.HasError)
+            {
+                return outcome.FirstErrorMessage!;
+            }
+
+            var messages = outcome.Payload!.Messages;
+            var body = await AppendKnownContactsAsync(
+                EmailMailboxTextHelpers.FormatMailboxMessages(messages),
+                messages.SelectMany(ContactHeaders),
+                cancellationToken);
+            return WithAccountHeader(account!, body);
         }
 
         #endregion
@@ -419,12 +447,7 @@ public sealed class EmailTriageTools(
                 return "No email accounts connected. Add one in Workspace → Email accounts.";
             }
 
-            var lines = accounts.Select(a =>
-            {
-                var mark = a.IsDefault ? " · default" : string.Empty;
-                return $"- {a.Alias} ({a.EntityRef}) — {a.EmailAddress} · {a.ProviderName}{mark}";
-            });
-            return $"Connected email accounts: {accounts.Count}\n" + string.Join('\n', lines);
+            return $"Connected email accounts: {accounts.Count}\n" + string.Join('\n', accounts.Select(EmailAccountMapping.FormatAgentLine));
         }
 
         private async Task<string> SummarizeAllInboxesAsync(string folder, CancellationToken cancellationToken)
@@ -436,35 +459,35 @@ public sealed class EmailTriageTools(
             }
 
             var folderLabel = string.IsNullOrWhiteSpace(folder) ? "inbox" : folder.Trim();
-            var lines = new List<string>
-            {
-                $"Folder stats for {accounts.Count} account(s) ({folderLabel}):"
-            };
-
+            var resolved = new List<(EmailAccountSummaryDto Summary, MailboxAccountContext? Account, string? Error)>(accounts.Count);
             foreach (var summary in accounts)
             {
                 var (account, accountError) = await GetAccountAsync(summary.Alias, cancellationToken);
-                if (accountError is not null)
+                resolved.Add((summary, account, accountError));
+            }
+
+            var filters = new GetFolderFilters { Folder = NullIfWhiteSpace(folder) };
+            var lines = await Task.WhenAll(resolved.Select(async item =>
+            {
+                var summary = item.Summary;
+                if (item.Error is not null)
                 {
-                    lines.Add($"- {summary.Alias} ({summary.EmailAddress}): {accountError}");
-                    continue;
+                    return $"- {summary.Alias} ({summary.EmailAddress}): {item.Error}";
                 }
 
-                var filters = new GetFolderFilters { Folder = NullIfWhiteSpace(folder) };
-                var outcome = await mailboxService.GetFolderAsync(account!, filters, cancellationToken);
+                var outcome = await mailboxService.GetFolderAsync(item.Account!, filters, cancellationToken);
                 if (outcome.HasError)
                 {
-                    lines.Add($"- {summary.Alias} ({summary.EmailAddress}): {outcome.FirstErrorMessage}");
-                    continue;
+                    return $"- {summary.Alias} ({summary.EmailAddress}): {outcome.FirstErrorMessage}";
                 }
 
                 var stats = outcome.Payload!;
                 var mark = summary.IsDefault ? " · default" : string.Empty;
-                lines.Add(
-                    $"- {summary.Alias} ({summary.EmailAddress}){mark} — {stats.UnreadCount} unread / {stats.TotalCount} total");
-            }
+                return
+                    $"- {summary.Alias} ({summary.EmailAddress}){mark} — {stats.UnreadCount} unread / {stats.TotalCount} total{CatalogFieldRules.FormatNotesSuffix(summary.Context)}";
+            }));
 
-            return string.Join('\n', lines);
+            return $"Folder stats for {accounts.Count} account(s) ({folderLabel}):\n" + string.Join('\n', lines);
         }
 
         private Task<string> GetMailboxStatusAsync(string mailboxAlias, CancellationToken cancellationToken)
@@ -758,8 +781,14 @@ public sealed class EmailTriageTools(
             string mailboxAlias,
             CancellationToken cancellationToken)
         {
+            var (resolvedFrom, fromError) = await ResolveFromFilterAsync(fromSender, cancellationToken);
+            if (fromError is not null)
+            {
+                return fromError;
+            }
+
             if (!ListMessagesQueryBuilder.TryBuild(
-                    firstSince, string.Empty, MailboxLimits.DefaultListLimit, 0, countOnly: true, unreadOnly, fromSender,
+                    firstSince, string.Empty, MailboxLimits.DefaultListLimit, 0, countOnly: true, unreadOnly, resolvedFrom,
                     string.Empty, string.Empty, string.Empty, string.Empty, folder,
                     out var firstQuery, out var firstError))
             {
@@ -767,7 +796,7 @@ public sealed class EmailTriageTools(
             }
 
             if (!ListMessagesQueryBuilder.TryBuild(
-                    secondSince, string.Empty, MailboxLimits.DefaultListLimit, 0, countOnly: true, unreadOnly, fromSender,
+                    secondSince, string.Empty, MailboxLimits.DefaultListLimit, 0, countOnly: true, unreadOnly, resolvedFrom,
                     string.Empty, string.Empty, string.Empty, string.Empty, folder,
                     out var secondQuery, out var secondError))
             {
@@ -792,13 +821,13 @@ public sealed class EmailTriageTools(
                 return secondOutcome.FirstErrorMessage!;
             }
 
-            return WithAccountHeader(
-                account!,
-                EmailMailboxTextHelpers.FormatMailboxCompare(
-                    firstQuery.QueryLabel,
-                    firstOutcome.Payload!.TotalMatched,
-                    secondQuery.QueryLabel,
-                    secondOutcome.Payload!.TotalMatched));
+            var compare = EmailMailboxTextHelpers.FormatMailboxCompare(
+                firstQuery.QueryLabel,
+                firstOutcome.Payload!.TotalMatched,
+                secondQuery.QueryLabel,
+                secondOutcome.Payload!.TotalMatched);
+            compare = await AppendKnownContactsAsync(compare, [resolvedFrom], cancellationToken);
+            return WithAccountHeader(account!, compare);
         }
 
         private async Task<string> SearchContactsAsync(string query, CancellationToken cancellationToken)
@@ -811,12 +840,7 @@ public sealed class EmailTriageTools(
                     : $"No contacts match '{query.Trim()}'.";
             }
 
-            var lines = matches.Select(c =>
-            {
-                var email = string.IsNullOrWhiteSpace(c.Email) ? "no email" : c.Email;
-                return $"- {c.ListLabel} ({c.EntityRef}) — {email}";
-            });
-            return "Contacts:\n" + string.Join('\n', lines);
+            return "Contacts:\n" + string.Join('\n', matches.Select(ContactMapping.FormatAgentLine));
         }
 
         private async Task<string> SaveContactAsync(string firstName, string lastName, string email, string context, bool confirmed, CancellationToken cancellationToken)
@@ -852,8 +876,14 @@ public sealed class EmailTriageTools(
                 return "Could not save the contact.";
             }
 
-            var address = string.IsNullOrWhiteSpace(saved.Email) ? "no email" : saved.Email;
-            return $"Saved contact {saved.ListLabel} ({saved.EntityRef}) — {address}.";
+            return $"Saved contact {ContactMapping.FormatAgentPhrase(new ContactSummaryDto
+            {
+                Id = saved.Id,
+                ListLabel = saved.ListLabel,
+                Alias = saved.Alias,
+                Email = saved.Email,
+                Context = saved.Context
+            })}.";
         }
 
         #endregion
@@ -925,6 +955,120 @@ public sealed class EmailTriageTools(
             return confirmed
                 ? null
                 : "Confirmation required. Tell the user this plan, then call again with confirmed=true only after they agree.\n" + actionSummary;
+        }
+
+        private async Task<(string Filter, string? Error)> ResolveFromFilterAsync(string fromSender, CancellationToken cancellationToken)
+        {
+            if (string.IsNullOrWhiteSpace(fromSender))
+            {
+                return (string.Empty, null);
+            }
+
+            var trimmed = fromSender.Trim();
+            if (MailAddress.TryCreate(trimmed, out var parsed))
+            {
+                return (parsed.Address, null);
+            }
+
+            var handle = trimmed.TrimStart('@');
+            if (handle.StartsWith("contact:", StringComparison.OrdinalIgnoreCase))
+            {
+                var alias = handle["contact:".Length..];
+                var byAlias = await contactRepo.GetContactByAliasAsync(userId, alias, cancellationToken);
+                if (byAlias is null)
+                {
+                    return (string.Empty, $"from_sender: no contact found for {EntityRefs.Format(EntityRefs.Kind.Contact, alias)}.");
+                }
+
+                if (string.IsNullOrWhiteSpace(byAlias.Email))
+                {
+                    return (string.Empty, $"from_sender: {byAlias.EntityRef} has no email.");
+                }
+
+                return (byAlias.Email, null);
+            }
+
+            var matches = await contactRepo.SearchContactsForAIAsync(userId, trimmed, 5, cancellationToken);
+            var withEmail = matches.Where(c => !string.IsNullOrWhiteSpace(c.Email)).ToList();
+            return withEmail.Count == 1
+                ? (withEmail[0].Email!, null)
+                : (trimmed, null);
+        }
+
+        private async Task<string> AppendKnownContactsAsync(string body, IEnumerable<string> headers, CancellationToken cancellationToken)
+        {
+            var map = await EnsureContactsByEmailAsync(cancellationToken);
+            if (map.Count == 0)
+            {
+                return body;
+            }
+
+            var matched = new List<ContactSummaryDto>();
+            var seen = new HashSet<Guid>();
+            foreach (var header in headers)
+            {
+                var email = TryExtractEmail(header);
+                if (email is null || !map.TryGetValue(email, out var contact) || !seen.Add(contact.Id))
+                {
+                    continue;
+                }
+
+                matched.Add(contact);
+            }
+
+            if (matched.Count == 0)
+            {
+                return body;
+            }
+
+            return body + "\n\nKnown contacts in this result:\n" + string.Join('\n', matched.Select(ContactMapping.FormatAgentLine));
+        }
+
+        private async Task<Dictionary<string, ContactSummaryDto>> EnsureContactsByEmailAsync(CancellationToken cancellationToken)
+        {
+            if (_contactsByEmail is not null)
+            {
+                return _contactsByEmail;
+            }
+
+            var contacts = await contactRepo.ListForAgentAsync(userId, cancellationToken);
+            _contactsByEmail = new Dictionary<string, ContactSummaryDto>(StringComparer.OrdinalIgnoreCase);
+            foreach (var contact in contacts)
+            {
+                var email = ContactMapping.NormalizeEmail(contact.Email);
+                if (email is not null)
+                {
+                    _contactsByEmail[email] = contact;
+                }
+            }
+
+            return _contactsByEmail;
+        }
+
+        private static IEnumerable<string> ContactHeaders(MessageDetail message)
+        {
+            yield return message.From;
+            foreach (var to in message.To)
+            {
+                yield return to;
+            }
+
+            foreach (var cc in message.Cc)
+            {
+                yield return cc;
+            }
+        }
+
+        private static string? TryExtractEmail(string? header)
+        {
+            if (string.IsNullOrWhiteSpace(header))
+            {
+                return null;
+            }
+
+            return MailAddress.TryCreate(header.Trim(), out var parsed)
+                ? ContactMapping.NormalizeEmail(parsed.Address)
+                : null;
         }
 
         private async Task<(string Resolved, string? Error)> ResolveAddressListAsync(string? raw, string field, CancellationToken cancellationToken)

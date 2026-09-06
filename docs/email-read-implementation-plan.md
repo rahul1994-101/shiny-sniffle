@@ -151,7 +151,7 @@ Structural cleanup across Infrastructure and Application. Build verified.
 
 ## Shipped — smart output contracts (6a)
 
-Agent-only: output modes (`digest`, `triage`, `compare`, `single`, `stats`, `action_list`), tool choreography, `MaxDeepReadsPerTurn` (5), partial-coverage disclaimer, `SupportedUserPrompts` in `EmailTriageAgent`. No new tools.
+Agent-only: output modes (`digest`, `triage`, `compare`, `single`, `stats`, `action_list`), tool choreography, `MaxDeepReadsPerTurn` (5 hard cap), `MaxTriageGets` (2), digest list-only, reuse saved `#N` lists, partial-coverage disclaimer, `SupportedUserPrompts` in `EmailTriageAgent`. No new tools.
 
 ---
 
@@ -159,7 +159,7 @@ Agent-only: output modes (`digest`, `triage`, `compare`, `single`, `stats`, `act
 
 **Goal:** Turn raw tool text into **useful answers**—digests, triage, comparisons, deep reads—without inventing content.
 
-**Principle:** Tools fetch; agent interprets. Default flow: `list_inbox_messages` → selective `get_inbox_message` / `get_inbox_messages` (≤5 per turn).
+**Principle:** Tools fetch; agent interprets. Digest/stats = list only. Follow-ups reuse the saved list (`list_index`). Triage/action_list get ≤2 bodies. Explicit reads still cap at 5 per turn.
 
 | Sub-layer | Status |
 |-----------|--------|
@@ -176,7 +176,8 @@ Agent-only: output modes (`digest`, `triage`, `compare`, `single`, `stats`, `act
 | Constant | Value | Location |
 |----------|-------|----------|
 | `MaxDeepReadsPerTurn` | 5 | `EmailReadConstants` |
-| `MaxDigestOptionalGets` | 3 | `EmailReadConstants` |
+| `MaxTriageGets` | 2 | `EmailReadConstants` |
+| `MaxDigestOptionalGets` | 0 | `EmailReadConstants` |
 | `DefaultListLimit` | 20 | `MailboxLimits` |
 | `MaxListLimit` | 50 | `MailboxLimits` |
 | `MaxBatchGetCount` | 5 | `MailboxLimits` |

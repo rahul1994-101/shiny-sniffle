@@ -31,7 +31,7 @@ else
                             ListHeaderActionsAriaLabel="Connected accounts actions"
                             OnRequestClose="CancelEditorAsync">
             <ListLeadContent>
-                Connect one or more inboxes for the Email agent. The <strong>default</strong> account is used when no account is specified.
+                Connect one or more inboxes for the Email agent. In chat, name an inbox with <code>@@mailbox:alias</code> or the address. The <strong>default</strong> is used when none is named and the thread has no prior list.
                 IMAP/SMTP templates are under <NavLink href="/settings/email/providers">Providers</NavLink>.
             </ListLeadContent>
             <ListHeaderActions>
@@ -207,7 +207,7 @@ else
             {
                 return _accounts.Count == 0
                     ? "Add an account to connect the Email agent."
-                    : "Choose a default account for the Email agent.";
+                    : "No default marked — chat uses the oldest account until you pick one.";
             }
 
             return $"Default: {def.Alias} · {def.EmailAddress}";

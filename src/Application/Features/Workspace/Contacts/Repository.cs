@@ -245,6 +245,19 @@ public sealed class ContactRepository(
         return row is null ? null : ContactDto.FromEntity(row);
     }
 
+    public async Task<IReadOnlyList<ContactSummaryDto>> ListForAgentAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        await using var ctx = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var rows = await ctx.Contacts
+            .AsNoTracking()
+            .Where(x => x.UserId == userId)
+            .WhereActiveAndNotDeleted()
+            .OrderBy(x => x.CreatedAt)
+            .ToListAsync(cancellationToken);
+
+        return rows.ConvertAll(entity => ContactSummaryDto.FromEntity(entity));
+    }
+
     public async Task<IReadOnlyList<ContactSummaryDto>> SearchContactsForAIAsync(Guid userId, string query, int limit, CancellationToken cancellationToken = default)
     {
         await using var ctx = await _dbContextFactory.CreateDbContextAsync(cancellationToken);

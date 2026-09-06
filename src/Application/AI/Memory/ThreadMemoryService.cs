@@ -1,5 +1,7 @@
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Application.Features.Chat.ChatMessages;
 using Application.Features.Chat.ChatThreads;
@@ -13,7 +15,9 @@ public sealed class ThreadMemoryService(
     IOptions<FoundryOptions> foundryOptions,
     IFoundryAgentFactory agentFactory,
     ChatThreadRepository chatThreadRepo,
-    ChatMessageRepository chatMessageRepo)
+    ChatMessageRepository chatMessageRepo,
+    IServiceScopeFactory scopes,
+    ILogger<ThreadMemoryService> logger)
 {
     public async Task<IReadOnlyList<AiChatMessage>> EnrichHistoryAsync(
         Guid userId,
@@ -37,6 +41,11 @@ public sealed class ThreadMemoryService(
         var enriched = new List<AiChatMessage>(shortTermHistory.Count + 1) { contextMessage };
         enriched.AddRange(shortTermHistory);
         return enriched;
+    }
+
+    public void ScheduleRefresh(Guid userId, Guid threadId)
+    {
+        _ = RefreshDetachedAsync(userId, threadId);
     }
 
     public async Task RefreshAsync(Guid userId, Guid threadId, CancellationToken cancellationToken = default)
@@ -96,6 +105,20 @@ public sealed class ThreadMemoryService(
     }
 
     #region # Private Helpers
+
+    private async Task RefreshDetachedAsync(Guid userId, Guid threadId)
+    {
+        try
+        {
+            await using var scope = scopes.CreateAsyncScope();
+            var memory = scope.ServiceProvider.GetRequiredService<ThreadMemoryService>();
+            await memory.RefreshAsync(userId, threadId, CancellationToken.None);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Background thread memory refresh failed for thread {ThreadId}.", threadId);
+        }
+    }
 
     private static List<ChatMessageDto> SelectMessagesToSummarize(
         IReadOnlyList<ChatMessageDto> beyondWindow,

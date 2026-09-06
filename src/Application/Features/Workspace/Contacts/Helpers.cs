@@ -57,6 +57,15 @@ internal static class ContactMapping
         return null;
     }
 
+    internal static string FormatAgentLine(ContactSummaryDto contact) =>
+        "- " + FormatAgentPhrase(contact);
+
+    internal static string FormatAgentPhrase(ContactSummaryDto contact)
+    {
+        var email = string.IsNullOrWhiteSpace(contact.Email) ? "no email" : contact.Email;
+        return $"{contact.ListLabel} ({contact.EntityRef}) — {email}{CatalogFieldRules.FormatNotesSuffix(contact.Context)}";
+    }
+
     internal static string? NormalizeEmail(string? value)
     {
         if (string.IsNullOrWhiteSpace(value))

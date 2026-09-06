@@ -283,6 +283,9 @@ public static class CatalogFieldRules
         var trimmed = context.Trim();
         return trimmed.Length > ContextMaxLength ? trimmed[..ContextMaxLength] : trimmed;
     }
+
+    public static string FormatNotesSuffix(string? context) =>
+        string.IsNullOrWhiteSpace(context) ? string.Empty : $" — notes: {context.Trim()}";
 }
 
 public static class ReferableKindMapping

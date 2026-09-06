@@ -195,7 +195,7 @@
             <p>After entering credentials, use <strong>Test connection</strong> to verify IMAP and SMTP before saving. The test uses what is in the form — including a new password you typed, or the stored password when the field is left blank on edit.</p>
 
             <h2 class="help-article-heading">Multiple accounts</h2>
-            <p>You can connect more than one inbox. The list shows each account by its alias; the default account drives the Email agent today. Use <strong>Make default</strong> to switch which inbox the agent uses when none is specified.</p>
+            <p>You can connect more than one inbox. The list shows each account by its alias. In chat, name an inbox with <code>@@mailbox:alias</code>, the address, or “all inboxes”. Follow-ups stay on the last inbox listed in that thread. <strong>Make default</strong> sets which account is used when none is named and there is no prior list in the thread. The first account is set as default automatically on create.</p>
             break;
 
         case "workspace/buckets":
@@ -269,7 +269,7 @@
             <p>Chat is where you talk to agents in a thread. Each conversation keeps its own history and agent choice until you start a new thread or delete one.</p>
 
             <h2 class="help-article-heading">Before you start</h2>
-            <p>Connect at least one mailbox under <NavLink href="/help/workspace/email-accounts">Workspace → Email accounts</NavLink> and set a <strong>default</strong> account. The Email agent reads from that default inbox when no specific mailbox is named.</p>
+            <p>Connect at least one mailbox under <NavLink href="/help/workspace/email-accounts">Workspace → Email accounts</NavLink> and keep a <strong>default</strong> account. The Email agent uses a named inbox, then the last inbox listed in the thread, then the default.</p>
 
             <h2 class="help-article-heading">Opening chat</h2>
             <p>Chat lives in the sidebar — not on a separate settings page. Click <strong>New chat</strong> to create a thread (Email agent by default) and open it. Use <strong>Recent</strong> in the sidebar to switch back to an earlier conversation.</p>
@@ -278,7 +278,7 @@
             <p>At the bottom of the composer, open the agent picker:</p>
             <ul class="help-article-list">
                 <li><strong>Assistant</strong> — general help and questions that do not need mailbox access.</li>
-                <li><strong>Email</strong> — triage and actions on your connected inboxes. Requires a default mailbox.</li>
+                <li><strong>Email</strong> — triage and actions on your connected inboxes. Connect at least one mailbox first.</li>
             </ul>
             <p>The choice is saved per thread. An empty thread shows that agent’s greeting and suggestions. New chats start on <strong>Email</strong>. Switch to Assistant from the picker for workspace help (no mailbox tools). If Email is unavailable, the picker shows an error with a link to Workspace → Email accounts.</p>
 
@@ -289,8 +289,8 @@
             <p>Follow <NavLink href="/help/getting-started">Getting started</NavLink> for the ordered setup path. On the chat step, open a new thread and use an Email suggestion or send a simple triage request to confirm end-to-end mail access. An empty Email chat also links here for the full prompt list.</p>
 
             <h2 id="what-to-ask" class="help-article-heading">What to ask</h2>
-            <p>Talk in your own words. The lines below are proven phrasings — copy them or mix them. You do not need special syntax.</p>
-            <p><strong>Send, delete, move, copy, new folder, and save contact</strong> always ask you to confirm before they happen.</p>
+            <p>Talk in your own words. The lines below are proven phrasings — copy them or mix them. You do not need special syntax. Optional <strong>notes</strong> (Context) on a mailbox or contact are passed to the agent when that inbox or person comes up — you do not need to repeat them in chat.</p>
+            <p><strong>Send, delete, move, copy, new folder, and save contact</strong> always ask you to confirm before they happen. Marking read or flagged, and saving a draft, happen as soon as you ask.</p>
 
             <h2 class="help-article-heading">How to name an inbox</h2>
             <dl class="help-article-dl">
@@ -318,6 +318,7 @@
                 <li>Which mailboxes do I have?</li>
                 <li>Check all my connected inboxes. Give unread and total counts per account.</li>
                 <li>Is my work mailbox connected?</li>
+                <li>How should you treat my work inbox?</li>
             </ul>
 
             <h2 class="help-article-heading">Daily loop</h2>
@@ -336,6 +337,7 @@
                 <li>How many emails did I get today?</li>
                 <li>Show my unread emails from today.</li>
                 <li>Show emails from Amazon this week.</li>
+                <li>Show emails from Sarah this week.</li>
                 <li>Find emails with invoice in the subject.</li>
                 <li>Show emails with attachments from today.</li>
                 <li>What did I send this week?</li>
@@ -345,20 +347,20 @@
             </ul>
 
             <h2 class="help-article-heading">Read, summarize, compare</h2>
-            <p>After a list, use #1, #2, or “the Amazon one”.</p>
+            <p>After a list, use #1, #2, or “the Amazon one” — the agent reuses that list and does not fetch every body on overviews.</p>
             <ul class="help-article-list">
                 <li>Read the third email from today.</li>
                 <li>Open message #2 from my unread list.</li>
                 <li>Summarize the Amazon email from today.</li>
                 <li>Open the top 3 unread messages from this week.</li>
-                <li>Download the PDF from that invoice.</li>
+                <li>What's attached to that invoice? Name the files.</li>
                 <li>Who emailed me the most this week?</li>
                 <li>Compare how many messages I got today vs yesterday.</li>
                 <li>Which invoices need paying?</li>
             </ul>
 
             <h2 class="help-article-heading">Act on mail</h2>
-            <p>Confirm when the agent shows the plan.</p>
+            <p>Confirm send, trash, move, copy, new folder, and save contact. Flags and drafts do not wait for a second yes.</p>
             <ul class="help-article-list">
                 <li>Mark #2 as read.</li>
                 <li>Flag the invoice as important.</li>
@@ -374,10 +376,13 @@
             </ul>
 
             <h2 class="help-article-heading">Contacts</h2>
+            <p>Saved contacts are matched when mail is listed or opened. Their notes appear next to the message so the agent can treat that person as you described.</p>
             <ul class="help-article-list">
                 <li>What's Sarah's email?</li>
                 <li>Look up contact Bob.</li>
-                <li>Save Alice from that invoice as a contact.</li>
+                <li>Show emails from Sarah this week.</li>
+                <li>Save Alice from that invoice as a contact. Note: client lead, always reply same day.</li>
+                <li>What do we know about Sarah?</li>
             </ul>
 
             <h2 class="help-article-heading">Several inboxes in one chat</h2>

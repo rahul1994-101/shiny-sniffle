@@ -30,6 +30,12 @@ internal static class EmailAccountMapping
 
     internal static string? NormalizeAlias(string? value) => EntityAliasRules.SlugifyOptional(value);
 
+    internal static string FormatAgentLine(EmailAccountSummaryDto account)
+    {
+        var mark = account.IsDefault ? " · default" : string.Empty;
+        return $"- {account.Alias} ({account.EntityRef}) — {account.EmailAddress} · {account.ProviderName}{mark}{CatalogFieldRules.FormatNotesSuffix(account.Context)}";
+    }
+
     internal static string? ValidateSave(SaveEmailAccountDto dto)
     {
         if (dto.EmailProviderId == Guid.Empty)

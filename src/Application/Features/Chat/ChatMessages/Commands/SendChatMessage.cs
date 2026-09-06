@@ -6,7 +6,7 @@ using FluentValidation;
 
 namespace Application.Features.Chat.ChatMessages.Commands;
 
-public sealed record SendChatMessageRequest(Guid UserId, Guid ThreadId, string Message)
+public sealed record SendChatMessageRequest(Guid UserId, Guid ThreadId, string Message, IProgress<ChatTurnProgress>? Progress = null)
     : ICommand<SendChatMessageResponse>;
 
 public sealed class SendChatMessageResponse
@@ -38,7 +38,8 @@ public sealed class SendChatMessageRequestHandler(
     ChatMessageRepository chatMessageRepo,
     ChatOrchestrator chatOrchestrator,
     ThreadMemoryService threadMemory,
-    EntityRefMentionContextService mentionContextService)
+    EntityRefMentionContextService mentionContextService,
+    WorkspaceReferenceService workspaceRefs)
     : IRequestHandler<SendChatMessageRequest, SendChatMessageResponse>
 {
     public async ValueTask<Result<SendChatMessageResponse>> HandleAsync(SendChatMessageRequest request, CancellationToken cancellationToken = default)
@@ -50,8 +51,15 @@ public sealed class SendChatMessageRequestHandler(
 
         var thread = await chatThreadRepo.GetChatThreadByIdAsync(request.UserId, request.ThreadId, cancellationToken);
         SendChatMessageResponse? response = null;
+        var mailboxConfigured = true;
 
-        if (thread is not null)
+        if (thread is { ChatAgent: ChatAgent.Email })
+        {
+            var mailbox = await workspaceRefs.TryResolveMailboxAsync(request.UserId, cancellationToken: cancellationToken);
+            mailboxConfigured = !mailbox.HasError;
+        }
+
+        if (thread is not null && mailboxConfigured)
         {
             var userMessage = await chatMessageRepo.AddAsync(new ChatMessage
             {
@@ -63,7 +71,6 @@ public sealed class SendChatMessageRequestHandler(
             var mentions = await mentionContextService.ResolveAsync(
                 request.UserId,
                 text,
-                resolveDefaultMailbox: thread.ChatAgent == ChatAgent.Email,
                 cancellationToken);
 
             var agentRun = await chatOrchestrator.RunChatAgentAsync(new RunChatAgentRequest
@@ -73,7 +80,8 @@ public sealed class SendChatMessageRequestHandler(
                 ChatAgent = thread.ChatAgent,
                 MentionContext = mentions.ContextBlock,
                 DefaultMailboxAccount = mentions.DefaultMailboxAccount,
-                RequireMailboxAlias = mentions.RequireMailboxAlias
+                RequireMailboxAlias = mentions.RequireMailboxAlias,
+                Progress = request.Progress
             }, cancellationToken);
 
             var assistantMessage = await chatMessageRepo.AddAsync(new ChatMessage
@@ -83,7 +91,7 @@ public sealed class SendChatMessageRequestHandler(
                 Content = agentRun.AssistantContent
             }, cancellationToken);
 
-            await threadMemory.RefreshAsync(request.UserId, request.ThreadId, cancellationToken);
+            threadMemory.ScheduleRefresh(request.UserId, request.ThreadId);
             response = new SendChatMessageResponse { UserMessage = userMessage, AssistantMessage = assistantMessage };
         }
 
@@ -94,6 +102,10 @@ public sealed class SendChatMessageRequestHandler(
         if (thread is null)
         {
             result.Failure(ErrorCode.NotFound, "Chat thread not found.");
+        }
+        else if (!mailboxConfigured)
+        {
+            result.Failure(ErrorCode.BadRequest, "Connect your mailbox in Workspace → Email accounts before using the Email agent.");
         }
         else
         {

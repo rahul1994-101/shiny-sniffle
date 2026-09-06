@@ -4,7 +4,7 @@ In the app this lives under **Help → Chat → Email agent** (`/help/chat/email
 
 Talk in Chat with the **Email** agent selected. You do not need special syntax. These are proven phrasings; mix them in your own words.
 
-Connect mailboxes first under **Workspace → Email accounts**. New chats start on Email.
+Connect mailboxes first under **Workspace → Email accounts**. Optional **notes** (Context) on each mailbox and each contact are passed to the agent when that inbox or person comes up — you do not need to repeat them in chat. New chats start on Email.
 
 ---
 
@@ -19,7 +19,7 @@ Connect mailboxes first under **Workspace → Email accounts**. New chats start 
 
 Type `@` in the composer to pick a mailbox.
 
-**Send, delete, move, copy, new folder, and save contact** always ask you to confirm before they happen.
+**Send, delete, move, copy, new folder, and save contact** always ask you to confirm before they happen. Marking read or flagged, and saving a draft, happen as soon as you ask.
 
 ---
 
@@ -30,6 +30,7 @@ Type `@` in the composer to pick a mailbox.
 - Check all my connected inboxes. Give unread and total counts per account.
 - Is my work mailbox connected?
 - Can you reach `you@work.com`?
+- How should you treat my work inbox? (uses the notes you saved on that account)
 
 ---
 
@@ -56,6 +57,7 @@ Type `@` in the composer to pick a mailbox.
 - Show my last 5 emails.
 - Show my unread emails from today.
 - Show emails from Amazon this week.
+- Show emails from Sarah this week. (saved contact name or `@contact:sarah`)
 - Find emails with invoice in the subject.
 - Find emails mentioning quarterly review in the body.
 - Show emails with attachments from today.
@@ -77,7 +79,7 @@ After a list, use `#1`, `#2`, or “the Amazon one.”
 - Summarize the Amazon email from today.
 - Open the top 3 unread messages from this week.
 - Read that invoice email and tell me the attachment names.
-- Download the PDF from that invoice.
+- What's attached to that invoice? Name the files.
 - Who emailed me the most this week?
 - Compare how many messages I got today vs yesterday.
 - Was this week busier than last week?
@@ -88,7 +90,7 @@ After a list, use `#1`, `#2`, or “the Amazon one.”
 
 ## Act on mail
 
-Confirm when the agent shows the plan.
+Confirm send, trash, move, copy, new folder, and save contact. Flags and drafts do not wait for a second yes.
 
 **Flags**
 
@@ -119,10 +121,14 @@ Confirm when the agent shows the plan.
 
 ## Contacts
 
+Saved contacts are matched when mail is listed or opened. Their notes appear next to the message so the agent can treat that person as you described.
+
 - What's Sarah's email?
 - Look up contact Bob.
+- Show emails from Sarah this week.
 - Save Alice from that invoice as a contact.
-- Remember bob@example.com as Bob.
+- Remember bob@example.com as Bob. Note: client lead, always reply same day.
+- What do we know about Sarah?
 
 ---
 
@@ -148,7 +154,8 @@ Email will not do general knowledge or coding. Switch the picker in the composer
 
 ## Tips
 
-- One ask per message when you want a clean list; then follow up (`read #2`, `draft a reply`).
+- One ask per message when you want a clean list; then follow up (`read #2`, `draft a reply`) — the agent reuses that list and does not fetch every body on overviews.
 - Name the **folder** if it is not inbox (`in Sent`, `in Drafts`).
+- Put lasting facts in Workspace **Context** (mailbox: “personal, ignore newsletters”; contact: “VIP, reply same day”). Chat picks them up automatically.
 - If a list says only part of the matches were shown, ask for the next page or a tighter filter.
 - Destructive actions need an explicit yes in the same thread.

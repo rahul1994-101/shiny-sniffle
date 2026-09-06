@@ -47,16 +47,29 @@ else
 
     @if (IsAssistantLoading)
     {
+        var hasStreamText = !string.IsNullOrWhiteSpace(StreamText);
+        var hasStreamStatus = !string.IsNullOrWhiteSpace(StreamStatus);
         <div class="msg-row msg-row-assistant">
             <div class="msg-chunk msg-chunk-assistant">
                 <div class="msg-avatar msg-avatar-assistant" aria-hidden="true">AI</div>
-                <div class="msg-bubble msg-bubble-assistant msg-bubble-loading" aria-busy="true">
-                    <span class="visually-hidden">Assistant is thinking</span>
-                    <div class="msg-typing" aria-hidden="true">
-                        <span class="msg-typing-dot"></span>
-                        <span class="msg-typing-dot"></span>
-                        <span class="msg-typing-dot"></span>
-                    </div>
+                <div class="msg-bubble msg-bubble-assistant @(hasStreamText ? "msg-bubble-streaming" : "msg-bubble-loading")" aria-busy="true">
+                    <span class="visually-hidden">@(hasStreamText ? "Assistant is writing" : "Assistant is thinking")</span>
+                    @if (hasStreamStatus)
+                    {
+                        <div class="msg-stream-status @(hasStreamText ? null : "msg-stream-status-pulse")" aria-hidden="true">@StreamStatus</div>
+                    }
+                    @if (hasStreamText)
+                    {
+                        <div class="msg-text msg-markdown">@ChatHelpers.ToSanitizedHtml(StreamText)<span class="msg-stream-caret" aria-hidden="true"></span></div>
+                    }
+                    else if (!hasStreamStatus)
+                    {
+                        <div class="msg-typing" aria-hidden="true">
+                            <span class="msg-typing-dot"></span>
+                            <span class="msg-typing-dot"></span>
+                            <span class="msg-typing-dot"></span>
+                        </div>
+                    }
                 </div>
             </div>
         </div>
@@ -69,6 +82,12 @@ else
 
     [Parameter]
     public bool IsAssistantLoading { get; set; }
+
+    [Parameter]
+    public string? StreamStatus { get; set; }
+
+    [Parameter]
+    public string? StreamText { get; set; }
 
     [Parameter]
     public ChatAgent ChatAgent { get; set; }
