@@ -1238,7 +1238,7 @@ internal static class EmailMailboxTextHelpers
     internal static string FormatLastListsMemory(IReadOnlyList<MailboxListSnapshot> snapshots)
     {
         var blocks = snapshots
-            .Where(s => s.Rows.Count > 0)
+            .Where(s => s.Rows.Count > 0 && !string.IsNullOrWhiteSpace(s.MailboxAlias))
             .Select(FormatLastListMemory)
             .Where(block => block.Length > 0)
             .ToList();
@@ -1253,10 +1253,16 @@ internal static class EmailMailboxTextHelpers
         }
 
         var builder = new StringBuilder();
+        var alias = snapshot.MailboxAlias?.Trim();
+        if (string.IsNullOrWhiteSpace(alias))
+        {
+            return string.Empty;
+        }
+
         builder.Append("## Last mailbox list (this thread · ");
-        builder.Append(snapshot.MailboxAlias ?? "default");
+        builder.Append(alias);
         builder.AppendLine(")");
-        builder.Append("Account: ").Append(snapshot.MailboxAlias ?? "default");
+        builder.Append("Account: ").Append(alias);
         builder.Append(" · ").Append(snapshot.QueryLabel);
         if (snapshot.TotalMatched > snapshot.Rows.Count)
         {

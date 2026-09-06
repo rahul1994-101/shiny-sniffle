@@ -46,6 +46,16 @@ public sealed class EmailTriageAgent(IFoundryAgentFactory _agentFactory, EmailTr
 
     private static readonly (string Intent, string Capability, string[] Prompts)[] SupportedUserPrompts =
     [
+        ("Connected accounts", "list_email_accounts", [
+            "How many email accounts are connected?",
+            "Which mailboxes do I have?",
+            "List my connected email accounts."
+        ]),
+        ("All inboxes", "summarize_all_inboxes", [
+            "Check all my inboxes.",
+            "What's unread across every account?",
+            "Give me unread counts for both mailboxes."
+        ]),
         ("Mailbox status", "get_mailbox_status", [
             "Is my email connected?",
             "Can you reach my mailbox?",
@@ -266,12 +276,13 @@ public sealed class EmailTriageAgent(IFoundryAgentFactory _agentFactory, EmailTr
             {dateContext}
 
             Your job:
-            - Help users read, summarize, and send email from their connected mailbox using your tools.
+            - Help users read, summarize, and send email from their connected mailboxes using your tools.
             - Use tools for every mailbox operation; turn tool results into clear, labeled answers—not raw dumps.
             - Do not guess or invent message contents, send outcomes, or mailbox status.
 
             Tool rules:
-            - mailbox_alias: when the user @-mentions one @mailbox:alias, pass that alias (or leave empty — tools auto-use the mention). Several mailbox mentions → pass mailbox_alias on every call (no default). Empty with no mention = default connected account. Keep the same mailbox_alias across list/get/send/command calls in one turn.
+            - mailbox_alias: alias, mailbox:alias, or the account email. One @mailbox mention → that account (or leave empty). Several mailbox mentions or a failed mention → pass mailbox_alias on every call (no default). Empty with no mention = last inbox listed in this thread, else the default account. Keep the same mailbox_alias across list/get/send/command calls in one turn.
+            - Several accounts / all inboxes / both mailboxes: summarize_all_inboxes first. Then list_inbox_messages (and later get/send) once per alias the user cares about — never assume one list covers every account.
             - list_inbox_messages: previews (#N, Uid, from, subject, date). count_only for how-many. skip for pagination. folder + since + filters as needed.
             - get_inbox_message: full body + attachment names. Use uid + folder from a list row, or list_index after list_inbox_messages (no need to repeat filters).
             - get_inbox_messages: batch full read (max {maxGets} Uids, same folder). Use for triage when multiple bodies are needed.
@@ -280,12 +291,14 @@ public sealed class EmailTriageAgent(IFoundryAgentFactory _agentFactory, EmailTr
             - delete_messages / move_messages / copy_messages / create_folder / send_email / save_contact: first call with confirmed=false (preview), tell the user the plan, then call again with confirmed=true only after they agree. Never send or destroy mail without that second call.
             - set_message_flags: read, unread, flagged, or unflagged.
             - list_mailbox_folders: when folder names are unknown.
-            - get_mailbox_status: when setup or connectivity is uncertain.
+            - list_email_accounts: workspace-connected accounts (count, alias, address, default). Use for how-many / which accounts. Does not test IMAP.
+            - summarize_all_inboxes: unread/total for every account (optional folder). Use for all/both/every inbox. Then list per alias if they want messages.
+            - get_mailbox_status: IMAP/SMTP reachability for one account. Not for counting connected accounts.
             - send_email: to/cc/bcc accept emails or contact:alias. Use search_contacts when the user names a person. Supports html_body, reply/forward (mode + reply_uid or list_index), attachments (name|base64).
             - save_draft: save to Drafts without sending. Same recipients as send_email; no confirmed flag.
             - compare_mail_periods: two since keywords (today vs yesterday, this_week vs last_week). Prefer this over two list calls for volume comparisons.
             - search_contacts / save_contact: workspace people. save_contact needs confirmed=true.
-            - Last mailbox lists from earlier in this thread may be injected as system context — one list per mailbox account. Reuse #N / Uids only for that same account; list again when switching accounts if that account has no saved list.
+            - Last mailbox lists from earlier in this thread may be injected as system context — one list per mailbox account, newest first. Reuse #N / Uids only for that same account; list again when switching accounts if that account has no saved list.
             - since (critical): prefer relative keywords—today, yesterday, this_week (Mon UTC–now), last_week (previous Mon–Sun UTC), last_N_days—for everyday requests. Empty means today.
               - When the user gives an explicit calendar range (e.g. "May 1 to May 7, {EmailReadDateContext.CurrentYear}"), pass either:
                 - since=yyyy-MM-dd..yyyy-MM-dd (e.g. {EmailReadDateContext.CurrentYear}-05-01..{EmailReadDateContext.CurrentYear}-05-07), or

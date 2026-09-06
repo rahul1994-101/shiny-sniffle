@@ -5,6 +5,7 @@
 | Doc | Purpose |
 |-----|---------|
 | **[product.md](product.md)** | Vision, personas, licensing, platform primitives—**no engineering** |
+| **[email-agent-prompt-guide.md](email-agent-prompt-guide.md)** | User-facing Email agent prompts, by category |
 
 All commercial and product decisions → **`product.md`** only.
 
@@ -25,7 +26,7 @@ All commercial and product decisions → **`product.md`** only.
 - **Email triage** — read (0–5) + commands (send/delete/move/flags) + batch get + `@mailbox:alias` resolution + Layer 6a output contracts
 - **Application mailbox** — `WorkspaceMailboxService`, `EmailTriageTools.Session`, `AI/Tools/MailboxReadHelpers`; `StoredMailboxSettings` ↔ `EmailSettings` split
 - **AI memory** — short-term window + thread summary + Email last-list working memory
-- **Email daily loop** — confirm-gated send/delete, contact recipients, compare tool; new chats default to Email with empty-state suggestions
+- **Email daily loop** — confirm-gated send/delete, contact recipients, compare tool; new chats default to Email; each agent has its own empty-state greeting
 
 ---
 

@@ -2,6 +2,7 @@ using Application.Features.Dbo.EmailProviders;
 using Application.Features.Shared;
 using Application.Utilities.Extensions;
 using Infrastructure.Persistence;
+using Infrastructure.Persistence.Chat;
 using Microsoft.EntityFrameworkCore;
 
 namespace Application.Features.Workspace.EmailAccounts;
@@ -19,7 +20,8 @@ public sealed class EmailAccountRepository(
             .Include(x => x.EmailProvider)
             .Where(x => x.UserId == userId)
             .WhereActiveAndNotDeleted()
-            .OrderBy(x => x.CreatedAt)
+            .OrderByDescending(x => x.IsDefault)
+            .ThenBy(x => x.CreatedAt)
             .ToListAsync(cancellationToken);
 
         var accounts = rows.Where(x => x.EmailProvider is not null).ToList();
@@ -61,26 +63,11 @@ public sealed class EmailAccountRepository(
 
     public async Task<StoredMailboxSettings?> GetStoredMailboxSettingsAsync(
         Guid userId,
-        Guid? emailAccountId = null,
+        Guid emailAccountId,
         CancellationToken cancellationToken = default)
     {
         await using var ctx = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
-        EmailAccount? row;
-
-        if (emailAccountId is { } id)
-        {
-            row = await FindActiveAccountAsync(ctx, userId, id, asNoTracking: true, cancellationToken);
-        }
-        else
-        {
-            row = await ctx.EmailAccounts
-                .AsNoTracking()
-                .Include(x => x.EmailProvider)
-                .Where(x => x.UserId == userId && x.IsDefault)
-                .WhereActiveAndNotDeleted()
-                .FirstOrDefaultAsync(cancellationToken);
-        }
-
+        var row = await FindActiveAccountAsync(ctx, userId, emailAccountId, asNoTracking: true, cancellationToken);
         if (row?.EmailProvider is null)
         {
             return null;
@@ -89,33 +76,49 @@ public sealed class EmailAccountRepository(
         return EmailAccountMapping.ToStoredSettings(row, row.EmailProvider);
     }
 
-    public async Task<StoredMailboxSettings?> GetDefaultStoredMailboxSettingsAsync(Guid userId, CancellationToken cancellationToken = default) =>
-        await GetStoredMailboxSettingsAsync(userId, emailAccountId: null, cancellationToken);
-
     public async Task<EmailAccount?> GetActiveAccountAsync(
         Guid userId,
         string? alias = null,
         CancellationToken cancellationToken = default)
     {
         await using var ctx = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var accounts = ctx.EmailAccounts
+            .AsNoTracking()
+            .Include(x => x.EmailProvider)
+            .Where(x => x.UserId == userId)
+            .WhereActiveAndNotDeleted();
 
         if (!string.IsNullOrWhiteSpace(alias))
         {
-            var normalized = EntityAliasRules.SlugifyOptional(alias.Trim()) ?? alias.Trim();
-            return await ctx.EmailAccounts
-                .AsNoTracking()
-                .Include(x => x.EmailProvider)
-                .Where(x => x.UserId == userId && x.Alias == normalized)
-                .WhereActiveAndNotDeleted()
-                .FirstOrDefaultAsync(cancellationToken);
+            var trimmed = alias.Trim();
+            var normalizedAlias = (EntityAliasRules.SlugifyOptional(trimmed) ?? trimmed).ToLower();
+            var byAlias = await accounts.FirstOrDefaultAsync(x => x.Alias.ToLower() == normalizedAlias, cancellationToken);
+            if (byAlias is not null)
+            {
+                return byAlias;
+            }
+
+            if (!trimmed.Contains('@'))
+            {
+                return null;
+            }
+
+            var emailKey = trimmed.ToLower();
+            return await accounts.FirstOrDefaultAsync(x => x.EmailAddress.ToLower() == emailKey, cancellationToken);
         }
 
-        return await ctx.EmailAccounts
-            .AsNoTracking()
-            .Include(x => x.EmailProvider)
-            .Where(x => x.UserId == userId && x.IsDefault)
-            .WhereActiveAndNotDeleted()
+        var preferred = await accounts
+            .OrderByDescending(x => x.IsDefault)
+            .ThenBy(x => x.CreatedAt)
             .FirstOrDefaultAsync(cancellationToken);
+
+        if (preferred is { IsDefault: false })
+        {
+            await SetDefaultAsync(userId, preferred.Id, userId, cancellationToken);
+            preferred.IsDefault = true;
+        }
+
+        return preferred;
     }
 
     public async Task<(EmailAccountDto? Saved, string? Error, bool NotFound)> SaveAsync(
@@ -155,10 +158,11 @@ public sealed class EmailAccountRepository(
             return (null, "An account with this alias already exists.", false);
         }
 
+        var emailKey = emailAddress.ToLower();
         var emailTaken = await ctx.EmailAccounts
-            .Where(x => x.UserId == userId && x.EmailAddress == emailAddress && x.Id != dto.Id)
+            .Where(x => x.UserId == userId && x.Id != dto.Id)
             .WhereNotDeleted()
-            .AnyAsync(cancellationToken);
+            .AnyAsync(x => x.EmailAddress.ToLower() == emailKey, cancellationToken);
 
         if (emailTaken)
         {
@@ -175,13 +179,15 @@ public sealed class EmailAccountRepository(
             return (null, "Selected provider was not found.", false);
         }
 
-        var activeCount = await ctx.EmailAccounts
-            .Where(x => x.UserId == userId)
-            .WhereNotDeleted()
-            .CountAsync(cancellationToken);
+        var hasDefault = await ctx.EmailAccounts
+            .Where(x => x.UserId == userId && x.IsDefault)
+            .WhereActiveAndNotDeleted()
+            .AnyAsync(cancellationToken);
 
         var isCreate = dto.Id is null;
-        var makeDefault = isCreate && activeCount == 0;
+        var makeDefault = isCreate && !hasDefault;
+
+        var previousAlias = existing?.Alias;
 
         EmailAccount entity;
         if (existing is not null)
@@ -217,6 +223,12 @@ public sealed class EmailAccountRepository(
         }
 
         await ctx.SaveChangesAsync(cancellationToken);
+
+        if (previousAlias is not null &&
+            !string.Equals(previousAlias, resolvedAlias, StringComparison.OrdinalIgnoreCase))
+        {
+            await RekeyEmailThreadMemoryAsync(ctx, userId, previousAlias, resolvedAlias, cancellationToken);
+        }
 
         if (makeDefault)
         {
@@ -288,6 +300,7 @@ public sealed class EmailAccountRepository(
             }
         }
 
+        await RemoveEmailThreadMemoryAsync(ctx, userId, entity.Alias, cancellationToken);
         await _sharedRepo.RemoveTaxonomyForReferableAsync(ctx, userId, ReferableKind.Mailbox, emailAccountId, cancellationToken);
         await ctx.SaveChangesAsync(cancellationToken);
         return (true, null);
@@ -460,7 +473,8 @@ public sealed class EmailAccountRepository(
         {
             var filler = await baseQuery
                 .Where(a => !usedIds.Contains(a.Id))
-                .OrderBy(a => a.Alias)
+                .OrderByDescending(a => a.IsDefault)
+                .ThenBy(a => a.Alias)
                 .Take(limit - results.Count)
                 .ToListAsync(cancellationToken);
 
@@ -517,5 +531,63 @@ public sealed class EmailAccountRepository(
             SecondaryLabel = account.EmailAddress,
             TooltipText = string.Join(" · ", tooltipParts)
         };
+    }
+
+    private static async Task RekeyEmailThreadMemoryAsync(
+        AppDbContext ctx,
+        Guid userId,
+        string oldAlias,
+        string newAlias,
+        CancellationToken cancellationToken)
+    {
+        var rows = await ctx.EmailThreadMemories
+            .Where(x => x.UserId == userId && x.MailboxAlias == oldAlias)
+            .ToListAsync(cancellationToken);
+
+        if (rows.Count == 0)
+        {
+            return;
+        }
+
+        var threadIds = rows.Select(x => x.ChatThreadId).ToList();
+        var existingNew = await ctx.EmailThreadMemories
+            .Where(x => x.UserId == userId && x.MailboxAlias == newAlias && threadIds.Contains(x.ChatThreadId))
+            .Select(x => x.ChatThreadId)
+            .ToListAsync(cancellationToken);
+        var clash = existingNew.ToHashSet();
+
+        foreach (var row in rows)
+        {
+            ctx.EmailThreadMemories.Remove(row);
+            if (clash.Contains(row.ChatThreadId))
+            {
+                continue;
+            }
+
+            await ctx.EmailThreadMemories.AddAsync(new EmailThreadMemory
+            {
+                ChatThreadId = row.ChatThreadId,
+                MailboxAlias = newAlias,
+                UserId = row.UserId,
+                ListSnapshotJson = row.ListSnapshotJson,
+                UpdatedAt = row.UpdatedAt
+            }, cancellationToken);
+        }
+    }
+
+    private static async Task RemoveEmailThreadMemoryAsync(
+        AppDbContext ctx,
+        Guid userId,
+        string mailboxAlias,
+        CancellationToken cancellationToken)
+    {
+        var rows = await ctx.EmailThreadMemories
+            .Where(x => x.UserId == userId && x.MailboxAlias == mailboxAlias)
+            .ToListAsync(cancellationToken);
+
+        if (rows.Count > 0)
+        {
+            ctx.EmailThreadMemories.RemoveRange(rows);
+        }
     }
 }

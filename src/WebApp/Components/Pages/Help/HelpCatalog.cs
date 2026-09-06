@@ -116,7 +116,7 @@ public static class HelpCatalog
                     new HelpTopic(
                         "email-agent",
                         "Email agent",
-                        "Use chat to triage and act on connected inboxes.",
+                        "Triage connected inboxes, plus example prompts you can copy.",
                         NavIconName.Chat,
                         ""),
                     new HelpTopic(

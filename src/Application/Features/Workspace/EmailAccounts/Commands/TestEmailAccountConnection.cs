@@ -73,7 +73,7 @@ public sealed class TestEmailAccountConnectionRequestHandler(
             return result;
         }
 
-        var testResult = await emailAccountMailboxService.TestConnectionWithDraftAsync(request.UserId, settingsDto, cancellationToken);
+        var testResult = await emailAccountMailboxService.TestConnectionWithDraftAsync(stored, settingsDto, cancellationToken);
 
         #endregion
 

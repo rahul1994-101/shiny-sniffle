@@ -169,7 +169,7 @@ Agent-only: output modes (`digest`, `triage`, `compare`, `single`, `stats`, `act
 | **6d** thread list memory | ✅ `chat.EmailThreadMemory` (per mailbox alias) + inject last lists |
 | **6e** action_list | ✅ prompt mode; no separate ActionItem table (act in chat with `confirmed=true`) |
 
-**Daily loop (UI):** New chat defaults to Email; empty-state suggestions send triage, digest, reply, attachment, and folder prompts.
+**Daily loop (UI):** New chat defaults to Email; each agent has an empty-state greeting. Email suggestions send triage, digest, reply, attachment, and folder prompts.
 
 ### Policies
 

@@ -6,11 +6,10 @@ namespace Application.Features.Workspace.EmailAccounts;
 /// Workspace email-account setup — merge stored/draft settings and probe the mail port (Path B).
 /// Runtime agent operations use <see cref="Shared.WorkspaceMailboxService"/> with a resolved <see cref="MailboxAccountContext"/>.
 /// </summary>
-public sealed class EmailAccountMailboxService(EmailAccountRepository emailAccountRepo, IMailboxService mailboxService)
+public sealed class EmailAccountMailboxService(IMailboxService mailboxService)
 {
-    public async Task<TestConnectionResult> TestConnectionWithDraftAsync(Guid userId, EmailSettingsDto? draft = null, CancellationToken cancellationToken = default)
+    public async Task<TestConnectionResult> TestConnectionWithDraftAsync(StoredMailboxSettings? stored, EmailSettingsDto? draft = null, CancellationToken cancellationToken = default)
     {
-        var stored = await emailAccountRepo.GetDefaultStoredMailboxSettingsAsync(userId, cancellationToken);
         var resolved = EmailSettingsMapping.ResolveForMail(stored, draft);
         var runtime = EmailSettingsMapping.ToMailRuntime(resolved);
         if (runtime is null)

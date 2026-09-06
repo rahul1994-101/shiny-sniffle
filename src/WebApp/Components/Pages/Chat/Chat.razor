@@ -20,7 +20,7 @@
 
         <ChatMessageList Messages="_messages"
                          IsAssistantLoading="_sending"
-                         IsEmail="@(_chatAgent == ChatAgent.Email)"
+                         ChatAgent="_chatAgent"
                          StarterDisabled="_sending"
                          OnStarterPick="SendPromptAsync" />
 

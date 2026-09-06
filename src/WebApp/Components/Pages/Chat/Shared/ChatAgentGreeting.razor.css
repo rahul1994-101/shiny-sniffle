@@ -1,0 +1,55 @@
+.chat-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    min-height: 38vh;
+    gap: 0.65rem;
+    color: var(--app-muted);
+    padding: 1.5rem 0 1rem;
+    width: 100%;
+}
+
+.chat-empty-mark {
+    width: 3rem;
+    height: 3rem;
+    border-radius: 999px;
+    background: linear-gradient(
+        135deg,
+        color-mix(in srgb, var(--app-accent) 35%, transparent),
+        color-mix(in srgb, var(--app-assistant-avatar-bg) 35%, transparent)
+    );
+    margin-bottom: 0.25rem;
+}
+
+.chat-empty-title {
+    font-size: clamp(1.25rem, 3vw, 1.625rem);
+    font-weight: 600;
+    letter-spacing: -0.03em;
+    margin: 0;
+    color: var(--app-fg);
+}
+
+.chat-empty-hint {
+    margin: 0;
+    max-width: 28rem;
+    font-size: var(--ui-type-body);
+    line-height: 1.5;
+    color: var(--app-muted);
+}
+
+.chat-empty-help {
+    margin: 0.35rem 0 0;
+    font-size: 0.8125rem;
+    line-height: 1.4;
+}
+
+.chat-empty-help a {
+    color: var(--app-accent);
+    text-decoration: none;
+}
+
+.chat-empty-help a:hover {
+    text-decoration: underline;
+}

@@ -1,0 +1,32 @@
+@if (Items.Count > 0)
+{
+    <div class="chat-starters" role="group" aria-label="@AriaLabel">
+        <p class="chat-starters-label">Suggestions</p>
+        <div class="chat-starters-grid">
+            @foreach (var starter in Items)
+            {
+                <button type="button"
+                        class="chat-starter"
+                        disabled="@Disabled"
+                        @onclick="() => OnPick.InvokeAsync(starter.Prompt)">
+                    <span class="chat-starter-title">@starter.Title</span>
+                    <span class="chat-starter-desc">@starter.Hint</span>
+                </button>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public IReadOnlyList<(string Title, string Hint, string Prompt)> Items { get; set; } = [];
+
+    [Parameter]
+    public bool Disabled { get; set; }
+
+    [Parameter]
+    public EventCallback<string> OnPick { get; set; }
+
+    [Parameter]
+    public string AriaLabel { get; set; } = "Suggestions";
+}

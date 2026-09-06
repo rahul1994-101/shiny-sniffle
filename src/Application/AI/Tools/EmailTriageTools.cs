@@ -14,13 +14,14 @@ public sealed class EmailTriageTools(
     WorkspaceMailboxService mailboxService,
     WorkspaceReferenceService workspaceRefs,
     EmailThreadMemoryService emailMemory,
+    EmailAccountRepository emailAccountRepo,
     ContactRepository contactRepo)
 {
     #region # Public
 
     internal EmailTriageToolRun CreateRun(Guid userId, Guid threadId, MailboxAccountContext? defaultMailboxAccount, bool requireMailboxAlias, IReadOnlyList<MailboxListSnapshot> lastLists)
     {
-        var session = new Session(mailboxService, workspaceRefs, emailMemory, contactRepo, userId, threadId, defaultMailboxAccount, requireMailboxAlias, lastLists);
+        var session = new Session(mailboxService, workspaceRefs, emailMemory, emailAccountRepo, contactRepo, userId, threadId, defaultMailboxAccount, requireMailboxAlias, lastLists);
         return new EmailTriageToolRun(session.CreateTools(), session.PersistLastListAsync);
     }
 
@@ -30,6 +31,7 @@ public sealed class EmailTriageTools(
         WorkspaceMailboxService mailboxService,
         WorkspaceReferenceService workspaceRefs,
         EmailThreadMemoryService emailMemory,
+        EmailAccountRepository emailAccountRepo,
         ContactRepository contactRepo,
         Guid userId,
         Guid threadId,
@@ -38,9 +40,10 @@ public sealed class EmailTriageTools(
         IReadOnlyList<MailboxListSnapshot> lastLists)
     {
         private const string MailboxAliasHint =
-            "Connected mailbox alias or mailbox:alias; empty uses @mailbox mention from this turn, else default account.";
+            "Connected mailbox alias, mailbox:alias, or the account email; empty uses @mailbox mention from this turn, else the last inbox listed in this thread, else the default account.";
 
         private MailboxAccountContext? _defaultAccount = defaultMailboxAccount;
+        private readonly string? _stickyAlias = LastUsedAlias(lastLists);
         private readonly Dictionary<string, MailboxAccountContext> _accountCache = new(StringComparer.OrdinalIgnoreCase);
         private readonly Dictionary<string, MailboxListSnapshot> _lists = ToListMap(lastLists);
         private readonly HashSet<string> _dirtyAliases = new(StringComparer.OrdinalIgnoreCase);
@@ -224,11 +227,28 @@ public sealed class EmailTriageTools(
                     description:
                         "Saves a draft to the Drafts folder. Same shape as send_email but recipients/subject are optional. Reply/forward drafts need reply_uid or list_index from a prior list/get."),
                 AIFunctionFactory.Create(
+                    (CancellationToken cancellationToken) =>
+                        ListEmailAccountsAsync(cancellationToken),
+                    name: "list_email_accounts",
+                    description:
+                        "Lists workspace-connected email accounts (alias, address, provider, default). " +
+                        "Use for how-many / which accounts. Does not test IMAP — use get_mailbox_status for reachability, " +
+                        "or summarize_all_inboxes for unread counts on every account."),
+                AIFunctionFactory.Create(
+                    ([Description("IMAP folder: empty/inbox (default), sent, drafts, trash, junk, or a folder name.")] string folder,
+                        CancellationToken cancellationToken) =>
+                        SummarizeAllInboxesAsync(folder, cancellationToken),
+                    name: "summarize_all_inboxes",
+                    description:
+                        "Inbox (or folder) totals and unread counts for every connected account. " +
+                        "Use when the user asks about all inboxes / both accounts / every mailbox. Does not list message rows."),
+                AIFunctionFactory.Create(
                     ([Description(MailboxAliasHint)] string mailboxAlias, CancellationToken cancellationToken) =>
                         GetMailboxStatusAsync(mailboxAlias, cancellationToken),
                     name: "get_mailbox_status",
                     description:
-                        "Checks whether a mailbox account is configured and IMAP/SMTP are reachable."),
+                        "Checks whether one mailbox account is configured and IMAP/SMTP are reachable. " +
+                        "Not for counting connected accounts — use list_email_accounts."),
                 AIFunctionFactory.Create(
                     ([Description("First period since keyword or range (e.g. today, this_week).")] string firstSince,
                         [Description("Second period since keyword or range (e.g. yesterday, last_week).")] string secondSince,
@@ -389,6 +409,62 @@ public sealed class EmailTriageTools(
                 account => mailboxService.GetFolderAsync(account, filters, cancellationToken),
                 EmailMailboxTextHelpers.FormatFolderStats,
                 cancellationToken);
+        }
+
+        private async Task<string> ListEmailAccountsAsync(CancellationToken cancellationToken)
+        {
+            var accounts = await emailAccountRepo.GetAllEmailAccountsByUserIdAsync(userId, cancellationToken);
+            if (accounts.Count == 0)
+            {
+                return "No email accounts connected. Add one in Workspace → Email accounts.";
+            }
+
+            var lines = accounts.Select(a =>
+            {
+                var mark = a.IsDefault ? " · default" : string.Empty;
+                return $"- {a.Alias} ({a.EntityRef}) — {a.EmailAddress} · {a.ProviderName}{mark}";
+            });
+            return $"Connected email accounts: {accounts.Count}\n" + string.Join('\n', lines);
+        }
+
+        private async Task<string> SummarizeAllInboxesAsync(string folder, CancellationToken cancellationToken)
+        {
+            var accounts = await emailAccountRepo.GetAllEmailAccountsByUserIdAsync(userId, cancellationToken);
+            if (accounts.Count == 0)
+            {
+                return "No email accounts connected. Add one in Workspace → Email accounts.";
+            }
+
+            var folderLabel = string.IsNullOrWhiteSpace(folder) ? "inbox" : folder.Trim();
+            var lines = new List<string>
+            {
+                $"Folder stats for {accounts.Count} account(s) ({folderLabel}):"
+            };
+
+            foreach (var summary in accounts)
+            {
+                var (account, accountError) = await GetAccountAsync(summary.Alias, cancellationToken);
+                if (accountError is not null)
+                {
+                    lines.Add($"- {summary.Alias} ({summary.EmailAddress}): {accountError}");
+                    continue;
+                }
+
+                var filters = new GetFolderFilters { Folder = NullIfWhiteSpace(folder) };
+                var outcome = await mailboxService.GetFolderAsync(account!, filters, cancellationToken);
+                if (outcome.HasError)
+                {
+                    lines.Add($"- {summary.Alias} ({summary.EmailAddress}): {outcome.FirstErrorMessage}");
+                    continue;
+                }
+
+                var stats = outcome.Payload!;
+                var mark = summary.IsDefault ? " · default" : string.Empty;
+                lines.Add(
+                    $"- {summary.Alias} ({summary.EmailAddress}){mark} — {stats.UnreadCount} unread / {stats.TotalCount} total");
+            }
+
+            return string.Join('\n', lines);
         }
 
         private Task<string> GetMailboxStatusAsync(string mailboxAlias, CancellationToken cancellationToken)
@@ -795,6 +871,20 @@ public sealed class EmailTriageTools(
             }
         }
 
+        private static string? LastUsedAlias(IReadOnlyList<MailboxListSnapshot> snapshots)
+        {
+            foreach (var snapshot in snapshots)
+            {
+                var alias = snapshot.MailboxAlias?.Trim();
+                if (!string.IsNullOrWhiteSpace(alias))
+                {
+                    return alias;
+                }
+            }
+
+            return null;
+        }
+
         private static Dictionary<string, MailboxListSnapshot> ToListMap(IReadOnlyList<MailboxListSnapshot> snapshots)
         {
             var map = new Dictionary<string, MailboxListSnapshot>(StringComparer.OrdinalIgnoreCase);
@@ -907,13 +997,13 @@ public sealed class EmailTriageTools(
                 CacheAccount(_defaultAccount);
             }
 
-            var alias = NullIfWhiteSpace(mailboxAlias) ?? _defaultAccount?.Alias;
+            var alias = NullIfWhiteSpace(mailboxAlias) ?? _defaultAccount?.Alias ?? _stickyAlias;
 
             if (alias is null)
             {
                 if (requireMailboxAlias)
                 {
-                    return (null, "Multiple mailbox accounts were mentioned. Pass mailbox_alias for this call.");
+                    return (null, "Pass mailbox_alias for this call. A mailbox mention was ambiguous or did not resolve.");
                 }
 
                 if (_defaultAccount is not null)
@@ -937,9 +1027,7 @@ public sealed class EmailTriageTools(
                 return (cached, null);
             }
 
-            if (_defaultAccount is not null &&
-                (string.Equals(_defaultAccount.Alias, alias, StringComparison.OrdinalIgnoreCase) ||
-                 string.Equals(EntityRefs.Format(EntityRefs.Kind.Mailbox, _defaultAccount.Alias), alias, StringComparison.OrdinalIgnoreCase)))
+            if (_defaultAccount is not null && AccountMatches(_defaultAccount, alias))
             {
                 CacheAccount(_defaultAccount, alias);
                 return (_defaultAccount, null);
@@ -959,12 +1047,22 @@ public sealed class EmailTriageTools(
         {
             _accountCache[account.Alias] = account;
             _accountCache[EntityRefs.Format(EntityRefs.Kind.Mailbox, account.Alias)] = account;
+            if (!string.IsNullOrWhiteSpace(account.EmailAddress))
+            {
+                _accountCache[account.EmailAddress] = account;
+            }
+
             var key = NullIfWhiteSpace(lookupKey);
             if (key is not null)
             {
                 _accountCache[key] = account;
             }
         }
+
+        private static bool AccountMatches(MailboxAccountContext account, string alias) =>
+            string.Equals(account.Alias, alias, StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(account.EmailAddress, alias, StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(EntityRefs.Format(EntityRefs.Kind.Mailbox, account.Alias), alias, StringComparison.OrdinalIgnoreCase);
 
         private static string WithAccountHeader(MailboxAccountContext account, string body)
         {

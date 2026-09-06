@@ -171,6 +171,7 @@ else
     private bool _editorOpen;
     private bool _providerOpen;
     private bool _showPassword;
+    private string _previousNewAccountEmail = string.Empty;
     private SettingsEditorLayout _editorLayout = SettingsEditorLayout.FullPage;
     private SettingsSectionStatusHandle _status = null!;
 
@@ -297,6 +298,7 @@ else
                                type="email"
                                class="settings-input"
                                @bind="_form.EmailAddress"
+                               @bind:after="OnEmailAddressChanged"
                                autocomplete="email"
                                disabled="@IsFormBusy" />
                     </div>
@@ -466,6 +468,7 @@ else
         {
             EmailProviderId = ResolveInitialProviderId()
         };
+        _previousNewAccountEmail = string.Empty;
         EnsureProviderInForm();
         _editorOpen = true;
         _showPassword = false;
@@ -504,6 +507,7 @@ else
     {
         _editorOpen = false;
         _form = new AccountForm();
+        _previousNewAccountEmail = string.Empty;
         _providerOpen = false;
         _status.Clear();
     }
@@ -657,6 +661,23 @@ else
     }
 
     private void CloseProviderPicker() => _providerOpen = false;
+
+    private void OnEmailAddressChanged()
+    {
+        if (_form.Id is not null)
+        {
+            return;
+        }
+
+        var email = _form.EmailAddress.Trim();
+        if (string.IsNullOrWhiteSpace(_form.Username) ||
+            string.Equals(_form.Username.Trim(), _previousNewAccountEmail, StringComparison.OrdinalIgnoreCase))
+        {
+            _form.Username = email;
+        }
+
+        _previousNewAccountEmail = email;
+    }
 
     private void SelectProvider(EmailProviderDto provider)
     {

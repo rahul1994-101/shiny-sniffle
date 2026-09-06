@@ -1,0 +1,73 @@
+<div class="chat-empty">
+    <div class="chat-empty-mark" aria-hidden="true"></div>
+    <h2 class="chat-empty-title">@Screen.Title</h2>
+    <p class="chat-empty-hint">@Screen.Hint</p>
+    <ChatAgentStarters Items="Screen.Starters"
+                       Disabled="@Disabled"
+                       OnPick="OnPick"
+                       AriaLabel="@Screen.StartersLabel" />
+    @if (Screen.HelpHref is not null)
+    {
+        <p class="chat-empty-help">
+            <NavLink href="@Screen.HelpHref">@Screen.HelpLabel</NavLink>
+        </p>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public ChatAgent ChatAgent { get; set; }
+
+    [Parameter]
+    public bool Disabled { get; set; }
+
+    [Parameter]
+    public EventCallback<string> OnPick { get; set; }
+
+    private ScreenDef Screen => ChatAgent switch
+    {
+        ChatAgent.Email => EmailScreen,
+        _ => AssistantScreen
+    };
+
+    private sealed record ScreenDef(
+        string Title,
+        string Hint,
+        string StartersLabel,
+        (string Title, string Hint, string Prompt)[] Starters,
+        string? HelpHref = null,
+        string HelpLabel = "What can I ask?");
+
+    // Add a ScreenDef when a new chat agent ships.
+
+    private static readonly ScreenDef AssistantScreen = new(
+        "Your workspace receptionist",
+        "I explain this app and point you to the right specialist. I do not read mail or send messages — switch to Email for that.",
+        "Assistant suggestions",
+        [
+            ("What can you do?", "Tour this workspace", "What can this workspace do?"),
+            ("Available agents", "Who handles what", "What agents are available in this app?"),
+            ("Switch agents", "How the picker works", "How do I switch agents in chat?"),
+            ("Connect a mailbox", "Where to add an inbox", "Where do I connect my mailbox?"),
+            ("Email settings", "Providers and accounts", "How do I configure email settings?"),
+            ("I need my inbox", "Point me to Email", "I need to check my inbox.")
+        ]);
+
+    private static readonly ScreenDef EmailScreen = new(
+        "Ready to triage your inbox",
+        "Ask in your own words or pick a suggestion. Name an inbox, @mailbox:alias, or ask across all accounts.",
+        "Email suggestions",
+        [
+            ("Triage unread", "What needs a reply today", "Triage my unread mail from today. If nothing is unread today, widen to this week."),
+            ("What's new", "Digest today's inbox", "What's new in my inbox today? Give me a digest with Summary, Highlights, and Counts."),
+            ("All inboxes", "Unread on every account", "Check all my connected inboxes. Give unread and total counts per account."),
+            ("Needs a reply", "Oldest unanswered first", "Find unread messages that look like they need a reply. Start with the oldest and summarize each one."),
+            ("Find attachments", "Recent files in the inbox", "List recent inbox messages that have attachments and name the files."),
+            ("This week's noise", "Newsletters and promos", "Scan this week's inbox for newsletters, promotions, and bulk mail I can ignore."),
+            ("Compare volume", "Today vs yesterday", "Compare how many messages I got today vs yesterday."),
+            ("Connected accounts", "Which inboxes I have", "How many email accounts are connected? List them."),
+            ("Draft a reply", "Write it, don't send", "Open the most important unread message from today and draft a reply. Do not send until I confirm.")
+        ],
+        HelpHref: "/help/chat/email-agent#what-to-ask",
+        HelpLabel: "See every kind of prompt");
+}

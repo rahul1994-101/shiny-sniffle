@@ -13,7 +13,7 @@ public sealed class EmailThreadMemoryService(ChatThreadRepository chatThreadRepo
         foreach (var json in jsons)
         {
             var snapshot = MailboxListSnapshot.TryParseMemory(json);
-            if (snapshot is { Rows.Count: > 0 })
+            if (snapshot is { Rows.Count: > 0 } && !string.IsNullOrWhiteSpace(snapshot.MailboxAlias))
             {
                 lists.Add(snapshot);
             }

@@ -27,6 +27,7 @@ public sealed class EntityRefMentionContextService(
         var lines = handles.Count == 0 ? null : new List<string> { "## Referenced entities" };
         MailboxAccountContext? defaultMailboxAccount = null;
         var resolvedMailboxCount = 0;
+        var failedMailboxMention = false;
 
         foreach (var handle in handles)
         {
@@ -47,6 +48,7 @@ public sealed class EntityRefMentionContextService(
                 }
                 else
                 {
+                    failedMailboxMention = true;
                     lines!.Add($"- `{handle}`: {outcome.FirstErrorMessage}");
                 }
 
@@ -72,19 +74,16 @@ public sealed class EntityRefMentionContextService(
             lines!.Add(line);
         }
 
-        var requireMailboxAlias = resolvedMailboxCount > 1;
-        if (requireMailboxAlias)
+        var requireMailboxAlias = resolvedMailboxCount > 1 || failedMailboxMention;
+        if (resolvedMailboxCount > 1)
         {
             defaultMailboxAccount = null;
             lines!.Add("- Multiple mailboxes mentioned. Pass mailbox_alias on every mailbox tool call this turn; do not assume a default.");
         }
-        else if (resolveDefaultMailbox && defaultMailboxAccount is null)
+        else if (failedMailboxMention)
         {
-            var defaultOutcome = await workspaceRefs.TryResolveMailboxAsync(userId, null, cancellationToken);
-            if (!defaultOutcome.HasError)
-            {
-                defaultMailboxAccount = defaultOutcome.Payload;
-            }
+            defaultMailboxAccount = null;
+            lines!.Add("- A mailbox mention did not resolve. Do not fall back to another account; ask the user to pick a connected alias or email.");
         }
 
         return new EntityRefMentionResolution

@@ -29,6 +29,10 @@ public sealed class MailboxAccountResolver(EmailAccountRepository emailAccountRe
 
                 alias = parsedAlias;
             }
+            else if (trimmed.Contains('@'))
+            {
+                alias = trimmed;
+            }
             else
             {
                 alias = EmailAccountMapping.NormalizeAlias(trimmed) ?? trimmed;

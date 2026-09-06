@@ -75,8 +75,8 @@ public sealed class ChatThreadRepository(IDbContextFactory<AppDbContext> _dbCont
         await using var ctx = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
         return await ctx.EmailThreadMemories
             .AsNoTracking()
-            .Where(x => x.ChatThreadId == threadId && x.UserId == userId)
-            .OrderBy(x => x.MailboxAlias)
+            .Where(x => x.ChatThreadId == threadId && x.UserId == userId && x.MailboxAlias != "")
+            .OrderByDescending(x => x.UpdatedAt)
             .Select(x => x.ListSnapshotJson)
             .ToListAsync(cancellationToken);
     }

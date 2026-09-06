@@ -280,13 +280,113 @@
                 <li><strong>Assistant</strong> — general help and questions that do not need mailbox access.</li>
                 <li><strong>Email</strong> — triage and actions on your connected inboxes. Requires a default mailbox.</li>
             </ul>
-            <p>The choice is saved per thread. New chats start on <strong>Email</strong> so inbox shortcuts show immediately. Switch to Assistant from the picker when you do not need mail. If Email is unavailable, the picker shows an error with a link to Workspace → Email accounts.</p>
+            <p>The choice is saved per thread. An empty thread shows that agent’s greeting and suggestions. New chats start on <strong>Email</strong>. Switch to Assistant from the picker for workspace help (no mailbox tools). If Email is unavailable, the picker shows an error with a link to Workspace → Email accounts.</p>
 
             <h2 class="help-article-heading">Sending messages</h2>
             <p>Type in the composer and press <strong>Enter</strong> to send. Use <strong>Shift+Enter</strong> for a new line. While the assistant is replying, sending is disabled and a typing indicator appears.</p>
 
             <h2 class="help-article-heading">First triage run</h2>
-            <p>Follow <NavLink href="/help/getting-started">Getting started</NavLink> for the ordered setup path. On the chat step, open a new thread and use a shortcut or send a simple triage request to confirm end-to-end mail access.</p>
+            <p>Follow <NavLink href="/help/getting-started">Getting started</NavLink> for the ordered setup path. On the chat step, open a new thread and use an Email suggestion or send a simple triage request to confirm end-to-end mail access. An empty Email chat also links here for the full prompt list.</p>
+
+            <h2 id="what-to-ask" class="help-article-heading">What to ask</h2>
+            <p>Talk in your own words. The lines below are proven phrasings — copy them or mix them. You do not need special syntax.</p>
+            <p><strong>Send, delete, move, copy, new folder, and save contact</strong> always ask you to confirm before they happen.</p>
+
+            <h2 class="help-article-heading">How to name an inbox</h2>
+            <dl class="help-article-dl">
+                <div>
+                    <dt>Default account</dt>
+                    <dd>Ask normally — nothing extra.</dd>
+                </div>
+                <div>
+                    <dt>A specific account</dt>
+                    <dd>Type <code>@@mailbox:work</code>, say “on my work inbox”, or use the address. Type <code>@@</code> in the composer to pick a mailbox.</dd>
+                </div>
+                <div>
+                    <dt>Every account</dt>
+                    <dd>“Check all my inboxes”, “both accounts”, or “every mailbox”.</dd>
+                </div>
+                <div>
+                    <dt>Follow-up in this thread</dt>
+                    <dd>After a list, “#3” or “read that” stays on the last inbox you listed.</dd>
+                </div>
+            </dl>
+
+            <h2 class="help-article-heading">Accounts and connection</h2>
+            <ul class="help-article-list">
+                <li>How many email accounts are connected?</li>
+                <li>Which mailboxes do I have?</li>
+                <li>Check all my connected inboxes. Give unread and total counts per account.</li>
+                <li>Is my work mailbox connected?</li>
+            </ul>
+
+            <h2 class="help-article-heading">Daily loop</h2>
+            <ul class="help-article-list">
+                <li>What's new in my inbox today?</li>
+                <li>Triage my unread mail from today. If nothing is unread today, widen to this week.</li>
+                <li>What needs my attention?</li>
+                <li>Which emails should I reply to first?</li>
+                <li>Find unread messages that look like they need a reply. Start with the oldest.</li>
+            </ul>
+
+            <h2 class="help-article-heading">Lists, counts, and filters</h2>
+            <p><strong>When</strong> — today, yesterday, this week, last week, last 3 days, or a range such as May 1 to May 7, 2026. <strong>Where</strong> — inbox (default), Sent, Drafts, Trash, Junk, or a folder name.</p>
+            <ul class="help-article-list">
+                <li>Show my recent emails.</li>
+                <li>How many emails did I get today?</li>
+                <li>Show my unread emails from today.</li>
+                <li>Show emails from Amazon this week.</li>
+                <li>Find emails with invoice in the subject.</li>
+                <li>Show emails with attachments from today.</li>
+                <li>What did I send this week?</li>
+                <li>Show my drafts.</li>
+                <li>What folders are in my mailbox?</li>
+                <li>How many unread messages are in my inbox?</li>
+            </ul>
+
+            <h2 class="help-article-heading">Read, summarize, compare</h2>
+            <p>After a list, use #1, #2, or “the Amazon one”.</p>
+            <ul class="help-article-list">
+                <li>Read the third email from today.</li>
+                <li>Open message #2 from my unread list.</li>
+                <li>Summarize the Amazon email from today.</li>
+                <li>Open the top 3 unread messages from this week.</li>
+                <li>Download the PDF from that invoice.</li>
+                <li>Who emailed me the most this week?</li>
+                <li>Compare how many messages I got today vs yesterday.</li>
+                <li>Which invoices need paying?</li>
+            </ul>
+
+            <h2 class="help-article-heading">Act on mail</h2>
+            <p>Confirm when the agent shows the plan.</p>
+            <ul class="help-article-list">
+                <li>Mark #2 as read.</li>
+                <li>Flag the invoice as important.</li>
+                <li>Archive #3.</li>
+                <li>Move those two spam messages to junk.</li>
+                <li>Create a folder called Receipts.</li>
+                <li>Trash the spam messages we just listed.</li>
+                <li>Draft a reply to the most important unread from today. Do not send until I confirm.</li>
+                <li>Reply to #2 saying thanks.</li>
+                <li>Forward that invoice to alice@example.com with a short note.</li>
+                <li>Send an email to alice@example.com about tomorrow's meeting.</li>
+                <li>Save a draft to bob@example.com about the meeting.</li>
+            </ul>
+
+            <h2 class="help-article-heading">Contacts</h2>
+            <ul class="help-article-list">
+                <li>What's Sarah's email?</li>
+                <li>Look up contact Bob.</li>
+                <li>Save Alice from that invoice as a contact.</li>
+            </ul>
+
+            <h2 class="help-article-heading">Several inboxes in one chat</h2>
+            <ol class="help-article-list">
+                <li>Check all my connected inboxes.</li>
+                <li>List unread on @@mailbox:work from today.</li>
+                <li>Triage unread on my personal inbox.</li>
+                <li>Follow-ups (read #1, draft a reply) stay on the last inbox you listed.</li>
+            </ol>
             break;
 
         case "chat/threads":
@@ -294,7 +394,7 @@
             <p>Each chat thread is a separate conversation with its own title, message history, and agent choice. Threads appear under <strong>Recent</strong> in the sidebar.</p>
 
             <h2 class="help-article-heading">Starting a thread</h2>
-            <p>Click <strong>New chat</strong> in the sidebar. A thread is created with the title “New chat”, the Email agent, and inbox shortcuts on the empty state. Rename it once you know what the conversation is about. Connect a mailbox first or you will be sent to Workspace → Email accounts.</p>
+            <p>Click <strong>New chat</strong> in the sidebar. A thread is created with the title “New chat”, the Email agent, and that agent’s greeting on the empty state. Switch the picker to see Assistant’s greeting. Rename the thread once you know what the conversation is about. Connect a mailbox first or you will be sent to Workspace → Email accounts.</p>
 
             <h2 class="help-article-heading">Renaming</h2>
             <p>Hover a thread in Recent and click the rename icon. Edit the title inline, then press <strong>Enter</strong> or click away to save. Press <strong>Escape</strong> to cancel. Titles can be up to 80 characters.</p>
